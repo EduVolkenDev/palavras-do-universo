@@ -20,11 +20,17 @@ No ambiente de deploy, preencher:
 OPENAI_API_KEY=
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_SITE_URL=https://SEU-DOMINIO
+NEXT_PUBLIC_SUPPORT_EMAIL=
 STRIPE_SECRET_KEY=sk_live_...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
+HEALTH_CHECK_TOKEN=
 STRIPE_ENABLE_PIX=true
+STRIPE_CHECKOUT_VERIFIED=false
+STRIPE_CUSTOMER_PORTAL_VERIFIED=false
 ```
 
 Nao colocar `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY` ou
@@ -66,6 +72,9 @@ customer.subscription.deleted
    - `/meu-universo` mostra acesso ativo.
    - `?product=clareza_urgente` abre a leitura.
    - a leitura e salva no historico.
+7. Depois do teste real, marcar:
+   - `STRIPE_CHECKOUT_VERIFIED=true`
+   - `STRIPE_CUSTOMER_PORTAL_VERIFIED=true` somente se o portal de assinatura abrir corretamente.
 
 ## Texto pronto para vender
 
