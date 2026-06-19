@@ -1,0 +1,245 @@
+import Stripe from "stripe";
+import { getSupabaseAdmin } from "@/lib/supabase/server";
+
+type EntitlementProduct = {
+  product_key: string;
+};
+
+function getString(value: unknown) {
+  return typeof value === "string" ? value : null;
+}
+
+async function getEntitlementProducts(productKey: string) {
+  const supabase = getSupabaseAdmin();
+  const products = new Set<string>([productKey]);
+
+  if (productKey === "circulo_do_universo") {
+    const { data } = await supabase
+      .from("oracle_products")
+      .select("product_key")
+      .contains("included_in", ["circulo_do_universo"])
+      .returns<EntitlementProduct[]>();
+
+    for (const item of data ?? []) {
+      products.add(item.product_key);
+    }
+  }
+
+  return [...products];
+}
+
+async function grantEntitlements(params: {
+  userId: string;
+  productKey: string;
+  source: "purchase" | "subscription";
+  expiresAt?: string | null;
+  metadata?: Record<string, unknown>;
+}) {
+  const supabase = getSupabaseAdmin();
+  const productKeys = await getEntitlementProducts(params.productKey);
+
+  for (const productKey of productKeys) {
+    const { data: existing } = await supabase
+      .from("user_entitlements")
+      .select("id,usage_limit,usage_count,metadata")
+      .eq("user_id", params.userId)
+      .eq("product_key", productKey)
+      .eq("source", params.source)
+      .maybeSingle();
+
+    const existingMetadata =
+      existing?.metadata && typeof existing.metadata === "object"
+        ? (existing.metadata as Record<string, unknown>)
+        : {};
+    const checkoutSessionId = params.metadata?.checkout_session_id;
+    const samePurchase =
+      params.source === "purchase" &&
+      typeof checkoutSessionId === "string" &&
+      existingMetadata.checkout_session_id === checkoutSessionId;
+    const purchaseUsageLimit =
+      params.source === "purchase"
+        ? samePurchase
+          ? existing?.usage_limit ?? 1
+          : (existing?.usage_limit ?? 0) + 1
+        : null;
+    const usageCount = existing?.usage_count ?? 0;
+
+    const payload = {
+      user_id: params.userId,
+      product_key: productKey,
+      source: params.source,
+      status: "active",
+      starts_at: new Date().toISOString(),
+      expires_at: params.expiresAt ?? null,
+      usage_limit: purchaseUsageLimit,
+      usage_count: usageCount,
+      consumed_at:
+        purchaseUsageLimit !== null && usageCount < purchaseUsageLimit ? null : undefined,
+      metadata: params.metadata ?? {},
+      updated_at: new Date().toISOString(),
+    };
+
+    if (existing?.id) {
+      await supabase.from("user_entitlements").update(payload).eq("id", existing.id);
+    } else {
+      await supabase.from("user_entitlements").insert(payload);
+    }
+  }
+}
+
+export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
+  const supabase = getSupabaseAdmin();
+  const userId = session.metadata?.user_id;
+  const productKey = session.metadata?.product_key;
+
+  if (!userId || !productKey) {
+    return { ok: false as const, reason: "missing_metadata" };
+  }
+  if (
+    session.mode !== "subscription" &&
+    !["paid", "no_payment_required"].includes(session.payment_status)
+  ) {
+    return { ok: false as const, reason: "payment_not_confirmed" };
+  }
+
+  if (session.mode === "subscription") {
+    const subscriptionId = getString(session.subscription);
+    const customerId = getString(session.customer);
+
+    await supabase
+      .from("subscriptions")
+      .update({
+        status: "active",
+        provider_customer_id: customerId,
+        provider_subscription_id: subscriptionId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("provider", "stripe")
+      .eq("provider_checkout_id", session.id);
+
+    await grantEntitlements({
+      userId,
+      productKey,
+      source: "subscription",
+      metadata: {
+        checkout_session_id: session.id,
+        stripe_subscription_id: subscriptionId,
+      },
+    });
+
+    return { ok: true as const, userId, productKey, source: "subscription" as const };
+  }
+
+  await supabase
+    .from("purchases")
+    .update({
+      status: "paid",
+      provider_payment_id: getString(session.payment_intent),
+      delivered_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("provider", "stripe")
+    .eq("provider_checkout_id", session.id);
+
+  await grantEntitlements({
+    userId,
+    productKey,
+    source: "purchase",
+    metadata: {
+      checkout_session_id: session.id,
+      payment_intent_id: getString(session.payment_intent),
+    },
+  });
+
+  return { ok: true as const, userId, productKey, source: "purchase" as const };
+}
+
+export async function syncStripeSubscription(subscription: Stripe.Subscription) {
+  const supabase = getSupabaseAdmin();
+  const userId = subscription.metadata?.user_id;
+  const productKey = subscription.metadata?.product_key;
+  const currentPeriodEnd = subscription.items.data[0]?.current_period_end
+    ? new Date(subscription.items.data[0].current_period_end * 1000).toISOString()
+    : null;
+
+  await supabase
+    .from("subscriptions")
+    .update({
+      status: subscription.status,
+      current_period_end: currentPeriodEnd,
+      cancel_at_period_end: subscription.cancel_at_period_end,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("provider", "stripe")
+    .eq("provider_subscription_id", subscription.id);
+
+  if (!userId || !productKey) return;
+
+  if (["active", "trialing"].includes(subscription.status)) {
+    await grantEntitlements({
+      userId,
+      productKey,
+      source: "subscription",
+      expiresAt: currentPeriodEnd,
+      metadata: {
+        stripe_subscription_id: subscription.id,
+        stripe_status: subscription.status,
+      },
+    });
+  } else if (["canceled", "unpaid", "incomplete_expired"].includes(subscription.status)) {
+    const productKeys = await getEntitlementProducts(productKey);
+    await supabase
+      .from("user_entitlements")
+      .update({
+        status: "revoked",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+      .eq("source", "subscription")
+      .in("product_key", productKeys);
+  }
+}
+
+export async function syncStripeRefund(charge: Stripe.Charge) {
+  const paymentIntentId = getString(charge.payment_intent);
+  if (!paymentIntentId) return { ok: false as const, reason: "missing_payment_intent" };
+
+  const supabase = getSupabaseAdmin();
+  const { data: purchase, error } = await supabase
+    .from("purchases")
+    .select("id,user_id,product_key,status")
+    .eq("provider", "stripe")
+    .eq("provider_payment_id", paymentIntentId)
+    .maybeSingle();
+  if (error || !purchase) {
+    return { ok: false as const, reason: "purchase_not_found" };
+  }
+
+  await supabase
+    .from("purchases")
+    .update({ status: "refunded", updated_at: new Date().toISOString() })
+    .eq("id", purchase.id);
+
+  const { data: entitlement } = await supabase
+    .from("user_entitlements")
+    .select("id,usage_limit,usage_count")
+    .eq("user_id", purchase.user_id)
+    .eq("product_key", purchase.product_key)
+    .eq("source", "purchase")
+    .maybeSingle();
+  if (entitlement?.id && typeof entitlement.usage_limit === "number") {
+    const usageCount =
+      typeof entitlement.usage_count === "number" ? entitlement.usage_count : 0;
+    const usageLimit = Math.max(entitlement.usage_limit - 1, usageCount);
+    await supabase
+      .from("user_entitlements")
+      .update({
+        usage_limit: usageLimit,
+        status: usageLimit > usageCount ? "active" : "revoked",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", entitlement.id);
+  }
+
+  return { ok: true as const, userId: purchase.user_id, productKey: purchase.product_key };
+}

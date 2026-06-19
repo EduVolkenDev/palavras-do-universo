@@ -1,0 +1,66 @@
+body {
+  min-width: 320px;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+::selection {
+  background: rgba(188, 143, 70, 0.24);
+}
+
+button,
+a,
+select,
+textarea {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+input {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid rgba(244, 213, 141, 0.86);
+  outline-offset: 3px;
+}
+
+button:not(:disabled):active,
+a:active {
+  transform: translateY(1px);
+}
+
+.brand-serif {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.ritual-texture {
+  background:
+    linear-gradient(120deg, rgba(255, 250, 242, 0.95), rgba(246, 231, 212, 0.86)),
+    linear-gradient(180deg, rgba(188, 143, 70, 0.08), transparent 42%),
+    #fbf6ee;
+}
+
+.constellation-grid {
+  background-image:
+    linear-gradient(rgba(36, 27, 24, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(36, 27, 24, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+}

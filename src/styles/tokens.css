@@ -1,0 +1,17 @@
+:root {
+  --background: #fbf6ee;
+  --foreground: #241b18;
+  --paper: #fffaf2;
+  --ink-soft: #6f615a;
+  --night: #17172f;
+  --sage: #607464;
+  --rose: #b46b68;
+  --gold: #bc8f46;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}

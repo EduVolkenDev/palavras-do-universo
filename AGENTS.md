@@ -1,0 +1,3 @@
+# AGENTS.md instructions
+
+We don't need to do a build and commit/push every single adjustment we do. Leave the build to the localhost, and then when finished, we'll commit and push the whole task, not just the little adjustments. Always check at least twice every information you're using to fix or improve my codes, we're building premium products and brands, so every little detail needs to be premium! Volynx is new brand that came to change the world, we have to ALWAYS THINK WITH BILLIONAIRE MINDSET, LONG TERM WORLD IMPACT AND MAKING TECHNOLOGY ACCESIBLE FOR EVERYONE IS OUR MISSION! Never use "intuition" to fix or improve something, always check and act like a senior full stack developer and web/product designer and architect.

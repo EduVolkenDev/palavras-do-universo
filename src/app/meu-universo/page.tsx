@@ -1,0 +1,1125 @@
+"use client";
+
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Bookmark,
+  CheckCircle2,
+  Clock,
+  History,
+  HandHeart,
+  LogIn,
+  MoonStar,
+  Share2,
+  Sparkles,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import {
+  completeLocalImpactCommitment,
+  getLocalImpactCommitments,
+  getLocalSavedMessages,
+  getOrCreateLocalUserId,
+  removeLocalImpactCommitments,
+  removeLocalSavedMessages,
+  type LocalImpactCommitment,
+  updateLocalImpactCommitment,
+} from "@/lib/client/localUniverse";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { IMPACT_AREA_LABELS, type ImpactArea } from "@/lib/impact/actions";
+
+type Reading = {
+  id: string;
+  theme: string;
+  question: string;
+  mode: string;
+  spread_type: string;
+  spread: unknown;
+  interpretation: string;
+  created_at: string;
+};
+
+type SavedMessage = {
+  id: string;
+  reading_id: string | null;
+  message_type: string;
+  payload: unknown;
+  created_at: string;
+  local_only?: boolean;
+};
+
+type Entitlement = {
+  id: string;
+  product_key: string;
+  title: string;
+  product_type: string;
+  access_model: string;
+  source: string;
+  starts_at: string;
+  expires_at: string | null;
+  usage_limit: number | null;
+  usage_count: number;
+};
+
+type ImpactCommitment = Omit<LocalImpactCommitment, "local_only"> & {
+  client_key?: string | null;
+  local_only?: boolean;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function asArray(value: unknown) {
+  return Array.isArray(value) ? value : [];
+}
+
+function asString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function isDailyCardPayload(value: unknown): value is {
+  date_key?: string;
+  date_label?: string;
+  opening_key?: string;
+  card?: {
+    name?: string;
+    reversed?: boolean;
+    asset_path?: string;
+    keywords?: string[];
+  };
+  reading?: {
+    keyword?: string;
+    meaning?: string;
+    counsel?: string;
+    reflection_prompt?: string;
+    ritual?: string;
+  };
+} {
+  return isRecord(value) && isRecord(value.card) && isRecord(value.reading);
+}
+
+function isSavedReadingPayload(value: unknown): value is {
+  savedAt?: string;
+  theme?: string;
+  question?: string;
+  spreadLine?: string;
+  spreadCards?: {
+    position?: string;
+    name?: string;
+    reversed?: boolean;
+    assetPath?: string;
+  }[];
+  result?: string;
+} {
+  return isRecord(value) && typeof value.result === "string";
+}
+
+function getMessageDedupeKey(message: SavedMessage) {
+  if (
+    message.message_type === "daily_card" &&
+    isDailyCardPayload(message.payload) &&
+    (message.payload.opening_key || message.payload.date_key)
+  ) {
+    return `daily_card:${message.payload.opening_key ?? message.payload.date_key}`;
+  }
+
+  return message.id;
+}
+
+function getSavedTitle(message: SavedMessage) {
+  if (message.message_type === "daily_card" && isDailyCardPayload(message.payload)) {
+    const name = asString(message.payload.card?.name);
+    return name ? `Carta do Dia: ${name}` : "Carta do Dia";
+  }
+
+  if (message.message_type === "reading" && isSavedReadingPayload(message.payload)) {
+    const question = asString(message.payload.question);
+    return question || "Leitura salva";
+  }
+
+  if (!isRecord(message.payload)) return "Mensagem salva";
+  const question = message.payload.question;
+  return typeof question === "string" && question ? question : "Mensagem salva";
+}
+
+function getSavedPreview(message: SavedMessage) {
+  if (message.message_type === "daily_card" && isDailyCardPayload(message.payload)) {
+    return asString(message.payload.reading?.meaning);
+  }
+
+  if (message.message_type === "reading" && isSavedReadingPayload(message.payload)) {
+    return asString(message.payload.result)
+      .split("\n")
+      .filter(Boolean)
+      .slice(0, 4)
+      .join(" ");
+  }
+
+  if (!isRecord(message.payload)) return "";
+  const result = message.payload.result;
+  return typeof result === "string"
+    ? result.split("\n").filter(Boolean).slice(0, 3).join(" ")
+    : "";
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+export default function MeuUniversoPage() {
+  const [userId, setUserId] = useState("");
+  const [accountEmail, setAccountEmail] = useState("");
+  const [authChecked, setAuthChecked] = useState(false);
+  const [readings, setReadings] = useState<Reading[]>([]);
+  const [messages, setMessages] = useState<SavedMessage[]>([]);
+  const [entitlements, setEntitlements] = useState<Entitlement[]>([]);
+  const [commitments, setCommitments] = useState<ImpactCommitment[]>([]);
+  const [checkoutNotice, setCheckoutNotice] = useState("");
+  const [syncNotice, setSyncNotice] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const nextUserId = getOrCreateLocalUserId();
+    setUserId(nextUserId);
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      setAuthChecked(true);
+    } else {
+      supabase.auth
+        .getUser()
+        .then(({ data }) => setAccountEmail(data.user?.email ?? ""))
+        .catch(() => setAccountEmail(""))
+        .finally(() => setAuthChecked(true));
+    }
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") === "success") {
+      setCheckoutNotice(
+        "Pagamento recebido. Estamos confirmando seu acesso agora."
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!userId || !authChecked) return;
+
+    async function load() {
+      setLoading(true);
+      setError("");
+      const initialLocalMessages = getLocalSavedMessages();
+      const initialLocalCommitments = getLocalImpactCommitments();
+      if (initialLocalMessages.length) {
+        setMessages(initialLocalMessages);
+      }
+      if (initialLocalCommitments.length) {
+        setCommitments(initialLocalCommitments);
+      }
+
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const sessionId = params.get("session_id");
+
+        if (accountEmail && params.get("checkout") === "success" && sessionId) {
+          const confirmRes = await fetch("/api/checkout/confirm", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ sessionId }),
+          });
+          const confirmData = (await confirmRes.json()) as unknown;
+
+          if (confirmRes.ok) {
+            setCheckoutNotice("Acesso liberado. Sua leitura já pode ser aberta abaixo.");
+            if (isRecord(confirmData) && Array.isArray(confirmData.entitlements)) {
+              setEntitlements(confirmData.entitlements as Entitlement[]);
+            }
+          } else {
+            setCheckoutNotice(
+              "Pagamento recebido. Se o acesso ainda não aparecer, aguarde alguns segundos e atualize esta página."
+            );
+          }
+        }
+
+        if (!accountEmail) {
+          setReadings([]);
+          setEntitlements([]);
+          return;
+        }
+
+        if (initialLocalMessages.length) {
+          const syncRes = await fetch("/api/account/sync-local", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ messages: initialLocalMessages }),
+          });
+          const syncData = (await syncRes.json()) as unknown;
+
+          if (
+            syncRes.ok &&
+            isRecord(syncData) &&
+            Array.isArray(syncData.syncedKeys)
+          ) {
+            const syncedKeys = syncData.syncedKeys.filter(
+              (key): key is string => typeof key === "string"
+            );
+            removeLocalSavedMessages(syncedKeys);
+            if (syncedKeys.length) {
+              setSyncNotice(
+                `${syncedKeys.length} ${
+                  syncedKeys.length === 1 ? "mensagem foi protegida" : "mensagens foram protegidas"
+                } na sua conta.`
+              );
+            }
+          }
+        }
+
+        if (initialLocalCommitments.length) {
+          const syncedActionIds: string[] = [];
+          for (const commitment of initialLocalCommitments) {
+            const syncRes = await fetch("/api/actions", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                clientKey: commitment.id,
+                actionKey: commitment.action_key,
+                plan: commitment.plan,
+                sourceReadingId: commitment.source_reading_id,
+                invitedBy: commitment.invited_by,
+                status: commitment.status,
+                reflection: commitment.reflection,
+                completedAt: commitment.completed_at,
+                beneficiary: commitment.beneficiary,
+                firstStep: commitment.first_step,
+                scheduledFor: commitment.scheduled_for,
+                publicToken: commitment.public_token,
+                publicCompletionSecret: commitment.public_completion_secret,
+                rootChainToken: commitment.root_chain_token,
+                parentPublicToken: commitment.parent_public_token,
+                deferredUntil: commitment.deferred_until,
+                cancelledReason: commitment.cancelled_reason,
+              }),
+            });
+            if (syncRes.ok) syncedActionIds.push(commitment.id);
+          }
+          removeLocalImpactCommitments(syncedActionIds);
+        }
+
+        const [readingsRes, messagesRes, entitlementsRes, actionsRes] = await Promise.all([
+          fetch("/api/readings?limit=20"),
+          fetch("/api/saved-messages?limit=20"),
+          fetch("/api/entitlements"),
+          fetch("/api/actions"),
+        ]);
+
+        const readingsData = (await readingsRes.json()) as unknown;
+        const messagesData = (await messagesRes.json()) as unknown;
+        const entitlementsData = (await entitlementsRes.json()) as unknown;
+        const actionsData = (await actionsRes.json()) as unknown;
+
+        if (!readingsRes.ok || !messagesRes.ok || !entitlementsRes.ok || !actionsRes.ok) {
+          throw new Error("Não foi possível carregar seu histórico.");
+        }
+
+        setReadings(
+          isRecord(readingsData)
+            ? (asArray(readingsData.readings) as Reading[])
+            : []
+        );
+        const remoteMessages = isRecord(messagesData)
+          ? (asArray(messagesData.messages) as SavedMessage[])
+          : [];
+        const localMessages = getLocalSavedMessages();
+        const seen = new Set<string>();
+        const mergedMessages = [...remoteMessages, ...localMessages].filter(
+          (message) => {
+            const dedupeKey = getMessageDedupeKey(message);
+            if (seen.has(dedupeKey)) return false;
+            seen.add(dedupeKey);
+            return true;
+          }
+        );
+
+        setMessages(
+          mergedMessages.sort(
+            (a, b) =>
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+          )
+        );
+        setEntitlements(
+          isRecord(entitlementsData)
+            ? (asArray(entitlementsData.entitlements) as Entitlement[])
+            : []
+        );
+        setCommitments(
+          isRecord(actionsData)
+            ? (asArray(actionsData.commitments) as ImpactCommitment[])
+            : []
+        );
+      } catch (caught) {
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Não foi possível carregar seu histórico."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, [accountEmail, authChecked, userId]);
+
+  const stats = useMemo(
+    () => [
+      { label: "Leituras", value: readings.length, icon: History },
+      { label: "Salvas", value: messages.length, icon: Bookmark },
+      { label: "Acessos", value: entitlements.length, icon: CheckCircle2 },
+      {
+        label: "Ações concluídas",
+        value: commitments.filter((commitment) => commitment.status === "completed").length,
+        icon: HandHeart,
+      },
+      {
+        label: "Em movimento",
+        value: commitments.filter((commitment) =>
+          ["committed", "deferred"].includes(commitment.status)
+        ).length,
+        icon: HandHeart,
+      },
+      {
+        label: "Tema mais recente",
+        value: readings[0]?.theme ?? "—",
+        icon: MoonStar,
+      },
+    ],
+    [commitments, entitlements.length, messages.length, readings]
+  );
+
+  async function openBillingPortal() {
+    try {
+      const res = await fetch("/api/billing/portal", { method: "POST" });
+      const data = (await res.json()) as unknown;
+      if (!res.ok || !isRecord(data) || typeof data.url !== "string") {
+        throw new Error("Não foi possível abrir a gestão da assinatura.");
+      }
+      window.location.href = data.url;
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Não foi possível abrir a gestão da assinatura."
+      );
+    }
+  }
+
+  return (
+    <main className="min-h-screen ritual-texture text-[#241b18]">
+      <header className="border-b border-[#e2d3c0] bg-[#fbf6ee]/92 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#4d3c31]"
+          >
+            <ArrowLeft size={17} />
+            Voltar
+          </Link>
+          <div className="flex items-center gap-2 text-sm text-[#6f615a]">
+            <Sparkles size={16} />
+            Meu Universo
+            {accountEmail ? (
+              <form action="/auth/signout" method="post">
+                <button
+                  type="submit"
+                  className="ml-2 rounded-lg border border-[#d8c3a6] px-3 py-1.5 font-semibold text-[#4d3c31]"
+                >
+                  Sair
+                </button>
+              </form>
+            ) : (
+              <Link
+                href="/entrar"
+                className="ml-2 inline-flex items-center gap-1.5 rounded-lg bg-[#241b18] px-3 py-1.5 font-semibold text-[#fff7e8]"
+              >
+                <LogIn size={14} />
+                Entrar
+              </Link>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">
+            Histórico pessoal
+          </p>
+          <h1 className="brand-serif mt-2 text-5xl font-semibold leading-none text-[#241b18]">
+            Suas mensagens começam a formar um mapa.
+          </h1>
+          <p className="mt-5 text-base leading-7 text-[#6f615a]">
+            Suas leituras, mensagens salvas e acessos começam a formar um
+            arquivo pessoal: um lugar para voltar, perceber padrões e abrir o
+            que foi desbloqueado.
+          </p>
+        </div>
+
+        <div className="mt-8 grid gap-3 md:grid-cols-4">
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-5"
+            >
+              <stat.icon size={19} className="text-[#607464]" />
+              <p className="mt-4 text-sm text-[#6f615a]">{stat.label}</p>
+              <p className="mt-1 text-2xl font-semibold text-[#241b18]">
+                {stat.value}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {error ? (
+          <div className="mt-6 rounded-lg border border-[#d9aaa8] bg-[#fff1f0] p-4 text-sm text-[#7b3330]">
+            {error}
+          </div>
+        ) : null}
+
+        {checkoutNotice ? (
+          <div className="mt-6 rounded-lg border border-[#a9cdbf] bg-[#eef8f2] p-4 text-sm leading-6 text-[#315d56]">
+            {checkoutNotice}
+          </div>
+        ) : null}
+
+        {syncNotice ? (
+          <div className="mt-6 rounded-lg border border-[#a9cdbf] bg-[#eef8f2] p-4 text-sm leading-6 text-[#315d56]">
+            {syncNotice}
+          </div>
+        ) : null}
+
+        {authChecked && !accountEmail ? (
+          <section className="mt-6 flex flex-col justify-between gap-4 rounded-lg border border-[#d8c3a6] bg-[#fffaf2] p-5 sm:flex-row sm:items-center">
+            <div>
+              <p className="font-semibold text-[#332720]">
+                Proteja e sincronize seu universo
+              </p>
+              <p className="mt-1 text-sm leading-6 text-[#6f615a]">
+                Suas mensagens locais continuam abaixo. Entre para acessar
+                histórico remoto, compras e leituras em outros dispositivos.
+              </p>
+            </div>
+            <Link
+              href="/entrar"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#241b18] px-4 py-2.5 text-sm font-semibold text-[#fff7e8]"
+            >
+              <LogIn size={16} />
+              Entrar com e-mail
+            </Link>
+          </section>
+        ) : null}
+
+        <section className="mt-8 rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-5">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
+                Acessos ativos
+              </p>
+              <h2 className="brand-serif mt-1 text-3xl font-semibold">
+                O que você pode abrir agora
+              </h2>
+            </div>
+            <CheckCircle2 size={22} className="text-[#607464]" />
+          </div>
+          {entitlements.some((item) => item.source === "subscription") ? (
+            <button
+              type="button"
+              onClick={openBillingPortal}
+              className="mb-5 inline-flex rounded-full border border-[#d8c3a6] px-4 py-2 text-sm font-semibold text-[#4d3c31]"
+            >
+              Gerenciar assinatura e cobrança
+            </button>
+          ) : null}
+
+          {loading && !entitlements.length ? (
+            <EmptyState text="Verificando seus acessos..." />
+          ) : entitlements.length ? (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {entitlements.map((entitlement) => (
+                <article
+                  key={entitlement.id}
+                  className="rounded-lg border border-[#e4d3ba] bg-[#fbf6ee] p-4"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">
+                    {entitlement.source === "subscription"
+                      ? "Círculo"
+                      : "Avulso"}
+                  </p>
+                  <h3 className="brand-serif mt-2 text-2xl font-semibold text-[#332720]">
+                    {entitlement.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-[#6f615a]">
+                    {entitlement.usage_limit
+                      ? `${Math.max(
+                          entitlement.usage_limit - entitlement.usage_count,
+                          0
+                        )} uso disponível.`
+                      : "Acesso ativo enquanto a assinatura estiver válida."}
+                  </p>
+                  <Link
+                    href={`/?product=${encodeURIComponent(
+                      entitlement.product_key
+                    )}`}
+                    className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#111019] px-4 py-2 text-sm font-semibold text-[#fff7e8] hover:bg-[#242130]"
+                  >
+                    Abrir leitura
+                    <ArrowRight size={15} />
+                  </Link>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState text="Quando você desbloquear uma leitura ou entrar no Círculo, o acesso aparece aqui." />
+          )}
+        </section>
+
+        <section className="mt-8 rounded-lg border border-[#a9cdbf] bg-[#f3f8f3] p-5">
+          <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#52705c]">
+                Palavras que viram ação
+              </p>
+              <h2 className="brand-serif mt-1 text-3xl font-semibold">
+                Seus compromissos com a vida real
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-[#5f7163]">
+                Concluir não é buscar perfeição. É registrar um gesto possível e
+                perceber o que ele transformou.
+              </p>
+            </div>
+            <Link
+              href="/#acao"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#315d56] px-4 py-2.5 text-sm font-semibold text-white"
+            >
+              <HandHeart size={16} />
+              Escolher nova ação
+            </Link>
+          </div>
+
+          {commitments.length ? (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {commitments.map((commitment) => (
+                <ImpactCommitmentCard
+                  key={commitment.id}
+                  commitment={commitment}
+                  onCompleted={(completed) =>
+                    setCommitments((current) =>
+                      current.map((item) =>
+                        item.id === completed.id ? completed : item
+                      )
+                    )
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState text="Quando você assumir uma ação, ela aparecerá aqui para ser acompanhada até a conclusão." />
+          )}
+        </section>
+
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1.12fr_0.88fr]">
+          <section className="rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-5">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
+                  Últimas leituras
+                </p>
+                <h2 className="brand-serif mt-1 text-3xl font-semibold">
+                  Caminhos abertos
+                </h2>
+              </div>
+              <BookOpen size={22} className="text-[#b46b68]" />
+            </div>
+
+            {loading && !readings.length ? (
+              <EmptyState text="Carregando seu histórico..." />
+            ) : readings.length ? (
+              <div className="space-y-3">
+                {readings.map((reading) => (
+                  <article
+                    key={reading.id}
+                    className="rounded-lg border border-[#e4d3ba] bg-[#fbf6ee] p-4"
+                  >
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
+                      <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
+                        {reading.theme}
+                      </span>
+                      <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
+                        {reading.mode}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock size={13} />
+                        {formatDate(reading.created_at)}
+                      </span>
+                    </div>
+                    <h3 className="mt-3 font-semibold text-[#332720]">
+                      {reading.question}
+                    </h3>
+                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-[#6f615a]">
+                      {reading.interpretation}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <EmptyState text="Faça sua primeira leitura para começar o histórico." />
+            )}
+          </section>
+
+          <section className="rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-5">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
+                  Mensagens salvas
+                </p>
+                <h2 className="brand-serif mt-1 text-3xl font-semibold">
+                  O que ficou
+                </h2>
+              </div>
+              <Bookmark size={22} className="text-[#b46b68]" />
+            </div>
+
+            {loading && !messages.length ? (
+              <EmptyState text="Buscando mensagens salvas..." />
+            ) : messages.length ? (
+              <div className="space-y-3">
+                {messages.map((message) => (
+                  <SavedMessageArticle key={message.id} message={message} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState text="Salve uma leitura para montar seu arquivo pessoal." />
+            )}
+          </section>
+        </div>
+
+      </section>
+    </main>
+  );
+}
+
+function ImpactCommitmentCard(props: {
+  commitment: ImpactCommitment;
+  onCompleted: (commitment: ImpactCommitment) => void;
+}) {
+  const { commitment } = props;
+  const [reflection, setReflection] = useState(commitment.reflection);
+  const [notice, setNotice] = useState("");
+  const [saving, setSaving] = useState(false);
+  const completed = commitment.status === "completed";
+  const active = ["committed", "deferred"].includes(commitment.status);
+  const areaLabel =
+    IMPACT_AREA_LABELS[commitment.area as ImpactArea] ?? "Impacto";
+
+  async function completeCommitment() {
+    setSaving(true);
+    setNotice("");
+
+    if (commitment.local_only || commitment.id.startsWith("action_")) {
+      const completedLocal = completeLocalImpactCommitment(
+        commitment.id,
+        reflection.trim()
+      );
+      if (completedLocal) props.onCompleted(completedLocal);
+      if (commitment.public_token) {
+        await fetch(`/api/actions/public/${encodeURIComponent(commitment.public_token)}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            completionSecret: commitment.public_completion_secret,
+          }),
+        }).catch(() => null);
+      }
+      setNotice("Ação concluída e guardada neste navegador.");
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/actions/${encodeURIComponent(commitment.id)}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ status: "completed", reflection }),
+      });
+      const data = (await res.json()) as unknown;
+      if (!res.ok || !isRecord(data) || !isRecord(data.commitment)) {
+        throw new Error("Não foi possível concluir a ação.");
+      }
+      props.onCompleted(data.commitment as ImpactCommitment);
+      if (commitment.public_token) {
+        await fetch(`/api/actions/public/${encodeURIComponent(commitment.public_token)}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            completionSecret: commitment.public_completion_secret,
+          }),
+        }).catch(() => null);
+      }
+      setNotice("Ação concluída. Este gesto agora faz parte da sua jornada.");
+    } catch (caught) {
+      setNotice(
+        caught instanceof Error
+          ? caught.message
+          : "Não foi possível concluir a ação agora."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function shareCommitment() {
+    const chainToken = commitment.public_token;
+    const url = chainToken
+      ? new URL(`/acao/${encodeURIComponent(chainToken)}`, window.location.origin)
+      : new URL(window.location.origin);
+    if (!chainToken) {
+      url.searchParams.set("acao", commitment.action_key);
+      url.hash = "acao";
+    }
+    const text = `Hoje, uma palavra virou ação: ${commitment.action_title}. Continue esta corrente com um gesto possível para você.`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Uma palavra virou ação",
+          text,
+          url: url.toString(),
+        });
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(`${text}\n${url.toString()}`);
+        setNotice("Convite copiado para compartilhar.");
+      }
+    } catch {
+      // User cancelled native share sheet.
+    }
+  }
+
+  async function transitionCommitment(status: "deferred" | "cancelled") {
+    const deferredUntil =
+      status === "deferred"
+        ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        : null;
+    const reason =
+      status === "cancelled"
+        ? window.prompt("Por que este compromisso deixou de ser possível?") ?? ""
+        : "";
+    if (status === "cancelled" && !reason.trim()) return;
+
+    if (commitment.local_only || commitment.id.startsWith("action_")) {
+      const updated = updateLocalImpactCommitment(commitment.id, {
+        status,
+        deferred_until: deferredUntil,
+        cancelled_reason: reason.trim(),
+      });
+      if (updated) props.onCompleted(updated);
+      setNotice(
+        status === "deferred"
+          ? "Compromisso adiado por 24 horas."
+          : "Compromisso encerrado sem culpa."
+      );
+      return;
+    }
+
+    const res = await fetch(`/api/actions/${encodeURIComponent(commitment.id)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status, deferredUntil, reason }),
+    });
+    const data = (await res.json()) as unknown;
+    if (res.ok && isRecord(data) && isRecord(data.commitment)) {
+      props.onCompleted(data.commitment as ImpactCommitment);
+      setNotice(
+        status === "deferred"
+          ? "Compromisso adiado por 24 horas."
+          : "Compromisso encerrado sem culpa."
+      );
+    }
+  }
+
+  return (
+    <article className="rounded-lg border border-[#bdd2c2] bg-[#fffdf8] p-5">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <span className="rounded-full bg-[#dceade] px-2 py-1 text-[#315d56]">
+          {areaLabel}
+        </span>
+        <span className="rounded-full bg-[#e7dcc9] px-2 py-1 text-[#6f615a]">
+          {completed
+            ? "Concluída"
+            : commitment.status === "deferred"
+              ? "Adiada"
+              : commitment.status === "cancelled"
+                ? "Encerrada"
+                : "Em compromisso"}
+        </span>
+        {commitment.invited_by ? (
+          <span className="rounded-full bg-[#eee3f4] px-2 py-1 text-[#66506f]">
+            Corrente continuada
+          </span>
+        ) : null}
+      </div>
+      <h3 className="brand-serif mt-4 text-2xl font-semibold text-[#332720]">
+        {commitment.action_title}
+      </h3>
+      <p className="mt-2 text-sm leading-6 text-[#5f7163]">{commitment.plan}</p>
+      {commitment.first_step ? (
+        <p className="mt-2 text-xs leading-5 text-[#5f7163]">
+          <strong>Primeiro passo:</strong> {commitment.first_step}
+        </p>
+      ) : null}
+      {commitment.scheduled_for ? (
+        <p className="mt-2 text-xs leading-5 text-[#5f7163]">
+          <strong>Quando:</strong> {formatDate(commitment.scheduled_for)}
+        </p>
+      ) : null}
+
+      {completed ? (
+        <div className="mt-4 rounded-lg bg-[#edf5ee] p-4 text-sm leading-6 text-[#42604b]">
+          <strong className="block">O que mudou depois da ação</strong>
+          {commitment.reflection || "A ação foi concluída sem reflexão registrada."}
+        </div>
+      ) : active ? (
+        <>
+          <label
+            htmlFor={`reflection-${commitment.id}`}
+            className="mt-4 block text-xs font-semibold uppercase tracking-[0.12em] text-[#52705c]"
+          >
+            O que mudou depois que você agiu?
+          </label>
+          <textarea
+            id={`reflection-${commitment.id}`}
+            value={reflection}
+            onChange={(event) => setReflection(event.target.value)}
+            maxLength={1000}
+            rows={3}
+            className="mt-2 w-full rounded-lg border border-[#bdd2c2] bg-white px-3 py-2 text-sm leading-6 outline-none focus:border-[#52705c]"
+            placeholder="Uma frase já é suficiente."
+          />
+        </>
+      ) : null}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {active ? (
+          <button
+            type="button"
+            onClick={completeCommitment}
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-full bg-[#315d56] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            <CheckCircle2 size={15} />
+            {saving ? "Registrando..." : "Marcar como realizada"}
+          </button>
+        ) : null}
+        {active ? (
+          <>
+            <button
+              type="button"
+              onClick={() => transitionCommitment("deferred")}
+              className="inline-flex items-center gap-2 rounded-full border border-[#8fb09a] px-4 py-2 text-sm font-semibold text-[#315d56]"
+            >
+              Preciso de mais tempo
+            </button>
+            <button
+              type="button"
+              onClick={() => transitionCommitment("cancelled")}
+              className="inline-flex items-center gap-2 rounded-full border border-[#d8c3a6] px-4 py-2 text-sm font-semibold text-[#6f615a]"
+            >
+              Encerrar compromisso
+            </button>
+          </>
+        ) : null}
+        <button
+          type="button"
+          onClick={shareCommitment}
+          className="inline-flex items-center gap-2 rounded-full border border-[#8fb09a] px-4 py-2 text-sm font-semibold text-[#315d56]"
+        >
+          <Share2 size={15} />
+          Convidar alguém
+        </button>
+      </div>
+      {notice ? (
+        <p className="mt-3 text-xs leading-5 text-[#5f7163]">{notice}</p>
+      ) : null}
+    </article>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-[#d8c3a6] bg-[#fbf6ee] p-5 text-sm leading-6 text-[#6f615a]">
+      {text}
+    </div>
+  );
+}
+
+function SavedMessageArticle({ message }: { message: SavedMessage }) {
+  if (message.message_type === "reading" && isSavedReadingPayload(message.payload)) {
+    const theme = asString(message.payload.theme);
+    const question = asString(message.payload.question);
+    const result = asString(message.payload.result);
+    const spreadCards = Array.isArray(message.payload.spreadCards)
+      ? message.payload.spreadCards
+      : [];
+
+    return (
+      <article className="overflow-hidden rounded-lg border border-[#e4d3ba] bg-[#fbf6ee]">
+        <div className="p-4">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
+            <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
+              Leitura de 3 cartas
+            </span>
+            {theme ? (
+              <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
+                {theme}
+              </span>
+            ) : null}
+            {message.local_only ? (
+              <span className="rounded-full bg-[#ead8d3] px-2 py-1">
+                local
+              </span>
+            ) : null}
+          </div>
+
+          <p className="mt-3 text-xs text-[#6f615a]">
+            {formatDate(message.created_at)}
+          </p>
+          <h3 className="mt-2 font-semibold text-[#332720]">
+            {question || "Leitura salva"}
+          </h3>
+
+          {spreadCards.length ? (
+            <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+              {spreadCards.map((card, index) => {
+                const name = asString(card.name);
+                const assetPath = asString(card.assetPath);
+
+                return (
+                  <div
+                    key={`${name}-${index}`}
+                    className="min-w-20 text-center"
+                  >
+                    {assetPath ? (
+                      <Image
+                        src={assetPath}
+                        alt={`Carta da leitura: ${name}`}
+                        width={120}
+                        height={192}
+                        className={`h-24 w-16 rounded-md object-cover shadow-[0_14px_26px_rgba(60,42,24,0.18)] ${
+                          card.reversed ? "rotate-180" : ""
+                        }`}
+                      />
+                    ) : (
+                      <div className="h-24 w-16 rounded-md bg-[#e7dcc9]" />
+                    )}
+                    <p className="mt-2 line-clamp-2 text-[0.68rem] leading-4 text-[#6f615a]">
+                      {name}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+
+          <p className="mt-3 line-clamp-5 text-sm leading-6 text-[#6f615a]">
+            {result}
+          </p>
+        </div>
+      </article>
+    );
+  }
+
+  if (
+    message.message_type === "daily_card" &&
+    isDailyCardPayload(message.payload)
+  ) {
+    const cardName = asString(message.payload.card?.name);
+    const assetPath = asString(message.payload.card?.asset_path);
+    const keyword = asString(message.payload.reading?.keyword);
+    const meaning = asString(message.payload.reading?.meaning);
+    const counsel = asString(message.payload.reading?.counsel);
+    const reversed = Boolean(message.payload.card?.reversed);
+
+    return (
+      <article className="overflow-hidden rounded-lg border border-[#e4d3ba] bg-[#fbf6ee]">
+        <div className="grid grid-cols-[88px_1fr] gap-4 p-4">
+          {assetPath ? (
+            <Image
+              src={assetPath}
+              alt={`Carta salva: ${cardName}`}
+              width={176}
+              height={282}
+              className={`h-32 w-20 rounded-md object-cover shadow-[0_18px_32px_rgba(60,42,24,0.2)] ${
+                reversed ? "rotate-180" : ""
+              }`}
+            />
+          ) : (
+            <div className="h-32 w-20 rounded-md bg-[#e7dcc9]" />
+          )}
+
+          <div>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
+              <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
+                Carta do Dia
+              </span>
+              {keyword ? (
+                <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
+                  {keyword}
+                </span>
+              ) : null}
+              {message.local_only ? (
+                <span className="rounded-full bg-[#ead8d3] px-2 py-1">
+                  local
+                </span>
+              ) : null}
+            </div>
+
+            <p className="mt-3 text-xs text-[#6f615a]">
+              {formatDate(message.created_at)}
+            </p>
+            <h3 className="brand-serif mt-1 text-2xl font-semibold text-[#332720]">
+              {cardName}
+              {reversed ? " reversa" : ""}
+            </h3>
+            <p className="mt-2 line-clamp-3 text-sm leading-6 text-[#6f615a]">
+              {meaning}
+            </p>
+          </div>
+        </div>
+
+        {counsel ? (
+          <div className="border-t border-[#e4d3ba] bg-[#fffaf2] px-4 py-3 text-sm leading-6 text-[#5c4b42]">
+            <span className="font-semibold text-[#8a6b3f]">Conselho: </span>
+            {counsel}
+          </div>
+        ) : null}
+      </article>
+    );
+  }
+
+  return (
+    <article className="rounded-lg border border-[#e4d3ba] bg-[#fbf6ee] p-4">
+      <p className="text-xs text-[#6f615a]">{formatDate(message.created_at)}</p>
+      <h3 className="mt-2 font-semibold text-[#332720]">
+        {getSavedTitle(message)}
+      </h3>
+      <p className="mt-2 line-clamp-4 text-sm leading-6 text-[#6f615a]">
+        {getSavedPreview(message)}
+      </p>
+    </article>
+  );
+}

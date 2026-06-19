@@ -1,0 +1,401 @@
+.pdu-reveal {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 700ms ease,
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pdu-motion-ready .pdu-reveal:not(.is-visible) {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.pdu-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes pdu-drift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-16px);
+  }
+}
+
+@keyframes pdu-halo-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes pdu-soft-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -14px;
+  }
+}
+
+@keyframes pdu-orbit-pulse {
+  0%,
+  100% {
+    opacity: 0.46;
+    transform: scale(0.96) rotate(-2deg);
+  }
+
+  50% {
+    opacity: 0.82;
+    transform: scale(1.04) rotate(2deg);
+  }
+}
+
+@keyframes pdu-star-breath {
+  0%,
+  100% {
+    opacity: 0.34;
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    opacity: 0.56;
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes pdu-hero-aurora {
+  0%,
+  100% {
+    opacity: 0.48;
+    transform: translate3d(0, 0, 0) rotate(-7deg) scale(0.98);
+  }
+
+  50% {
+    opacity: 0.78;
+    transform: translate3d(-18px, -10px, 0) rotate(-4deg) scale(1.04);
+  }
+}
+
+@keyframes pdu-hero-light-pass {
+  0% {
+    opacity: 0;
+    transform: translateX(-54px) rotate(-10deg) scaleX(0.72);
+  }
+
+  38% {
+    opacity: 0.62;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(84px) rotate(-7deg) scaleX(1.06);
+  }
+}
+
+@keyframes pdu-logo-field-arrive {
+  0% {
+    opacity: 0;
+    filter: blur(40px);
+    transform: scale(0.88) rotate(-6deg);
+  }
+
+  52% {
+    opacity: 0.82;
+    filter: blur(30px);
+  }
+
+  100% {
+    opacity: 0.66;
+    filter: blur(28px);
+    transform: scale(1) rotate(-2deg);
+  }
+}
+
+@keyframes pdu-logo-sparks-arrive {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+
+  100% {
+    opacity: 0.46;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pdu-logo-sparks-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(10px, -12px, 0);
+  }
+}
+
+@keyframes pdu-hero-title-arrive {
+  0% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(18px);
+  }
+
+  62% {
+    opacity: 1;
+    filter: blur(2px);
+    transform: translateY(-2px);
+  }
+
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes pdu-hero-text-arrive {
+  0% {
+    opacity: 0;
+    filter: blur(7px);
+    transform: translateY(14px);
+  }
+
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes pdu-hero-mark-arrive {
+  0% {
+    opacity: 0;
+    filter: blur(10px) brightness(1.14) saturate(0.92);
+    transform: translate3d(18px, 12px, 0) scale(0.94) rotate(-1.2deg);
+  }
+
+  28% {
+    opacity: 0.42;
+    filter: blur(7px) brightness(1.12) saturate(0.94);
+  }
+
+  58% {
+    opacity: 0.9;
+    filter: blur(2px) brightness(1.05) saturate(1.02);
+    transform: translate3d(4px, -2px, 0) scale(1.006) rotate(0.2deg);
+  }
+
+  100% {
+    opacity: 1;
+    filter: blur(0) brightness(1) saturate(1);
+    transform: translate3d(0, calc(var(--pdu-scroll-shift, 0px) * 0.06), 0) scale(1);
+  }
+}
+
+@keyframes pdu-hero-mark-float {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+
+  50% {
+    translate: 0 -18px;
+    rotate: 1.2deg;
+  }
+}
+
+@keyframes pdu-hero-mark-pulse {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: scale(0.94);
+  }
+
+  50% {
+    opacity: 0.62;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes pdu-card-materialize {
+  0% {
+    opacity: 0;
+    filter: blur(28px) brightness(1.85) saturate(0.72);
+    transform: translateY(58px) rotateX(24deg) rotateZ(-5deg) scale(0.72);
+  }
+
+  18% {
+    opacity: 0;
+    filter: blur(24px) brightness(1.75) saturate(0.78);
+    transform: translateY(48px) rotateX(21deg) rotateZ(-4deg) scale(0.78);
+  }
+
+  42% {
+    opacity: 0.58;
+    filter: blur(12px) brightness(1.48) saturate(0.92);
+    transform: translateY(18px) rotateX(10deg) rotateZ(-2deg) scale(0.92);
+  }
+
+  72% {
+    opacity: 1;
+    filter: blur(0) brightness(1.18) saturate(1.08);
+    transform: translateY(-10px) rotateX(0) rotateZ(1.2deg) scale(1.025);
+  }
+
+  100% {
+    opacity: 1;
+    filter: blur(0) brightness(1) saturate(1);
+    transform: translateY(0) rotateX(0) rotateZ(0) scale(1);
+  }
+}
+
+@keyframes pdu-card-aura-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.42) rotate(-24deg);
+  }
+
+  22% {
+    opacity: 0.92;
+    transform: scale(0.76) rotate(-10deg);
+  }
+
+  58% {
+    opacity: 0.9;
+    transform: scale(1.02) rotate(6deg);
+  }
+
+  100% {
+    opacity: 0.5;
+    transform: scale(1.12) rotate(16deg);
+  }
+}
+
+@keyframes pdu-card-ring-open {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.32) rotate(-32deg);
+  }
+
+  18% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.44) rotate(-24deg);
+  }
+
+  46% {
+    opacity: 0.82;
+    transform: translate(-50%, -50%) scale(0.82) rotate(-8deg);
+  }
+
+  100% {
+    opacity: 0.24;
+    transform: translate(-50%, -50%) scale(1.14) rotate(14deg);
+  }
+}
+
+@keyframes pdu-save-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-120%) skewX(-18deg);
+  }
+
+  24% {
+    opacity: 0.85;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(130%) skewX(-18deg);
+  }
+}
+
+@keyframes pdu-save-halo {
+  0% {
+    opacity: 0;
+    transform: scale(0.76);
+  }
+
+  36% {
+    opacity: 0.62;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.32);
+  }
+}
+
+@keyframes pdu-reading-block-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .pdu-home::before,
+  .pdu-hero-stars,
+  .pdu-hero-shell::before,
+  .pdu-hero-shell::after,
+  .pdu-hero-side::before,
+  .pdu-hero-side::after,
+  .pdu-portal-console__visual,
+  .pdu-portal-console::before,
+  .pdu-hero-kicker,
+  .pdu-hero-title,
+  .pdu-hero-body,
+  .pdu-hero-actions,
+  .pdu-hero-proof,
+  .pdu-card-stage > div,
+  .pdu-product-visual__halo,
+  .pdu-floating-card,
+  .pdu-floating-spread__orbit,
+  .pdu-daily-card-reveal,
+  .pdu-daily-card-reveal__aura,
+  .pdu-daily-card-reveal__ring,
+  .pdu-reading-block,
+  .pdu-save-action::before,
+  .pdu-save-action::after,
+  .pdu-reveal {
+    animation: none;
+    transition: none;
+  }
+
+  .pdu-motion-ready .pdu-hero-copy .pdu-hero-kicker,
+  .pdu-motion-ready .pdu-hero-copy .pdu-hero-title,
+  .pdu-motion-ready .pdu-hero-copy .pdu-hero-body,
+  .pdu-motion-ready .pdu-hero-copy .pdu-hero-actions,
+  .pdu-motion-ready .pdu-hero-copy .pdu-hero-proof {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+
+  .pdu-reveal {
+    opacity: 1;
+    transform: none;
+  }
+
+  .pdu-reading-block {
+    opacity: 1;
+    transform: none;
+  }
+}
