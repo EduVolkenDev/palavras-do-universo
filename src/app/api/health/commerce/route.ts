@@ -47,10 +47,21 @@ export async function GET(request: Request) {
     Object.values(checks).every(Boolean) &&
     activePaidProducts >= 4 &&
     !catalogError;
+  const oneTimeReady =
+    checks.supabaseServer &&
+    checks.supabasePublic &&
+    checks.stripeSecret &&
+    checks.stripeWebhook &&
+    checks.openaiKey &&
+    checks.productionUrl &&
+    checks.supportEmail &&
+    activePaidProducts >= 3 &&
+    !catalogError;
 
   const summary = {
     ok: ready,
     ready,
+    oneTimeReady,
   };
 
   if (!isAuthorized(request)) return NextResponse.json(summary);
