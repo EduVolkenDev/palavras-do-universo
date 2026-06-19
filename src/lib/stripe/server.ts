@@ -2,6 +2,10 @@ import Stripe from "stripe";
 
 let stripeClient: Stripe | null = null;
 
+function cleanEnvValue(value: string | undefined) {
+  return (value ?? "").trim().replace(/^['"]|['"]$/g, "").trim();
+}
+
 function isProductionSite() {
   return (
     process.env.VERCEL_ENV === "production" ||
@@ -47,10 +51,10 @@ export function getStripe() {
 }
 
 export function getSiteUrl() {
-  const value = (
+  const value = cleanEnvValue(
     process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.VERCEL_PROJECT_PRODUCTION_URL ??
-    "http://localhost:3000"
+      process.env.VERCEL_PROJECT_PRODUCTION_URL ??
+      "http://localhost:3000"
   ).replace(/\/$/, "");
   return /^https?:\/\//i.test(value) ? value : `https://${value}`;
 }

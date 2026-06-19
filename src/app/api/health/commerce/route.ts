@@ -6,6 +6,11 @@ import {
 } from "@/lib/supabase/server";
 import { getSiteUrl, hasStripeConfig } from "@/lib/stripe/server";
 
+function hasOpenAIConfig() {
+  const key = process.env.OPENAI_API_KEY?.trim() ?? "";
+  return key.startsWith("sk-") && key.length > 20;
+}
+
 function isAuthorized(request: Request) {
   const expected = process.env.HEALTH_CHECK_TOKEN;
   const provided = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -21,6 +26,7 @@ export async function GET(request: Request) {
     stripeCheckoutVerified: process.env.STRIPE_CHECKOUT_VERIFIED === "true",
     stripeCustomerPortalVerified:
       process.env.STRIPE_CUSTOMER_PORTAL_VERIFIED === "true",
+    openaiKey: hasOpenAIConfig(),
     productionUrl: !getSiteUrl().includes("localhost"),
     supportEmail: Boolean(process.env.NEXT_PUBLIC_SUPPORT_EMAIL),
   };
