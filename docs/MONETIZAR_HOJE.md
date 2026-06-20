@@ -17,7 +17,8 @@ possivel.
 No ambiente de deploy, preencher:
 
 ```bash
-OPENAI_API_KEY=
+ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_MODEL=claude-sonnet-4-6
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 NEXT_PUBLIC_SUPABASE_URL=

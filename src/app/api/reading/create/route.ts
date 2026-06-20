@@ -612,6 +612,9 @@ export async function POST(req: Request) {
     EXPERIENCE_CONTRACTS[productKey] ?? EXPERIENCE_CONTRACTS.free_daily;
   const experienceFormat =
     EXPERIENCE_FORMATS[productKey] ?? EXPERIENCE_FORMATS.free_daily;
+  const outputLimits = paidProduct
+    ? { maxTokens: 2_000, maxCharacters: 7_500 }
+    : { maxTokens: 1_300, maxCharacters: 5_000 };
   const portalMemory = await getPortalMemory(userId, remoteEnabled);
   const dailyDay = getZonedDay(normalizeTimeZone(String(body?.timeZone ?? "")));
   const dailyOpening = localizeDailyMessage(
@@ -712,6 +715,9 @@ export async function POST(req: Request) {
 	${spreadText}
 	
 	Regras:
+	- Limite editorial absoluto: no máximo ${outputLimits.maxCharacters} caracteres, incluindo títulos e espaços.
+	- Complete todas as seções dentro do limite; não prolongue reflexões nem repita ideias.
+	- Use no máximo 2 frases curtas por item, exceto onde o formato exigir menos.
 	- Escreva toda a resposta em ${locale === "en" ? "inglês claro e natural" : "português brasileiro claro e natural"}.
 	- Sem fatalismo, sem datas e sem promessas absolutas.
 	- Não diga que sabe o que outra pessoa sente ou fará.
@@ -726,7 +732,7 @@ export async function POST(req: Request) {
   // 3) IA + fallback
   let interpretation = "";
   try {
-    interpretation = await generateReadingAI(prompt);
+    interpretation = await generateReadingAI(prompt, outputLimits);
   } catch {
     interpretation = "";
   }

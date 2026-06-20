@@ -15,7 +15,7 @@ Abra `http://localhost:3000`.
 
 ```bash
 npm run lint
-OPENAI_API_KEY=dummy-build-key npm run build
+ANTHROPIC_API_KEY=dummy-build-key npm run build
 ```
 
 ## Ambiente

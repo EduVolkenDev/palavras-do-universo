@@ -4,7 +4,7 @@
 
 Antes de fazer deploy, você precisa ter:
 
-1. ✅ Conta OpenAI com billing ativo e créditos
+1. ✅ Conta Anthropic com creditos ativos
 2. ✅ Projeto Supabase criado e configurado
 3. ✅ Conta Stripe com keys de produção (live)
 4. ✅ Domínio registrado (ex: palavrasdouniverso.com.br)
@@ -14,19 +14,20 @@ Antes de fazer deploy, você precisa ter:
 
 ## 🔐 Variáveis de Ambiente - Configuração
 
-### 1️⃣ OpenAI API Key
+### 1️⃣ Anthropic API Key
 
 **Como obter:**
-1. Acesse https://platform.openai.com/api-keys
+1. Acesse https://platform.claude.com/settings/keys
 2. Clique em "Create new secret key"
-3. Copie a key (começa com `sk-proj-...`)
+3. Copie a key (comeca com `sk-ant-...`)
 
 **Configurar:**
 ```bash
-OPENAI_API_KEY=sk-proj-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ANTHROPIC_API_KEY=sk-ant-api03-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ANTHROPIC_MODEL=claude-sonnet-4-6
 ```
 
-⚠️ **IMPORTANTE**: Certifique-se de ter créditos disponíveis no OpenAI billing.
+⚠️ **IMPORTANTE**: Certifique-se de ter creditos disponiveis na Anthropic.
 
 ---
 
@@ -128,7 +129,8 @@ git push origin main
 Na Vercel Dashboard → Settings → Environment Variables:
 
 Adicione **TODAS** as variáveis do arquivo `.env.production.template`:
-- OPENAI_API_KEY
+- ANTHROPIC_API_KEY
+- ANTHROPIC_MODEL
 - SUPABASE_URL
 - NEXT_PUBLIC_SUPABASE_URL
 - NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -186,7 +188,7 @@ Adicione todas as variáveis do `.env.production.template`
 ## ✅ Checklist Final - Antes de Lançar
 
 - [ ] Todas as variáveis de ambiente configuradas
-- [ ] OpenAI billing ativo com créditos suficientes
+- [ ] Anthropic com creditos suficientes e modelo configurado disponivel
 - [ ] Supabase database migrado e populado
 - [ ] Stripe webhook configurado e testado
 - [ ] Domínio customizado apontando corretamente
@@ -210,9 +212,9 @@ Adicione todas as variáveis do `.env.production.template`
 ### ✅ Sempre faça isso:
 - Usar variáveis de ambiente do provider de hosting
 - Rotacionar keys periodicamente
-- Monitorar uso de APIs (OpenAI, Stripe)
+- Monitorar uso de APIs (Anthropic, Stripe)
 - Ter backup do database (Supabase)
-- Configurar alertas de billing (OpenAI, Stripe)
+- Configurar alertas de billing (Anthropic, Stripe)
 
 ---
 
@@ -237,4 +239,4 @@ Se tiver problemas no deploy:
 
 **Última atualização:** 03/06/2026  
 **Projeto:** Palavras do Universo  
-**Stack:** Next.js 16 + Supabase + Stripe + OpenAI
+**Stack:** Next.js 16 + Supabase + Stripe + Anthropic

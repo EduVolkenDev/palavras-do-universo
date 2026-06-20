@@ -2,11 +2,12 @@
 
 ## 📦 O que você precisa configurar
 
-Para colocar o site no ar, você precisa configurar estas **10 variáveis de ambiente** no seu provider de hosting:
+Para colocar o site no ar, configure as variaveis de ambiente abaixo no provider de hosting:
 
 ```bash
-# 1. OpenAI (para gerar as leituras)
-OPENAI_API_KEY=sk-proj-XXXXXXXX
+# 1. Anthropic (para gerar as leituras)
+ANTHROPIC_API_KEY=sk-ant-XXXXXXXX
+ANTHROPIC_MODEL=claude-sonnet-4-6
 
 # 2-5. Supabase (database + entitlements)
 SUPABASE_URL=https://matykrddzfjcswqjanly.supabase.co
@@ -64,10 +65,10 @@ git push -u origin main
 
 ## 📋 Onde conseguir cada variável
 
-### OpenAI
-- Acesse: https://platform.openai.com/api-keys
+### Anthropic
+- Acesse: https://platform.claude.com/settings/keys
 - Crie uma nova key
-- ⚠️ Verifique billing em: https://platform.openai.com/settings/organization/billing
+- Confirme que a conta possui creditos disponiveis
 
 ### Supabase
 - Acesse: https://matykrddzfjcswqjanly.supabase.co
@@ -110,4 +111,4 @@ Antes de lançar, teste:
 ---
 
 **Última atualização:** 03/06/2026  
-**Stack:** Next.js 16 + Supabase + Stripe + OpenAI
+**Stack:** Next.js 16 + Supabase + Stripe + Anthropic

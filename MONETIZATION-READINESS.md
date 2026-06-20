@@ -8,7 +8,7 @@ confirmed in the target environment.
 - Apply every migration in `supabase/migrations/`.
 - Confirm `consume_rate_limit` is active so production limits are shared across instances.
 - Configure Supabase server and public keys.
-- Configure `OPENAI_API_KEY`.
+- Configure `ANTHROPIC_API_KEY` and confirm the selected Claude model is available.
 - Configure Stripe secret and webhook keys.
 - Configure `NEXT_PUBLIC_SITE_URL` with the canonical production URL.
 - Configure `NEXT_PUBLIC_SUPPORT_EMAIL` with a monitored support inbox.

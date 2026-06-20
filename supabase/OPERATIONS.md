@@ -35,7 +35,8 @@ It keeps the original tables and adds:
 Server-side:
 
 ```bash
-OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=claude-sonnet-4-6
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 STRIPE_SECRET_KEY=

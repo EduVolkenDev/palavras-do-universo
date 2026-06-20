@@ -6,9 +6,9 @@ import {
 } from "@/lib/supabase/server";
 import { getSiteUrl, hasStripeConfig } from "@/lib/stripe/server";
 
-function hasOpenAIConfig() {
-  const key = process.env.OPENAI_API_KEY?.trim() ?? "";
-  return key.startsWith("sk-") && key.length > 20;
+function hasAnthropicConfig() {
+  const key = process.env.ANTHROPIC_API_KEY?.trim() ?? "";
+  return key.startsWith("sk-ant-") && key.length > 30;
 }
 
 function isAuthorized(request: Request) {
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     stripeCheckoutVerified: process.env.STRIPE_CHECKOUT_VERIFIED === "true",
     stripeCustomerPortalVerified:
       process.env.STRIPE_CUSTOMER_PORTAL_VERIFIED === "true",
-    openaiKey: hasOpenAIConfig(),
+    anthropicKey: hasAnthropicConfig(),
     productionUrl: !getSiteUrl().includes("localhost"),
     supportEmail: Boolean(process.env.NEXT_PUBLIC_SUPPORT_EMAIL),
   };
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
     checks.supabasePublic &&
     checks.stripeSecret &&
     checks.stripeWebhook &&
-    checks.openaiKey &&
+    checks.anthropicKey &&
     checks.productionUrl &&
     checks.supportEmail &&
     activePaidProducts >= 3 &&
