@@ -4,6 +4,7 @@ import { getDailyMessage, getDailyVisitorKey } from "@/lib/daily/message";
 import { getZonedDay, normalizeTimeZone } from "@/lib/daily/time";
 import { drawThree } from "@/lib/tarot/draw3";
 import { generateReadingAI } from "@/lib/tarot/ai";
+import { generateFallbackReading } from "@/lib/tarot/fallback";
 import { sanitizeQuestion } from "@/lib/tarot/sanitizeQuestion";
 import {
   ensureSupabaseProfile,
@@ -615,6 +616,29 @@ export async function POST(req: Request) {
   const outputLimits = paidProduct
     ? { maxTokens: 2_000, maxCharacters: 7_500 }
     : { maxTokens: 1_300, maxCharacters: 5_000 };
+  const outputFormat = paidProduct
+    ? `
+	Formato obrigatório:
+	1) ESCUTA INICIAL (2–3 frases)
+	2) MANTRA (1 frase) + tradução simples (1 frase)
+	3) TRÍADE: Verdade, Sombra e Direção (1 frase curta para cada)
+	4) LEITURA POR POSIÇÃO
+	   Para cada carta: significado prático (até 2 frases), inteligência emocional (1 frase) e firmeza (1 frase).
+	5) AÇÕES: 3 micro-passos executáveis de 10–20 min (1 linha cada)
+	6) RITUAL DE INTEGRAÇÃO: prática curta + frase de diário começando com "Eu escolho..."
+	7) RESUMO DIRETO: 3 bullets curtos
+	8) GANCHO: pergunta recomendada + sugestão de aprofundamento
+	`.trim()
+    : `
+	Formato obrigatório para leitura gratuita:
+	1) ESCUTA INICIAL (2 frases)
+	2) MANTRA (1 frase) + tradução simples (1 frase)
+	3) TRÍADE: Verdade, Sombra e Direção (1 frase curta para cada)
+	4) LEITURA POR POSIÇÃO
+	   Para cada carta: significado prático (1 frase) e direção (1 frase).
+	5) AÇÕES: 3 micro-passos objetivos (1 linha cada)
+	6) FECHAMENTO: ritual curto, resumo em 3 bullets e pergunta recomendada
+	`.trim();
   const portalMemory = await getPortalMemory(userId, remoteEnabled);
   const dailyDay = getZonedDay(normalizeTimeZone(String(body?.timeZone ?? "")));
   const dailyOpening = localizeDailyMessage(
@@ -670,42 +694,7 @@ export async function POST(req: Request) {
 
 	Use a abertura diária como contexto de continuidade, não como repetição obrigatória. A leitura atual deve responder à pergunta, mas precisa conversar com a energia, o conselho e os símbolos já entregues para esta pessoa hoje.
 	
-	Formato obrigatório:
-	
-	1) ESCUTA INICIAL (2–4 frases)
-	   - Reconheça o que a pergunta parece carregar emocionalmente.
-	   - Mostre que existe uma diferença entre impulso, medo, desejo e verdade.
-	
-	2) MANTRA (1 frase curta e impactante)
-	   - Tradução simples: (1 frase explicando o mantra sem metáfora difícil)
-	
-	3) TRÍADE
-	   - Verdade: (o que a pessoa precisa admitir sem se ferir)
-	   - Sombra: (o padrão emocional ou mental que distorce a visão)
-	   - Direção: (ação clara, objetiva e boa para a pessoa)
-	
-	4) LEITURA POR POSIÇÃO (SITUAÇÃO / OBSTÁCULO / DIREÇÃO)
-	   Para cada posição:
-	   - Carta — Nome (reversa se for)
-	   - O que isso quer dizer na prática: (2–3 frases, português simples)
-	   - Inteligência emocional: (o sentimento por trás do tema)
-	   - Firmeza: (o limite, escolha ou atitude mais saudável)
-	
-	5) AÇÕES (3 micro-passos de 10–20 min)
-	   - Cada ação precisa ser executável e específica.
-	
-	6) RITUAL DE INTEGRAÇÃO
-	   - Uma prática curta, bonita e possível para hoje.
-	   - Uma frase de diário começando com "Eu escolho..."
-	
-	7) RESUMO DIRETO (3 bullets)
-	   - O que está acontecendo:
-	   - O que te trava:
-	   - O próximo passo certo:
-	
-	8) GANCHO (2 linhas)
-	   - Pergunta recomendada:
-	   - Para aprofundar (Premium):
+	${outputFormat}
 	
 	Tema: ${theme}
 	Pergunta: ${question}
@@ -738,68 +727,23 @@ export async function POST(req: Request) {
   }
 
   if (!interpretation) {
-    interpretation = locale === "en" ? [
-      "1) INITIAL LISTENING",
-      "Before looking for a perfect answer, recognize what this question is carrying. Clarity begins when fear, desire, and truth are allowed to stand apart.",
-      "",
-      "2) MANTRA",
-      "Clarity arrives in layers.",
-      "",
-      "3) THE THREE THREADS",
-      "- Truth: a simpler path is available.",
-      "- Shadow: noise may be leading the choice.",
-      "- Direction: take one grounded step today.",
-      "",
-      "4) READING BY POSITION",
-      ...spread.flatMap((d) => {
-        const card = localizeTarotCard(d.card, locale);
-        const meaning = d.reversed ? card.reversed : card.upright;
-        return [
-          `- ${translateOraclePosition(d.position, locale)} — ${card.name}${d.reversed ? " (reversed)" : ""}`,
-          `  Keyword: ${card.keywords[0]}`,
-          `  ${meaning}`,
-          "",
-        ];
-      }),
-      "5) ACTIONS",
-      "- Today: write one honest sentence about what you want.",
-      "- Within 24 hours: remove one source of noise.",
-      "- This week: repeat one small, useful action three times.",
-      "",
-      "6) NEXT QUESTION",
-      "- Recommended question: “What am I avoiding admitting?”",
-      "- To go deeper: Three-Card Path (Premium)",
-    ].join("\n") : [
-      "1) ESCUTA INICIAL",
-      "Antes de procurar uma resposta perfeita, vale reconhecer que essa pergunta parece pedir presença. Nem tudo precisa ser resolvido com força; algumas coisas começam a mudar quando você separa medo, desejo e verdade.",
-      "",
-      "2) MANTRA",
-      "Clareza vem em camadas.",
-      "",
-      "3) TRÍADE",
-      "- Verdade: existe um caminho simples.",
-      "- Sombra: ruído está comandando.",
-      "- Direção: um passo pequeno hoje.",
-      "",
-      "4) LEITURA POR POSIÇÃO",
-      ...spread.flatMap((d) => {
-        const meaning = d.reversed ? d.card.reversed : d.card.upright;
-        return [
-          `- ${d.position} — ${d.card.name}${d.reversed ? " (reversa)" : ""}`,
-          `  Keyword: ${d.card.keywords[0]}`,
-          `  ${meaning}`,
-          "",
-        ];
-      }),
-      "5) AÇÕES",
-      "- Hoje: escreva “eu quero ___ sem ___”.",
-      "- Em 24h: corte 1 ruído.",
-      "- Em 7 dias: repita um micro-passo 3x.",
-      "",
-      "6) GANCHO",
-      "- Pergunta recomendada: “O que eu estou evitando admitir?”",
-      "- Para aprofundar: Caminho das 3 Cartas (Premium)",
-    ].join("\n");
+    interpretation = generateFallbackReading({
+      daily: dailyOpening,
+      hasPortalMemory:
+        !portalMemory.startsWith("Sem memória") &&
+        !portalMemory.includes("não pôde ser consultada"),
+      locale,
+      mode,
+      productKey,
+      question,
+      spread: spread.map((draw) => ({
+        ...draw,
+        card: localizeTarotCard(draw.card, locale),
+        position: translateOraclePosition(draw.position, locale),
+      })),
+      theme,
+      userId,
+    });
   }
 
   const readingId = await persistReading({
