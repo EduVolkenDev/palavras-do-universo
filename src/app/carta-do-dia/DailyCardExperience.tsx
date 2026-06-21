@@ -227,7 +227,13 @@ export function DailyCardExperience() {
               </p>
               <h2 className="brand-serif mt-2 text-4xl font-semibold text-[#fff7e8]">
                 {daily
-                  ? `${daily.card.name}${daily.card.reversed ? " reversa" : ""}`
+                  ? `${daily.card.name}${
+                      daily.card.reversed
+                        ? locale === "en"
+                          ? " (reversed)"
+                          : " reversa"
+                        : ""
+                    }`
                   : "O portal está abrindo"}
               </h2>
 

@@ -831,10 +831,10 @@
 .pdu-result-stage {
   position: relative;
   display: grid;
-  min-height: 560px;
-  grid-template-columns: minmax(360px, 0.9fr) minmax(300px, 0.72fr);
+  min-height: 500px;
+  grid-template-columns: minmax(280px, 0.7fr) minmax(360px, 0.95fr);
   align-items: center;
-  gap: clamp(1.5rem, 4vw, 4rem);
+  gap: clamp(1.25rem, 3vw, 2.75rem);
 }
 
 .pdu-result-stage::before {
@@ -853,7 +853,7 @@
 .pdu-floating-spread {
   position: relative;
   isolation: isolate;
-  min-height: 520px;
+  min-height: 460px;
   perspective: 1200px;
   transform-style: preserve-3d;
 }
@@ -1066,6 +1066,8 @@
 .pdu-reading-transcript {
   position: relative;
   align-self: stretch;
+  min-width: 0;
+  max-width: 34rem;
   padding: 1.2rem 0 1.2rem 1.5rem;
   border-left: 1px solid rgba(244, 213, 141, 0.24);
 }
@@ -1107,6 +1109,7 @@
   padding-left: 1rem;
   border-left: 1px solid rgba(244, 213, 141, 0.18);
   opacity: 0;
+  overflow-wrap: anywhere;
   transform: translateY(14px);
   animation: pdu-reading-block-enter 680ms cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: calc(90ms + var(--pdu-block-index, 0) * 95ms);

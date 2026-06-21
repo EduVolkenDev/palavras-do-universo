@@ -289,11 +289,28 @@ function isUuid(value: string | null) {
 }
 
 function splitReadingIntoBlocks(reading: string) {
-  const clean = reading.trim();
+  const clean = reading
+    .split("\n")
+    .map((line) =>
+      line
+        .trim()
+        .replace(/^#{1,6}\s*/g, "")
+        .replace(/^\s*[-*_]{3,}\s*$/g, "")
+        .replace(/\*\*([^*]+)\*\*/g, "$1")
+        .replace(/\*([^*]+)\*/g, "$1")
+        .replace(/^>\s?/g, "")
+        .trim()
+    )
+    .filter((line) => line && !/^[^\p{L}\p{N}]*palavras do universo$/iu.test(line))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   if (!clean) return [];
 
   const blocks = clean
-    .split(/\n(?=(?:\d\)\s|MANTRA|TR[IÍ]ADE|LEITURA|AÇÕES|ACOES|RESUMO|GANCHO))/i)
+    .split(
+      /\n(?=(?:\d\)\s|INITIAL LISTENING|THE THREE THREADS|READING BY POSITION|ACTIONS|INTEGRATION|MANTRA|TR[IÍ]ADE|LEITURA|AÇÕES|ACOES|RESUMO|GANCHO))/i
+    )
     .map((block) => block.trim())
     .filter(Boolean);
 
@@ -499,9 +516,14 @@ export default function Home() {
 
       const ok = data as ApiOk;
       const line = ok.spread
-        .map((card) =>
-          `${card.position}: ${card.name}${card.reversed ? " reversa" : ""}`
-        )
+        .map((card) => {
+          const reversed = card.reversed
+            ? locale === "en"
+              ? " (reversed)"
+              : " reversa"
+            : "";
+          return `${card.position}: ${card.name}${reversed}`;
+        })
         .join(" | ");
 
       setSpreadLine(line);
@@ -768,20 +790,21 @@ export default function Home() {
   }
 
   const shownSpread = spreadCards.length ? spreadCards : dailyOpening.spread;
+  const reversedSuffix = locale === "en" ? " (reversed)" : " reversa";
   const readingText =
     result ||
     [
       "MANTRA",
       dailyOpening.affirmation,
       "",
-      "TRÍADE",
+      locale === "en" ? "THE THREE THREADS" : "TRÍADE",
       ...dailyOpening.spread.map(
         (card) =>
-          `- ${card.position}: ${card.name}${card.reversed ? " reversa" : ""} — ${card.meaning}`
+          `- ${card.position}: ${card.name}${card.reversed ? reversedSuffix : ""} — ${card.meaning}`
       ),
       "",
-      `Pergunta de reflexão: ${dailyOpening.reflection}`,
-      `Ritual: ${dailyOpening.ritual}`,
+      `${locale === "en" ? "Reflection question" : "Pergunta de reflexão"}: ${dailyOpening.reflection}`,
+      `${locale === "en" ? "Ritual" : "Ritual"}: ${dailyOpening.ritual}`,
     ].join("\n");
   const readingBlocks = splitReadingIntoBlocks(readingText);
 
@@ -995,7 +1018,12 @@ export default function Home() {
 
                     <div className="grid grid-cols-3 gap-2">
                       {shownSpread.map((card) => (
-                        <TarotFrame key={card.position} card={card} compact />
+                        <TarotFrame
+                          key={card.position}
+                          card={card}
+                          compact
+                          locale={locale}
+                        />
                       ))}
                     </div>
                   </div>
@@ -1731,6 +1759,7 @@ function SectionEyebrow(props: { children: React.ReactNode; dark?: boolean }) {
 }
 
 function TarotFrame(props: {
+  locale: string;
   card: {
     position: string;
     name: string;
@@ -1762,7 +1791,11 @@ function TarotFrame(props: {
         </p>
         <p className="mt-1 truncate text-xs font-medium text-[#fff7e8]">
           {props.card.name}
-          {props.card.reversed ? " reversa" : ""}
+          {props.card.reversed
+            ? props.locale === "en"
+              ? " (reversed)"
+              : " reversa"
+            : ""}
         </p>
       </div>
     </div>

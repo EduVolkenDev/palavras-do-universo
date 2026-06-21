@@ -18,7 +18,7 @@ export function LegalPage(props: {
         <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">
           {props.eyebrow}
         </p>
-        <h1 className="brand-serif mt-2 text-5xl font-semibold leading-none">
+        <h1 className="brand-serif mt-2 break-words text-4xl font-semibold leading-none sm:text-5xl">
           {props.title}
         </h1>
         <p className="mt-5 text-base leading-7 text-[#6f615a]">{props.intro}</p>

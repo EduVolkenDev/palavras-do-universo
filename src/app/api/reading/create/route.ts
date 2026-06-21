@@ -616,23 +616,48 @@ export async function POST(req: Request) {
   const outputLimits = paidProduct
     ? { maxTokens: 2_000, maxCharacters: 7_500 }
     : { maxTokens: 1_300, maxCharacters: 5_000 };
+  const isEnglish = locale === "en";
   const outputFormat = paidProduct
-    ? `
-	Formato obrigatório:
-	1) ESCUTA INICIAL (2–3 frases)
-	2) MANTRA (1 frase) + tradução simples (1 frase)
+    ? isEnglish
+      ? `
+		Required format:
+		1) INITIAL LISTENING (2-3 sentences)
+		2) MANTRA (1 sentence) + plain meaning (1 sentence)
+		3) THE THREE THREADS: Truth, Shadow, and Direction (1 short sentence each)
+		4) READING BY POSITION
+		   For each card: practical meaning (up to 2 sentences), emotional intelligence (1 sentence), and grounding (1 sentence).
+		5) ACTIONS: 3 executable micro-steps of 10-20 min (1 line each)
+		6) INTEGRATION RITUAL: short practice + journal sentence starting with "I choose..."
+		7) DIRECT SUMMARY: 3 short bullets
+		8) NEXT QUESTION: recommended question + suggestion for deeper reading
+		`.trim()
+      : `
+		Formato obrigatório:
+		1) ESCUTA INICIAL (2–3 frases)
+		2) MANTRA (1 frase) + tradução simples (1 frase)
 	3) TRÍADE: Verdade, Sombra e Direção (1 frase curta para cada)
 	4) LEITURA POR POSIÇÃO
 	   Para cada carta: significado prático (até 2 frases), inteligência emocional (1 frase) e firmeza (1 frase).
 	5) AÇÕES: 3 micro-passos executáveis de 10–20 min (1 linha cada)
 	6) RITUAL DE INTEGRAÇÃO: prática curta + frase de diário começando com "Eu escolho..."
-	7) RESUMO DIRETO: 3 bullets curtos
-	8) GANCHO: pergunta recomendada + sugestão de aprofundamento
-	`.trim()
-    : `
-	Formato obrigatório para leitura gratuita:
-	1) ESCUTA INICIAL (2 frases)
-	2) MANTRA (1 frase) + tradução simples (1 frase)
+		7) RESUMO DIRETO: 3 bullets curtos
+		8) GANCHO: pergunta recomendada + sugestão de aprofundamento
+		`.trim()
+    : isEnglish
+      ? `
+		Required format for free reading:
+		1) INITIAL LISTENING (2 sentences)
+		2) MANTRA (1 sentence) + plain meaning (1 sentence)
+		3) THE THREE THREADS: Truth, Shadow, and Direction (1 short sentence each)
+		4) READING BY POSITION
+		   For each card: practical meaning (1 sentence) and direction (1 sentence).
+		5) ACTIONS: 3 objective micro-steps (1 line each)
+		6) CLOSING: short ritual, 3-bullet summary, and recommended question
+		`.trim()
+      : `
+		Formato obrigatório para leitura gratuita:
+		1) ESCUTA INICIAL (2 frases)
+		2) MANTRA (1 frase) + tradução simples (1 frase)
 	3) TRÍADE: Verdade, Sombra e Direção (1 frase curta para cada)
 	4) LEITURA POR POSIÇÃO
 	   Para cada carta: significado prático (1 frase) e direção (1 frase).
@@ -658,7 +683,13 @@ export async function POST(req: Request) {
     `Cartas da abertura diária: ${dailyOpening.spread
       .map(
         (card) =>
-          `${card.position}: ${card.name}${card.reversed ? " reversa" : ""} (${card.keyword})`
+          `${card.position}: ${card.name}${
+            card.reversed
+              ? locale === "en"
+                ? " (reversed)"
+                : " reversa"
+              : ""
+          } (${card.keyword})`
       )
       .join("; ")}.`,
   ].join("\n");

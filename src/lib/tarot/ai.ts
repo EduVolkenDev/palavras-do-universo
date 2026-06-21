@@ -7,6 +7,28 @@ type ReadingGenerationLimits = {
   maxCharacters: number;
 };
 
+function normalizeReadingText(text: string) {
+  return text
+    .replace(/```[\s\S]*?```/g, (match) =>
+      match.replace(/^```[a-z]*\s*/i, "").replace(/```$/i, "")
+    )
+    .split("\n")
+    .map((line) =>
+      line
+        .trim()
+        .replace(/^#{1,6}\s*/g, "")
+        .replace(/^\s*[-*_]{3,}\s*$/g, "")
+        .replace(/\*\*([^*]+)\*\*/g, "$1")
+        .replace(/\*([^*]+)\*/g, "$1")
+        .replace(/^>\s?/g, "")
+        .trim()
+    )
+    .filter((line) => line && !/^[^\p{L}\p{N}]*palavras do universo$/iu.test(line))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export async function generateReadingAI(
   prompt: string,
   limits: ReadingGenerationLimits
@@ -28,11 +50,12 @@ export async function generateReadingAI(
     throw new Error("Anthropic reading exceeded the output token limit");
   }
 
-  const text = response.content
-    .filter((block) => block.type === "text")
-    .map((block) => block.text)
-    .join("\n")
-    .trim();
+  const text = normalizeReadingText(
+    response.content
+      .filter((block) => block.type === "text")
+      .map((block) => block.text)
+      .join("\n")
+  );
 
   if (!text) {
     throw new Error("Anthropic returned an empty reading");
