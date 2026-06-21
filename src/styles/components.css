@@ -188,7 +188,8 @@
 .pdu-motion-ready .pdu-hero-copy .pdu-hero-title,
 .pdu-motion-ready .pdu-hero-copy .pdu-hero-body,
 .pdu-motion-ready .pdu-hero-copy .pdu-hero-actions,
-.pdu-motion-ready .pdu-hero-copy .pdu-hero-proof {
+.pdu-motion-ready .pdu-hero-copy .pdu-hero-proof,
+.pdu-motion-ready .pdu-hero-copy .pdu-journey-map {
   opacity: 0;
   filter: blur(2px);
   transform: translateY(8px);
@@ -202,7 +203,8 @@
 .pdu-motion-ready .pdu-hero-copy.is-visible .pdu-hero-title,
 .pdu-motion-ready .pdu-hero-copy.is-visible .pdu-hero-body,
 .pdu-motion-ready .pdu-hero-copy.is-visible .pdu-hero-actions,
-.pdu-motion-ready .pdu-hero-copy.is-visible .pdu-hero-proof {
+.pdu-motion-ready .pdu-hero-copy.is-visible .pdu-hero-proof,
+.pdu-motion-ready .pdu-hero-copy.is-visible .pdu-journey-map {
   opacity: 1;
   filter: none;
   transform: none;
@@ -246,6 +248,52 @@
   margin-top: 1.75rem;
   color: #cfc4b9;
   font-size: 0.92rem;
+}
+
+.pdu-journey-map {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  max-width: 680px;
+  margin-top: 1.25rem;
+}
+
+.pdu-journey-map__item {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto 1fr;
+  gap: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px 6px 18px 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.068), rgba(255, 255, 255, 0.032)),
+    rgba(255, 255, 255, 0.035);
+  padding: 0.72rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.pdu-journey-map__item > span {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(167, 215, 197, 0.13);
+  color: #a7d7c5;
+}
+
+.pdu-journey-map__item strong {
+  display: block;
+  color: #fff7e8;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.pdu-journey-map__item p {
+  margin-top: 0.28rem;
+  color: #bfb4aa;
+  font-size: 0.7rem;
+  line-height: 1.45;
 }
 
 .pdu-hero-side {
@@ -371,6 +419,38 @@
   min-width: 0;
 }
 
+.pdu-portal-current {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 0.55rem;
+  align-items: baseline;
+  border: 1px solid rgba(244, 213, 141, 0.18);
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(244, 213, 141, 0.11), rgba(167, 215, 197, 0.08)),
+    rgba(255, 255, 255, 0.045);
+  padding: 0.62rem 0.75rem;
+}
+
+.pdu-portal-current span {
+  color: #f5d896;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pdu-portal-current strong {
+  color: #fff7e8;
+  font-size: 0.88rem;
+}
+
+.pdu-portal-current p {
+  min-width: 0;
+  color: #cfc4b9;
+  font-size: 0.78rem;
+}
+
 .pdu-portal-transform {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -415,14 +495,32 @@
 }
 
 .pdu-portal-intents button {
+  display: flex;
+  min-width: 0;
   min-height: 40px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
   border: 1px solid rgba(255, 255, 255, 0.11);
-  border-radius: 999px;
+  border-radius: 16px 6px 18px 8px;
   background: rgba(255, 255, 255, 0.045);
-  padding: 0.45rem 0.5rem;
+  padding: 0.56rem 0.5rem;
   color: #efe2d2;
+  text-align: center;
+}
+
+.pdu-portal-intents button strong {
   font-size: 0.74rem;
-  font-weight: 700;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.pdu-portal-intents button span {
+  color: #a79d94;
+  font-size: 0.64rem;
+  font-weight: 650;
+  line-height: 1.2;
 }
 
 .pdu-portal-intents button:hover,
@@ -431,6 +529,11 @@
   background: #f4d58d;
   color: #1c1308;
   box-shadow: 0 12px 30px rgba(244, 213, 141, 0.16);
+}
+
+.pdu-portal-intents button:hover span,
+.pdu-portal-intents button[data-active="true"] span {
+  color: rgba(28, 19, 8, 0.74);
 }
 
 .pdu-portal-console__cta {
@@ -756,6 +859,10 @@
   will-change: transform;
 }
 
+.pdu-daily-card-reveal.is-opening {
+  animation: none;
+}
+
 .pdu-daily-card-reveal__aura,
 .pdu-daily-card-reveal__ring {
   position: absolute;
@@ -797,6 +904,141 @@
   mask-image: radial-gradient(circle, transparent 58%, #000 60%, #000 61%, transparent 64%);
   filter: blur(0.4px);
   animation: pdu-card-ring-open 4800ms ease-out both;
+}
+
+.pdu-card-portal {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  aspect-ratio: 5 / 8;
+  width: 100%;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(244, 213, 141, 0.18);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(244, 213, 141, 0.2), transparent 29%),
+    radial-gradient(circle at 48% 58%, rgba(117, 152, 218, 0.2), transparent 46%),
+    linear-gradient(180deg, rgba(18, 17, 27, 0.94), rgba(8, 7, 13, 0.98));
+  box-shadow:
+    0 48px 120px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.pdu-card-portal::before,
+.pdu-card-portal::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.pdu-card-portal::before {
+  inset: 10%;
+  border-radius: 999px;
+  border: 1px solid rgba(244, 213, 141, 0.28);
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent,
+      rgba(244, 213, 141, 0.58),
+      transparent 28%,
+      rgba(167, 215, 197, 0.46),
+      transparent 58%,
+      rgba(117, 152, 218, 0.42),
+      transparent
+    );
+  filter: blur(0.3px);
+  mask-image: radial-gradient(circle, transparent 46%, #000 49%, #000 52%, transparent 56%);
+  animation: pdu-loading-portal-spin 3400ms linear infinite;
+}
+
+.pdu-card-portal::after {
+  inset: 24%;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(255, 247, 232, 0.42), transparent 34%),
+    radial-gradient(circle, rgba(244, 213, 141, 0.22), transparent 62%);
+  filter: blur(16px);
+  animation: pdu-loading-portal-pulse 2200ms ease-in-out infinite;
+}
+
+.pdu-card-portal__gate {
+  position: absolute;
+  inset: 13%;
+  border-radius: 999px;
+  animation: pdu-loading-portal-breathe 2600ms ease-in-out infinite;
+}
+
+.pdu-card-portal__gate span {
+  position: absolute;
+  inset: calc(var(--portal-ring, 0) * 9%);
+  border-radius: inherit;
+  border: 1px solid rgba(255, 247, 232, 0.16);
+  box-shadow: inset 0 0 24px rgba(244, 213, 141, 0.08);
+}
+
+.pdu-card-portal__gate span:nth-child(1) {
+  --portal-ring: 0;
+}
+
+.pdu-card-portal__gate span:nth-child(2) {
+  --portal-ring: 1;
+  animation-delay: -600ms;
+}
+
+.pdu-card-portal__gate span:nth-child(3) {
+  --portal-ring: 2;
+  animation-delay: -1200ms;
+}
+
+.pdu-card-portal__deck {
+  position: relative;
+  z-index: 2;
+  width: 34%;
+  aspect-ratio: 5 / 8;
+  transform-style: preserve-3d;
+}
+
+.pdu-card-portal__deck span {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(244, 213, 141, 0.26);
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(244, 213, 141, 0.18), transparent 42%),
+    linear-gradient(180deg, #191722, #0d0c13);
+  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.34);
+  transform-origin: 50% 100%;
+  animation: pdu-loading-card-rise 1800ms cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.pdu-card-portal__deck span:nth-child(1) {
+  transform: translateY(14px) rotate(-7deg);
+}
+
+.pdu-card-portal__deck span:nth-child(2) {
+  animation-delay: 180ms;
+  transform: translateY(7px) rotate(2deg);
+}
+
+.pdu-card-portal__deck span:nth-child(3) {
+  animation-delay: 360ms;
+  transform: translateY(0) rotate(8deg);
+}
+
+.pdu-card-portal p {
+  position: absolute;
+  z-index: 3;
+  right: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  color: #efe2d2;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .pdu-message-field {
@@ -1454,6 +1696,10 @@
     justify-content: center;
   }
 
+  .pdu-journey-map {
+    margin-inline: auto;
+  }
+
   .pdu-hero-reading {
     margin-top: clamp(2rem, 6vw, 3.5rem);
   }
@@ -1547,6 +1793,12 @@
     margin-top: 1.35rem;
   }
 
+  .pdu-journey-map {
+    grid-template-columns: 1fr;
+    max-width: 18.75rem;
+    margin-inline: auto;
+  }
+
   .pdu-hero-side {
     order: 1;
     min-height: auto;
@@ -1590,6 +1842,11 @@
   .pdu-portal-entry__copy p:not(.pdu-portal-console__eyebrow) {
     margin-inline: 0;
     font-size: 0.88rem;
+  }
+
+  .pdu-portal-current {
+    grid-template-columns: 1fr;
+    border-radius: 16px 6px 18px 8px;
   }
 
   .pdu-portal-transform {

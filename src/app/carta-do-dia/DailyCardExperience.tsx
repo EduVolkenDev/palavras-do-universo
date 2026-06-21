@@ -55,36 +55,54 @@ function isDailyCardResponse(value: unknown): value is DailyCardResponse {
   );
 }
 
+const CARD_PORTAL_MINIMUM_MS = 1100;
+
 export function DailyCardExperience() {
   const { locale } = useI18n();
-  const [daily, setDaily] = useState<DailyCard | null>(null);
-  const [error, setError] = useState("");
+  const [dailyResult, setDailyResult] = useState<{
+    locale: string;
+    daily: DailyCard;
+  } | null>(null);
+  const [errorResult, setErrorResult] = useState<{
+    locale: string;
+    message: string;
+  } | null>(null);
+  const daily = dailyResult?.locale === locale ? dailyResult.daily : null;
+  const error = errorResult?.locale === locale ? errorResult.message : "";
+  const opening = !daily && !error;
 
   useEffect(() => {
     const controller = new AbortController();
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const params = new URLSearchParams({ tz: timeZone, locale });
 
-    fetch(`/api/daily-card?${params.toString()}`, {
-      cache: "no-store",
-      signal: controller.signal,
-    })
+    Promise.all([
+      fetch(`/api/daily-card?${params.toString()}`, {
+        cache: "no-store",
+        signal: controller.signal,
+      }),
+      new Promise((resolve) => window.setTimeout(resolve, CARD_PORTAL_MINIMUM_MS)),
+    ])
+      .then(([response]) => response)
       .then((response) => {
         if (!response.ok) throw new Error("daily_card_unavailable");
         return response.json() as Promise<unknown>;
       })
       .then((data) => {
         if (!isDailyCardResponse(data)) throw new Error("invalid_daily_card");
-        setDaily(data.daily);
+        setDailyResult({ locale, daily: data.daily });
+        setErrorResult(null);
       })
       .catch((caught: unknown) => {
         if (caught instanceof DOMException && caught.name === "AbortError") {
           return;
         }
 
-        setError(
-          "O portal não conseguiu abrir a carta agora. Tente novamente em instantes."
-        );
+        setErrorResult({
+          locale,
+          message:
+            "O portal não conseguiu abrir a carta agora. Tente novamente em instantes.",
+        });
       });
 
     return () => controller.abort();
@@ -158,7 +176,7 @@ export function DailyCardExperience() {
               {[
                 {
                   label: "Abertura",
-                  value: daily?.today.label ?? "Abrindo o portal...",
+                  value: daily?.today.label ?? "Portal em movimento",
                   icon: CalendarDays,
                 },
                 {
@@ -167,12 +185,12 @@ export function DailyCardExperience() {
                     ? daily.card.reversed
                       ? "Reversa"
                       : "Direta"
-                    : "...",
+                    : "Sendo revelada",
                   icon: Compass,
                 },
                 {
                   label: "Palavra do dia",
-                  value: daily?.card.keywords[0] ?? "...",
+                  value: daily?.card.keywords[0] ?? "Aguardando sinal",
                   icon: Sparkles,
                 },
               ].map((item) => (
@@ -200,7 +218,12 @@ export function DailyCardExperience() {
           </div>
 
           <div className="grid gap-8 lg:grid-cols-[0.86fr_1.14fr] lg:items-center">
-            <div className="pdu-card-float pdu-daily-card-reveal mx-auto w-full max-w-sm">
+            <div
+              className={`pdu-card-float pdu-daily-card-reveal mx-auto w-full max-w-sm ${
+                opening ? "is-opening" : "is-open"
+              }`}
+              aria-busy={opening}
+            >
               <div className="pdu-daily-card-reveal__aura" />
               <div className="pdu-daily-card-reveal__ring" />
               {daily ? (
@@ -215,8 +238,18 @@ export function DailyCardExperience() {
                   }`}
                 />
               ) : (
-                <div className="relative z-10 grid aspect-[5/8] w-full place-items-center rounded-[18px] border border-white/10 bg-white/[0.06] text-sm font-semibold text-[#d8ccc0] shadow-[0_48px_120px_rgba(0,0,0,0.36)]">
-                  Abrindo sua carta...
+                <div className="pdu-card-portal" role="status">
+                  <div className="pdu-card-portal__gate" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                  <div className="pdu-card-portal__deck" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                  <p>Abrindo o portal da carta de hoje</p>
                 </div>
               )}
             </div>

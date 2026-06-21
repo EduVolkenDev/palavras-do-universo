@@ -302,6 +302,73 @@
   }
 }
 
+@keyframes pdu-loading-portal-spin {
+  0% {
+    opacity: 0.42;
+    transform: rotate(0deg) scale(0.94);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: rotate(180deg) scale(1.04);
+  }
+
+  100% {
+    opacity: 0.42;
+    transform: rotate(360deg) scale(0.94);
+  }
+}
+
+@keyframes pdu-loading-portal-pulse {
+  0%,
+  100% {
+    opacity: 0.48;
+    transform: scale(0.82);
+  }
+
+  50% {
+    opacity: 0.88;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes pdu-loading-portal-breathe {
+  0%,
+  100% {
+    opacity: 0.58;
+    transform: rotateX(58deg) rotateZ(-8deg) scale(0.92);
+  }
+
+  50% {
+    opacity: 1;
+    transform: rotateX(58deg) rotateZ(8deg) scale(1.04);
+  }
+}
+
+@keyframes pdu-loading-card-rise {
+  0% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(34px) rotate(-10deg) scale(0.86);
+  }
+
+  42% {
+    opacity: 1;
+    filter: blur(0);
+  }
+
+  72% {
+    opacity: 1;
+    transform: translateY(-6px) rotate(3deg) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(-34px) rotate(10deg) scale(0.92);
+  }
+}
+
 @keyframes pdu-save-sweep {
   0% {
     opacity: 0;
@@ -364,6 +431,7 @@
   .pdu-hero-body,
   .pdu-hero-actions,
   .pdu-hero-proof,
+  .pdu-journey-map,
   .pdu-card-stage > div,
   .pdu-product-visual__halo,
   .pdu-floating-card,
@@ -371,6 +439,10 @@
   .pdu-daily-card-reveal,
   .pdu-daily-card-reveal__aura,
   .pdu-daily-card-reveal__ring,
+  .pdu-card-portal::before,
+  .pdu-card-portal::after,
+  .pdu-card-portal__gate,
+  .pdu-card-portal__deck span,
   .pdu-reading-block,
   .pdu-save-action::before,
   .pdu-save-action::after,
@@ -383,7 +455,8 @@
   .pdu-motion-ready .pdu-hero-copy .pdu-hero-title,
   .pdu-motion-ready .pdu-hero-copy .pdu-hero-body,
   .pdu-motion-ready .pdu-hero-copy .pdu-hero-actions,
-  .pdu-motion-ready .pdu-hero-copy .pdu-hero-proof {
+  .pdu-motion-ready .pdu-hero-copy .pdu-hero-proof,
+  .pdu-motion-ready .pdu-hero-copy .pdu-journey-map {
     opacity: 1;
     filter: none;
     transform: none;

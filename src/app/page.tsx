@@ -111,10 +111,29 @@ const ritualSteps = [
   },
 ];
 
+const journeySteps = [
+  {
+    label: "1. Mensagem",
+    text: "Grátis. Abre o clima do dia com uma orientação curta.",
+    icon: Sparkles,
+  },
+  {
+    label: "2. Leitura",
+    text: "Você faz uma pergunta e recebe 3 cartas com direção prática.",
+    icon: Compass,
+  },
+  {
+    label: "3. Meu Universo",
+    text: "Salva padrões, cartas e decisões para acompanhar sua jornada.",
+    icon: Bookmark,
+  },
+];
+
 const portalIntentOptions = [
   {
     id: "atravessar",
     label: "Atravessar",
+    purpose: "Para transições",
     theme: "spirit",
     title: "Quando algo em você já sabe que mudou.",
     from: "Ruído: tentar explicar tudo antes de sentir.",
@@ -125,6 +144,7 @@ const portalIntentOptions = [
   {
     id: "abrir",
     label: "Abrir",
+    purpose: "Para amor e vínculos",
     theme: "love",
     title: "Quando o coração pede uma chave, não uma sentença.",
     from: "Ruído: procurar garantia onde existe vínculo vivo.",
@@ -135,6 +155,7 @@ const portalIntentOptions = [
   {
     id: "desembaçar",
     label: "Desembaçar",
+    purpose: "Para decisões",
     theme: "career",
     title: "Quando a mente está cheia, mas a direção ainda respira.",
     from: "Ruído: confundir urgência com chamado.",
@@ -145,6 +166,7 @@ const portalIntentOptions = [
   {
     id: "firmar",
     label: "Firmar",
+    purpose: "Para ação concreta",
     theme: "money",
     title: "Quando o invisível precisa virar gesto concreto.",
     from: "Ruído: esperar o momento perfeito para agir.",
@@ -910,6 +932,20 @@ export default function Home() {
                   Jornada privada
                 </div>
               </div>
+
+              <div className="pdu-journey-map" aria-label="Como a experiência funciona">
+                {journeySteps.map((step) => (
+                  <div key={step.label} className="pdu-journey-map__item">
+                    <span>
+                      <step.icon size={16} />
+                    </span>
+                    <div>
+                      <strong>{step.label}</strong>
+                      <p>{step.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="pdu-reveal pdu-hero-side">
@@ -930,14 +966,19 @@ export default function Home() {
 
           <div className="pdu-reveal pdu-portal-entry">
             <div className="pdu-portal-entry__copy">
-              <p className="pdu-portal-console__eyebrow">Escolha uma entrada</p>
+              <p className="pdu-portal-console__eyebrow">Antes da pergunta</p>
               <h2 className="brand-serif">{selectedPortalIntent.title}</h2>
               <p>
-                Ajuste a intenção antes da leitura para que o oráculo responda
-                com mais foco, presença e direção prática.
+                Escolha o tipo de clareza que você quer abrir. Isso muda a
+                pergunta sugerida, o tema da leitura e o tom da resposta.
               </p>
             </div>
             <div className="pdu-portal-entry__controls">
+              <div className="pdu-portal-current">
+                <span>Intenção selecionada</span>
+                <strong>{selectedPortalIntent.label}</strong>
+                <p>{selectedPortalIntent.purpose}</p>
+              </div>
               <div className="pdu-portal-transform" aria-live="polite">
                 <div>
                   <span>Antes</span>
@@ -956,8 +997,10 @@ export default function Home() {
                     type="button"
                     onClick={() => openPortalIntent(intent)}
                     data-active={intent.id === selectedPortalIntent.id}
+                    aria-label={`${intent.label}: ${intent.purpose}`}
                   >
-                    {intent.label}
+                    <strong>{intent.label}</strong>
+                    <span>{intent.purpose}</span>
                   </button>
                 ))}
               </div>
