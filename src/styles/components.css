@@ -318,11 +318,15 @@
   pointer-events: none;
 }
 
-.pdu-portal-console__panel {
+.pdu-portal-entry {
   position: relative;
   z-index: 3;
-  width: min(560px, 92%);
-  margin-top: clamp(0.75rem, 1.8vh, 1.35rem);
+  display: grid;
+  width: min(100%, 1100px);
+  grid-template-columns: minmax(260px, 0.75fr) minmax(0, 1.25fr);
+  gap: clamp(1rem, 2.4vw, 2rem);
+  align-items: center;
+  margin: clamp(1rem, 2.5vh, 2rem) auto 0;
   border: 1px solid rgba(244, 213, 141, 0.18);
   border-radius: 28px 10px 34px 12px;
   background:
@@ -335,6 +339,10 @@
   backdrop-filter: blur(18px) saturate(130%);
 }
 
+.pdu-portal-entry__copy {
+  min-width: 0;
+}
+
 .pdu-portal-console__eyebrow {
   color: #f5d896;
   font-size: 0.68rem;
@@ -343,12 +351,24 @@
   text-transform: uppercase;
 }
 
-.pdu-portal-console__panel h2 {
+.pdu-portal-entry__copy h2 {
   margin-top: 0.55rem;
   color: #fff7e8;
-  font-size: clamp(1.22rem, 1.55vw, 1.55rem);
+  font-size: clamp(1.45rem, 2.1vw, 2.1rem);
   line-height: 1.12;
   text-wrap: balance;
+}
+
+.pdu-portal-entry__copy p:not(.pdu-portal-console__eyebrow) {
+  max-width: 28rem;
+  margin-top: 0.85rem;
+  color: #cfc4b9;
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.pdu-portal-entry__controls {
+  min-width: 0;
 }
 
 .pdu-portal-transform {
@@ -1429,14 +1449,6 @@
     width: min(92vw, 560px);
   }
 
-  .pdu-portal-console__panel {
-    position: relative;
-    right: auto;
-    bottom: auto;
-    width: min(100%, 520px);
-    margin: 0.85rem auto 0;
-  }
-
   .pdu-hero-actions,
   .pdu-hero-proof {
     justify-content: center;
@@ -1444,6 +1456,20 @@
 
   .pdu-hero-reading {
     margin-top: clamp(2rem, 6vw, 3.5rem);
+  }
+
+  .pdu-portal-entry {
+    width: min(100%, 760px);
+    grid-template-columns: 1fr;
+    margin-top: clamp(1.25rem, 5vw, 2rem);
+  }
+
+  .pdu-portal-entry__copy {
+    text-align: center;
+  }
+
+  .pdu-portal-entry__copy p:not(.pdu-portal-console__eyebrow) {
+    margin-inline: auto;
   }
 }
 
@@ -1545,12 +1571,25 @@
     filter: drop-shadow(0 24px 58px rgba(0, 0, 0, 0.28));
   }
 
-  .pdu-portal-console__panel {
+  .pdu-portal-entry {
     width: 100%;
     margin-top: 0.35rem;
     border-radius: 22px 8px 26px 10px;
     padding: 0.9rem;
     backdrop-filter: none;
+  }
+
+  .pdu-portal-entry__copy {
+    text-align: left;
+  }
+
+  .pdu-portal-entry__copy h2 {
+    font-size: 1.35rem;
+  }
+
+  .pdu-portal-entry__copy p:not(.pdu-portal-console__eyebrow) {
+    margin-inline: 0;
+    font-size: 0.88rem;
   }
 
   .pdu-portal-transform {

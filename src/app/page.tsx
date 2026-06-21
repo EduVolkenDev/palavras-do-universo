@@ -924,47 +924,51 @@ export default function Home() {
                     className="object-contain"
                   />
                 </div>
+              </div>
+            </div>
+          </div>
 
-                <div className="pdu-portal-console__panel">
-                  <p className="pdu-portal-console__eyebrow">
-                    Escolha uma entrada
-                  </p>
-                  <h2 className="brand-serif">
-                    {selectedPortalIntent.title}
-                  </h2>
-                  <div className="pdu-portal-transform" aria-live="polite">
-                    <div>
-                      <span>Antes</span>
-                      <p>{selectedPortalIntent.from}</p>
-                    </div>
-                    <ArrowRight size={18} />
-                    <div>
-                      <span>Depois</span>
-                      <p>{selectedPortalIntent.to}</p>
-                    </div>
-                  </div>
-                  <div className="pdu-portal-intents">
-                    {portalIntentOptions.map((intent) => (
-                      <button
-                        key={intent.id}
-                        type="button"
-                        onClick={() => openPortalIntent(intent)}
-                        data-active={intent.id === selectedPortalIntent.id}
-                      >
-                        {intent.label}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => scrollToId("leitura")}
-                    className="pdu-portal-console__cta"
-                  >
-                    Abrir leitura com esta intenção
-                    <Sparkles size={16} />
-                  </button>
+          <div className="pdu-reveal pdu-portal-entry">
+            <div className="pdu-portal-entry__copy">
+              <p className="pdu-portal-console__eyebrow">Escolha uma entrada</p>
+              <h2 className="brand-serif">{selectedPortalIntent.title}</h2>
+              <p>
+                Ajuste a intenção antes da leitura para que o oráculo responda
+                com mais foco, presença e direção prática.
+              </p>
+            </div>
+            <div className="pdu-portal-entry__controls">
+              <div className="pdu-portal-transform" aria-live="polite">
+                <div>
+                  <span>Antes</span>
+                  <p>{selectedPortalIntent.from}</p>
+                </div>
+                <ArrowRight size={18} />
+                <div>
+                  <span>Depois</span>
+                  <p>{selectedPortalIntent.to}</p>
                 </div>
               </div>
+              <div className="pdu-portal-intents">
+                {portalIntentOptions.map((intent) => (
+                  <button
+                    key={intent.id}
+                    type="button"
+                    onClick={() => openPortalIntent(intent)}
+                    data-active={intent.id === selectedPortalIntent.id}
+                  >
+                    {intent.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => scrollToId("leitura")}
+                className="pdu-portal-console__cta"
+              >
+                Abrir leitura com esta intenção
+                <Sparkles size={16} />
+              </button>
             </div>
           </div>
 
