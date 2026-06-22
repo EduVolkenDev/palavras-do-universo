@@ -413,6 +413,63 @@
   }
 }
 
+@keyframes pdu-reading-portal-open {
+  0%,
+  100% {
+    opacity: 0.38;
+    transform: scale(0.78) rotate(-8deg);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: scale(1.06) rotate(8deg);
+  }
+}
+
+@keyframes pdu-reading-card-summon {
+  0% {
+    opacity: 0;
+    filter: blur(10px) brightness(1.6);
+    transform: translate3d(var(--pdu-card-x), 34px, 0)
+      rotate(var(--pdu-card-rotate)) scale(0.78);
+  }
+
+  45%,
+  78% {
+    opacity: 1;
+    filter: blur(0) brightness(1.08);
+    transform: translate3d(var(--pdu-card-x), -4px, 0)
+      rotate(var(--pdu-card-rotate)) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    filter: blur(8px) brightness(1.4);
+    transform: translate3d(var(--pdu-card-x), -22px, 0)
+      rotate(var(--pdu-card-rotate)) scale(0.92);
+  }
+}
+
+@keyframes pdu-spread-card-reveal {
+  0% {
+    opacity: 0;
+    filter: blur(14px) brightness(1.7);
+    transform: translateY(34px) rotateY(70deg) scale(0.82);
+  }
+
+  62% {
+    opacity: 1;
+    filter: blur(0) brightness(1.16);
+    transform: translateY(-5px) rotateY(-4deg) scale(1.025);
+  }
+
+  100% {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -443,6 +500,11 @@
   .pdu-card-portal::after,
   .pdu-card-portal__gate,
   .pdu-card-portal__deck span,
+  .pdu-reading-spread-portal__ring,
+  .pdu-reading-spread-portal__ring::before,
+  .pdu-reading-spread-portal__ring::after,
+  .pdu-reading-spread-portal__cards span,
+  .pdu-reading-card-grid.is-revealed > div,
   .pdu-reading-block,
   .pdu-save-action::before,
   .pdu-save-action::after,
@@ -455,8 +517,7 @@
   .pdu-motion-ready .pdu-hero-copy .pdu-hero-title,
   .pdu-motion-ready .pdu-hero-copy .pdu-hero-body,
   .pdu-motion-ready .pdu-hero-copy .pdu-hero-actions,
-  .pdu-motion-ready .pdu-hero-copy .pdu-hero-proof,
-  .pdu-motion-ready .pdu-hero-copy .pdu-journey-map {
+  .pdu-motion-ready .pdu-hero-copy .pdu-hero-proof {
     opacity: 1;
     filter: none;
     transform: none;
@@ -469,6 +530,12 @@
 
   .pdu-reading-block {
     opacity: 1;
+    transform: none;
+  }
+
+  .pdu-reading-card-grid.is-revealed > div {
+    opacity: 1;
+    filter: none;
     transform: none;
   }
 }

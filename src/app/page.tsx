@@ -85,6 +85,8 @@ type ApiError = {
   error: string;
 };
 
+const READING_PORTAL_MINIMUM_MS = 1200;
+
 const themeOptions = [
   { value: "love", label: "Amor", icon: Heart },
   { value: "career", label: "Carreira", icon: Compass },
@@ -187,6 +189,24 @@ const experiencePillars = [
   "Firmeza nas decisões",
   "Ritual significativo",
   "Histórico que revela padrões",
+];
+
+const experienceAccessPaths = [
+  {
+    label: "Comece grátis",
+    text: "Mensagem e Carta do Dia para criar o hábito sem compromisso.",
+    icon: Sparkles,
+  },
+  {
+    label: "Resolva uma questão",
+    text: "Leituras avulsas para amor, decisões ou clareza urgente.",
+    icon: Compass,
+  },
+  {
+    label: "Acompanhe sua jornada",
+    text: "Círculo para histórico, padrões e experiências contínuas.",
+    icon: History,
+  },
 ];
 
 const productActionClass =
@@ -470,18 +490,23 @@ export default function Home() {
     setSaveNotice("");
 
     try {
-      const res = await fetch("/api/reading/create", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          userId: activeUserId,
-          theme,
-          question: q,
-          productKey: readingProductKey,
-          locale,
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      const [res] = await Promise.all([
+        fetch("/api/reading/create", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            userId: activeUserId,
+            theme,
+            question: q,
+            productKey: readingProductKey,
+            locale,
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          }),
         }),
-      });
+        new Promise((resolve) =>
+          window.setTimeout(resolve, READING_PORTAL_MINIMUM_MS)
+        ),
+      ]);
 
       setStatus(res.status);
 
@@ -933,19 +958,6 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="pdu-journey-map" aria-label="Como a experiência funciona">
-                {journeySteps.map((step) => (
-                  <div key={step.label} className="pdu-journey-map__item">
-                    <span>
-                      <step.icon size={16} />
-                    </span>
-                    <div>
-                      <strong>{step.label}</strong>
-                      <p>{step.text}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
 
             <div className="pdu-reveal pdu-hero-side">
@@ -962,6 +974,23 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div
+            className="pdu-reveal pdu-journey-map"
+            aria-label="Como a experiência funciona"
+          >
+            {journeySteps.map((step) => (
+              <div key={step.label} className="pdu-journey-map__item">
+                <span>
+                  <step.icon size={17} />
+                </span>
+                <div>
+                  <strong>{step.label}</strong>
+                  <p>{step.text}</p>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="pdu-reveal pdu-portal-entry">
@@ -1063,16 +1092,29 @@ export default function Home() {
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2">
-                      {shownSpread.map((card) => (
-                        <TarotFrame
-                          key={card.position}
-                          card={card}
-                          compact
-                          locale={locale}
-                        />
-                      ))}
-                    </div>
+                    {loading ? (
+                      <ReadingSpreadPortal />
+                    ) : (
+                      <div
+                        key={spreadCards.length ? spreadLine : dailyOpening.dateKey}
+                        className={`pdu-reading-card-grid grid grid-cols-3 gap-2 ${
+                          spreadCards.length ? "is-revealed" : ""
+                        }`}
+                      >
+                        {shownSpread.map((card, index) => (
+                          <div
+                            key={card.position}
+                            style={{ "--pdu-card-index": index } as CSSProperties}
+                          >
+                            <TarotFrame
+                              card={card}
+                              compact
+                              locale={locale}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -1257,24 +1299,38 @@ export default function Home() {
           </div>
 
           <div className="pdu-result-stage">
-            <FloatingTarotSpread cards={shownSpread} />
+            {loading ? (
+              <ReadingSpreadPortal immersive />
+            ) : (
+              <FloatingTarotSpread cards={shownSpread} />
+            )}
             <div className="pdu-reading-transcript">
               <div className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
-                {spreadLine || "Mensagem do Universo"}
+                {loading
+                  ? "O portal está escolhendo suas cartas"
+                  : spreadLine || "Mensagem do Universo"}
               </div>
               <div
                 key={result ? readingId ?? spreadLine : "reading-preview"}
                 className="pdu-reading-blocks min-h-72"
               >
-                {readingBlocks.map((block, index) => (
-                  <p
-                    key={`${block.slice(0, 18)}-${index}`}
-                    className="pdu-reading-block whitespace-pre-wrap text-sm leading-7 text-[#efe2d2]"
-                    style={{ "--pdu-block-index": index } as CSSProperties}
-                  >
-                    {block}
+                {loading ? (
+                  <p className="pdu-reading-block text-sm leading-7 text-[#efe2d2]">
+                    Sua pergunta atravessa o portal. As cartas antigas já foram
+                    recolhidas e um novo caminho está sendo formado para este
+                    momento.
                   </p>
-                ))}
+                ) : (
+                  readingBlocks.map((block, index) => (
+                    <p
+                      key={`${block.slice(0, 18)}-${index}`}
+                      className="pdu-reading-block whitespace-pre-wrap text-sm leading-7 text-[#efe2d2]"
+                      style={{ "--pdu-block-index": index } as CSSProperties}
+                    >
+                      {block}
+                    </p>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -1496,6 +1552,19 @@ export default function Home() {
               <div key={pillar} className="pdu-pillar-chip">
                 <Sparkles size={15} />
                 {pillar}
+              </div>
+            ))}
+          </div>
+
+          <div className="pdu-access-guide mt-10" aria-label="Formas de acesso">
+            {experienceAccessPaths.map((path, index) => (
+              <div key={path.label} className="pdu-access-guide__item">
+                <span className="pdu-access-guide__number">0{index + 1}</span>
+                <path.icon size={19} aria-hidden="true" />
+                <div>
+                  <strong>{path.label}</strong>
+                  <p>{path.text}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -1849,6 +1918,29 @@ function TarotFrame(props: {
   );
 }
 
+function ReadingSpreadPortal(props: { immersive?: boolean }) {
+  return (
+    <div
+      className={`pdu-reading-spread-portal ${
+        props.immersive ? "is-immersive" : ""
+      }`}
+      role="status"
+      aria-live="polite"
+    >
+      <div className="pdu-reading-spread-portal__ring" aria-hidden="true" />
+      <div className="pdu-reading-spread-portal__cards" aria-hidden="true">
+        {[0, 1, 2].map((index) => (
+          <span
+            key={index}
+            style={{ "--pdu-card-index": index } as CSSProperties}
+          />
+        ))}
+      </div>
+      <p>Abrindo um novo caminho para sua pergunta</p>
+    </div>
+  );
+}
+
 function FloatingTarotSpread(props: {
   cards: {
     position: string;
@@ -2001,14 +2093,16 @@ function ProductIconVisual(props: { title: string }) {
     >
       <div className="pdu-product-visual__halo" />
       {!failed ? (
-        <Image
-          src={visual.assetPath}
-          alt=""
-          width={380}
-          height={300}
-          className="relative z-10 h-full w-full object-contain p-3 transition duration-500 group-hover:scale-[1.05]"
-          onError={() => setFailed(true)}
-        />
+        <div className="pdu-product-visual__image relative z-10 transition duration-500 group-hover:scale-[1.04]">
+          <Image
+            src={visual.assetPath}
+            alt=""
+            fill
+            sizes="(max-width: 768px) 280px, 20vw"
+            className="object-contain"
+            onError={() => setFailed(true)}
+          />
+        </div>
       ) : (
         <div className="relative z-10 grid h-40 place-items-center">
           <div className="pdu-product-visual__fallback">
