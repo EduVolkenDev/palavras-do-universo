@@ -13,6 +13,7 @@ function mutationBodyLimit(pathname: string) {
 function allowedOrigins(request: NextRequest) {
   const origins = new Set([request.nextUrl.origin]);
   const configured = process.env.NEXT_PUBLIC_SITE_URL;
+  const currentUrl = new URL(request.nextUrl.origin);
 
   if (configured) {
     try {
@@ -20,6 +21,16 @@ function allowedOrigins(request: NextRequest) {
     } catch {
       // Invalid production configuration is reported by the commerce health check.
     }
+  }
+
+  if (
+    process.env.NODE_ENV !== "production" &&
+    ["localhost", "127.0.0.1", "[::1]"].includes(currentUrl.hostname)
+  ) {
+    const port = currentUrl.port ? `:${currentUrl.port}` : "";
+    origins.add(`http://localhost${port}`);
+    origins.add(`http://127.0.0.1${port}`);
+    origins.add(`http://[::1]${port}`);
   }
 
   return origins;

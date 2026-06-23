@@ -249,24 +249,28 @@
 }
 
 .pdu-journey-map {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   width: min(100%, 1120px);
   margin: clamp(0.75rem, 2vw, 1.5rem) auto clamp(1.25rem, 3vw, 2.25rem);
-  border-block: 1px solid rgba(255, 255, 255, 0.11);
+  gap: clamp(0.75rem, 2vw, 1.25rem);
+  border-block: 0;
 }
 
 .pdu-journey-map__item {
   display: grid;
+  flex: 1 1 220px;
   min-width: 0;
   grid-template-columns: auto 1fr;
   gap: 0.85rem;
   align-items: start;
-  padding: 1.05rem clamp(1rem, 2vw, 1.6rem);
+  padding: 0.95rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.11);
 }
 
 .pdu-journey-map__item + .pdu-journey-map__item {
-  border-left: 1px solid rgba(255, 255, 255, 0.11);
+  border-left: 0;
 }
 
 .pdu-journey-map__item > span {
@@ -372,16 +376,28 @@
   gap: clamp(1rem, 2.4vw, 2rem);
   align-items: center;
   margin: clamp(1rem, 2.5vh, 2rem) auto 0;
-  border: 1px solid rgba(244, 213, 141, 0.18);
-  border-radius: 28px 10px 34px 12px;
+  border: 0;
+  border-radius: 0;
   background:
-    linear-gradient(180deg, rgba(17, 16, 25, 0.78), rgba(17, 16, 25, 0.56)),
-    rgba(255, 255, 255, 0.045);
-  padding: 1.05rem;
-  box-shadow:
-    0 28px 80px rgba(0, 0, 0, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.09);
-  backdrop-filter: blur(18px) saturate(130%);
+    radial-gradient(circle at 72% 46%, rgba(167, 215, 197, 0.14), transparent 34%),
+    radial-gradient(circle at 18% 12%, rgba(244, 213, 141, 0.1), transparent 28%);
+  padding: clamp(0.25rem, 1.2vw, 0.9rem) 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.pdu-portal-entry::before {
+  content: "";
+  position: absolute;
+  inset: 8% 0 6% 28%;
+  z-index: -1;
+  border-radius: 999px;
+  border: 1px solid rgba(244, 213, 141, 0.1);
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.035), transparent),
+    radial-gradient(circle at 62% 45%, rgba(244, 213, 141, 0.08), transparent 42%);
+  filter: blur(0.2px);
+  opacity: 0.9;
 }
 
 .pdu-portal-entry__copy {
@@ -413,7 +429,10 @@
 }
 
 .pdu-portal-entry__controls {
+  position: relative;
   min-width: 0;
+  border-left: 1px solid rgba(244, 213, 141, 0.18);
+  padding-left: clamp(1rem, 2.4vw, 1.6rem);
 }
 
 .pdu-portal-current {
@@ -421,7 +440,7 @@
   grid-template-columns: auto auto 1fr;
   gap: 0.55rem;
   align-items: baseline;
-  border: 1px solid rgba(244, 213, 141, 0.18);
+  border: 1px solid rgba(244, 213, 141, 0.16);
   border-radius: 999px;
   background:
     linear-gradient(90deg, rgba(244, 213, 141, 0.11), rgba(167, 215, 197, 0.08)),
@@ -457,10 +476,10 @@
 }
 
 .pdu-portal-transform div {
-  min-height: 104px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-height: 96px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px 6px 16px 8px;
-  background: rgba(255, 255, 255, 0.045);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025));
   padding: 0.75rem;
 }
 
@@ -501,7 +520,9 @@
   gap: 0.12rem;
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 16px 6px 18px 8px;
-  background: rgba(255, 255, 255, 0.045);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(244, 213, 141, 0.08), transparent 42%),
+    rgba(255, 255, 255, 0.035);
   padding: 0.56rem 0.5rem;
   color: #efe2d2;
   text-align: center;
@@ -632,6 +653,112 @@
   animation-delay: calc(var(--pdu-card-index, 0) * 180ms);
 }
 
+.pdu-reading-ceremony {
+  position: fixed;
+  left: 50%;
+  top: 54%;
+  z-index: 90;
+  display: grid;
+  width: min(92vw, 430px);
+  min-height: 300px;
+  transform: translate(-50%, -50%);
+  place-items: center;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.pdu-reading-ceremony::before {
+  content: "";
+  position: absolute;
+  inset: 15% -4% -2%;
+  z-index: -2;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(244, 213, 141, 0.2), transparent 36%),
+    radial-gradient(circle at 54% 66%, rgba(167, 215, 197, 0.18), transparent 54%),
+    rgba(7, 6, 12, 0.46);
+  filter: blur(18px);
+}
+
+.pdu-reading-ceremony__field {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 999px;
+  background:
+    conic-gradient(
+      from 90deg,
+      transparent,
+      rgba(244, 213, 141, 0.2),
+      transparent 30%,
+      rgba(167, 215, 197, 0.18),
+      transparent 62%,
+      rgba(117, 152, 218, 0.14),
+      transparent
+    );
+  filter: blur(0.4px);
+  mask-image: radial-gradient(circle, transparent 48%, #000 50%, #000 52%, transparent 68%);
+  animation: pdu-loading-portal-spin 5200ms linear infinite;
+}
+
+.pdu-reading-ceremony__field span {
+  position: absolute;
+  inset: calc(10% + var(--pdu-ring, 0) * 11%);
+  border: 1px solid rgba(244, 213, 141, 0.15);
+  border-radius: inherit;
+}
+
+.pdu-reading-ceremony__field span:nth-child(1) {
+  --pdu-ring: 0;
+}
+
+.pdu-reading-ceremony__field span:nth-child(2) {
+  --pdu-ring: 1;
+}
+
+.pdu-reading-ceremony__field span:nth-child(3) {
+  --pdu-ring: 2;
+}
+
+.pdu-reading-ceremony .pdu-reading-spread-portal {
+  width: min(100%, 340px);
+  min-height: 235px;
+  border-color: rgba(244, 213, 141, 0.2);
+  background:
+    radial-gradient(circle at 50% 48%, rgba(129, 183, 209, 0.24), transparent 34%),
+    rgba(7, 6, 12, 0.56);
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+}
+
+.pdu-reading-ceremony .pdu-reading-spread-portal > p {
+  display: none;
+}
+
+.pdu-reading-ceremony__copy {
+  display: grid;
+  width: min(100%, 360px);
+  gap: 0.28rem;
+  margin-top: 0.55rem;
+  padding: 0 1rem;
+  color: #efe2d2;
+  text-align: center;
+  text-shadow: 0 14px 34px rgba(0, 0, 0, 0.66);
+}
+
+.pdu-reading-ceremony__copy strong {
+  color: #fff7e8;
+  font-size: 0.92rem;
+}
+
+.pdu-reading-ceremony__copy span {
+  color: #cfc4b9;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
 .pdu-reading-spread-portal {
   position: relative;
   display: grid;
@@ -737,6 +864,51 @@
   text-align: center;
 }
 
+.pdu-spread-meaning-list {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
+  border-top: 1px solid rgba(244, 213, 141, 0.14);
+  padding-top: 0.95rem;
+}
+
+.pdu-spread-meaning-list > div {
+  position: relative;
+  display: grid;
+  gap: 0.18rem;
+  padding-left: 1rem;
+}
+
+.pdu-spread-meaning-list > div::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.35rem;
+  width: 1px;
+  height: calc(100% - 0.35rem);
+  background: linear-gradient(180deg, rgba(244, 213, 141, 0.72), transparent);
+}
+
+.pdu-spread-meaning-list span {
+  color: #f5d896;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pdu-spread-meaning-list strong {
+  color: #fff7e8;
+  font-size: 0.88rem;
+}
+
+.pdu-spread-meaning-list p {
+  margin: 0;
+  color: #cfc4b9;
+  font-size: 0.78rem;
+  line-height: 1.48;
+}
+
 .pdu-glass-panel {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.03)),
@@ -775,6 +947,41 @@
   mask-image: radial-gradient(circle at 54% 50%, #000 0%, transparent 72%);
   opacity: 0.42;
   transform: translate3d(0, calc(var(--pdu-scroll-shift, 0px) * -0.1), 0);
+}
+
+.pdu-reading-outcome-guide {
+  display: grid;
+  max-width: 34rem;
+  border-block: 1px solid rgba(255, 255, 255, 0.11);
+}
+
+.pdu-reading-outcome-guide > div {
+  display: grid;
+  grid-template-columns: 1.5rem 5rem 1fr;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.75rem 0;
+}
+
+.pdu-reading-outcome-guide > div + div {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pdu-reading-outcome-guide span {
+  color: #8d837b;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.65rem;
+}
+
+.pdu-reading-outcome-guide strong {
+  color: #fff7e8;
+  font-size: 0.8rem;
+}
+
+.pdu-reading-outcome-guide p {
+  color: #bfb4aa;
+  font-size: 0.74rem;
+  line-height: 1.5;
 }
 
 .pdu-save-action {
@@ -1502,32 +1709,6 @@
   font-size: 1rem;
 }
 
-.pdu-ritual-flow {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(1.5rem, 4vw, 4rem);
-}
-
-.pdu-ritual-step {
-  position: relative;
-  padding: 0.4rem 0 0 3.4rem;
-  min-height: 190px;
-}
-
-.pdu-ritual-step::before {
-  content: "";
-  position: absolute;
-  left: 1.05rem;
-  top: 2.35rem;
-  bottom: 0;
-  width: 1px;
-  background: linear-gradient(180deg, rgba(244, 213, 141, 0.58), transparent);
-}
-
-.pdu-ritual-step svg {
-  filter: drop-shadow(0 0 22px rgba(244, 213, 141, 0.16));
-}
-
 .pdu-product-river {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1730,6 +1911,9 @@
 
 .pdu-plan-lane {
   position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
   padding: 1.5rem 0 0;
   border-top: 1px solid rgba(138, 107, 63, 0.24);
 }
@@ -1744,6 +1928,10 @@
   background: linear-gradient(90deg, rgba(138, 107, 63, 0.72), transparent);
 }
 
+.pdu-plan-lane ul {
+  flex: 1;
+}
+
 .pdu-plan-lane--active {
   margin-top: -0.7rem;
   padding: 1.5rem;
@@ -1753,29 +1941,6 @@
     radial-gradient(circle at 14% 0%, rgba(244, 213, 141, 0.16), transparent 30%),
     linear-gradient(145deg, #111019, #171421);
   box-shadow: 0 32px 90px rgba(17, 16, 25, 0.22);
-}
-
-.pdu-article-stream {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.pdu-article-line {
-  position: relative;
-  padding: 1rem 0 1rem 2.1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.11);
-}
-
-.pdu-article-line::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 1.15rem;
-  width: 0.65rem;
-  height: 0.65rem;
-  border-radius: 999px;
-  background: #f5d896;
-  box-shadow: 0 0 28px rgba(244, 213, 141, 0.5);
 }
 
 .pdu-product-visual--gold::before {
@@ -1948,13 +2113,14 @@
   }
 
   .pdu-journey-map {
-    grid-template-columns: 1fr;
     width: min(100%, 22rem);
     margin-inline: auto;
+    gap: 0;
   }
 
   .pdu-journey-map__item {
-    padding-inline: 0.5rem;
+    flex-basis: 100%;
+    padding: 0.82rem 0.25rem;
   }
 
   .pdu-journey-map__item + .pdu-journey-map__item {
@@ -1988,10 +2154,15 @@
 
   .pdu-portal-entry {
     width: 100%;
-    margin-top: 0.35rem;
-    border-radius: 22px 8px 26px 10px;
-    padding: 0.9rem;
+    margin-top: 0.8rem;
+    border-radius: 0;
+    padding: 0.25rem 0 0;
     backdrop-filter: none;
+  }
+
+  .pdu-portal-entry::before {
+    inset: 14% -18% 5%;
+    opacity: 0.58;
   }
 
   .pdu-portal-entry__copy {
@@ -2005,6 +2176,14 @@
   .pdu-portal-entry__copy p:not(.pdu-portal-console__eyebrow) {
     margin-inline: 0;
     font-size: 0.88rem;
+  }
+
+  .pdu-portal-entry__controls {
+    margin-top: 1rem;
+    border-top: 1px solid rgba(244, 213, 141, 0.16);
+    border-left: 0;
+    padding-top: 1rem;
+    padding-left: 0;
   }
 
   .pdu-portal-current {
@@ -2029,6 +2208,22 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .pdu-reading-ceremony {
+    top: 56%;
+    width: min(92vw, 350px);
+    min-height: 286px;
+  }
+
+  .pdu-reading-ceremony .pdu-reading-spread-portal {
+    width: min(100%, 300px);
+    min-height: 220px;
+    backdrop-filter: none;
+  }
+
+  .pdu-reading-ceremony__copy {
+    width: min(100%, 310px);
+  }
+
   .pdu-glass-panel {
     backdrop-filter: none;
   }
@@ -2045,7 +2240,6 @@
     border-radius: 24px 8px 28px 10px;
   }
 
-  .pdu-ritual-flow,
   .pdu-access-guide,
   .pdu-product-river,
   .pdu-plan-weave,
@@ -2145,11 +2339,6 @@
 
   .pdu-reading-transcript {
     padding-left: 1rem;
-  }
-
-  .pdu-ritual-step {
-    min-height: auto;
-    padding-bottom: 1.25rem;
   }
 
   .pdu-product-visual {

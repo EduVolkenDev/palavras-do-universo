@@ -26,7 +26,6 @@ import {
 import Image from "next/image";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import {
-  articleIdeas,
   pricingPlans,
   productCards,
 } from "@/lib/product/catalog";
@@ -93,24 +92,6 @@ const themeOptions = [
   { value: "money", label: "Dinheiro", icon: CircleDollarSign },
   { value: "family", label: "Família", icon: UserRound },
   { value: "spirit", label: "Espiritual", icon: MoonStar },
-];
-
-const ritualSteps = [
-  {
-    title: "Sentir",
-    text: "Uma mensagem diária abre o campo com presença.",
-    icon: Sparkles,
-  },
-  {
-    title: "Entender",
-    text: "As cartas traduzem o momento em verdade, sombra e direção.",
-    icon: Compass,
-  },
-  {
-    title: "Voltar",
-    text: "Histórico e mensagens salvas transformam intuição em jornada.",
-    icon: History,
-  },
 ];
 
 const journeySteps = [
@@ -182,6 +163,12 @@ const ritualPrompts = [
   "Respire antes de perguntar",
   "Escolha um tema com honestidade",
   "Leia como espelho, não sentença",
+];
+
+const readingOutcomeSteps = [
+  { label: "Cartas", text: "Observe o símbolo antes de procurar resposta." },
+  { label: "Direção", text: "Leia o que pede atenção neste momento." },
+  { label: "Gesto", text: "Escolha uma atitude possível para as próximas 24h." },
 ];
 
 const experiencePillars = [
@@ -351,12 +338,64 @@ function splitReadingIntoBlocks(reading: string) {
 
   const blocks = clean
     .split(
-      /\n(?=(?:\d\)\s|INITIAL LISTENING|THE THREE THREADS|READING BY POSITION|ACTIONS|INTEGRATION|MANTRA|TR[IÍ]ADE|LEITURA|AÇÕES|ACOES|RESUMO|GANCHO))/i
+      /\n(?=(?:\d\)\s|DIRECT ANSWER|RESPOSTA DIRETA|INITIAL LISTENING|THE THREE THREADS|READING BY POSITION|ACTIONS|INTEGRATION|MANTRA|TR[IÍ]ADE|LEITURA|AÇÕES|ACOES|RESUMO|GANCHO))/i
     )
     .map((block) => block.trim())
     .filter(Boolean);
 
   return blocks.length ? blocks : [clean];
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function firstMeaningfulLine(block: string) {
+  return block
+    .split("\n")
+    .map((line) => line.trim())
+    .find(
+      (line) =>
+        line &&
+        !/^\d\)\s/.test(line) &&
+        !/^(MANTRA|TR[IÍ]ADE|AÇÕES|ACOES|ACTIONS|INTEGRATION|INTEGRAÇÃO)$/i.test(
+          line
+        )
+    );
+}
+
+function getReadingMantra(reading: string, fallback: string) {
+  const match = reading.match(
+    /(?:^|\n)\s*(?:\d\)\s*)?MANTRA\s*\n+([\s\S]*?)(?=\n\s*(?:\d\)\s*)?(?:TR[IÍ]ADE|THE THREE THREADS|LEITURA|READING BY POSITION|AÇÕES|ACTIONS|INTEGRAÇÃO|INTEGRATION)\b|$)/i
+  );
+  const line = match ? firstMeaningfulLine(match[1]) : "";
+  return line?.replace(/^[-•]\s*/, "") || fallback;
+}
+
+function getReadingAction(reading: string, fallback: string) {
+  const match = reading.match(
+    /(?:^|\n)\s*(?:\d\)\s*)?(?:AÇÕES|ACOES|ACTIONS)\s*\n+([\s\S]*?)(?=\n\s*(?:\d\)\s*)?(?:INTEGRAÇÃO|INTEGRATION|RITUAL|RESUMO|SUMMARY)\b|$)/i
+  );
+  const line = match ? firstMeaningfulLine(match[1]) : "";
+  return line?.replace(/^[-•]\s*/, "") || fallback;
+}
+
+function getCardInsightFromReading(
+  reading: string,
+  card: { position: string; name: string; reversed?: boolean },
+  fallback?: string
+) {
+  if (!reading) return fallback ?? "";
+  const section = reading.match(
+    new RegExp(
+      `${escapeRegExp(card.position)}\\s*[—-]\\s*${escapeRegExp(
+        card.name
+      )}[\\s\\S]*?(?=\\n\\s*-\\s*[A-ZÁ-Ú ]+\\s*[—-]|\\n\\s*\\d\\)\\s|$)`,
+      "i"
+    )
+  )?.[0];
+  const practice = section?.match(/Na prática:\s*([^\n]+)/i)?.[1];
+  return practice?.trim() || fallback || "";
 }
 
 export default function Home() {
@@ -392,6 +431,7 @@ export default function Home() {
   const [impactNotice, setImpactNotice] = useState("");
   const [impactSaving, setImpactSaving] = useState(false);
   const [invitedBy, setInvitedBy] = useState("");
+  const [showInvitedAction, setShowInvitedAction] = useState(false);
   const [dailyOpening, setDailyOpening] =
     useState<DailyMessage>(fallbackDailyMessage);
 
@@ -437,6 +477,7 @@ export default function Home() {
     if (invitedActionKey) {
       const invitedAction = getImpactAction(invitedActionKey);
       if (invitedAction) {
+        setShowInvitedAction(true);
         setImpactActionKey(invitedAction.key);
         setImpactPlan(invitedAction.suggestedPlan);
         setInvitedBy(isUuid(chainId) ? chainId ?? "" : "");
@@ -838,6 +879,8 @@ export default function Home() {
 
   const shownSpread = spreadCards.length ? spreadCards : dailyOpening.spread;
   const reversedSuffix = locale === "en" ? " (reversed)" : " reversa";
+  const activeReading = Boolean(result);
+  const readingQuestion = question.trim();
   const readingText =
     result ||
     [
@@ -854,6 +897,37 @@ export default function Home() {
       `${locale === "en" ? "Ritual" : "Ritual"}: ${dailyOpening.ritual}`,
     ].join("\n");
   const readingBlocks = splitReadingIntoBlocks(readingText);
+  const openingTitle = loading
+    ? "A leitura está abrindo."
+    : activeReading
+      ? readingQuestion || "Sua leitura foi aberta."
+      : dailyOpening.message;
+  const openingAdvice = loading
+    ? "As cartas anteriores foram recolhidas. Aguarde o novo spread se formar antes de interpretar."
+    : activeReading
+      ? getReadingAction(result, "Leia primeiro o conjunto das três cartas; depois escolha uma ação pequena para hoje.")
+      : dailyOpening.advice;
+  const openingAffirmation = loading
+    ? "Eu espero a leitura nova chegar antes de concluir."
+    : activeReading
+      ? getReadingMantra(result, dailyOpening.affirmation)
+      : dailyOpening.affirmation;
+  const openingEyebrow = loading
+    ? "Portal em movimento"
+    : activeReading
+      ? "Leitura desta pergunta"
+      : "Sua energia de hoje";
+  const cardMeanings = shownSpread.map((card) => {
+    const dailyCard = dailyOpening.spread.find(
+      (item) => item.position === card.position && item.name === card.name
+    );
+    return {
+      position: card.position,
+      name: card.name,
+      reversed: card.reversed,
+      insight: getCardInsightFromReading(result, card, dailyCard?.meaning),
+    };
+  });
 
   return (
     <main className="pdu-home min-h-screen text-[#f8efe2]">
@@ -899,6 +973,8 @@ export default function Home() {
           </button>
         </div>
       </header>
+
+      {loading ? <ReadingCeremonyOverlay locale={locale} /> : null}
 
       <section
         id="topo"
@@ -977,6 +1053,7 @@ export default function Home() {
           </div>
 
           <div
+            id="ritual"
             className="pdu-reveal pdu-journey-map"
             aria-label="Como a experiência funciona"
           >
@@ -1052,10 +1129,12 @@ export default function Home() {
                 <div className="mb-4 flex items-start justify-between gap-4 border-b border-white/10 pb-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]">
-                      Sua energia de hoje
+                      {openingEyebrow}
                     </p>
                     <h2 className="brand-serif mt-1 text-3xl font-semibold text-[#fff7e8]">
-                      {dailyOpening.energy}
+                      {activeReading || loading
+                        ? "Caminho das 3 cartas"
+                        : dailyOpening.energy}
                     </h2>
                   </div>
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#f4d58d]/25 bg-[#f4d58d]/10 text-[#f5d896]">
@@ -1075,20 +1154,20 @@ export default function Home() {
                       </span>
                     </div>
                     <p className="brand-serif text-xl leading-8 text-[#fff3df]">
-                      {dailyOpening.message}
+                      {openingTitle}
                     </p>
                     <div className="space-y-3 text-sm leading-6 text-[#cfc4b9]">
                       <p>
                         <span className="font-semibold text-[#f5d896]">
                           Conselho:
                         </span>{" "}
-                        {dailyOpening.advice}
+                        {openingAdvice}
                       </p>
                       <p>
                         <span className="font-semibold text-[#f5d896]">
                           Afirmação:
                         </span>{" "}
-                        {dailyOpening.affirmation}
+                        {openingAffirmation}
                       </p>
                     </div>
 
@@ -1115,6 +1194,23 @@ export default function Home() {
                         ))}
                       </div>
                     )}
+                    {!loading ? (
+                      <div className="pdu-spread-meaning-list">
+                        {cardMeanings.map((card) => (
+                          <div key={`${card.position}-${card.name}`}>
+                            <span>{card.position}</span>
+                            <strong>
+                              {card.name}
+                              {card.reversed ? reversedSuffix : ""}
+                            </strong>
+                            <p>
+                              {card.insight ||
+                                "Esta carta ganha sentido no conjunto da leitura abaixo."}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
 
                   <div>
@@ -1153,11 +1249,12 @@ export default function Home() {
                           key={option.value}
                           type="button"
                           onClick={() => setTheme(option.value)}
+                          disabled={loading}
                           className={`inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium ${
                             theme === option.value
                               ? "border-[#f4d58d] bg-[#f4d58d] text-[#1c1308]"
                               : "border-white/12 bg-white/[0.05] text-[#d8ccc0] hover:border-[#f4d58d]/45"
-                          }`}
+                          } disabled:cursor-wait disabled:opacity-50`}
                         >
                           <option.icon size={15} />
                           {option.label}
@@ -1180,6 +1277,7 @@ export default function Home() {
                       id="question"
                       value={question}
                       onChange={(event) => setQuestion(event.target.value)}
+                      disabled={loading}
                       className="mt-2 min-h-28 w-full resize-none rounded-[8px] border border-white/12 bg-black/24 p-3 text-sm leading-6 text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/70 focus:ring-2 focus:ring-[#f4d58d]/10"
                       placeholder="O que eu preciso enxergar sobre este momento?"
                     />
@@ -1252,18 +1350,36 @@ export default function Home() {
         </div>
       </section>
 
+      {result || loading ? (
       <section className="pdu-depth-section relative overflow-hidden border-y border-white/10 px-4 py-20 text-[#f8efe2] sm:px-6 lg:px-8">
         <div className="pdu-reveal mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.74fr_1.26fr] lg:items-center">
           <div>
-            <SectionEyebrow dark>Leitura aberta</SectionEyebrow>
+            <SectionEyebrow dark>
+              {loading ? "Revelação em curso" : "Leitura aberta"}
+            </SectionEyebrow>
             <h2 className="brand-serif max-w-xl text-4xl font-semibold leading-tight sm:text-5xl">
-              Clareza que vira próximo passo.
+              {loading
+                ? "Suas cartas estão encontrando posição."
+                : "Clareza que vira próximo passo."}
             </h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-[#d8ccc0]">
-              O Palavras do Universo não promete prever sua vida. Ele ajuda a
-              escutar melhor o momento que você está vivendo.
+              {loading
+                ? "Não há cartas antigas neste intervalo. Um novo spread está sendo formado exclusivamente para a pergunta que você acabou de fazer."
+                : "O Palavras do Universo não promete prever sua vida. Ele ajuda a escutar melhor o momento que você está vivendo."}
             </p>
-            <div className="mt-5 flex flex-wrap gap-2">
+            {result ? (
+              <div className="pdu-reading-outcome-guide mt-6">
+                {readingOutcomeSteps.map((step, index) => (
+                  <div key={step.label}>
+                    <span>0{index + 1}</span>
+                    <strong>{step.label}</strong>
+                    <p>{step.text}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {result ? (
+              <div className="mt-5 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={saveReading}
@@ -1284,7 +1400,8 @@ export default function Home() {
                 <Share2 size={16} />
                 Compartilhar
               </button>
-            </div>
+              </div>
+            ) : null}
             {saveNotice ? (
               <p className="mt-3 text-sm leading-6 text-[#cfc4b9]">
                 {saveNotice}{" "}
@@ -1336,7 +1453,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {result || showInvitedAction ? (
       <section
         id="acao"
         className="border-b border-white/10 bg-[#101019] px-4 py-20 text-[#f8efe2] sm:px-6 lg:px-8"
@@ -1478,47 +1597,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      <section
-        id="ritual"
-        className="relative overflow-hidden px-4 py-20 sm:px-6 lg:px-8"
-      >
-        <div className="pdu-reveal mx-auto max-w-7xl">
-          <div className="max-w-3xl">
-            <SectionEyebrow dark>Como funciona</SectionEyebrow>
-            <h2 className="brand-serif text-4xl font-semibold leading-tight text-[#fff7e8] sm:text-5xl">
-              Um pequeno portal para voltar a si.
-            </h2>
-            <p className="mt-4 text-base leading-7 text-[#d8ccc0]">
-              A jornada começa com uma pergunta simples, ganha memória no seu
-              histórico e se aprofunda quando o ritual começa a fazer parte do
-              dia. Primeiro você sente. Depois escolhe o próximo passo.
-            </p>
-          </div>
-
-          <div className="pdu-ritual-flow mt-12">
-            {ritualSteps.map((step, index) => (
-              <div
-                key={step.title}
-                className="pdu-ritual-step"
-              >
-                <div className="flex items-center justify-between">
-                  <step.icon size={22} className="text-[#f5d896]" />
-                  <span className="font-mono text-xs text-[#8d837b]">
-                    0{index + 1}
-                  </span>
-                </div>
-                <h3 className="brand-serif mt-8 text-2xl font-semibold text-[#fff7e8]">
-                  {step.title}
-                </h3>
-                <p className="mt-3 text-sm leading-6 text-[#cfc4b9]">
-                  {step.text}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      ) : null}
 
       <section
         id="produtos"
@@ -1762,7 +1841,7 @@ export default function Home() {
                   onClick={() =>
                     plan.productKey
                       ? startCheckout(plan.productKey)
-                      : scrollToId("leitura")
+                      : scrollToId(plan.targetId ?? "leitura")
                   }
                   disabled={
                     Boolean(plan.productKey) &&
@@ -1785,36 +1864,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="px-4 py-20 sm:px-6 lg:px-8">
-        <div className="pdu-reveal mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.82fr_1.18fr]">
-          <div>
-            <SectionEyebrow dark>Conteúdo e confiança</SectionEyebrow>
-            <h2 className="brand-serif text-4xl font-semibold leading-tight text-[#fff7e8] sm:text-5xl">
-              Autoridade sem perder intimidade.
-            </h2>
-            <p className="mt-4 max-w-xl text-base leading-7 text-[#d8ccc0]">
-              O blog deve nascer enxuto, conectado às leituras e com linguagem
-              madura: tarot, energia, amor, ciclos, rituais e autoconhecimento.
-            </p>
-          </div>
-
-          <div className="pdu-article-stream">
-            {articleIdeas.map((title) => (
-              <article
-                key={title}
-                className="pdu-article-line"
-              >
-                <BookOpen size={18} className="text-[#f5d896]" />
-                <h3 className="mt-3 font-semibold text-[#fff7e8]">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-[#cfc4b9]">
-                  CTA contextual: tirar uma carta sobre este tema.
-                </p>
-              </article>
-            ))}
-          </div>
-        </div>
-
-        <footer className="mx-auto mt-20 max-w-4xl border-t border-white/10 pt-8 text-center text-xs leading-6 text-[#cfc4b9]">
+      <footer className="px-4 py-12 text-center text-xs leading-6 text-[#cfc4b9] sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-4xl border-t border-white/10 pt-8">
           <nav className="mb-5 flex flex-wrap justify-center gap-x-5 gap-y-2 font-semibold text-[#f5d896]">
             <a href="/termos">Termos de uso</a>
             <a href="/privacidade">Privacidade</a>
@@ -1851,8 +1902,8 @@ export default function Home() {
             , inclusive procurando opções acessíveis ou perguntando sobre valor
             social quando necessário.
           </p>
-        </footer>
-      </section>
+        </div>
+      </footer>
     </main>
   );
 }
@@ -1913,6 +1964,34 @@ function TarotFrame(props: {
               : " reversa"
             : ""}
         </p>
+      </div>
+    </div>
+  );
+}
+
+function ReadingCeremonyOverlay(props: { locale: "pt-BR" | "en" }) {
+  const copy =
+    props.locale === "en"
+      ? {
+          title: "A new spread is opening",
+          body: "Old cards have been gathered. The portal is drawing a clean path for this question.",
+        }
+      : {
+          title: "Um novo spread está abrindo",
+          body: "As cartas antigas foram recolhidas. O portal está formando um caminho limpo para esta pergunta.",
+        };
+
+  return (
+    <div className="pdu-reading-ceremony" role="status" aria-live="polite">
+      <div className="pdu-reading-ceremony__field" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
+      <ReadingSpreadPortal />
+      <div className="pdu-reading-ceremony__copy">
+        <strong>{copy.title}</strong>
+        <span>{copy.body}</span>
       </div>
     </div>
   );

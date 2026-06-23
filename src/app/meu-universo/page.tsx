@@ -7,12 +7,17 @@ import {
   Bookmark,
   CheckCircle2,
   Clock,
+  Compass,
+  CreditCard,
   History,
   HandHeart,
   LogIn,
   MoonStar,
+  ShieldCheck,
   Share2,
   Sparkles,
+  UserRound,
+  type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,6 +34,8 @@ import {
 } from "@/lib/client/localUniverse";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { IMPACT_AREA_LABELS, type ImpactArea } from "@/lib/impact/actions";
+import { productCards } from "@/lib/product/catalog";
+import { useI18n } from "@/components/I18nProvider";
 
 type Reading = {
   id: string;
@@ -63,10 +70,73 @@ type Entitlement = {
   usage_count: number;
 };
 
+type ReadingProfile = {
+  displayName: string;
+  focusAreas: string[];
+  currentPhase: string;
+  guidanceTone: string;
+  desiredShift: string;
+  boundaries: string[];
+  contextNote: string;
+};
+
 type ImpactCommitment = Omit<LocalImpactCommitment, "local_only"> & {
   client_key?: string | null;
   local_only?: boolean;
 };
+
+const EMPTY_READING_PROFILE: ReadingProfile = {
+  displayName: "",
+  focusAreas: [],
+  currentPhase: "",
+  guidanceTone: "",
+  desiredShift: "",
+  boundaries: [],
+  contextNote: "",
+};
+
+const focusAreaOptions = [
+  "Amor e vínculos",
+  "Carreira",
+  "Dinheiro",
+  "Família",
+  "Propósito",
+  "Espiritualidade",
+];
+
+const phaseOptions = [
+  "Começando um ciclo",
+  "Encerrando algo",
+  "Esperando uma resposta",
+  "Reorganizando a vida",
+  "Tomando uma decisão",
+  "Cuidando da energia",
+];
+
+const toneOptions = [
+  "Direta e prática",
+  "Acolhedora",
+  "Profunda e simbólica",
+  "Calma e objetiva",
+];
+
+const shiftOptions = [
+  "Clareza para decidir",
+  "Coragem para agir",
+  "Calma para atravessar",
+  "Fechamento de ciclo",
+  "Mais honestidade comigo",
+];
+
+const boundaryOptions = [
+  "Sem fatalismo",
+  "Sem respostas longas",
+  "Sem romantizar ansiedade",
+  "Sem tom duro",
+  "Sem jargão esotérico",
+];
+
+const paidReadingProducts = productCards.filter((product) => product.mode === "paid");
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -78,6 +148,60 @@ function asArray(value: unknown) {
 
 function asString(value: unknown) {
   return typeof value === "string" ? value : "";
+}
+
+function asStringList(value: unknown) {
+  return Array.isArray(value) ? value.map(asString).filter(Boolean) : [];
+}
+
+function readingProfileFromRemote(value: unknown): ReadingProfile {
+  if (!isRecord(value)) return EMPTY_READING_PROFILE;
+  const raw = isRecord(value.reading_profile) ? value.reading_profile : value;
+  return {
+    displayName: asString(raw.displayName || value.display_name),
+    focusAreas: asStringList(raw.focusAreas || value.favorite_themes),
+    currentPhase: asString(raw.currentPhase || value.emotional_phase),
+    guidanceTone: asString(raw.guidanceTone),
+    desiredShift: asString(raw.desiredShift),
+    boundaries: asStringList(raw.boundaries),
+    contextNote: asString(raw.contextNote),
+  };
+}
+
+function profileProgress(profile: ReadingProfile) {
+  return [
+    profile.displayName,
+    profile.focusAreas.length ? "focus" : "",
+    profile.currentPhase,
+    profile.guidanceTone,
+    profile.desiredShift,
+  ].filter(Boolean).length;
+}
+
+function recommendedProductKey(profile: ReadingProfile) {
+  const signal = [
+    ...profile.focusAreas,
+    profile.currentPhase,
+    profile.desiredShift,
+    profile.contextNote,
+  ]
+    .join(" ")
+    .toLocaleLowerCase("pt-BR");
+
+  if (signal.includes("amor") || signal.includes("vínculo")) {
+    return "sinais_do_amor";
+  }
+
+  if (
+    signal.includes("urg") ||
+    signal.includes("ansiedade") ||
+    signal.includes("não pode esperar") ||
+    signal.includes("coragem")
+  ) {
+    return "clareza_urgente";
+  }
+
+  return "caminho_3_cartas";
 }
 
 function isDailyCardPayload(value: unknown): value is {
@@ -175,6 +299,7 @@ function formatDate(value: string) {
 }
 
 export default function MeuUniversoPage() {
+  const { t } = useI18n();
   const [userId, setUserId] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
   const [authChecked, setAuthChecked] = useState(false);
@@ -182,6 +307,13 @@ export default function MeuUniversoPage() {
   const [messages, setMessages] = useState<SavedMessage[]>([]);
   const [entitlements, setEntitlements] = useState<Entitlement[]>([]);
   const [commitments, setCommitments] = useState<ImpactCommitment[]>([]);
+  const [readingProfile, setReadingProfile] =
+    useState<ReadingProfile>(EMPTY_READING_PROFILE);
+  const [profileDraft, setProfileDraft] =
+    useState<ReadingProfile>(EMPTY_READING_PROFILE);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileNotice, setProfileNotice] = useState("");
+  const [purchaseLoading, setPurchaseLoading] = useState("");
   const [checkoutNotice, setCheckoutNotice] = useState("");
   const [syncNotice, setSyncNotice] = useState("");
   const [loading, setLoading] = useState(true);
@@ -250,6 +382,8 @@ export default function MeuUniversoPage() {
         if (!accountEmail) {
           setReadings([]);
           setEntitlements([]);
+          setReadingProfile(EMPTY_READING_PROFILE);
+          setProfileDraft(EMPTY_READING_PROFILE);
           return;
         }
 
@@ -311,19 +445,27 @@ export default function MeuUniversoPage() {
           removeLocalImpactCommitments(syncedActionIds);
         }
 
-        const [readingsRes, messagesRes, entitlementsRes, actionsRes] = await Promise.all([
+        const [readingsRes, messagesRes, entitlementsRes, actionsRes, profileRes] = await Promise.all([
           fetch("/api/readings?limit=20"),
           fetch("/api/saved-messages?limit=20"),
           fetch("/api/entitlements"),
           fetch("/api/actions"),
+          fetch("/api/profile"),
         ]);
 
         const readingsData = (await readingsRes.json()) as unknown;
         const messagesData = (await messagesRes.json()) as unknown;
         const entitlementsData = (await entitlementsRes.json()) as unknown;
         const actionsData = (await actionsRes.json()) as unknown;
+        const profileData = (await profileRes.json()) as unknown;
 
-        if (!readingsRes.ok || !messagesRes.ok || !entitlementsRes.ok || !actionsRes.ok) {
+        if (
+          !readingsRes.ok ||
+          !messagesRes.ok ||
+          !entitlementsRes.ok ||
+          !actionsRes.ok ||
+          !profileRes.ok
+        ) {
           throw new Error("Não foi possível carregar seu histórico.");
         }
 
@@ -363,6 +505,11 @@ export default function MeuUniversoPage() {
             ? (asArray(actionsData.commitments) as ImpactCommitment[])
             : []
         );
+        const nextProfile = isRecord(profileData)
+          ? readingProfileFromRemote(profileData.profile)
+          : EMPTY_READING_PROFILE;
+        setReadingProfile(nextProfile);
+        setProfileDraft(nextProfile);
       } catch (caught) {
         setError(
           caught instanceof Error
@@ -402,6 +549,107 @@ export default function MeuUniversoPage() {
     ],
     [commitments, entitlements.length, messages.length, readings]
   );
+
+  const profileCompletion = profileProgress(profileDraft);
+  const profileComplete = profileProgress(readingProfile) >= 4;
+  const activeSubscription = entitlements.some(
+    (item) =>
+      item.source === "subscription" ||
+      item.product_key === "circulo_do_universo"
+  );
+  const recommendedProduct = useMemo(() => {
+    const key = recommendedProductKey(profileComplete ? readingProfile : profileDraft);
+    return (
+      paidReadingProducts.find((product) => product.productKey === key) ??
+      paidReadingProducts[0]
+    );
+  }, [profileComplete, profileDraft, readingProfile]);
+  const recommendedTitle = recommendedProduct ? t(recommendedProduct.title) : "";
+  const recommendedPromise = recommendedProduct
+    ? t(recommendedProduct.promise)
+    : "";
+  const recommendedPrice = recommendedProduct?.price ?? "R$9,90";
+
+  function toggleProfileList(key: "focusAreas" | "boundaries", value: string) {
+    setProfileDraft((current) => {
+      const exists = current[key].includes(value);
+      const next = exists
+        ? current[key].filter((item) => item !== value)
+        : [...current[key], value].slice(0, 6);
+      return { ...current, [key]: next };
+    });
+  }
+
+  async function saveReadingProfile() {
+    setProfileSaving(true);
+    setProfileNotice("");
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(profileDraft),
+      });
+      const data = (await res.json()) as unknown;
+      if (!res.ok || !isRecord(data)) {
+        throw new Error(
+          isRecord(data) && typeof data.error === "string"
+            ? data.error
+            : "Não foi possível salvar seu Mapa Inicial."
+        );
+      }
+      const nextProfile = readingProfileFromRemote(data.profile);
+      setReadingProfile(nextProfile);
+      setProfileDraft(nextProfile);
+      setProfileNotice(
+        "Mapa Inicial calibrado. Suas próximas leituras já podem usar esse contexto."
+      );
+    } catch (caught) {
+      setProfileNotice(
+        caught instanceof Error
+          ? caught.message
+          : "Não foi possível salvar seu Mapa Inicial."
+      );
+    } finally {
+      setProfileSaving(false);
+    }
+  }
+
+  async function startUniverseCheckout(productKey: string) {
+    setPurchaseLoading(productKey);
+    setCheckoutNotice("");
+    setError("");
+    try {
+      const res = await fetch("/api/checkout/create", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ productKey }),
+      });
+      const data = (await res.json()) as unknown;
+
+      if (res.status === 401) {
+        window.location.href = `/entrar?next=${encodeURIComponent(
+          `/meu-universo?comprar=${productKey}`
+        )}`;
+        return;
+      }
+
+      if (!res.ok || !isRecord(data) || typeof data.checkoutUrl !== "string") {
+        throw new Error(
+          isRecord(data) && typeof data.error === "string"
+            ? data.error
+            : "Não foi possível abrir o checkout."
+        );
+      }
+
+      window.location.href = data.checkoutUrl;
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Falha ao abrir o checkout."
+      );
+    } finally {
+      setPurchaseLoading("");
+    }
+  }
 
   async function openBillingPortal() {
     try {
@@ -457,18 +705,84 @@ export default function MeuUniversoPage() {
       </header>
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">
-            Histórico pessoal
-          </p>
-          <h1 className="brand-serif mt-2 text-5xl font-semibold leading-none text-[#241b18]">
-            Suas mensagens começam a formar um mapa.
-          </h1>
-          <p className="mt-5 text-base leading-7 text-[#6f615a]">
-            Suas leituras, mensagens salvas e acessos começam a formar um
-            arquivo pessoal: um lugar para voltar, perceber padrões e abrir o
-            que foi desbloqueado.
-          </p>
+        <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">
+              Histórico pessoal
+            </p>
+            <h1 className="brand-serif mt-2 text-5xl font-semibold leading-none text-[#241b18] sm:text-6xl">
+              Suas mensagens começam a formar um mapa.
+            </h1>
+            <p className="mt-5 text-base leading-7 text-[#6f615a]">
+              Leituras, cartas salvas, decisões e ações viram um arquivo vivo:
+              um lugar para voltar, perceber padrões e abrir respostas com mais
+              contexto.
+            </p>
+            {!accountEmail ? (
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/entrar"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#241b18] px-5 py-3 text-sm font-semibold text-[#fff7e8] shadow-[0_18px_50px_rgba(36,27,24,0.18)]"
+                >
+                  <LogIn size={16} />
+                  Criar meu universo
+                </Link>
+                <Link
+                  href="/#leitura"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-[#d8c3a6] bg-white/55 px-5 py-3 text-sm font-semibold text-[#4d3c31]"
+                >
+                  Fazer uma leitura primeiro
+                  <ArrowRight size={15} />
+                </Link>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="relative overflow-hidden rounded-[30px] border border-[#241b18]/10 bg-[#111019] p-5 text-[#fff7e8] shadow-[0_34px_100px_rgba(36,27,24,0.16)]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(244,213,141,0.22),transparent_28%),radial-gradient(circle_at_82%_70%,rgba(167,215,197,0.18),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.08),transparent_42%)]" />
+            <div className="relative">
+              <div className="flex items-center justify-between gap-4">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/25 bg-white/[0.06] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+                  <MoonStar size={13} />
+                  {accountEmail ? "Mapa ativo" : "Prévia do Mapa Inicial"}
+                </span>
+                <span className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-[#a7d7c5]">
+                  <Sparkles size={17} />
+                </span>
+              </div>
+
+              <h2 className="brand-serif mt-5 text-3xl font-semibold leading-tight">
+                {accountEmail
+                  ? "A memória dá profundidade às próximas leituras."
+                  : "Crie conta para a IA lembrar do seu contexto."}
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-[#d8ccc0]">
+                {accountEmail
+                  ? "Seu universo combina histórico, preferências e sinais recorrentes para respostas menos genéricas."
+                  : "Depois do login, você calibra fase, foco, tom e limites. A leitura deixa de parecer solta e passa a responder dentro da sua jornada."}
+              </p>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                {[
+                  ["Fase", accountEmail ? readingProfile.currentPhase || "A calibrar" : "Transição"],
+                  ["Tom", accountEmail ? readingProfile.guidanceTone || "A escolher" : "Prático"],
+                  ["Limites", accountEmail ? `${readingProfile.boundaries.length}` : "Sem fatalismo"],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="rounded-2xl border border-white/10 bg-white/[0.055] p-3"
+                  >
+                    <span className="text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
+                      {label}
+                    </span>
+                    <strong className="mt-2 block text-sm text-[#fff7e8]">
+                      {value}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="mt-8 grid gap-3 md:grid-cols-4">
@@ -505,23 +819,322 @@ export default function MeuUniversoPage() {
         ) : null}
 
         {authChecked && !accountEmail ? (
-          <section className="mt-6 flex flex-col justify-between gap-4 rounded-lg border border-[#d8c3a6] bg-[#fffaf2] p-5 sm:flex-row sm:items-center">
-            <div>
-              <p className="font-semibold text-[#332720]">
-                Proteja e sincronize seu universo
-              </p>
-              <p className="mt-1 text-sm leading-6 text-[#6f615a]">
-                Suas mensagens locais continuam abaixo. Entre para acessar
-                histórico remoto, compras e leituras em outros dispositivos.
-              </p>
+          <section className="mt-6 overflow-hidden rounded-[26px] border border-[#d8c3a6] bg-[#fffaf2] shadow-[0_24px_70px_rgba(80,57,34,0.08)]">
+            <div className="grid gap-0 md:grid-cols-[1fr_auto] md:items-center">
+              <div className="p-5 sm:p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">
+                  Próximo desbloqueio
+                </p>
+                <h2 className="brand-serif mt-2 text-3xl font-semibold text-[#332720]">
+                  Proteja seu histórico e abra o Mapa Inicial.
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6f615a]">
+                  A conta transforma leituras soltas em continuidade: histórico
+                  remoto, compras, preferências e contexto para respostas mais
+                  pessoais.
+                </p>
+              </div>
+              <div className="flex h-full flex-col justify-center gap-3 border-t border-[#e6d8c3] bg-[#f8efe2] p-5 md:border-l md:border-t-0">
+                <Link
+                  href="/entrar"
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#241b18] px-5 py-3 text-sm font-semibold text-[#fff7e8]"
+                >
+                  <LogIn size={16} />
+                  Entrar com e-mail
+                </Link>
+                <p className="text-center text-xs leading-5 text-[#8a7667]">
+                  Leva menos de um minuto.
+                </p>
+              </div>
             </div>
-            <Link
-              href="/entrar"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#241b18] px-4 py-2.5 text-sm font-semibold text-[#fff7e8]"
-            >
-              <LogIn size={16} />
-              Entrar com e-mail
-            </Link>
+          </section>
+        ) : null}
+
+        {authChecked && accountEmail ? (
+          <section className="mt-8 overflow-hidden rounded-[28px] border border-[#241b18]/10 bg-[#111019] text-[#fff7e8] shadow-[0_34px_100px_rgba(36,27,24,0.18)]">
+            <div className="grid gap-0 lg:grid-cols-[0.78fr_1.22fr]">
+              <div className="relative min-h-full overflow-hidden border-b border-white/10 p-6 lg:border-b-0 lg:border-r lg:p-8">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_20%,rgba(244,213,141,0.18),transparent_30%),radial-gradient(circle_at_80%_60%,rgba(167,215,197,0.16),transparent_34%)]" />
+                <div className="relative">
+                  <p className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/22 bg-white/[0.05] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+                    <Sparkles size={13} />
+                    Mapa Inicial
+                  </p>
+                  <h2 className="brand-serif mt-5 text-4xl font-semibold leading-tight">
+                    Calibre o jeito que o Universo fala com você.
+                  </h2>
+                  <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
+                    Depois de criar conta, esse mapa vira contexto real para as
+                    leituras. A IA entende fase, tom, limites e foco sem você
+                    repetir tudo a cada pergunta.
+                  </p>
+
+                  <div className="mt-6 grid gap-3 text-sm">
+                    {[
+                      ["Contexto", `${profileCompletion}/5 sinais essenciais`],
+                      ["Status", profileComplete ? "Calibrado" : "Em aberto"],
+                      ["Uso", "Aplicado nas próximas leituras"],
+                    ].map(([label, value]) => (
+                      <div
+                        key={label}
+                        className="flex items-center justify-between border-t border-white/10 pt-3"
+                      >
+                        <span className="text-[#a79d94]">{label}</span>
+                        <strong className="text-[#fff7e8]">{value}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-[#fbf6ee] p-5 text-[#241b18] sm:p-6 lg:p-8">
+                <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
+                      Nome de leitura
+                    </span>
+                    <input
+                      value={profileDraft.displayName}
+                      onChange={(event) =>
+                        setProfileDraft((current) => ({
+                          ...current,
+                          displayName: event.target.value,
+                        }))
+                      }
+                      className="mt-2 w-full rounded-2xl border border-[#dfccb0] bg-white px-4 py-3 text-sm outline-none focus:border-[#8a6b3f]"
+                      placeholder="Como quer ser chamado?"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
+                      Fase atual
+                    </span>
+                    <select
+                      value={profileDraft.currentPhase}
+                      onChange={(event) =>
+                        setProfileDraft((current) => ({
+                          ...current,
+                          currentPhase: event.target.value,
+                        }))
+                      }
+                      className="mt-2 w-full rounded-2xl border border-[#dfccb0] bg-white px-4 py-3 text-sm outline-none focus:border-[#8a6b3f]"
+                    >
+                      <option value="">Escolha uma fase</option>
+                      {phaseOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="mt-6 grid gap-6 lg:grid-cols-2">
+                  <ProfileChoiceGroup
+                    title="O que mais ocupa sua energia?"
+                    icon={Compass}
+                    options={focusAreaOptions}
+                    selected={profileDraft.focusAreas}
+                    onToggle={(value) => toggleProfileList("focusAreas", value)}
+                  />
+                  <ProfileChoiceGroup
+                    title="O que você não quer receber?"
+                    icon={ShieldCheck}
+                    options={boundaryOptions}
+                    selected={profileDraft.boundaries}
+                    onToggle={(value) => toggleProfileList("boundaries", value)}
+                  />
+                </div>
+
+                <div className="mt-6 grid gap-5 xl:grid-cols-2">
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
+                      Tom da orientação
+                    </span>
+                    <select
+                      value={profileDraft.guidanceTone}
+                      onChange={(event) =>
+                        setProfileDraft((current) => ({
+                          ...current,
+                          guidanceTone: event.target.value,
+                        }))
+                      }
+                      className="mt-2 w-full rounded-2xl border border-[#dfccb0] bg-white px-4 py-3 text-sm outline-none focus:border-[#8a6b3f]"
+                    >
+                      <option value="">Escolha um tom</option>
+                      {toneOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
+                      O que você busca agora?
+                    </span>
+                    <select
+                      value={profileDraft.desiredShift}
+                      onChange={(event) =>
+                        setProfileDraft((current) => ({
+                          ...current,
+                          desiredShift: event.target.value,
+                        }))
+                      }
+                      className="mt-2 w-full rounded-2xl border border-[#dfccb0] bg-white px-4 py-3 text-sm outline-none focus:border-[#8a6b3f]"
+                    >
+                      <option value="">Escolha uma intenção</option>
+                      {shiftOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <label className="mt-6 block">
+                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
+                    Contexto que vale lembrar
+                  </span>
+                  <textarea
+                    value={profileDraft.contextNote}
+                    onChange={(event) =>
+                      setProfileDraft((current) => ({
+                        ...current,
+                        contextNote: event.target.value,
+                      }))
+                    }
+                    rows={3}
+                    className="mt-2 w-full resize-none rounded-2xl border border-[#dfccb0] bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-[#8a6b3f]"
+                    placeholder="Ex.: estou numa transição de trabalho, quero respostas práticas e não quero alimentar ansiedade."
+                  />
+                </label>
+
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm leading-6 text-[#6f615a]">
+                    {profileNotice ||
+                      "Complete pelo menos 4 sinais para calibrar suas leituras."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={saveReadingProfile}
+                    disabled={profileSaving || profileCompletion < 4}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#241b18] px-5 py-3 text-sm font-semibold text-[#fff7e8] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <UserRound size={16} />
+                    {profileSaving ? "Calibrando..." : "Salvar Mapa Inicial"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {authChecked && accountEmail && recommendedProduct ? (
+          <section className="mt-8 overflow-hidden rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] shadow-[0_30px_90px_rgba(80,57,34,0.1)]">
+            <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="relative overflow-hidden p-6 sm:p-7 lg:p-8">
+                <div className="absolute right-8 top-8 hidden h-24 w-24 rounded-full border border-[#d8c3a6] bg-[radial-gradient(circle,rgba(244,213,141,0.34),transparent_62%)] lg:block" />
+                <p className="inline-flex items-center gap-2 rounded-full bg-[#241b18] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+                  <CreditCard size={13} />
+                  Próximo desbloqueio
+                </p>
+                <h2 className="brand-serif mt-4 max-w-2xl text-4xl font-semibold leading-tight text-[#241b18]">
+                  {profileComplete ? (
+                    <>
+                      {t("Seu mapa pede")} {recommendedTitle}.
+                    </>
+                  ) : (
+                    t("Calibre o mapa e transforme contexto em leitura paga.")
+                  )}
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-[#6f615a]">
+                  {profileComplete
+                    ? `${recommendedPromise} ${t(
+                        "A leitura usa sua pergunta, suas cartas e o Mapa Inicial para entregar uma resposta menos genérica."
+                      )}`
+                    : t(
+                        "Quando quatro sinais estiverem preenchidos, a recomendação fica pronta para compra em um clique. Isso cria continuidade e aumenta a chance de uma leitura realmente útil."
+                      )}
+                </p>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                  {[
+                    [t("Recomendação"), recommendedTitle],
+                    [t("Preço"), recommendedPrice],
+                    [
+                      t("Perfil"),
+                      profileComplete
+                        ? t("Calibrado")
+                        : `${profileCompletion}/5 ${t("sinais")}`,
+                    ],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="rounded-2xl border border-[#e4d3ba] bg-white/60 p-4"
+                    >
+                      <span className="text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
+                        {label}
+                      </span>
+                      <strong className="mt-2 block text-sm text-[#332720]">
+                        {value}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#111019] p-6 text-[#fff7e8] sm:p-7 lg:p-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+                  Oferta natural
+                </p>
+                <h3 className="brand-serif mt-3 text-3xl font-semibold">
+                  Uma pergunta real. Três cartas. Resposta contextual.
+                </h3>
+                <ul className="mt-5 grid gap-3 text-sm leading-6 text-[#d8ccc0]">
+                  <li className="border-t border-white/10 pt-3">
+                    Compra avulsa para uma decisão específica, sem assinatura.
+                  </li>
+                  <li className="border-t border-white/10 pt-3">
+                    Resultado salvo no Meu Universo para acompanhar padrões.
+                  </li>
+                  <li className="border-t border-white/10 pt-3">
+                    Caminho claro para entrar no Círculo quando quiser continuidade.
+                  </li>
+                </ul>
+                <div className="mt-6 flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={() => startUniverseCheckout(recommendedProduct.productKey)}
+                    disabled={!profileComplete || !!purchaseLoading}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#241b18] disabled:cursor-not-allowed disabled:opacity-55"
+                  >
+                    <CreditCard size={16} />
+                    {purchaseLoading === recommendedProduct.productKey
+                      ? t("Abrindo checkout...")
+                      : profileComplete
+                        ? `${t("Desbloquear por")} ${recommendedPrice}`
+                        : t("Complete o mapa primeiro")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startUniverseCheckout("circulo_do_universo")}
+                    disabled={activeSubscription || !!purchaseLoading}
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-[#fff7e8] disabled:cursor-not-allowed disabled:opacity-55"
+                  >
+                    <Sparkles size={16} />
+                    {purchaseLoading === "circulo_do_universo"
+                      ? t("Abrindo assinatura...")
+                      : activeSubscription
+                        ? t("Círculo ativo")
+                        : t("Entrar no Círculo mensal")}
+                  </button>
+                </div>
+              </div>
+            </div>
           </section>
         ) : null}
 
@@ -711,6 +1324,46 @@ export default function MeuUniversoPage() {
 
       </section>
     </main>
+  );
+}
+
+function ProfileChoiceGroup(props: {
+  title: string;
+  icon: LucideIcon;
+  options: string[];
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
+  const Icon = props.icon;
+  return (
+    <div className="rounded-2xl border border-[#dfccb0] bg-white/70 p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="grid h-9 w-9 place-items-center rounded-full bg-[#f4d58d]/35 text-[#8a6b3f]">
+          <Icon size={17} />
+        </span>
+        <p className="text-sm font-semibold text-[#332720]">{props.title}</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {props.options.map((option) => {
+          const active = props.selected.includes(option);
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => props.onToggle(option)}
+              data-active={active}
+              className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                active
+                  ? "border-[#241b18] bg-[#241b18] text-[#fff7e8]"
+                  : "border-[#dfccb0] bg-[#fbf6ee] text-[#5b4d45] hover:border-[#8a6b3f]"
+              }`}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

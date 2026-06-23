@@ -504,6 +504,7 @@
   .pdu-reading-spread-portal__ring::before,
   .pdu-reading-spread-portal__ring::after,
   .pdu-reading-spread-portal__cards span,
+  .pdu-reading-ceremony__field,
   .pdu-reading-card-grid.is-revealed > div,
   .pdu-reading-block,
   .pdu-save-action::before,

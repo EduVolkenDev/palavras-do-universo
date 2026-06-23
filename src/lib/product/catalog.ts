@@ -14,6 +14,7 @@ export type ProductCard = {
 
 export type PricingPlan = {
   productKey?: string;
+  targetId?: "leitura" | "produtos";
   title: string;
   price: string;
   cadence: string;
@@ -120,6 +121,21 @@ export const pricingPlans: PricingPlan[] = [
       "Uma leitura gratuita por dia",
     ],
     cta: "Experimentar gratuitamente",
+    targetId: "leitura",
+  },
+  {
+    title: "Leituras avulsas",
+    price: "R$9,90",
+    cadence: "a partir de",
+    bestFor: "Resolver uma questão específica sem iniciar uma assinatura.",
+    features: [
+      "Pagamento único",
+      "Opções para amor e decisões",
+      "Clareza Urgente quando não pode esperar",
+      "Resultado disponível no Meu Universo",
+    ],
+    cta: "Escolher minha leitura",
+    targetId: "produtos",
   },
   {
     productKey: "circulo_do_universo",

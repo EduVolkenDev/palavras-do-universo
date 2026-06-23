@@ -61,6 +61,14 @@ type MemorySavedMessageRow = {
   created_at: string | null;
 };
 
+type ProfileMemoryRow = {
+  display_name: string | null;
+  favorite_themes: string[] | null;
+  emotional_phase: string | null;
+  sun_sign?: string | null;
+  reading_profile?: unknown;
+};
+
 const EXPERIENCE_CONTRACTS: Record<
   string,
   {
@@ -237,8 +245,16 @@ async function getPortalMemory(userId: string, remoteEnabled: boolean) {
     await ensureSupabaseProfile(userId);
     const supabase = getSupabaseAdmin();
 
-    const [{ data: readings, error: readingsError }, { data: saved, error: savedError }] =
-      await Promise.all([
+    const [
+      { data: profile, error: profileError },
+      { data: readings, error: readingsError },
+      { data: saved, error: savedError },
+    ] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("display_name, favorite_themes, emotional_phase, sun_sign, reading_profile")
+          .eq("id", userId)
+          .maybeSingle(),
         supabase
           .from("readings")
           .select("theme, question, mode, spread, created_at")
@@ -253,9 +269,11 @@ async function getPortalMemory(userId: string, remoteEnabled: boolean) {
           .limit(12),
       ]);
 
+    if (profileError) throw profileError;
     if (readingsError) throw readingsError;
     if (savedError) throw savedError;
 
+    const profileRow = profile as ProfileMemoryRow | null;
     const readingRows = (readings ?? []) as MemoryReadingRow[];
     const savedRows = (saved ?? []) as MemorySavedMessageRow[];
     const cardCounts = new Map<string, number>();
@@ -288,6 +306,34 @@ async function getPortalMemory(userId: string, remoteEnabled: boolean) {
       `Leituras recentes registradas: ${readingRows.length}.`,
       `Mensagens/carta salvas recentes: ${savedRows.length}.`,
     ];
+
+    if (profileRow) {
+      const readingProfile = isRecord(profileRow.reading_profile)
+        ? profileRow.reading_profile
+        : {};
+      const displayName = asString(profileRow.display_name);
+      const currentPhase =
+        asString(readingProfile.currentPhase) || asString(profileRow.emotional_phase);
+      const guidanceTone = asString(readingProfile.guidanceTone);
+      const desiredShift = asString(readingProfile.desiredShift);
+      const contextNote = asString(readingProfile.contextNote);
+      const boundaries = Array.isArray(readingProfile.boundaries)
+        ? readingProfile.boundaries.map(asString).filter(Boolean).slice(0, 5)
+        : [];
+      const focusAreas = Array.isArray(readingProfile.focusAreas)
+        ? readingProfile.focusAreas.map(asString).filter(Boolean).slice(0, 6)
+        : profileRow.favorite_themes ?? [];
+
+      if (displayName) lines.push(`Nome escolhido pela pessoa: ${displayName}.`);
+      if (focusAreas.length) lines.push(`Áreas de foco declaradas: ${focusAreas.join(", ")}.`);
+      if (currentPhase) lines.push(`Fase atual declarada: ${currentPhase}.`);
+      if (guidanceTone) lines.push(`Tom preferido para orientação: ${guidanceTone}.`);
+      if (desiredShift) lines.push(`Mudança desejada: ${desiredShift}.`);
+      if (boundaries.length) lines.push(`Evitar nas leituras: ${boundaries.join(", ")}.`);
+      if (contextNote) {
+        lines.push(`Contexto livre informado pela pessoa: "${contextNote.slice(0, 260)}".`);
+      }
+    }
 
     const themes = topEntries(themeCounts, 4);
     if (themes.length) lines.push(`Temas que têm aparecido: ${themes.join(", ")}.`);
@@ -621,48 +667,52 @@ export async function POST(req: Request) {
     ? isEnglish
       ? `
 		Required format:
-		1) INITIAL LISTENING (2-3 sentences)
-		2) MANTRA (1 sentence) + plain meaning (1 sentence)
-		3) THE THREE THREADS: Truth, Shadow, and Direction (1 short sentence each)
-		4) READING BY POSITION
+		1) DIRECT ANSWER TO THE QUESTION (2 short sentences connecting the question to the three cards)
+		2) INITIAL LISTENING (2 sentences)
+		3) MANTRA (1 sentence) + plain meaning (1 sentence)
+		4) THE THREE THREADS: Truth, Shadow, and Direction (1 short sentence each)
+		5) READING BY POSITION
 		   For each card: practical meaning (up to 2 sentences), emotional intelligence (1 sentence), and grounding (1 sentence).
-		5) ACTIONS: 3 executable micro-steps of 10-20 min (1 line each)
-		6) INTEGRATION RITUAL: short practice + journal sentence starting with "I choose..."
-		7) DIRECT SUMMARY: 3 short bullets
-		8) NEXT QUESTION: recommended question + suggestion for deeper reading
+		6) ACTIONS: 3 executable micro-steps of 10-20 min (1 line each)
+		7) INTEGRATION RITUAL: short practice + journal sentence starting with "I choose..."
+		8) DIRECT SUMMARY: 3 short bullets
+		9) NEXT QUESTION: recommended question + suggestion for deeper reading
 		`.trim()
       : `
 		Formato obrigatório:
-		1) ESCUTA INICIAL (2–3 frases)
-		2) MANTRA (1 frase) + tradução simples (1 frase)
-	3) TRÍADE: Verdade, Sombra e Direção (1 frase curta para cada)
-	4) LEITURA POR POSIÇÃO
+		1) RESPOSTA DIRETA À PERGUNTA (2 frases curtas conectando pergunta e as três cartas)
+		2) ESCUTA INICIAL (2 frases)
+		3) MANTRA (1 frase) + tradução simples (1 frase)
+	4) TRÍADE: Verdade, Sombra e Direção (1 frase curta para cada)
+	5) LEITURA POR POSIÇÃO
 	   Para cada carta: significado prático (até 2 frases), inteligência emocional (1 frase) e firmeza (1 frase).
-	5) AÇÕES: 3 micro-passos executáveis de 10–20 min (1 linha cada)
-	6) RITUAL DE INTEGRAÇÃO: prática curta + frase de diário começando com "Eu escolho..."
-		7) RESUMO DIRETO: 3 bullets curtos
-		8) GANCHO: pergunta recomendada + sugestão de aprofundamento
+	6) AÇÕES: 3 micro-passos executáveis de 10–20 min (1 linha cada)
+	7) RITUAL DE INTEGRAÇÃO: prática curta + frase de diário começando com "Eu escolho..."
+		8) RESUMO DIRETO: 3 bullets curtos
+		9) GANCHO: pergunta recomendada + sugestão de aprofundamento
 		`.trim()
     : isEnglish
       ? `
 		Required format for free reading:
-		1) INITIAL LISTENING (2 sentences)
-		2) MANTRA (1 sentence) + plain meaning (1 sentence)
-		3) THE THREE THREADS: Truth, Shadow, and Direction (1 short sentence each)
-		4) READING BY POSITION
+		1) DIRECT ANSWER TO THE QUESTION (2 short sentences connecting the question to the three cards)
+		2) INITIAL LISTENING (2 sentences)
+		3) MANTRA (1 sentence) + plain meaning (1 sentence)
+		4) THE THREE THREADS: Truth, Shadow, and Direction (1 short sentence each)
+		5) READING BY POSITION
 		   For each card: practical meaning (1 sentence) and direction (1 sentence).
-		5) ACTIONS: 3 objective micro-steps (1 line each)
-		6) CLOSING: short ritual, 3-bullet summary, and recommended question
+		6) ACTIONS: 3 objective micro-steps (1 line each)
+		7) CLOSING: short ritual, 3-bullet summary, and recommended question
 		`.trim()
       : `
 		Formato obrigatório para leitura gratuita:
-		1) ESCUTA INICIAL (2 frases)
-		2) MANTRA (1 frase) + tradução simples (1 frase)
-	3) TRÍADE: Verdade, Sombra e Direção (1 frase curta para cada)
-	4) LEITURA POR POSIÇÃO
+		1) RESPOSTA DIRETA À PERGUNTA (2 frases curtas conectando pergunta e as três cartas)
+		2) ESCUTA INICIAL (2 frases)
+		3) MANTRA (1 frase) + tradução simples (1 frase)
+	4) TRÍADE: Verdade, Sombra e Direção (1 frase curta para cada)
+	5) LEITURA POR POSIÇÃO
 	   Para cada carta: significado prático (1 frase) e direção (1 frase).
-	5) AÇÕES: 3 micro-passos objetivos (1 linha cada)
-	6) FECHAMENTO: ritual curto, resumo em 3 bullets e pergunta recomendada
+	6) AÇÕES: 3 micro-passos objetivos (1 linha cada)
+	7) FECHAMENTO: ritual curto, resumo em 3 bullets e pergunta recomendada
 	`.trim();
   const portalMemory = await getPortalMemory(userId, remoteEnabled);
   const dailyDay = getZonedDay(normalizeTimeZone(String(body?.timeZone ?? "")));
@@ -724,6 +774,11 @@ export async function POST(req: Request) {
 	${dailyOpeningText}
 
 	Use a abertura diária como contexto de continuidade, não como repetição obrigatória. A leitura atual deve responder à pergunta, mas precisa conversar com a energia, o conselho e os símbolos já entregues para esta pessoa hoje.
+
+	Obrigatório:
+	- A primeira seção deve responder diretamente a pergunta feita, com base na combinação das três cartas.
+	- Cada carta precisa ser interpretada como parte da situação perguntada, não como significado genérico de baralho.
+	- Se existir perfil do usuário na memória, adapte tom, foco, limites e ação sem dizer que está usando dados de cadastro.
 	
 	${outputFormat}
 	
