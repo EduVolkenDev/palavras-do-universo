@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/auth/api";
 import { getSupabaseAdmin, hasSupabaseConfig } from "@/lib/supabase/server";
+import { getOwnerEntitlements } from "@/lib/product/ownerAccess";
 
 export async function GET() {
   const auth = await requireApiUser();
   if (auth.response) return auth.response;
+  const ownerEntitlements = getOwnerEntitlements(auth.user);
 
   if (!hasSupabaseConfig()) {
-    return NextResponse.json({ ok: true, entitlements: [] });
+    return NextResponse.json({ ok: true, entitlements: ownerEntitlements });
   }
 
   const supabase = getSupabaseAdmin();
@@ -23,5 +25,11 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, entitlements: data ?? [] });
+  const existing = new Set((data ?? []).map((item) => item.product_key));
+  const entitlements = [
+    ...ownerEntitlements.filter((item) => !existing.has(item.product_key)),
+    ...(data ?? []),
+  ];
+
+  return NextResponse.json({ ok: true, entitlements });
 }

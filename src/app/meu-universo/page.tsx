@@ -1170,7 +1170,9 @@ export default function MeuUniversoPage() {
                   className="rounded-lg border border-[#e4d3ba] bg-[#fbf6ee] p-4"
                 >
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">
-                    {entitlement.source === "subscription"
+                    {entitlement.source === "admin"
+                      ? "Dono"
+                      : entitlement.source === "subscription"
                       ? "Círculo"
                       : "Avulso"}
                   </p>

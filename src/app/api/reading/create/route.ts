@@ -17,6 +17,7 @@ import {
   makeFingerprint,
 } from "@/lib/tarot/repeatLimiter";
 import { isPaidReadingProduct } from "@/lib/product/access";
+import { getOwnerEntitlementForProduct } from "@/lib/product/ownerAccess";
 import {
   localizeTarotCard,
   localizeDailyMessage,
@@ -509,9 +510,13 @@ async function persistReading(params: {
 }
 
 async function getAvailableEntitlement(params: {
+  user: NonNullable<Awaited<ReturnType<typeof getAuthenticatedUser>>>;
   userId: string;
   productKey: string;
 }) {
+  const ownerEntitlement = getOwnerEntitlementForProduct(params.user, params.productKey);
+  if (ownerEntitlement) return ownerEntitlement;
+
   if (!hasSupabaseConfig()) return null;
 
   const supabase = getSupabaseAdmin();
@@ -573,7 +578,9 @@ export async function POST(req: Request) {
     );
   }
   const entitlement = paidProduct
-    ? await getAvailableEntitlement({ userId, productKey })
+    ? authenticatedUser
+      ? await getAvailableEntitlement({ user: authenticatedUser, userId, productKey })
+      : null
     : null;
 
   if (paidProduct && !entitlement) {
@@ -846,7 +853,7 @@ export async function POST(req: Request) {
     interpretation,
     remoteEnabled,
   });
-  if (paidProduct && entitlement?.id) {
+  if (paidProduct && entitlement?.id && entitlement.source !== "admin") {
     await consumeEntitlement(entitlement.id, userId);
   }
 

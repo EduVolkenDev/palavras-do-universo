@@ -9,6 +9,7 @@ import {
 import { getSiteUrl, getStripe, hasStripeConfig } from "@/lib/stripe/server";
 import { checkRateLimit } from "@/lib/security/rateLimit";
 import { readJsonBody } from "@/lib/http/request";
+import { isOwnerAccessUser } from "@/lib/product/ownerAccess";
 
 type CheckoutBody = {
   productKey?: unknown;
@@ -85,14 +86,6 @@ export async function POST(req: Request) {
   const auth = await requireApiUser();
   if (auth.response) return auth.response;
 
-  if (!hasSupabaseConfig()) {
-    return jsonError("Supabase is not configured", 503);
-  }
-
-  if (!hasStripeConfig()) {
-    return jsonError("Stripe is not configured", 503);
-  }
-
   const parsed = await readJsonBody<CheckoutBody>(req);
   if (!parsed.ok) return parsed.response;
   const body = parsed.body;
@@ -104,6 +97,23 @@ export async function POST(req: Request) {
       : auth.user.email;
 
   if (!productKey) return jsonError("Missing productKey", 400);
+
+  if (isOwnerAccessUser(auth.user)) {
+    return NextResponse.json({
+      ok: true,
+      ownerAccess: true,
+      checkoutUrl: "/meu-universo?owner_access=1",
+      sessionId: null,
+    });
+  }
+
+  if (!hasSupabaseConfig()) {
+    return jsonError("Supabase is not configured", 503);
+  }
+
+  if (!hasStripeConfig()) {
+    return jsonError("Stripe is not configured", 503);
+  }
 
   const supabase = getSupabaseAdmin();
   await ensureSupabaseProfile(userId);
