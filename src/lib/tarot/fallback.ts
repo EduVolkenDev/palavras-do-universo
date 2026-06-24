@@ -383,6 +383,9 @@ export function generateFallbackReading(params: FallbackReadingParams) {
   const contextualOpening = isEnglish
     ? `${pick(openings, "opening")} Today's energy, “${daily.energy},” asks you to approach ${copy.label} through ${situation.card.keywords[0]}.`
     : `${pick(openings, "opening")} A energia “${daily.energy}” convida você a olhar para ${copy.label} pela lente de ${situation.card.keywords[0]}.`;
+  const directAnswer = isEnglish
+    ? `Your question is not asking for a perfect certainty; it is asking you to read the situation through ${label(situation)}, notice the tension shown by ${label(obstacle)}, and choose the direction opened by ${label(direction)}. The clearest next step is to stop treating the doubt as a delay and turn it into one honest movement.`
+    : `A sua pergunta não está pedindo certeza perfeita; ela pede que você leia a situação por ${label(situation)}, perceba a tensão mostrada por ${label(obstacle)} e escolha a direção aberta por ${label(direction)}. O próximo passo mais claro é parar de tratar a dúvida como atraso e transformar isso em um movimento honesto.`;
   const memoryLine = hasPortalMemory
     ? isEnglish
       ? "Your saved journey suggests this is part of a continuing pattern; notice what is repeating without forcing a conclusion."
@@ -401,31 +404,34 @@ export function generateFallbackReading(params: FallbackReadingParams) {
 
   const lines = isEnglish
     ? [
-        "1) INITIAL LISTENING",
+        "1) DIRECT ANSWER TO THE QUESTION",
+        directAnswer,
+        "",
+        "2) INITIAL LISTENING",
         contextualOpening,
         productContext.en,
         memoryLine,
         "",
-        "2) MANTRA",
+        "3) MANTRA",
         mantra,
         `Plain meaning: ${daily.affirmation}`,
         "",
-        "3) THE THREE THREADS",
+        "4) THE THREE THREADS",
         `- Truth: ${meaning(situation)}`,
         `- Shadow: ${meaning(obstacle)}`,
         `- Direction: ${meaning(direction)}`,
         "",
-        "4) READING BY POSITION",
+        "5) READING BY POSITION",
         ...localizedSpread.flatMap((draw, index) => [
           `- ${draw.position} — ${label(draw)}`,
           `  In practice: ${meaning(draw)}`,
           `  ${pick(EN_POSITION_GUIDANCE[index], `position-${index}`)}`,
           "",
         ]),
-        "5) ACTIONS",
+        "6) ACTIONS",
         ...actions.map((action) => `- ${action}`),
         "",
-        "6) INTEGRATION",
+        "7) INTEGRATION",
         daily.ritual,
         `- What is happening: ${situation.card.keywords[0]} is setting the tone.`,
         `- What blocks you: ${obstacle.card.keywords[0]} needs awareness rather than impulse.`,
@@ -433,31 +439,34 @@ export function generateFallbackReading(params: FallbackReadingParams) {
         `- Recommended question: ${recommendedQuestion}`,
       ]
     : [
-        "1) ESCUTA INICIAL",
+        "1) RESPOSTA DIRETA À PERGUNTA",
+        directAnswer,
+        "",
+        "2) ESCUTA INICIAL",
         contextualOpening,
         productContext.pt,
         memoryLine,
         "",
-        "2) MANTRA",
+        "3) MANTRA",
         mantra,
         `Tradução simples: ${daily.affirmation}`,
         "",
-        "3) TRÍADE",
+        "4) TRÍADE",
         `- Verdade: ${meaning(situation)}`,
         `- Sombra: ${meaning(obstacle)}`,
         `- Direção: ${meaning(direction)}`,
         "",
-        "4) LEITURA POR POSIÇÃO",
+        "5) LEITURA POR POSIÇÃO",
         ...localizedSpread.flatMap((draw, index) => [
           `- ${draw.position} — ${label(draw)}`,
           `  Na prática: ${meaning(draw)}`,
           `  ${pick(PT_POSITION_GUIDANCE[index], `position-${index}`)}`,
           "",
         ]),
-        "5) AÇÕES",
+        "6) AÇÕES",
         ...actions.map((action) => `- ${action}`),
         "",
-        "6) INTEGRAÇÃO",
+        "7) INTEGRAÇÃO",
         daily.ritual,
         `- O que está acontecendo: ${situation.card.keywords[0]} dá o tom.`,
         `- O que trava: ${obstacle.card.keywords[0]} pede consciência, não impulso.`,
