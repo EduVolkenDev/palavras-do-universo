@@ -44,6 +44,7 @@ type ReadingSpreadPayload = {
   cardKey: string;
   name: string;
   reversed: boolean;
+  meaning: string;
   assetPath: string;
 };
 
@@ -643,6 +644,9 @@ export async function POST(req: Request) {
     cardKey: d.card.key,
     name: localizeTarotCard(d.card, locale).name,
     reversed: d.reversed,
+    meaning: d.reversed
+      ? localizeTarotCard(d.card, locale).reversed
+      : localizeTarotCard(d.card, locale).upright,
     assetPath: d.card.assetPath,
   }));
 

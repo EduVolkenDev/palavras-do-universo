@@ -62,6 +62,7 @@ type ApiOk = {
     cardKey: string;
     name: string;
     reversed: boolean;
+    meaning?: string;
     assetPath: string;
   }[];
   interpretation: string;
@@ -382,20 +383,34 @@ function getReadingAction(reading: string, fallback: string) {
 
 function getCardInsightFromReading(
   reading: string,
-  card: { position: string; name: string; reversed?: boolean },
+  card: { position: string; name: string; reversed?: boolean; meaning?: string },
   fallback?: string
 ) {
-  if (!reading) return fallback ?? "";
+  const deckMeaning = card.meaning || fallback || "";
+  if (!reading) return deckMeaning;
   const section = reading.match(
     new RegExp(
-      `${escapeRegExp(card.position)}\\s*[—-]\\s*${escapeRegExp(
+      `(?:^|\\n)\\s*(?:[-•]\\s*)?(?:${escapeRegExp(
+        card.position
+      )}\\s*(?:[—:-]|\\||em|:)\\s*)?${escapeRegExp(
         card.name
-      )}[\\s\\S]*?(?=\\n\\s*-\\s*[A-ZÁ-Ú ]+\\s*[—-]|\\n\\s*\\d\\)\\s|$)`,
-      "i"
+      )}(?:\\s*\\([^)]*\\))?[\\s\\S]*?(?=\\n\\s*(?:[-•]\\s*)?(?:[A-ZÁ-Ú][\\p{L}\\s]+\\s*[—:-]\\s*)?[A-ZÁ-Ú][\\p{L}\\s]+(?:\\s*\\([^)]*\\))?\\s*(?:[—:-]|\\n)|\\n\\s*\\d\\)\\s|$)`,
+      "iu"
     )
   )?.[0];
-  const practice = section?.match(/Na prática:\s*([^\n]+)/i)?.[1];
-  return practice?.trim() || fallback || "";
+  const practice = section?.match(
+    /(?:Na prática|Significado prático|Practical meaning|In practice|Direção|Direction):\s*([^\n]+)/i
+  )?.[1];
+  const firstLine = section ? firstMeaningfulLine(section.replace(card.name, "")) : "";
+  const candidate = practice?.trim() || firstLine?.replace(/^[-•]\s*/, "").trim();
+  if (
+    candidate &&
+    candidate.length > 24 &&
+    !/^(significado prático|practical meaning|direção|direction)$/i.test(candidate)
+  ) {
+    return candidate;
+  }
+  return deckMeaning;
 }
 
 export default function Home() {
@@ -925,7 +940,7 @@ export default function Home() {
       position: card.position,
       name: card.name,
       reversed: card.reversed,
-      insight: getCardInsightFromReading(result, card, dailyCard?.meaning),
+      insight: getCardInsightFromReading(result, card, card.meaning || dailyCard?.meaning),
     };
   });
 
@@ -1143,7 +1158,7 @@ export default function Home() {
                 </div>
 
                 <div className="grid gap-5 lg:grid-cols-[0.94fr_1.06fr]">
-                  <div className="space-y-4">
+                  <div className="space-y-4 order-2">
                     <div className="pdu-ritual-whisper">
                       <span className="pdu-ritual-whisper__icon">
                         <Feather size={15} />
@@ -1173,6 +1188,18 @@ export default function Home() {
 
                     {loading ? (
                       <ReadingSpreadPortal />
+                    ) : !activeReading ? (
+                      <div className="pdu-reading-awaiting">
+                        <span>
+                          <Sparkles size={17} />
+                        </span>
+                        <strong>Escreva sua pergunta para revelar as cartas.</strong>
+                        <p>
+                          As três cartas aparecem aqui somente depois que a
+                          leitura começar, para não confundir mensagem diária
+                          com resposta da sua pergunta.
+                        </p>
+                      </div>
                     ) : (
                       <div
                         key={spreadCards.length ? spreadLine : dailyOpening.dateKey}
@@ -1194,7 +1221,7 @@ export default function Home() {
                         ))}
                       </div>
                     )}
-                    {!loading ? (
+                    {!loading && activeReading ? (
                       <div className="pdu-spread-meaning-list">
                         {cardMeanings.map((card) => (
                           <div key={`${card.position}-${card.name}`}>
@@ -1205,7 +1232,7 @@ export default function Home() {
                             </strong>
                             <p>
                               {card.insight ||
-                                "Esta carta ganha sentido no conjunto da leitura abaixo."}
+                                "Leia esta carta junto da resposta direta e da tríade abaixo."}
                             </p>
                           </div>
                         ))}
@@ -1213,7 +1240,7 @@ export default function Home() {
                     ) : null}
                   </div>
 
-                  <div>
+                  <div className="order-1">
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
