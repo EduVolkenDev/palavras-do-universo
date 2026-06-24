@@ -289,6 +289,71 @@ function getSavedPreview(message: SavedMessage) {
     : "";
 }
 
+function topLabels(values: string[], limit = 3) {
+  return [...values.reduce((counts, value) => {
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+    return counts;
+  }, new Map<string, number>()).entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([label, count]) => (count > 1 ? `${label} (${count}x)` : label));
+}
+
+function getSpreadCards(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!isRecord(item)) return "";
+      return asString(item.name);
+    })
+    .filter(Boolean);
+}
+
+function getSymbolicPatterns(readings: Reading[], messages: SavedMessage[]) {
+  const themes = readings.map((reading) => asString(reading.theme)).filter(Boolean);
+  const readingCards = readings.flatMap((reading) => getSpreadCards(reading.spread));
+  const savedCards = messages.flatMap((message) => {
+    if (message.message_type === "daily_card" && isDailyCardPayload(message.payload)) {
+      return [asString(message.payload.card?.name)].filter(Boolean);
+    }
+    if (message.message_type === "reading" && isSavedReadingPayload(message.payload)) {
+      return (message.payload.spreadCards ?? [])
+        .map((card) => asString(card.name))
+        .filter(Boolean);
+    }
+    return [];
+  });
+
+  return {
+    themes: topLabels(themes),
+    cards: topLabels([...readingCards, ...savedCards]),
+    totalSignals: readings.length + messages.length,
+  };
+}
+
+function getInitialMapNextSteps(profile: ReadingProfile, hasHistory: boolean) {
+  const focus = profile.focusAreas[0] ?? "sua energia principal";
+  const phase = profile.currentPhase || "a fase que você está atravessando";
+  return [
+    {
+      title: "Ritual de 2 minutos",
+      text: `Respire, nomeie ${phase.toLowerCase()} e escreva uma frase sobre o que pede cuidado hoje.`,
+    },
+    {
+      title: hasHistory ? "Revisar padrão" : "Primeiro sinal",
+      text: hasHistory
+        ? "Observe a carta ou tema que voltou mais de uma vez antes de abrir outra pergunta."
+        : `Abra uma leitura sobre ${focus.toLowerCase()} para o mapa começar a reconhecer recorrências.`,
+    },
+    {
+      title: "Ação concreta",
+      text: profile.desiredShift
+        ? `Escolha um gesto pequeno ligado a ${profile.desiredShift.toLowerCase()}.`
+        : "Escolha um gesto pequeno que deixe o dia mais claro, mesmo sem resolver tudo.",
+    },
+  ];
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
@@ -552,6 +617,14 @@ export default function MeuUniversoPage() {
 
   const profileCompletion = profileProgress(profileDraft);
   const profileComplete = profileProgress(readingProfile) >= 4;
+  const symbolicPatterns = useMemo(
+    () => getSymbolicPatterns(readings, messages),
+    [messages, readings]
+  );
+  const nextMapSteps = useMemo(
+    () => getInitialMapNextSteps(readingProfile, symbolicPatterns.totalSignals > 0),
+    [readingProfile, symbolicPatterns.totalSignals]
+  );
   const activeSubscription = entitlements.some(
     (item) =>
       item.source === "subscription" ||
@@ -1132,6 +1205,109 @@ export default function MeuUniversoPage() {
                         ? t("Círculo ativo")
                         : t("Entrar no Círculo mensal")}
                   </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {authChecked && accountEmail ? (
+          <section className="mt-8 overflow-hidden rounded-[28px] border border-[#d8c3a6] bg-[#fffaf2] shadow-[0_28px_90px_rgba(80,57,34,0.09)]">
+            <div className="grid gap-0 lg:grid-cols-[0.86fr_1.14fr]">
+              <div className="bg-[#241b18] p-6 text-[#fff7e8] sm:p-7">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+                  Progressão simbólica
+                </p>
+                <h2 className="brand-serif mt-3 text-4xl font-semibold leading-tight">
+                  {symbolicPatterns.totalSignals
+                    ? "Seu mapa já começou a reconhecer padrões."
+                    : "Seu mapa não começa vazio."}
+                </h2>
+                <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
+                  {symbolicPatterns.totalSignals
+                    ? "Cada leitura salva, carta do dia e ação registrada aumenta o contexto das próximas respostas."
+                    : "Mesmo antes do histórico, o Mapa Inicial transforma fase, foco e intenção em um ponto de partida pessoal."}
+                </p>
+
+                <div className="mt-6 grid gap-3">
+                  {[
+                    ["Sinais registrados", String(symbolicPatterns.totalSignals)],
+                    [
+                      "Fase atual",
+                      readingProfile.currentPhase || "A calibrar no Mapa Inicial",
+                    ],
+                    [
+                      "Busca atual",
+                      readingProfile.desiredShift || "Escolher uma intenção",
+                    ],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="flex items-center justify-between border-t border-white/10 pt-3 text-sm"
+                    >
+                      <span className="text-[#a79d94]">{label}</span>
+                      <strong className="max-w-[58%] text-right text-[#fff7e8]">
+                        {value}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-5 sm:p-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-2xl border border-[#e4d3ba] bg-white/60 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
+                      Temas que retornam
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(symbolicPatterns.themes.length
+                        ? symbolicPatterns.themes
+                        : readingProfile.focusAreas.length
+                          ? readingProfile.focusAreas.slice(0, 3)
+                          : ["Ainda sem histórico"]).map((item) => (
+                        <span
+                          key={item}
+                          className="rounded-full bg-[#241b18] px-3 py-1 text-xs font-semibold text-[#fff7e8]"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-[#e4d3ba] bg-white/60 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
+                      Cartas e símbolos
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(symbolicPatterns.cards.length
+                        ? symbolicPatterns.cards
+                        : ["Abra uma leitura para revelar"]).map((item) => (
+                        <span
+                          key={item}
+                          className="rounded-full border border-[#d8c3a6] px-3 py-1 text-xs font-semibold text-[#4d3c31]"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 lg:grid-cols-3">
+                  {nextMapSteps.map((step) => (
+                    <div
+                      key={step.title}
+                      className="rounded-2xl border border-[#e4d3ba] bg-[#fbf6ee] p-4"
+                    >
+                      <p className="text-sm font-semibold text-[#332720]">
+                        {step.title}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-[#6f615a]">
+                        {step.text}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
