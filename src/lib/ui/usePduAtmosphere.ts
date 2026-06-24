@@ -9,10 +9,9 @@ export function usePduAtmosphere() {
     const revealItems = Array.from(document.querySelectorAll(".pdu-reveal"));
     const root = document.documentElement;
 
-    root.classList.add("pdu-motion-ready");
-
     if (reduceMotion.matches || !("IntersectionObserver" in window)) {
       revealItems.forEach((item) => item.classList.add("is-visible"));
+      root.classList.add("pdu-motion-ready");
       return () => root.classList.remove("pdu-motion-ready");
     }
 
@@ -35,7 +34,10 @@ export function usePduAtmosphere() {
       });
     };
 
-    window.requestAnimationFrame(showInitialViewportItems);
+    // Mark viewport items as visible BEFORE adding pdu-motion-ready,
+    // so hero elements are never briefly hidden by the opacity:0 rule.
+    showInitialViewportItems();
+    root.classList.add("pdu-motion-ready");
     revealItems.forEach((item) => observer.observe(item));
 
     let frame = 0;

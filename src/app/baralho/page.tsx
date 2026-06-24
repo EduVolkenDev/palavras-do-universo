@@ -8,11 +8,12 @@ import {
   Search,
   Sparkles,
   Wand2,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   TAROT_CARD_CATALOG,
   type TarotSuit,
@@ -98,6 +99,28 @@ export default function BaralhoPage() {
   const { locale } = useI18n();
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
   const [query, setQuery] = useState("");
+  const [selectedCard, setSelectedCard] = useState<DeckCard | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  const openCard = useCallback((card: DeckCard) => {
+    setSelectedCard(card);
+    dialogRef.current?.showModal();
+  }, []);
+
+  const closeCard = useCallback(() => {
+    dialogRef.current?.close();
+    setSelectedCard(null);
+  }, []);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeCard();
+    };
+    dialog.addEventListener("keydown", onKeyDown);
+    return () => dialog.removeEventListener("keydown", onKeyDown);
+  }, [closeCard]);
 
   usePduAtmosphere();
 
@@ -274,7 +297,12 @@ export default function BaralhoPage() {
             {filteredDeck.map((card, index) => (
               <article
                 key={card.key}
-                className="group overflow-hidden rounded-[8px] border border-white/12 bg-white/[0.055] shadow-[0_24px_70px_rgba(0,0,0,0.2)] backdrop-blur"
+                role="button"
+                tabIndex={0}
+                aria-label={`Ver detalhes de ${card.name}`}
+                onClick={() => openCard(card)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") openCard(card); }}
+                className="group cursor-pointer overflow-hidden rounded-[8px] border border-white/12 bg-white/[0.055] shadow-[0_24px_70px_rgba(0,0,0,0.2)] backdrop-blur transition hover:border-[#f4d58d]/40 hover:shadow-[0_24px_80px_rgba(0,0,0,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4d58d]/60"
               >
                 <div className="relative aspect-[5/8] bg-black/20">
                   <Image
@@ -353,6 +381,70 @@ export default function BaralhoPage() {
           ) : null}
         </div>
       </section>
+
+      {/* Card detail modal */}
+      <dialog
+        ref={dialogRef}
+        onClick={(e) => { if (e.target === dialogRef.current) closeCard(); }}
+        className="m-auto max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-[12px] border border-white/14 bg-[#0f0e19] p-0 text-[#f8efe2] shadow-[0_40px_140px_rgba(0,0,0,0.7)] backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+      >
+        {selectedCard ? (
+          <div>
+            <div className="relative aspect-[5/7] bg-black/30">
+              <Image
+                src={selectedCard.assetPath}
+                alt={selectedCard.name}
+                width={520}
+                height={728}
+                className="h-full w-full object-contain p-4"
+              />
+              <button
+                type="button"
+                onClick={closeCard}
+                aria-label="Fechar"
+                className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full border border-white/12 bg-black/50 text-[#d8ccc0] hover:border-[#f4d58d]/50 hover:text-[#f4d58d]"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getCardTone(selectedCard)}`}>
+                    {getCardGroup(selectedCard)}
+                  </span>
+                  <h2 className="brand-serif mt-3 text-3xl font-semibold text-[#fff7e8]">
+                    {selectedCard.name}
+                  </h2>
+                </div>
+                <span className="font-mono text-xs text-[#8d837b]">
+                  {String(selectedCard.detail.id).padStart(2, "0")}
+                </span>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {selectedCard.detail.keywords.map((keyword) => (
+                  <span
+                    key={keyword}
+                    className="rounded-full bg-white/[0.07] px-2 py-1 text-xs text-[#d8ccc0]"
+                  >
+                    {keyword}
+                  </span>
+                ))}
+              </div>
+              <div className="mt-5 space-y-4 text-sm leading-7 text-[#d8ccc0]">
+                <div className="rounded-[8px] border border-[#f4d58d]/20 bg-[#f4d58d]/[0.06] p-4">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#f5d896]">Direta</p>
+                  <p>{selectedCard.detail.upright}</p>
+                </div>
+                <div className="rounded-[8px] border border-[#d2818b]/20 bg-[#d2818b]/[0.06] p-4">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#f1b8bd]">Reversa</p>
+                  <p>{selectedCard.detail.reversed}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </dialog>
     </main>
   );
 }

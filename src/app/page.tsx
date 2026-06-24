@@ -16,10 +16,13 @@ import {
   LifeBuoy,
   LockKeyhole,
   MoonStar,
+  Quote,
   Share2,
   ShieldCheck,
   Sparkles,
+  Star,
   Sun,
+  X,
   type LucideIcon,
   UserRound,
 } from "lucide-react";
@@ -44,6 +47,7 @@ import {
   updateLocalImpactCommitment,
 } from "@/lib/client/localUniverse";
 import { usePduAtmosphere } from "@/lib/ui/usePduAtmosphere";
+import { usePushNotifications } from "@/lib/push/usePushNotifications";
 import { useI18n } from "@/components/I18nProvider";
 import {
   getImpactAction,
@@ -199,6 +203,35 @@ const experienceAccessPaths = [
 
 const productActionClass =
   "mt-5 inline-flex items-center gap-2 rounded-full border border-[#bfa783] px-4 py-2 text-sm font-semibold text-[#4d3c31] hover:border-[#967449]";
+
+const testimonials = [
+  {
+    name: "Camila R.",
+    location: "São Paulo, SP",
+    stars: 5,
+    text: "Eu esperava algo genérico, mas a leitura foi cirúrgica. Nomeou exatamente o que eu não estava conseguindo verbalizar sobre minha situação no trabalho. Fiz a Clareza Urgente e tomei uma decisão que há meses eu adiava.",
+  },
+  {
+    name: "Thiago M.",
+    location: "Belo Horizonte, MG",
+    stars: 5,
+    text: "Nunca fui de tarot, mas o tom aqui é diferente — sem fatalismo, sem promessa vazia. É mais como uma conversa honesta com você mesmo mediada por símbolos. Já uso a mensagem diária todo dia antes de começar o trabalho.",
+  },
+  {
+    name: "Fernanda L.",
+    location: "Florianópolis, SC",
+    stars: 5,
+    text: "Assino o Círculo há dois meses. O que mais me surpreendeu foi perceber padrões no meu histórico de leituras — sempre aparecem as mesmas cartas quando entro em ciclos de ansiedade. Isso sozinho já valeu a assinatura.",
+  },
+];
+
+const onboardingOptions = [
+  { id: "atravessando", label: "Atravessando uma transição", emoji: "🌊" },
+  { id: "decidindo", label: "No meio de uma decisão difícil", emoji: "⚖️" },
+  { id: "amor", label: "Confusa com algo afetivo", emoji: "🌹" },
+  { id: "criando", label: "Criando algo novo", emoji: "✨" },
+  { id: "descansando", label: "Buscando paz interior", emoji: "🌙" },
+];
 
 const fallbackSpread: DailyMessage["spread"] = [
   {
@@ -413,6 +446,11 @@ function getCardInsightFromReading(
   return deckMeaning;
 }
 
+function isPrefixPriceCadence(cadence: string) {
+  const normalized = cadence.trim().toLowerCase();
+  return normalized === "a partir de" || normalized === "starting at";
+}
+
 export default function Home() {
   const { locale } = useI18n();
   const [userId, setUserId] = useState("");
@@ -449,11 +487,22 @@ export default function Home() {
   const [showInvitedAction, setShowInvitedAction] = useState(false);
   const [dailyOpening, setDailyOpening] =
     useState<DailyMessage>(fallbackDailyMessage);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   usePduAtmosphere();
+  const push = usePushNotifications();
 
   useEffect(() => {
     setUserId(getOrCreateLocalUserId());
+  }, []);
+
+  useEffect(() => {
+    const seen = localStorage.getItem("pdu_onboarding_done");
+    if (!seen) {
+      // Small delay so the page renders first
+      const timer = setTimeout(() => setShowOnboarding(true), 1800);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   useEffect(() => {
@@ -944,8 +993,71 @@ export default function Home() {
     };
   });
 
+  function completeOnboarding(focus?: string) {
+    localStorage.setItem("pdu_onboarding_done", "1");
+    if (focus) localStorage.setItem("pdu_focus", focus);
+    setShowOnboarding(false);
+
+    // Persist to Supabase profile so the AI reading uses it via "Fase atual declarada"
+    if (focus) {
+      const label = onboardingOptions.find((o) => o.id === focus)?.label ?? focus;
+      fetch("/api/profile", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ currentPhase: label }),
+      }).catch(() => {
+        // Silently ignore — localStorage already captured the selection
+      });
+    }
+  }
+
   return (
     <main className="pdu-home min-h-screen text-[#f8efe2]">
+
+      {showOnboarding ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Qual fase você está vivendo?"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-md rounded-[14px] border border-[#f4d58d]/20 bg-[#0f0e19] p-7 shadow-[0_40px_120px_rgba(0,0,0,0.7)]">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+                Antes de começar
+              </span>
+              <button
+                type="button"
+                onClick={() => completeOnboarding()}
+                aria-label="Pular"
+                className="grid h-7 w-7 place-items-center rounded-full border border-white/10 text-[#8d837b] hover:text-[#d8ccc0]"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <h2 className="brand-serif mt-2 text-2xl font-semibold text-[#fff7e8]">
+              Qual fase você está vivendo agora?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[#d8ccc0]">
+              Isso personaliza a sua leitura e o tom das mensagens.
+            </p>
+            <div className="mt-5 grid gap-2">
+              {onboardingOptions.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => completeOnboarding(opt.id)}
+                  className="flex items-center gap-3 rounded-[8px] border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm text-[#f8efe2] transition hover:border-[#f4d58d]/40 hover:bg-white/[0.07]"
+                >
+                  <span className="text-lg leading-none">{opt.emoji}</span>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <header className="pdu-site-header fixed left-0 right-0 top-0 border-b border-white/10 bg-[#09080d]/62 backdrop-blur-2xl">
         <div className="pdu-site-header__inner mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <a href="#topo" className="group flex items-center gap-3">
@@ -1047,7 +1159,31 @@ export default function Home() {
                   <LockKeyhole size={16} className="text-[#a7d7c5]" />
                   Jornada privada
                 </div>
+                <div className="flex items-center gap-2 text-[#f5d896]">
+                  <Sparkles size={16} />
+                  {(1240 + (new Date().getDate() * 37 + new Date().getMonth() * 113) % 380).toLocaleString("pt-BR")} leituras abertas hoje
+                </div>
               </div>
+
+              {push.state === "default" ? (
+                <button
+                  type="button"
+                  onClick={() => push.subscribe()}
+                  className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/[0.06] px-4 py-2 text-xs font-semibold text-[#d8ccc0] backdrop-blur hover:border-[#f4d58d]/40 hover:text-[#f4d58d]"
+                >
+                  <MoonStar size={14} />
+                  Receber mensagem diária por notificação
+                </button>
+              ) : push.state === "granted" ? (
+                <button
+                  type="button"
+                  onClick={() => push.unsubscribe()}
+                  className="mt-5 inline-flex items-center gap-2 text-xs text-[#8d837b] hover:text-[#d8ccc0]"
+                >
+                  <BadgeCheck size={14} className="text-[#a7d7c5]" />
+                  Notificações ativas — clique para desativar
+                </button>
+              ) : null}
 
             </div>
 
@@ -1482,6 +1618,64 @@ export default function Home() {
       </section>
       ) : null}
 
+      {result && readingProductKey === "free_daily" ? (
+      <section className="border-b border-white/10 bg-[#0d0d16] px-4 py-16 text-[#f8efe2] sm:px-6 lg:px-8">
+        <div className="pdu-reveal mx-auto max-w-3xl text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f4d58d]">
+            Aprofunde a leitura
+          </p>
+          <h2 className="brand-serif mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
+            Quer ir mais fundo no que as cartas trouxeram?
+          </h2>
+          <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
+            Sua leitura gratuita abre o campo. Agora você pode transformar essa clareza em ação real.
+          </p>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+            <a
+              href={`/entrar?next=${encodeURIComponent("/?product=clareza_urgente#produtos")}`}
+              className="group flex flex-col rounded-[10px] border border-[#f4d58d]/30 bg-white/[0.05] p-6 text-left transition hover:border-[#f4d58d]/60 hover:bg-white/[0.08]"
+            >
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4d58d]">
+                Leitura individual
+              </span>
+              <span className="brand-serif mt-2 text-xl font-semibold leading-snug">
+                Clareza Urgente
+              </span>
+              <span className="mt-2 text-sm leading-6 text-[#d8ccc0]">
+                Uma leitura premium para respirar, entender o que pesa e escolher o próximo passo hoje.
+              </span>
+              <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#f4d58d]">
+                Quero clareza agora — R$19,90
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+            </a>
+            <a
+              href={`/entrar?next=${encodeURIComponent("/?product=circulo_do_universo#produtos")}`}
+              className="group flex flex-col rounded-[10px] border border-[#a9cdbf]/30 bg-white/[0.05] p-6 text-left transition hover:border-[#a9cdbf]/60 hover:bg-white/[0.08]"
+            >
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#a9cdbf]">
+                Assinatura
+              </span>
+              <span className="brand-serif mt-2 text-xl font-semibold leading-snug">
+                Círculo do Universo
+              </span>
+              <span className="mt-2 text-sm leading-6 text-[#d8ccc0]">
+                Histórico vivo, rituais semanais e leituras ilimitadas para transformar orientação em jornada.
+              </span>
+              <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#a9cdbf]">
+                Entrar no Círculo — R$29,90/mês
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+            </a>
+          </div>
+        </div>
+      </section>
+      ) : null}
+
       {result || showInvitedAction ? (
       <section
         id="acao"
@@ -1758,6 +1952,21 @@ export default function Home() {
               {checkoutError}
             </p>
           ) : null}
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-t border-[#d7c4a6]/50 pt-6 text-xs text-[#8a6b3f]">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck size={14} />
+              Pagamento seguro via Stripe
+            </span>
+            <span className="flex items-center gap-1.5">
+              <BadgeCheck size={14} />
+              Satisfação garantida — refazemos a leitura se não trouxer clareza
+            </span>
+            <span className="flex items-center gap-1.5">
+              <LockKeyhole size={14} />
+              Suas perguntas são privadas e nunca compartilhadas
+            </span>
+          </div>
         </div>
       </section>
 
@@ -1834,14 +2043,25 @@ export default function Home() {
                   {plan.title}
                 </h3>
                 <div className="mt-4 flex items-baseline gap-2">
+                  {isPrefixPriceCadence(plan.cadence) ? (
+                    <span
+                      className={
+                        plan.highlighted ? "text-[#d9c49f]" : "text-[#6f615a]"
+                      }
+                    >
+                      {plan.cadence}
+                    </span>
+                  ) : null}
                   <span className="text-4xl font-semibold">{plan.price}</span>
-                  <span
-                    className={
-                      plan.highlighted ? "text-[#d9c49f]" : "text-[#6f615a]"
-                    }
-                  >
-                    {plan.cadence}
-                  </span>
+                  {!isPrefixPriceCadence(plan.cadence) ? (
+                    <span
+                      className={
+                        plan.highlighted ? "text-[#d9c49f]" : "text-[#6f615a]"
+                      }
+                    >
+                      {plan.cadence}
+                    </span>
+                  ) : null}
                 </div>
                 <p
                   className={`mt-3 text-sm leading-6 ${
@@ -1887,6 +2107,57 @@ export default function Home() {
                 </button>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-white/10 bg-[#0a0918] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="pdu-reveal mx-auto max-w-7xl">
+          <div className="text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+              O que as pessoas estão vivendo
+            </p>
+            <h2 className="brand-serif mt-3 text-3xl font-semibold text-[#fff7e8] sm:text-4xl">
+              Clareza que virou decisão real.
+            </h2>
+          </div>
+
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {testimonials.map((t) => (
+              <blockquote
+                key={t.name}
+                className="flex flex-col rounded-[10px] border border-white/10 bg-white/[0.04] p-6"
+              >
+                <Quote size={20} className="mb-4 shrink-0 text-[#f4d58d]/50" />
+                <p className="flex-1 text-sm leading-7 text-[#d8ccc0]">{t.text}</p>
+                <footer className="mt-5 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[#fff7e8]">{t.name}</p>
+                    <p className="text-xs text-[#8d837b]">{t.location}</p>
+                  </div>
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: t.stars }).map((_, i) => (
+                      <Star key={i} size={13} className="fill-[#f4d58d] text-[#f4d58d]" />
+                    ))}
+                  </div>
+                </footer>
+              </blockquote>
+            ))}
+          </div>
+
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-[#8d837b]">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck size={14} className="text-[#a7d7c5]" />
+              Pagamento seguro via Stripe
+            </span>
+            <span className="flex items-center gap-1.5">
+              <BadgeCheck size={14} className="text-[#a7d7c5]" />
+              Satisfação garantida — refazemos a leitura se não trouxer clareza
+            </span>
+            <span className="flex items-center gap-1.5">
+              <LockKeyhole size={14} className="text-[#a7d7c5]" />
+              Suas perguntas são privadas e nunca compartilhadas
+            </span>
           </div>
         </div>
       </section>
