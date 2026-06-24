@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 const DEFAULT_MODEL = "claude-sonnet-4-6";
+const DEFAULT_TIMEOUT_MS = 16_000;
+const DEFAULT_MAX_RETRIES = 0;
 
 type ReadingGenerationLimits = {
   maxTokens: number;
@@ -29,6 +31,12 @@ function normalizeReadingText(text: string) {
     .trim();
 }
 
+function readBoundedNumber(value: string | undefined, fallback: number, min: number, max: number) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(Math.max(Math.trunc(parsed), min), max);
+}
+
 export async function generateReadingAI(
   prompt: string,
   limits: ReadingGenerationLimits
@@ -38,7 +46,21 @@ export async function generateReadingAI(
     throw new Error("ANTHROPIC_API_KEY is not configured");
   }
 
-  const client = new Anthropic({ apiKey, timeout: 45_000, maxRetries: 2 });
+  const client = new Anthropic({
+    apiKey,
+    timeout: readBoundedNumber(
+      process.env.ANTHROPIC_TIMEOUT_MS,
+      DEFAULT_TIMEOUT_MS,
+      5_000,
+      30_000
+    ),
+    maxRetries: readBoundedNumber(
+      process.env.ANTHROPIC_MAX_RETRIES,
+      DEFAULT_MAX_RETRIES,
+      0,
+      1
+    ),
+  });
   const response = await client.messages.create({
     model: process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL,
     max_tokens: limits.maxTokens,
