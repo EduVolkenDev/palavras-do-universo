@@ -3,7 +3,6 @@
 import {
   ArrowRight,
   BadgeCheck,
-  BookOpen,
   Bookmark,
   Check,
   CircleDollarSign,
@@ -224,7 +223,7 @@ const universeFeatureTokens = [
 ];
 
 const productActionClass =
-  "mt-5 inline-flex items-center gap-2 rounded-full border border-[#bfa783] px-4 py-2 text-sm font-semibold text-[#4d3c31] hover:border-[#967449]";
+  "pdu-product-action mt-6 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold";
 
 const testimonials = [
   {
@@ -1975,10 +1974,10 @@ export default function Home() {
 
       <section
         id="produtos"
-        className="border-y border-white/10 bg-[#f6efe6] px-4 py-16 text-[#1f1713] sm:px-6 lg:px-8"
+        className="pdu-experience-section px-4 py-20 text-[#1f1713] sm:px-6 lg:px-8"
       >
-        <div className="pdu-reveal mx-auto max-w-7xl">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="pdu-reveal relative z-10 mx-auto max-w-7xl">
+          <div className="pdu-experience-header">
             <div className="max-w-2xl">
               <SectionEyebrow>Experiências</SectionEyebrow>
               <h2 className="brand-serif text-4xl font-semibold leading-tight sm:text-5xl">
@@ -1993,7 +1992,7 @@ export default function Home() {
             <button
               type="button"
               onClick={() => scrollToId("leitura")}
-              className="inline-flex w-fit items-center gap-2 rounded-full bg-[#111019] px-5 py-3 text-sm font-semibold text-[#fff7e8] hover:bg-[#242130]"
+              className="inline-flex w-fit items-center gap-2 rounded-full bg-[#111019] px-5 py-3 text-sm font-semibold text-[#fff7e8] shadow-[0_18px_50px_rgba(17,16,25,0.18)] hover:bg-[#242130]"
             >
               <Feather size={17} />
               Experimentar gratuitamente
@@ -2024,35 +2023,34 @@ export default function Home() {
             {productCards.map((product) => (
               <article
                 key={product.title}
-                className="pdu-product-node group"
+                className={`pdu-product-node pdu-product-node--${product.mode} group`}
               >
-                <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="pdu-product-node__top">
                   <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${getProductModeClass(
+                    className={`pdu-product-mode rounded-full px-3 py-1 text-xs font-semibold ${getProductModeClass(
                       product.mode
                     )}`}
                   >
                     {getProductModeLabel(product.mode)}
                   </span>
-                  <BookOpen size={18} className="text-[#8b6f35]" />
                 </div>
                 <ProductIconVisual title={product.title} />
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#967449]">
+                <p className="pdu-product-node__eyebrow">
                   {product.archetype}
                 </p>
-                <h3 className="brand-serif text-2xl font-semibold text-[#241b18]">
+                <h3 className="brand-serif pdu-product-node__title">
                   {product.title}
                 </h3>
-                <p className="mt-3 min-h-12 text-sm leading-6 text-[#6f615a]">
+                <p className="pdu-product-node__promise">
                   {product.promise}
                 </p>
-                <div className="mt-4 rounded-[18px] border border-[#d7c4a6] bg-white/38 p-3 text-xs leading-5 text-[#5b4d45]">
+                <div className="pdu-product-node__transformation">
                   <span className="font-semibold text-[#4d3c31]">
                     Transformação:
                   </span>{" "}
                   {product.transformation}
                 </div>
-                <div className="mt-4 space-y-2 border-l border-[#bc8f46]/24 pl-3 text-xs leading-5 text-[#6f615a]">
+                <div className="pdu-product-node__details">
                   <p>
                     <span className="font-semibold text-[#4d3c31]">
                       Melhor para:
@@ -2067,7 +2065,7 @@ export default function Home() {
                   </p>
                 </div>
                 {product.price ? (
-                  <p className="mt-4 text-sm font-semibold text-[#241b18]">
+                  <p className="pdu-product-node__price">
                     {product.price}
                   </p>
                 ) : null}
@@ -2104,7 +2102,7 @@ export default function Home() {
             </p>
           ) : null}
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-t border-[#d7c4a6]/50 pt-6 text-xs text-[#8a6b3f]">
+          <div className="pdu-trust-ribbon">
             <span className="flex items-center gap-1.5">
               <ShieldCheck size={14} />
               Pagamento seguro via Stripe
@@ -2121,9 +2119,9 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="px-4 py-20 sm:px-6 lg:px-8">
-        <div className="pdu-reveal mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-          <div>
+      <section className="pdu-universe-preview px-4 py-24 sm:px-6 lg:px-8">
+        <div className="pdu-reveal mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+          <div className="pdu-universe-preview__copy">
             <SectionEyebrow dark>Meu Universo</SectionEyebrow>
             <h2 className="brand-serif text-4xl font-semibold leading-tight text-[#fff7e8] sm:text-5xl">
               Quanto mais você usa, mais sua jornada ganha contexto.
@@ -2143,10 +2141,11 @@ export default function Home() {
           </div>
 
           <div className="pdu-feature-cloud">
-            {universeFeatureTokens.map((item) => (
+            {universeFeatureTokens.map((item, index) => (
               <div
                 key={item}
                 className="pdu-feature-token"
+                style={{ "--pdu-token-index": index } as CSSProperties}
               >
                 {item}
               </div>
