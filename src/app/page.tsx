@@ -91,6 +91,16 @@ type ApiError = {
 
 const READING_PORTAL_MINIMUM_MS = 1200;
 
+const glossyIcons = {
+  book: "/icons/pdu/glossy/book.webp",
+  bookmark: "/icons/pdu/glossy/bookmark.webp",
+  heart: "/icons/pdu/glossy/heart.webp",
+  meditation: "/icons/pdu/glossy/meditation.webp",
+  moon: "/icons/pdu/glossy/moon.webp",
+  shield: "/icons/pdu/glossy/shield.webp",
+  sprout: "/icons/pdu/glossy/sprout.webp",
+} as const;
+
 const themeOptions = [
   { value: "love", label: "Amor", icon: Heart },
   { value: "career", label: "Carreira", icon: Compass },
@@ -104,16 +114,19 @@ const journeySteps = [
     label: "1. Mensagem",
     text: "Grátis. Abre o clima do dia com uma orientação curta.",
     icon: Sparkles,
+    assetPath: glossyIcons.moon,
   },
   {
     label: "2. Leitura",
     text: "Você faz uma pergunta e recebe 3 cartas com direção prática.",
     icon: Compass,
+    assetPath: glossyIcons.book,
   },
   {
     label: "3. Meu Universo",
     text: "Salva padrões, cartas e decisões para acompanhar sua jornada.",
     icon: Bookmark,
+    assetPath: glossyIcons.bookmark,
   },
 ];
 
@@ -201,6 +214,15 @@ const experienceAccessPaths = [
   },
 ];
 
+const universeFeatureTokens = [
+  "Signo e fase emocional",
+  "Temas favoritos",
+  "Mensagens salvas",
+  "Leituras anteriores",
+  "Áreas da vida em foco",
+  "Padrões recorrentes",
+];
+
 const productActionClass =
   "mt-5 inline-flex items-center gap-2 rounded-full border border-[#bfa783] px-4 py-2 text-sm font-semibold text-[#4d3c31] hover:border-[#967449]";
 
@@ -225,12 +247,54 @@ const testimonials = [
   },
 ];
 
-const onboardingOptions = [
-  { id: "atravessando", label: "Atravessando uma transição", emoji: "🌊" },
-  { id: "decidindo", label: "No meio de uma decisão difícil", emoji: "⚖️" },
-  { id: "amor", label: "Confusa com algo afetivo", emoji: "🌹" },
-  { id: "criando", label: "Criando algo novo", emoji: "✨" },
-  { id: "descansando", label: "Buscando paz interior", emoji: "🌙" },
+const onboardingOptions: {
+  id: string;
+  label: string;
+  description: string;
+  signal: string;
+  assetPath: string;
+  icon: LucideIcon;
+}[] = [
+  {
+    id: "atravessando",
+    label: "Atravessando uma transição",
+    description: "Algo mudou por dentro ou por fora e pede uma direção mais limpa.",
+    signal: "mudança",
+    assetPath: glossyIcons.moon,
+    icon: Compass,
+  },
+  {
+    id: "decidindo",
+    label: "No meio de uma decisão difícil",
+    description: "Existe um caminho pedindo escolha, limite ou coragem prática.",
+    signal: "decisão",
+    assetPath: glossyIcons.shield,
+    icon: ShieldCheck,
+  },
+  {
+    id: "amor",
+    label: "Vivendo uma questão afetiva",
+    description: "Um vínculo, desejo ou expectativa precisa ser olhado com presença.",
+    signal: "vínculo",
+    assetPath: glossyIcons.heart,
+    icon: Heart,
+  },
+  {
+    id: "criando",
+    label: "Criando algo novo",
+    description: "Uma ideia, fase ou projeto quer ganhar forma sem perder alma.",
+    signal: "criação",
+    assetPath: glossyIcons.sprout,
+    icon: Sparkles,
+  },
+  {
+    id: "descansando",
+    label: "Buscando paz interior",
+    description: "O corpo e a mente pedem silêncio, integração e menos ruído.",
+    signal: "recolhimento",
+    assetPath: glossyIcons.meditation,
+    icon: MoonStar,
+  },
 ];
 
 const fallbackSpread: DailyMessage["spread"] = [
@@ -295,7 +359,7 @@ const productIconVisuals: Record<
     tone: "blue",
   },
   "Clareza Urgente": {
-    assetPath: "/icons/pdu/caminho-3-cartas.webp",
+    assetPath: "/icons/pdu/clareza-urgente.webp",
     fallbackIcon: LifeBuoy,
     tone: "rose",
   },
@@ -449,6 +513,58 @@ function getCardInsightFromReading(
 function isPrefixPriceCadence(cadence: string) {
   const normalized = cadence.trim().toLowerCase();
   return normalized === "a partir de" || normalized === "starting at";
+}
+
+function OnboardingIconOption({
+  option,
+  onSelect,
+}: {
+  option: (typeof onboardingOptions)[number];
+  onSelect: () => void;
+}) {
+  const Icon = option.icon;
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="group relative min-h-[230px] overflow-hidden rounded-[26px] border border-white/10 bg-white/[0.045] p-5 text-left transition duration-300 hover:-translate-y-0.5 hover:border-[#f4d58d]/45 hover:bg-white/[0.075] hover:shadow-[0_22px_70px_rgba(0,0,0,0.28)] focus:outline-none focus:ring-2 focus:ring-[#f4d58d]/55"
+    >
+      <div className="absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100">
+        <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[#f4d58d]/12 blur-2xl" />
+        <div className="absolute -bottom-12 left-8 h-28 w-28 rounded-full bg-[#a7d7c5]/10 blur-2xl" />
+      </div>
+      <div className="relative flex h-full flex-col justify-between gap-5">
+        <div className="flex items-start justify-between gap-3">
+          <span className="relative -ml-3 -mt-3 grid h-28 w-28 place-items-center">
+            <Image
+              src={option.assetPath}
+              alt=""
+              width={224}
+              height={224}
+              className="h-28 w-28 object-contain drop-shadow-[0_18px_40px_rgba(0,0,0,0.38)] transition duration-300 group-hover:scale-105"
+            />
+            <Icon
+              size={20}
+              strokeWidth={1.7}
+              className="absolute bottom-1 right-1 rounded-full border border-[#f4d58d]/24 bg-[#0f0e19]/78 p-1 text-[#f5d896] opacity-70"
+            />
+          </span>
+          <span className="rounded-full border border-white/10 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-[#a7d7c5]">
+            {option.signal}
+          </span>
+        </div>
+        <div>
+          <h3 className="text-base font-semibold leading-tight text-[#fff7e8]">
+            {option.label}
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-[#bfb5ad]">
+            {option.description}
+          </p>
+        </div>
+      </div>
+    </button>
+  );
 }
 
 export default function Home() {
@@ -1019,40 +1135,71 @@ export default function Home() {
           role="dialog"
           aria-modal="true"
           aria-label="Qual fase você está vivendo?"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#03030a]/82 px-4 py-8 backdrop-blur-xl"
         >
-          <div className="w-full max-w-md rounded-[14px] border border-[#f4d58d]/20 bg-[#0f0e19] p-7 shadow-[0_40px_120px_rgba(0,0,0,0.7)]">
-            <div className="mb-1 flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
-                Antes de começar
-              </span>
-              <button
-                type="button"
-                onClick={() => completeOnboarding()}
-                aria-label="Pular"
-                className="grid h-7 w-7 place-items-center rounded-full border border-white/10 text-[#8d837b] hover:text-[#d8ccc0]"
-              >
-                <X size={15} />
-              </button>
-            </div>
-            <h2 className="brand-serif mt-2 text-2xl font-semibold text-[#fff7e8]">
-              Qual fase você está vivendo agora?
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-[#d8ccc0]">
-              Isso personaliza a sua leitura e o tom das mensagens.
-            </p>
-            <div className="mt-5 grid gap-2">
-              {onboardingOptions.map((opt) => (
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(244,213,141,0.2),transparent_28%),radial-gradient(circle_at_82%_22%,rgba(167,215,197,0.16),transparent_30%),linear-gradient(135deg,rgba(255,247,232,0.08),transparent_38%)]" />
+          <div className="pointer-events-none absolute left-[12%] top-[18%] h-24 w-24 rounded-full border border-[#f4d58d]/18 shadow-[0_0_70px_rgba(244,213,141,0.16)]" />
+          <div className="pointer-events-none absolute bottom-[14%] right-[12%] h-32 w-32 rounded-full border border-[#a7d7c5]/14 shadow-[0_0_90px_rgba(167,215,197,0.13)]" />
+          <div className="relative w-full max-w-5xl overflow-hidden rounded-[30px] border border-[#f4d58d]/22 bg-[#0f0e19]/94 shadow-[0_50px_160px_rgba(0,0,0,0.78)]">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#f4d58d]/70 to-transparent" />
+            <div className="grid gap-0 lg:grid-cols-[0.86fr_1.14fr]">
+              <div className="relative overflow-hidden border-b border-white/10 p-6 sm:p-8 lg:border-b-0 lg:border-r lg:border-white/10">
+                <div className="absolute -right-16 top-10 h-48 w-48 rounded-full border border-[#f4d58d]/14 bg-[#f4d58d]/5" />
+                <span className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/24 bg-[#f4d58d]/8 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+                  <Sparkles size={13} />
+                  Antes de começar
+                </span>
+                <h2 className="brand-serif mt-5 text-4xl font-semibold leading-[1.02] text-[#fff7e8] sm:text-5xl">
+                  Qual energia está mais presente agora?
+                </h2>
+                <p className="mt-4 max-w-md text-sm leading-7 text-[#d8ccc0]">
+                  Escolha um ponto de partida. A leitura fica mais precisa sem
+                  presumir gênero, crença ou jeito de viver espiritualidade.
+                </p>
+                <div className="mt-7 grid gap-3 text-sm text-[#d8ccc0]">
+                  {["Linguagem neutra", "Sem fatalismo", "Contexto imediato"].map(
+                    (item) => (
+                      <div key={item} className="flex items-center gap-3">
+                        <span className="h-2 w-2 rounded-full bg-[#a7d7c5] shadow-[0_0_18px_rgba(167,215,197,0.65)]" />
+                        {item}
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+
+              <div className="p-5 sm:p-7">
+                <div className="mb-5 flex items-center justify-between gap-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+                    Selecione uma fase
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => completeOnboarding()}
+                    aria-label="Pular"
+                    className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-[#8d837b] transition hover:border-[#f4d58d]/40 hover:text-[#d8ccc0]"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {onboardingOptions.map((opt) => (
+                    <OnboardingIconOption
+                      key={opt.id}
+                      option={opt}
+                      onSelect={() => completeOnboarding(opt.id)}
+                    />
+                  ))}
+                </div>
                 <button
-                  key={opt.id}
                   type="button"
-                  onClick={() => completeOnboarding(opt.id)}
-                  className="flex items-center gap-3 rounded-[8px] border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm text-[#f8efe2] transition hover:border-[#f4d58d]/40 hover:bg-white/[0.07]"
+                  onClick={() => completeOnboarding()}
+                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-[#d8ccc0] transition hover:border-[#f4d58d]/35 hover:text-[#fff7e8]"
                 >
-                  <span className="text-lg leading-none">{opt.emoji}</span>
-                  {opt.label}
+                  Entrar sem calibrar agora
+                  <ArrowRight size={16} />
                 </button>
-              ))}
+              </div>
             </div>
           </div>
         </div>
@@ -1210,8 +1357,14 @@ export default function Home() {
           >
             {journeySteps.map((step) => (
               <div key={step.label} className="pdu-journey-map__item">
-                <span>
-                  <step.icon size={17} />
+                <span className="pdu-journey-map__icon">
+                  <Image
+                    src={step.assetPath}
+                    alt=""
+                    width={92}
+                    height={92}
+                    className="h-full w-full object-contain"
+                  />
                 </span>
                 <div>
                   <strong>{step.label}</strong>
@@ -1850,7 +2003,6 @@ export default function Home() {
           <div className="pdu-pillar-row mt-8">
             {experiencePillars.map((pillar) => (
               <div key={pillar} className="pdu-pillar-chip">
-                <Sparkles size={15} />
                 {pillar}
               </div>
             ))}
@@ -1860,7 +2012,6 @@ export default function Home() {
             {experienceAccessPaths.map((path, index) => (
               <div key={path.label} className="pdu-access-guide__item">
                 <span className="pdu-access-guide__number">0{index + 1}</span>
-                <path.icon size={19} aria-hidden="true" />
                 <div>
                   <strong>{path.label}</strong>
                   <p>{path.text}</p>
@@ -1992,19 +2143,11 @@ export default function Home() {
           </div>
 
           <div className="pdu-feature-cloud">
-            {[
-              "Signo e fase emocional",
-              "Temas favoritos",
-              "Mensagens salvas",
-              "Leituras anteriores",
-              "Áreas da vida em foco",
-              "Padrões recorrentes",
-            ].map((item) => (
+            {universeFeatureTokens.map((item) => (
               <div
                 key={item}
                 className="pdu-feature-token"
               >
-                <Check size={17} className="text-[#a7d7c5]" />
                 {item}
               </div>
             ))}
