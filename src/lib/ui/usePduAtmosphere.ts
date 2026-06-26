@@ -8,6 +8,7 @@ export function usePduAtmosphere() {
     const finePointer = window.matchMedia("(pointer: fine)");
     const revealItems = Array.from(document.querySelectorAll(".pdu-reveal"));
     const root = document.documentElement;
+    const observedRevealItems = new Set<Element>();
 
     if (reduceMotion.matches || !("IntersectionObserver" in window)) {
       revealItems.forEach((item) => item.classList.add("is-visible"));
@@ -24,11 +25,23 @@ export function usePduAtmosphere() {
       { rootMargin: "0px 0px 18% 0px", threshold: 0.05 }
     );
 
-    const showInitialViewportItems = () => {
-      const revealLimit = window.innerHeight * 1.04;
+    const revealLimit = () => window.innerHeight * 1.04;
 
+    const watchRevealItem = (item: Element) => {
+      if (observedRevealItems.has(item)) return;
+
+      observedRevealItems.add(item);
+
+      if (item.getBoundingClientRect().top < revealLimit()) {
+        item.classList.add("is-visible");
+      }
+
+      observer.observe(item);
+    };
+
+    const showInitialViewportItems = () => {
       revealItems.forEach((item) => {
-        if (item.getBoundingClientRect().top < revealLimit) {
+        if (item.getBoundingClientRect().top < revealLimit()) {
           item.classList.add("is-visible");
         }
       });
@@ -38,7 +51,28 @@ export function usePduAtmosphere() {
     // so hero elements are never briefly hidden by the opacity:0 rule.
     showInitialViewportItems();
     root.classList.add("pdu-motion-ready");
-    revealItems.forEach((item) => observer.observe(item));
+    revealItems.forEach((item) => watchRevealItem(item));
+
+    const mutationObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        mutation.addedNodes.forEach((node) => {
+          if (!(node instanceof Element)) return;
+
+          if (node.matches(".pdu-reveal")) {
+            watchRevealItem(node);
+          }
+
+          node.querySelectorAll(".pdu-reveal").forEach((item) => {
+            watchRevealItem(item);
+          });
+        });
+      }
+    });
+
+    mutationObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
 
     let frame = 0;
     let scrollFrame = 0;
@@ -84,6 +118,7 @@ export function usePduAtmosphere() {
 
     return () => {
       observer.disconnect();
+      mutationObserver.disconnect();
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("scroll", updateScrollAtmosphere);
       if (frame) window.cancelAnimationFrame(frame);

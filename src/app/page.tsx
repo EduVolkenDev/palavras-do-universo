@@ -527,7 +527,7 @@ function OnboardingIconOption({
     <button
       type="button"
       onClick={onSelect}
-      className="group relative min-h-[230px] overflow-hidden rounded-[26px] border border-white/10 bg-white/[0.045] p-5 text-left transition duration-300 hover:-translate-y-0.5 hover:border-[#f4d58d]/45 hover:bg-white/[0.075] hover:shadow-[0_22px_70px_rgba(0,0,0,0.28)] focus:outline-none focus:ring-2 focus:ring-[#f4d58d]/55"
+      className="pdu-onboarding-option group relative min-h-[230px] overflow-hidden rounded-[26px] border border-white/10 bg-white/[0.045] p-5 text-left transition duration-300 hover:-translate-y-0.5 hover:border-[#f4d58d]/45 hover:bg-white/[0.075] hover:shadow-[0_22px_70px_rgba(0,0,0,0.28)] focus:outline-none focus:ring-2 focus:ring-[#f4d58d]/55"
     >
       <div className="absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100">
         <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[#f4d58d]/12 blur-2xl" />
@@ -535,13 +535,13 @@ function OnboardingIconOption({
       </div>
       <div className="relative flex h-full flex-col justify-between gap-5">
         <div className="flex items-start justify-between gap-3">
-          <span className="relative -ml-3 -mt-3 grid h-28 w-28 place-items-center">
+          <span className="pdu-onboarding-option__visual relative -ml-3 -mt-3 grid h-28 w-28 place-items-center">
             <Image
               src={option.assetPath}
               alt=""
               width={224}
               height={224}
-              className="h-28 w-28 object-contain drop-shadow-[0_18px_40px_rgba(0,0,0,0.38)] transition duration-300 group-hover:scale-105"
+              className="pdu-onboarding-option__image h-28 w-28 object-contain drop-shadow-[0_18px_40px_rgba(0,0,0,0.38)] transition duration-300 group-hover:scale-105"
             />
             <Icon
               size={20}
@@ -1134,28 +1134,28 @@ export default function Home() {
           role="dialog"
           aria-modal="true"
           aria-label="Qual fase você está vivendo?"
-          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#03030a]/82 px-4 py-8 backdrop-blur-xl"
+          className="pdu-onboarding-overlay fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-[#03030a]/82 px-4 py-8 backdrop-blur-xl sm:items-center"
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(244,213,141,0.2),transparent_28%),radial-gradient(circle_at_82%_22%,rgba(167,215,197,0.16),transparent_30%),linear-gradient(135deg,rgba(255,247,232,0.08),transparent_38%)]" />
           <div className="pointer-events-none absolute left-[12%] top-[18%] h-24 w-24 rounded-full border border-[#f4d58d]/18 shadow-[0_0_70px_rgba(244,213,141,0.16)]" />
           <div className="pointer-events-none absolute bottom-[14%] right-[12%] h-32 w-32 rounded-full border border-[#a7d7c5]/14 shadow-[0_0_90px_rgba(167,215,197,0.13)]" />
-          <div className="relative w-full max-w-5xl overflow-hidden rounded-[30px] border border-[#f4d58d]/22 bg-[#0f0e19]/94 shadow-[0_50px_160px_rgba(0,0,0,0.78)]">
+          <div className="pdu-onboarding-panel relative w-full max-w-5xl overflow-hidden rounded-[30px] border border-[#f4d58d]/22 bg-[#0f0e19]/94 shadow-[0_50px_160px_rgba(0,0,0,0.78)]">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#f4d58d]/70 to-transparent" />
             <div className="grid gap-0 lg:grid-cols-[0.86fr_1.14fr]">
-              <div className="relative overflow-hidden border-b border-white/10 p-6 sm:p-8 lg:border-b-0 lg:border-r lg:border-white/10">
+              <div className="pdu-onboarding-copy relative overflow-hidden border-b border-white/10 p-6 sm:p-8 lg:border-b-0 lg:border-r lg:border-white/10">
                 <div className="absolute -right-16 top-10 h-48 w-48 rounded-full border border-[#f4d58d]/14 bg-[#f4d58d]/5" />
                 <span className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/24 bg-[#f4d58d]/8 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
                   <Sparkles size={13} />
                   Antes de começar
                 </span>
-                <h2 className="brand-serif mt-5 text-4xl font-semibold leading-[1.02] text-[#fff7e8] sm:text-5xl">
+                <h2 className="pdu-onboarding-title brand-serif mt-5 text-4xl font-semibold leading-[1.02] text-[#fff7e8] sm:text-5xl">
                   Qual energia está mais presente agora?
                 </h2>
                 <p className="mt-4 max-w-md text-sm leading-7 text-[#d8ccc0]">
                   Escolha um ponto de partida. A leitura fica mais precisa sem
                   presumir gênero, crença ou jeito de viver espiritualidade.
                 </p>
-                <div className="mt-7 grid gap-3 text-sm text-[#d8ccc0]">
+                <div className="pdu-onboarding-points mt-7 grid gap-3 text-sm text-[#d8ccc0]">
                   {["Linguagem neutra", "Sem fatalismo", "Contexto imediato"].map(
                     (item) => (
                       <div key={item} className="flex items-center gap-3">
@@ -1167,7 +1167,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="p-5 sm:p-7">
+              <div className="pdu-onboarding-choices p-5 sm:p-7">
                 <div className="mb-5 flex items-center justify-between gap-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
                     Selecione uma fase
@@ -1667,7 +1667,7 @@ export default function Home() {
 
       {result || loading ? (
       <section className="pdu-depth-section relative overflow-hidden border-y border-white/10 px-4 py-20 text-[#f8efe2] sm:px-6 lg:px-8">
-        <div className="pdu-reveal mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.74fr_1.26fr] lg:items-center">
+        <div className="pdu-reveal is-visible mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.74fr_1.26fr] lg:items-center">
           <div>
             <SectionEyebrow dark>
               {loading ? "Revelação em curso" : "Leitura aberta"}
@@ -1772,7 +1772,7 @@ export default function Home() {
 
       {result && readingProductKey === "free_daily" ? (
       <section className="border-b border-white/10 bg-[#0d0d16] px-4 py-16 text-[#f8efe2] sm:px-6 lg:px-8">
-        <div className="pdu-reveal mx-auto max-w-3xl text-center">
+        <div className="pdu-reveal is-visible mx-auto max-w-3xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f4d58d]">
             Aprofunde a leitura
           </p>
@@ -1833,7 +1833,7 @@ export default function Home() {
         id="acao"
         className="border-b border-white/10 bg-[#101019] px-4 py-20 text-[#f8efe2] sm:px-6 lg:px-8"
       >
-        <div className="pdu-reveal mx-auto max-w-7xl">
+        <div className="pdu-reveal is-visible mx-auto max-w-7xl">
           <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
             <div>
               <SectionEyebrow dark>Palavras que viram ação</SectionEyebrow>

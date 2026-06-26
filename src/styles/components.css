@@ -766,10 +766,19 @@
   width: min(100%, 360px);
   gap: 0.28rem;
   margin-top: 0.55rem;
-  padding: 0 1rem;
+  border: 1px solid rgba(244, 213, 141, 0.16);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(15, 14, 25, 0.72), rgba(7, 6, 12, 0.58)),
+    rgba(7, 6, 12, 0.66);
+  padding: 0.82rem 1rem;
   color: #efe2d2;
   text-align: center;
-  text-shadow: 0 14px 34px rgba(0, 0, 0, 0.66);
+  box-shadow:
+    0 18px 54px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  text-shadow: 0 12px 30px rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(16px);
 }
 
 .pdu-reading-ceremony__copy strong {
@@ -880,12 +889,23 @@
   position: absolute;
   z-index: 2;
   bottom: 0.85rem;
-  padding-inline: 1rem;
-  color: #d8ccc0;
+  max-width: calc(100% - 1.5rem);
+  border: 1px solid rgba(244, 213, 141, 0.16);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(15, 14, 25, 0.76), rgba(7, 6, 12, 0.62)),
+    rgba(7, 6, 12, 0.68);
+  padding: 0.58rem 0.9rem;
+  color: #fff3df;
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-align: center;
+  box-shadow:
+    0 16px 42px rgba(0, 0, 0, 0.46),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  text-shadow: 0 10px 24px rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(14px);
 }
 
 .pdu-reading-awaiting {
@@ -2260,6 +2280,15 @@
   background: linear-gradient(135deg, #d2818b, #683248);
 }
 
+.pdu-onboarding-overlay {
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.pdu-onboarding-panel {
+  margin-block: auto;
+}
+
 @media (max-width: 1120px) {
   .pdu-hero-shell {
     min-height: auto;
@@ -2324,6 +2353,57 @@
 }
 
 @media (max-width: 768px) {
+  .pdu-onboarding-overlay {
+    align-items: flex-start;
+    padding-inline: 0.75rem;
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .pdu-onboarding-panel {
+    max-height: calc(100dvh - max(1.5rem, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
+    margin-block: 0;
+    overflow-y: auto;
+    border-radius: 24px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pdu-onboarding-copy {
+    padding: 1.15rem 1rem 1rem;
+  }
+
+  .pdu-onboarding-title {
+    margin-top: 0.85rem;
+    font-size: clamp(2rem, 9vw, 2.65rem);
+  }
+
+  .pdu-onboarding-points {
+    margin-top: 1rem;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+  }
+
+  .pdu-onboarding-choices {
+    padding: 1rem;
+  }
+
+  .pdu-onboarding-option {
+    min-height: 164px;
+    border-radius: 20px;
+    padding: 0.9rem;
+  }
+
+  .pdu-onboarding-option__visual {
+    width: 5.6rem;
+    height: 5.6rem;
+  }
+
+  .pdu-onboarding-option__image {
+    width: 5.6rem;
+    height: 5.6rem;
+  }
+
   #topo {
     padding-top: calc(var(--pdu-header-height, 4.25rem) + 0.05rem);
   }
