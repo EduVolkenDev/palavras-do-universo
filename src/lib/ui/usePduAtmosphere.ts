@@ -6,7 +6,9 @@ export function usePduAtmosphere() {
   useEffect(() => {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const finePointer = window.matchMedia("(pointer: fine)");
-    const revealItems = Array.from(document.querySelectorAll(".pdu-reveal"));
+    const revealItems = Array.from(
+      document.querySelectorAll(".pdu-reveal, .pdu-scroll-reveal")
+    );
     const root = document.documentElement;
     const observedRevealItems = new Set<Element>();
 
@@ -47,24 +49,55 @@ export function usePduAtmosphere() {
       });
     };
 
+    const revealHashTarget = () => {
+      const hashId = window.location.hash.slice(1);
+      if (!hashId) return;
+
+      let target: HTMLElement | null = null;
+
+      try {
+        target = document.getElementById(decodeURIComponent(hashId));
+      } catch {
+        target = document.getElementById(hashId);
+      }
+
+      if (!target) return;
+
+      if (target.matches(".pdu-reveal, .pdu-scroll-reveal")) {
+        target.classList.add("is-visible");
+      }
+
+      target
+        .querySelectorAll(".pdu-reveal, .pdu-scroll-reveal")
+        .forEach((item) => item.classList.add("is-visible"));
+      showInitialViewportItems();
+    };
+
     // Mark viewport items as visible BEFORE adding pdu-motion-ready,
     // so hero elements are never briefly hidden by the opacity:0 rule.
     showInitialViewportItems();
     root.classList.add("pdu-motion-ready");
     revealItems.forEach((item) => watchRevealItem(item));
 
+    let hashFrame = window.requestAnimationFrame(() => {
+      hashFrame = window.requestAnimationFrame(revealHashTarget);
+    });
+    window.addEventListener("hashchange", revealHashTarget);
+
     const mutationObserver = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         mutation.addedNodes.forEach((node) => {
           if (!(node instanceof Element)) return;
 
-          if (node.matches(".pdu-reveal")) {
+          if (node.matches(".pdu-reveal, .pdu-scroll-reveal")) {
             watchRevealItem(node);
           }
 
-          node.querySelectorAll(".pdu-reveal").forEach((item) => {
-            watchRevealItem(item);
-          });
+          node
+            .querySelectorAll(".pdu-reveal, .pdu-scroll-reveal")
+            .forEach((item) => {
+              watchRevealItem(item);
+            });
         });
       }
     });
@@ -121,8 +154,10 @@ export function usePduAtmosphere() {
       mutationObserver.disconnect();
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("scroll", updateScrollAtmosphere);
+      window.removeEventListener("hashchange", revealHashTarget);
       if (frame) window.cancelAnimationFrame(frame);
       if (scrollFrame) window.cancelAnimationFrame(scrollFrame);
+      if (hashFrame) window.cancelAnimationFrame(hashFrame);
       root.classList.remove("pdu-motion-ready");
     };
   }, []);
