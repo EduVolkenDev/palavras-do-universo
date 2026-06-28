@@ -87,6 +87,12 @@ function getCardGroup(card: DeckCard) {
   return card.suit ? suitLabels[card.suit] : "Arcano menor";
 }
 
+const stats = [
+  { label: "Cartas conectadas", value: deck.length },
+  { label: "Arcanos maiores", value: getFilterCount("major") },
+  { label: "Arcanos menores", value: deck.length - getFilterCount("major") },
+];
+
 function getCardTone(card: DeckCard) {
   if (card.arcana === "major") {
     return "border-[#f4d58d]/28 bg-[#f4d58d]/10 text-[#f5d896]";
@@ -101,16 +107,46 @@ export default function BaralhoPage() {
   const [query, setQuery] = useState("");
   const [selectedCard, setSelectedCard] = useState<DeckCard | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const cardOriginRef = useRef<{ x: number; y: number; scale: number } | null>(null);
 
-  const openCard = useCallback((card: DeckCard) => {
+  const openCard = useCallback((card: DeckCard, cardEl?: HTMLElement | null) => {
+    if (cardEl) {
+      const r = cardEl.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const dialogW = Math.min(512, vw * 0.95);
+      cardOriginRef.current = {
+        x: r.left + r.width / 2 - vw / 2,
+        y: r.top + r.height / 2 - vh / 2,
+        scale: r.width / dialogW,
+      };
+    } else {
+      cardOriginRef.current = null;
+    }
     setSelectedCard(card);
-    dialogRef.current?.showModal();
   }, []);
 
   const closeCard = useCallback(() => {
     dialogRef.current?.close();
-    setSelectedCard(null);
   }, []);
+
+  // Abre o dialog após React commitar o conteúdo (corrige mobile) e dá tempo
+  // para a animação de invocação atingir o pico antes do hero transition.
+  useEffect(() => {
+    if (!selectedCard) return;
+    const id = setTimeout(() => {
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const o = cardOriginRef.current;
+      if (o) {
+        dialog.style.setProperty("--hero-x", `${o.x.toFixed(1)}px`);
+        dialog.style.setProperty("--hero-y", `${o.y.toFixed(1)}px`);
+        dialog.style.setProperty("--hero-scale", `${o.scale.toFixed(3)}`);
+      }
+      dialog.showModal();
+    }, 220);
+    return () => clearTimeout(id);
+  }, [selectedCard]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -118,19 +154,23 @@ export default function BaralhoPage() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") closeCard();
     };
+    const onClose = () => setSelectedCard(null);
     dialog.addEventListener("keydown", onKeyDown);
-    return () => dialog.removeEventListener("keydown", onKeyDown);
+    dialog.addEventListener("close", onClose);
+    return () => {
+      dialog.removeEventListener("keydown", onKeyDown);
+      dialog.removeEventListener("close", onClose);
+    };
   }, [closeCard]);
 
   usePduAtmosphere();
 
   const localizedDeck = useMemo(
     () =>
-      deck.map((card) => ({
-        ...card,
-        name: localizeTarotCard(card.detail, locale).name,
-        detail: localizeTarotCard(card.detail, locale),
-      })),
+      deck.map((card) => {
+        const localized = localizeTarotCard(card.detail, locale);
+        return { ...card, name: localized.name, detail: localized };
+      }),
     [locale]
   );
 
@@ -162,12 +202,6 @@ export default function BaralhoPage() {
       return haystack.includes(term);
     });
   }, [activeFilter, localizedDeck, query]);
-
-  const stats = [
-    { label: "Cartas conectadas", value: deck.length },
-    { label: "Arcanos maiores", value: getFilterCount("major") },
-    { label: "Arcanos menores", value: deck.length - getFilterCount("major") },
-  ];
 
   return (
     <main className="pdu-home min-h-screen text-[#f8efe2]">
@@ -277,7 +311,8 @@ export default function BaralhoPage() {
         </div>
       </section>
 
-      <section className="px-4 pb-20 sm:px-6 lg:px-8">
+      <section className="relative px-4 pb-20 sm:px-6 lg:px-8">
+        <div className="pdu-deck-veil" />
         <div className="mx-auto max-w-7xl">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 text-sm text-[#cfc4b9]">
             <p>
@@ -297,13 +332,42 @@ export default function BaralhoPage() {
             {filteredDeck.map((card, index) => (
               <article
                 key={card.key}
-                role="button"
-                tabIndex={0}
-                aria-label={`Ver detalhes de ${card.name}`}
-                onClick={() => openCard(card)}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") openCard(card); }}
-                className="group cursor-pointer overflow-hidden rounded-[8px] border border-white/12 bg-white/[0.055] shadow-[0_24px_70px_rgba(0,0,0,0.2)] backdrop-blur transition hover:border-[#f4d58d]/40 hover:shadow-[0_24px_80px_rgba(0,0,0,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4d58d]/60"
+                data-suit={card.arcana === "major" ? "major" : (card.suit ?? "major")}
+                style={{ "--pdu-stagger": index % 8 } as React.CSSProperties}
+                className="pdu-deck-card pdu-scroll-reveal group relative overflow-hidden rounded-[8px] border border-white/12 bg-white/[0.055] shadow-[0_24px_70px_rgba(0,0,0,0.2)] backdrop-blur"
+                onMouseMove={(e) => {
+                  const el = e.currentTarget;
+                  // Sem transition no transform durante rastreamento — evita o lag "chasing cursor"
+                  el.style.transition = "border-color 280ms ease, box-shadow 280ms ease";
+                  const r = el.getBoundingClientRect();
+                  const cx = (e.clientX - r.left) / r.width - 0.5;
+                  const cy = (e.clientY - r.top) / r.height - 0.5;
+                  el.style.setProperty("--rx", `${(-cy * 11).toFixed(1)}deg`);
+                  el.style.setProperty("--ry", `${(cx * 11).toFixed(1)}deg`);
+                  el.style.setProperty("--mx", `${((cx + 0.5) * 100).toFixed(1)}%`);
+                  el.style.setProperty("--my", `${((cy + 0.5) * 100).toFixed(1)}%`);
+                }}
+                onMouseLeave={(e) => {
+                  const el = e.currentTarget;
+                  // Spring suave de retorno ao neutro
+                  el.style.transition = "transform 650ms cubic-bezier(0.2, 0, 0.1, 1), border-color 280ms ease, box-shadow 280ms ease";
+                  el.style.setProperty("--rx", "0deg");
+                  el.style.setProperty("--ry", "0deg");
+                }}
               >
+                <button
+                  type="button"
+                  aria-label={`Ver detalhes de ${card.name}`}
+                  onClick={(e) => {
+                    const article = (e.currentTarget as HTMLElement).closest<HTMLElement>("article");
+                    if (article) {
+                      article.classList.add("pdu-deck-card--summoning");
+                      setTimeout(() => article.classList.remove("pdu-deck-card--summoning"), 900);
+                    }
+                    openCard(card, article);
+                  }}
+                  className="absolute inset-0 z-10 cursor-pointer rounded-[8px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4d58d]/60"
+                />
                 <div className="relative aspect-[5/8] bg-black/20">
                   <Image
                     src={card.assetPath}
@@ -386,10 +450,10 @@ export default function BaralhoPage() {
       <dialog
         ref={dialogRef}
         onClick={(e) => { if (e.target === dialogRef.current) closeCard(); }}
-        className="m-auto max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-[12px] border border-white/14 bg-[#0f0e19] p-0 text-[#f8efe2] shadow-[0_40px_140px_rgba(0,0,0,0.7)] backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+        className="pdu-card-dialog m-auto max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-[12px] border border-white/14 bg-[#0f0e19] p-0 text-[#f8efe2] shadow-[0_40px_140px_rgba(0,0,0,0.7)] backdrop:bg-black/60 backdrop:backdrop-blur-sm"
       >
         {selectedCard ? (
-          <div>
+          <div className="pdu-card-modal-content">
             <div className="relative aspect-[5/7] bg-black/30">
               <Image
                 src={selectedCard.assetPath}
@@ -408,7 +472,7 @@ export default function BaralhoPage() {
               </button>
             </div>
             <div className="p-6">
-              <div className="flex items-start justify-between gap-3">
+              <div className="pdu-modal-meta flex items-start justify-between gap-3">
                 <div>
                   <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getCardTone(selectedCard)}`}>
                     {getCardGroup(selectedCard)}
@@ -421,7 +485,7 @@ export default function BaralhoPage() {
                   {String(selectedCard.detail.id).padStart(2, "0")}
                 </span>
               </div>
-              <div className="mt-4 flex flex-wrap gap-1.5">
+              <div className="pdu-modal-keywords mt-4 flex flex-wrap gap-1.5">
                 {selectedCard.detail.keywords.map((keyword) => (
                   <span
                     key={keyword}
@@ -431,7 +495,7 @@ export default function BaralhoPage() {
                   </span>
                 ))}
               </div>
-              <div className="mt-5 space-y-4 text-sm leading-7 text-[#d8ccc0]">
+              <div className="pdu-modal-meanings mt-5 space-y-4 text-sm leading-7 text-[#d8ccc0]">
                 <div className="rounded-[8px] border border-[#f4d58d]/20 bg-[#f4d58d]/[0.06] p-4">
                   <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#f5d896]">Direta</p>
                   <p>{selectedCard.detail.upright}</p>
