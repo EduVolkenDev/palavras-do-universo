@@ -126,6 +126,7 @@ export async function GET(req: NextRequest) {
     today: day,
     expiresInSeconds: secondsUntilNextZonedMidnight(day),
   });
+  response.headers.set("Cache-Control", "no-store, max-age=0");
 
   response.cookies.set({
     name: VISITOR_SEED_COOKIE_NAME,

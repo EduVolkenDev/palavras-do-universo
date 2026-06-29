@@ -2,9 +2,19 @@
 
 import { Languages } from "lucide-react";
 import { useI18n } from "@/components/I18nProvider";
+import type { Locale } from "@/lib/i18n/config";
+import type { MouseEvent } from "react";
 
 export function LanguageSwitcher() {
   const { locale, setLocale } = useI18n();
+
+  const handleLocaleClick = (
+    event: MouseEvent<HTMLAnchorElement>,
+    nextLocale: Locale
+  ) => {
+    event.preventDefault();
+    setLocale(nextLocale);
+  };
 
   return (
     <div
@@ -17,26 +27,28 @@ export function LanguageSwitcher() {
         className="ml-2 mr-1 hidden text-[#f5d896] sm:block"
         aria-hidden="true"
       />
-      <button
-        type="button"
-        onClick={() => setLocale("pt-BR")}
+      <a
+        href="?lang=pt-BR"
+        onClick={(event) => handleLocaleClick(event, "pt-BR")}
         aria-pressed={locale === "pt-BR"}
+        role="button"
         className={`rounded-full px-2.5 py-1.5 ${
           locale === "pt-BR" ? "bg-[#f4d58d] text-[#1c1308]" : "text-[#d8ccc0]"
         }`}
       >
         PT
-      </button>
-      <button
-        type="button"
-        onClick={() => setLocale("en")}
+      </a>
+      <a
+        href="?lang=en"
+        onClick={(event) => handleLocaleClick(event, "en")}
         aria-pressed={locale === "en"}
+        role="button"
         className={`rounded-full px-2.5 py-1.5 ${
           locale === "en" ? "bg-[#f4d58d] text-[#1c1308]" : "text-[#d8ccc0]"
         }`}
       >
         EN
-      </button>
+      </a>
     </div>
   );
 }

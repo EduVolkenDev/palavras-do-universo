@@ -63,6 +63,7 @@ type ApiOk = {
   spread: {
     position: string;
     cardKey: string;
+    keyword?: string;
     name: string;
     reversed: boolean;
     meaning?: string;
@@ -188,6 +189,48 @@ const readingOutcomeSteps = [
   { label: "Gesto", text: "Escolha uma atitude possível para as próximas 24h." },
 ];
 
+const ptCardInsightTemplates = [
+  [
+    "{card} enquadra {topic}{theme}: {keyword} aparece como primeiro sinal para ler antes de decidir.",
+    "Na situação, {card} traz {keyword} para {topic}{theme}; comece separando fato, desejo e medo.",
+    "{card} mostra o terreno inicial de {topic}{theme}: observe onde {keyword} já está organizando a cena.",
+    "A primeira camada passa por {card}; leia esse tema como contexto vivo, não como sentença.",
+  ],
+  [
+    "{card} mostra a tensão dentro de {topic}{theme}: {keyword} virou ponto de pressão e pede menos automático.",
+    "No obstáculo, {card} revela onde {topic}{theme} pode estar sendo atravessado por defesa, excesso ou pressa.",
+    "{card} mostra onde {keyword} precisa ser visto antes que a escolha saia no impulso.",
+    "A sombra aparece em {card}: faça uma pausa para que {keyword} não vire repetição.",
+  ],
+  [
+    "{card} leva a resposta para ação: use {keyword} para fazer uma escolha possível agora.",
+    "Como direção, {card} pede que {topic}{theme} vire um gesto concreto guiado por {keyword}.",
+    "{card} aponta o movimento mais limpo: transforme esse tema em uma decisão pequena e visível.",
+    "A saída aberta por {card} não exige certeza total; pede um passo que confirme {keyword}.",
+  ],
+];
+
+const enCardInsightTemplates = [
+  [
+    "{card} frames {topic}{theme}: {keyword} appears as the first signal to read before deciding.",
+    "In the situation, {card} brings {keyword} into {topic}{theme}; begin by separating fact, desire, and fear.",
+    "{card} shows the starting ground of {topic}{theme}: notice where {keyword} is already shaping the scene.",
+    "The first layer moves through {card}; read this theme as living context, not a verdict.",
+  ],
+  [
+    "{card} shows the tension inside {topic}{theme}: {keyword} has become pressure and asks for less automatic response.",
+    "As the obstacle, {card} reveals where {topic}{theme} may be crossed by defense, excess, or haste.",
+    "{card} shows where {keyword} needs to be seen before the choice comes from impulse.",
+    "The shadow appears through {card}: pause so {keyword} does not become repetition.",
+  ],
+  [
+    "{card} turns the answer toward action: use {keyword} to make one possible choice now.",
+    "As direction, {card} asks {topic}{theme} to become one concrete gesture guided by {keyword}.",
+    "{card} points to the cleanest movement: turn this theme into a small, visible decision.",
+    "The way opened by {card} does not demand total certainty; it asks for one step that confirms {keyword}.",
+  ],
+];
+
 const experiencePillars = [
   "Clareza emocional",
   "Firmeza nas decisões",
@@ -211,6 +254,24 @@ const experienceAccessPaths = [
     text: "Círculo para histórico, padrões e experiências contínuas.",
     icon: History,
   },
+];
+
+const atmosphereWords = [
+  "clareza",
+  "travessia",
+  "ritual",
+  "presença",
+  "ciclos",
+  "sinais",
+  "escuta",
+  "direção",
+];
+
+const floatingSymbols = [
+  { label: "lua", icon: MoonStar },
+  { label: "estrela", icon: Sparkles },
+  { label: "coração", icon: Heart },
+  { label: "bússola", icon: Compass },
 ];
 
 const universeFeatureTokens = [
@@ -447,6 +508,22 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function stableTextHash(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function fillTextTemplate(template: string, values: Record<string, string>) {
+  return Object.entries(values).reduce(
+    (text, [key, value]) => text.replaceAll(`{${key}}`, value),
+    template
+  );
+}
+
 function firstMeaningfulLine(block: string) {
   return block
     .split("\n")
@@ -479,11 +556,24 @@ function getReadingAction(reading: string, fallback: string) {
 
 function getCardInsightFromReading(
   reading: string,
-  card: { position: string; name: string; reversed?: boolean; meaning?: string },
-  fallback?: string
+  card: {
+    keyword?: string;
+    meaning?: string;
+    name: string;
+    position: string;
+    reversed?: boolean;
+  },
+  fallback?: string,
+  context?: {
+    dailyKey?: string;
+    index?: number;
+    locale: string;
+    question: string;
+    themeLabel?: string;
+  }
 ) {
   const deckMeaning = card.meaning || fallback || "";
-  if (!reading) return deckMeaning;
+  if (!reading) return getContextualCardInsight(card, deckMeaning, context);
   const section = reading.match(
     new RegExp(
       `(?:^|\\n)\\s*(?:[-•]\\s*)?(?:${escapeRegExp(
@@ -502,11 +592,89 @@ function getCardInsightFromReading(
   if (
     candidate &&
     candidate.length > 24 &&
+    !isGenericDeckMeaning(candidate, deckMeaning) &&
     !/^(significado prático|practical meaning|direção|direction)$/i.test(candidate)
   ) {
     return candidate;
   }
-  return deckMeaning;
+  return getContextualCardInsight(card, deckMeaning, context);
+}
+
+function isGenericDeckMeaning(candidate: string, deckMeaning: string) {
+  const normalize = (value: string) =>
+    value
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim();
+  const a = normalize(candidate);
+  const b = normalize(deckMeaning);
+  return Boolean(a && b && (a === b || a.includes(b) || b.includes(a)));
+}
+
+function getContextualCardInsight(
+  card: { position: string; name: string; reversed?: boolean; keyword?: string },
+  deckMeaning: string,
+  context?: { dailyKey?: string; index?: number; locale: string; question: string; themeLabel?: string }
+) {
+  const isEnglish = context?.locale === "en";
+  const position = card.position.toLowerCase();
+  const question = context?.question?.trim();
+  const topic = question
+    ? isEnglish
+      ? `your question "${question}"`
+      : `sua pergunta "${question}"`
+    : isEnglish
+      ? "this moment"
+      : "este momento";
+  const theme = context?.themeLabel
+    ? isEnglish
+      ? ` in ${context.themeLabel}`
+      : ` em ${context.themeLabel}`
+    : "";
+  const orientation = card.reversed
+    ? isEnglish
+      ? "as a point of resistance"
+      : "como ponto de resistência"
+    : isEnglish
+      ? "as a usable resource"
+      : "como recurso disponível";
+  const base = deckMeaning
+    .replace(/\s+/g, " ")
+    .replace(/[.!?]\s.*$/, "")
+    .trim();
+  const positionIndex =
+    typeof context?.index === "number"
+      ? context.index
+      : position.includes("obst") || position.includes("shadow") || position.includes("sombra")
+        ? 1
+        : position.includes("dire") || position.includes("direction")
+          ? 2
+          : 0;
+  const templates = isEnglish ? enCardInsightTemplates : ptCardInsightTemplates;
+  const templateGroup = templates[positionIndex] ?? templates[0];
+  const hash = stableTextHash(
+    [
+      context?.dailyKey ?? "",
+      context?.question ?? "",
+      context?.themeLabel ?? "",
+      card.position,
+      card.name,
+      card.reversed ? "r" : "u",
+      base,
+    ].join("|")
+  );
+  const template = templateGroup[hash % templateGroup.length];
+
+  return fillTextTemplate(template, {
+    card: card.name,
+    keyword: card.keyword || base.split(" ")[0] || (isEnglish ? "presence" : "presença"),
+    meaning: base || (isEnglish ? "the first honest signal" : "o primeiro sinal honesto"),
+    theme,
+    topic,
+    orientation,
+  });
 }
 
 function isPrefixPriceCadence(cadence: string) {
@@ -567,12 +735,15 @@ function OnboardingIconOption({
 }
 
 export default function Home() {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const [userId, setUserId] = useState("");
   const [theme, setTheme] = useState("love");
   const [portalIntentId, setPortalIntentId] = useState("atravessar");
   const [readingProductKey, setReadingProductKey] = useState("free_daily");
   const [question, setQuestion] = useState(
+    "O que eu preciso enxergar sobre o meu momento?"
+  );
+  const [suggestedQuestionSource, setSuggestedQuestionSource] = useState(
     "O que eu preciso enxergar sobre o meu momento?"
   );
   const [loading, setLoading] = useState(false);
@@ -668,6 +839,7 @@ export default function Home() {
 
     setReadingProductKey(product);
     setTheme(PRODUCT_THEMES[product] ?? "spirit");
+    setSuggestedQuestionSource(PRODUCT_DEFAULT_QUESTIONS[product]);
     setQuestion(PRODUCT_DEFAULT_QUESTIONS[product]);
     window.setTimeout(() => scrollToId("leitura"), 120);
   }, []);
@@ -683,7 +855,17 @@ export default function Home() {
       portalIntentOptions[0],
     [portalIntentId]
   );
+  const localizedAtmosphereWords = useMemo(
+    () => atmosphereWords.map((word) => t(word)),
+    [t]
+  );
   const impactActions = useMemo(() => getRecommendedImpactActions(theme), [theme]);
+
+  useEffect(() => {
+    if (suggestedQuestionSource) {
+      setQuestion(t(suggestedQuestionSource));
+    }
+  }, [locale, suggestedQuestionSource, t]);
 
   const canRun = useMemo(
     () => question.trim().length >= 8 && !loading,
@@ -813,7 +995,8 @@ export default function Home() {
     setPortalIntentId(intent.id);
     setReadingProductKey("free_daily");
     setTheme(intent.theme);
-    setQuestion(intent.question);
+    setSuggestedQuestionSource(intent.question);
+    setQuestion(t(intent.question));
   }
 
   async function saveReading() {
@@ -1096,7 +1279,7 @@ export default function Home() {
     : activeReading
       ? "Leitura desta pergunta"
       : "Sua energia de hoje";
-  const cardMeanings = shownSpread.map((card) => {
+  const cardMeanings = shownSpread.map((card, index) => {
     const dailyCard = dailyOpening.spread.find(
       (item) => item.position === card.position && item.name === card.name
     );
@@ -1104,7 +1287,18 @@ export default function Home() {
       position: card.position,
       name: card.name,
       reversed: card.reversed,
-      insight: getCardInsightFromReading(result, card, card.meaning || dailyCard?.meaning),
+      insight: getCardInsightFromReading(
+        result,
+        { ...card, keyword: card.keyword || dailyCard?.keyword },
+        card.meaning || dailyCard?.meaning,
+        {
+          dailyKey: dailyOpening.dateKey,
+          index,
+          locale,
+          question: activeReading ? readingQuestion : "",
+          themeLabel: selectedTheme?.label,
+        }
+      ),
     };
   });
 
@@ -1134,7 +1328,7 @@ export default function Home() {
           role="dialog"
           aria-modal="true"
           aria-label="Qual fase você está vivendo?"
-          className="pdu-onboarding-overlay fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-[#03030a]/82 px-4 py-8 backdrop-blur-xl sm:items-center"
+          className="pdu-onboarding-overlay fixed inset-0 z-[220] flex items-start justify-center overflow-y-auto overscroll-contain bg-[#03030a]/82 px-4 py-8 backdrop-blur-xl sm:items-center"
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(244,213,141,0.2),transparent_28%),radial-gradient(circle_at_82%_22%,rgba(167,215,197,0.16),transparent_30%),linear-gradient(135deg,rgba(255,247,232,0.08),transparent_38%)]" />
           <div className="pointer-events-none absolute left-[12%] top-[18%] h-24 w-24 rounded-full border border-[#f4d58d]/18 shadow-[0_0_70px_rgba(244,213,141,0.16)]" />
@@ -1228,6 +1422,9 @@ export default function Home() {
             <a href="#produtos" className="hover:text-white">
               Leituras
             </a>
+            <a href="/tiradas" className="hover:text-white">
+              {t("Tiradas")}
+            </a>
             <a href="/baralho" className="hover:text-white">
               Baralho
             </a>
@@ -1307,7 +1504,9 @@ export default function Home() {
                 </div>
                 <div className="flex items-center gap-2 text-[#f5d896]">
                   <Sparkles size={16} />
-                  {(1240 + (new Date().getDate() * 37 + new Date().getMonth() * 113) % 380).toLocaleString("pt-BR")} leituras abertas hoje
+                  {(1240 + (new Date().getDate() * 37 + new Date().getMonth() * 113) % 380).toLocaleString(locale)}
+                  {" "}
+                  {locale === "en" ? "readings opened today" : "leituras abertas hoje"}
                 </div>
               </div>
 
@@ -1352,7 +1551,7 @@ export default function Home() {
           <div
             id="ritual"
             className="pdu-reveal pdu-journey-map"
-            aria-label="Como a experiência funciona"
+            aria-label={t("Como a experiência funciona")}
           >
             {journeySteps.map((step) => (
               <div key={step.label} className="pdu-journey-map__item">
@@ -1376,7 +1575,7 @@ export default function Home() {
           <div className="pdu-reveal pdu-portal-entry">
             <div className="pdu-portal-entry__copy">
               <p className="pdu-portal-console__eyebrow">Antes da pergunta</p>
-              <h2 className="brand-serif">{selectedPortalIntent.title}</h2>
+              <h2 className="brand-serif">{t(selectedPortalIntent.title)}</h2>
               <p>
                 Escolha o tipo de clareza que você quer abrir. Isso muda a
                 pergunta sugerida, o tema da leitura e o tom da resposta.
@@ -1385,18 +1584,18 @@ export default function Home() {
             <div className="pdu-portal-entry__controls">
               <div className="pdu-portal-current">
                 <span>Intenção selecionada</span>
-                <strong>{selectedPortalIntent.label}</strong>
-                <p>{selectedPortalIntent.purpose}</p>
+                <strong>{t(selectedPortalIntent.label)}</strong>
+                <p>{t(selectedPortalIntent.purpose)}</p>
               </div>
               <div className="pdu-portal-transform" aria-live="polite">
                 <div>
                   <span>Antes</span>
-                  <p>{selectedPortalIntent.from}</p>
+                  <p>{t(selectedPortalIntent.from)}</p>
                 </div>
                 <ArrowRight size={18} />
                 <div>
                   <span>Depois</span>
-                  <p>{selectedPortalIntent.to}</p>
+                  <p>{t(selectedPortalIntent.to)}</p>
                 </div>
               </div>
               <div className="pdu-portal-intents">
@@ -1406,10 +1605,10 @@ export default function Home() {
                     type="button"
                     onClick={() => openPortalIntent(intent)}
                     data-active={intent.id === selectedPortalIntent.id}
-                    aria-label={`${intent.label}: ${intent.purpose}`}
+                    aria-label={`${t(intent.label)}: ${t(intent.purpose)}`}
                   >
-                    <strong>{intent.label}</strong>
-                    <span>{intent.purpose}</span>
+                    <strong>{t(intent.label)}</strong>
+                    <span>{t(intent.purpose)}</span>
                   </button>
                 ))}
               </div>
@@ -1583,7 +1782,10 @@ export default function Home() {
                     >
                       Sua pergunta
                     </label>
-                    <div className="pdu-ritual-prompts" aria-label="Como abrir a leitura">
+                    <div
+                      className="pdu-ritual-prompts"
+                      aria-label={t("Como abrir a leitura")}
+                    >
                       {ritualPrompts.map((prompt) => (
                         <span key={prompt}>{prompt}</span>
                       ))}
@@ -1591,7 +1793,10 @@ export default function Home() {
                     <textarea
                       id="question"
                       value={question}
-                      onChange={(event) => setQuestion(event.target.value)}
+                      onChange={(event) => {
+                        setSuggestedQuestionSource("");
+                        setQuestion(event.target.value);
+                      }}
                       disabled={loading}
                       className="mt-2 min-h-28 w-full resize-none rounded-[8px] border border-white/12 bg-black/24 p-3 text-sm leading-6 text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/70 focus:ring-2 focus:ring-[#f4d58d]/10"
                       placeholder="O que eu preciso enxergar sobre este momento?"
@@ -1774,13 +1979,13 @@ export default function Home() {
       <section className="border-b border-white/10 bg-[#0d0d16] px-4 py-16 text-[#f8efe2] sm:px-6 lg:px-8">
         <div className="pdu-reveal is-visible mx-auto max-w-3xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f4d58d]">
-            Aprofunde a leitura
+            {t("Próximos caminhos")}
           </p>
           <h2 className="brand-serif mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
-            Quer ir mais fundo no que as cartas trouxeram?
+            {t("A leitura grátis termina aqui. O próximo passo é uma escolha premium.")}
           </h2>
           <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
-            Sua leitura gratuita abre o campo. Agora você pode transformar essa clareza em ação real.
+            {t("Hoje você já recebeu sua orientação gratuita. Para abrir uma leitura específica, escolha uma experiência avulsa ou entre no Círculo.")}
           </p>
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             <a
@@ -1788,16 +1993,16 @@ export default function Home() {
               className="group flex flex-col rounded-[10px] border border-[#f4d58d]/30 bg-white/[0.05] p-6 text-left transition hover:border-[#f4d58d]/60 hover:bg-white/[0.08]"
             >
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4d58d]">
-                Leitura individual
+                {t("Leitura individual")}
               </span>
               <span className="brand-serif mt-2 text-xl font-semibold leading-snug">
                 Clareza Urgente
               </span>
               <span className="mt-2 text-sm leading-6 text-[#d8ccc0]">
-                Uma leitura premium para respirar, entender o que pesa e escolher o próximo passo hoje.
+                {t("Uma leitura premium para respirar, entender o que pesa e escolher o próximo passo hoje.")}
               </span>
               <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#f4d58d]">
-                Quero clareza agora — R$19,90
+                {t("Quero clareza agora")} — R$19,90
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                   <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
@@ -1808,16 +2013,16 @@ export default function Home() {
               className="group flex flex-col rounded-[10px] border border-[#a9cdbf]/30 bg-white/[0.05] p-6 text-left transition hover:border-[#a9cdbf]/60 hover:bg-white/[0.08]"
             >
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#a9cdbf]">
-                Assinatura
+                {t("Assinatura")}
               </span>
               <span className="brand-serif mt-2 text-xl font-semibold leading-snug">
                 Círculo do Universo
               </span>
               <span className="mt-2 text-sm leading-6 text-[#d8ccc0]">
-                Histórico vivo, rituais semanais e leituras ilimitadas para transformar orientação em jornada.
+                {t("Histórico vivo, rituais semanais e leituras premium para transformar orientação em jornada.")}
               </span>
               <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#a9cdbf]">
-                Entrar no Círculo — R$29,90/mês
+                {t("Entrar no Círculo")} — R$29,90/mês
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                   <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
@@ -1974,8 +2179,14 @@ export default function Home() {
 
       <section
         id="produtos"
-        className="pdu-experience-section px-4 py-20 text-[#1f1713] sm:px-6 lg:px-8"
+        className="pdu-experience-section px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
       >
+        <div className="pdu-section-orbit pdu-section-orbit--left" aria-hidden="true">
+          <MoonStar size={92} strokeWidth={1.15} />
+        </div>
+        <div className="pdu-section-orbit pdu-section-orbit--right" aria-hidden="true">
+          <Sparkles size={86} strokeWidth={1.15} />
+        </div>
         <div className="pdu-reveal relative z-10 mx-auto max-w-7xl">
           <div className="pdu-experience-header">
             <div className="max-w-2xl">
@@ -1999,6 +2210,17 @@ export default function Home() {
             </button>
           </div>
 
+          <div className="pdu-magic-marquee pdu-scroll-reveal" aria-hidden="true">
+            <div className="pdu-magic-marquee__track">
+              {[...localizedAtmosphereWords, ...localizedAtmosphereWords].map((word, index) => (
+                <span key={`${word}-${index}`}>
+                  {word}
+                  <Sparkles size={18} strokeWidth={1.45} />
+                </span>
+              ))}
+            </div>
+          </div>
+
           <div className="pdu-pillar-row mt-8">
             {experiencePillars.map((pillar) => (
               <div key={pillar} className="pdu-pillar-chip">
@@ -2011,6 +2233,9 @@ export default function Home() {
             {experienceAccessPaths.map((path, index) => (
               <div key={path.label} className="pdu-access-guide__item">
                 <span className="pdu-access-guide__number">0{index + 1}</span>
+                <span className="pdu-access-guide__icon">
+                  <path.icon size={34} strokeWidth={1.35} />
+                </span>
                 <div>
                   <strong>{path.label}</strong>
                   <p>{path.text}</p>
@@ -2020,10 +2245,11 @@ export default function Home() {
           </div>
 
           <div className="pdu-product-river mt-10">
-            {productCards.map((product) => (
+            {productCards.map((product, index) => (
               <article
                 key={product.title}
                 className={`pdu-product-node pdu-product-node--${product.mode} group`}
+                style={{ "--pdu-product-index": index } as CSSProperties}
               >
                 <div className="pdu-product-node__top">
                   <span
@@ -2119,7 +2345,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="pdu-universe-preview px-4 py-24 sm:px-6 lg:px-8">
+      <section className="pdu-universe-preview px-4 py-28 sm:px-6 lg:px-8">
         <div className="pdu-reveal mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
           <div className="pdu-universe-preview__copy">
             <SectionEyebrow dark>Meu Universo</SectionEyebrow>
@@ -2141,6 +2367,28 @@ export default function Home() {
           </div>
 
           <div className="pdu-feature-cloud">
+            <div className="pdu-feature-cloud__core" aria-hidden="true">
+              <Image
+                src={glossyIcons.bookmark}
+                alt=""
+                width={190}
+                height={190}
+                className="h-full w-full object-contain"
+              />
+            </div>
+            {floatingSymbols.map((symbol, index) => {
+              const Icon = symbol.icon;
+              return (
+                <span
+                  key={symbol.label}
+                  className="pdu-floating-symbol"
+                  style={{ "--pdu-symbol-index": index } as CSSProperties}
+                  aria-hidden="true"
+                >
+                  <Icon size={34} strokeWidth={1.35} />
+                </span>
+              );
+            })}
             {universeFeatureTokens.map((item, index) => (
               <div
                 key={item}
@@ -2156,8 +2404,17 @@ export default function Home() {
 
       <section
         id="circulo"
-        className="border-y border-white/10 bg-[#f6efe6] px-4 py-16 text-[#1f1713] sm:px-6 lg:px-8"
+        className="pdu-circle-section border-y border-white/10 px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
       >
+        <div className="pdu-circle-sigil" aria-hidden="true">
+          <Image
+            src={glossyIcons.moon}
+            alt=""
+            width={260}
+            height={260}
+            className="h-full w-full object-contain"
+          />
+        </div>
         <div className="pdu-reveal mx-auto max-w-7xl">
           <div className="max-w-2xl">
             <SectionEyebrow>Assinatura</SectionEyebrow>
@@ -2307,9 +2564,9 @@ export default function Home() {
       <footer className="px-4 py-12 text-center text-xs leading-6 text-[#cfc4b9] sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl border-t border-white/10 pt-8">
           <nav className="mb-5 flex flex-wrap justify-center gap-x-5 gap-y-2 font-semibold text-[#f5d896]">
-            <a href="/termos">Termos de uso</a>
-            <a href="/privacidade">Privacidade</a>
-            <a href="/reembolsos">Cancelamentos e reembolsos</a>
+            <a href="/termos">{t("Termos de uso")}</a>
+            <a href="/privacidade">{t("Privacidade")}</a>
+            <a href="/reembolsos">{t("Cancelamentos e reembolsos")}</a>
           </nav>
           <p>
             Palavras do Universo oferece orientação simbólica para reflexão e
@@ -2317,8 +2574,9 @@ export default function Home() {
             financeiro ou psicológico.
           </p>
           <p className="mt-3">
-            Se você estiver em sofrimento intenso, em risco imediato ou pensando
-            em se machucar, procure um serviço de emergência local ou ligue{" "}
+            {t(
+              "Se você estiver em sofrimento intenso, em risco imediato ou pensando em se machucar, procure um serviço de emergência local ou ligue"
+            )}{" "}
             <a
               href="https://cvv.org.br/ligue-188-3/"
               target="_blank"
@@ -2328,8 +2586,9 @@ export default function Home() {
               188, CVV
               <LifeBuoy size={13} />
             </a>
-            . Para acompanhamento profissional, você pode buscar psicólogos e
-            profissionais qualificados no{" "}
+            {t(
+              ". Para acompanhamento profissional, você pode buscar psicólogos e profissionais qualificados no"
+            )}{" "}
             <a
               href="https://www.doctoralia.com.br/psicologo/online"
               target="_blank"
@@ -2339,8 +2598,9 @@ export default function Home() {
               Doctoralia
               <ExternalLink size={13} />
             </a>
-            , inclusive procurando opções acessíveis ou perguntando sobre valor
-            social quando necessário.
+            {t(
+              ", inclusive procurando opções acessíveis ou perguntando sobre valor social quando necessário."
+            )}
           </p>
         </div>
       </footer>
@@ -2490,12 +2750,8 @@ function FloatingTarotSpread(props: {
     setActiveIndex(index);
   }
 
-  function toggleCard(index: number) {
-    if (!window.matchMedia("(hover: none)").matches) {
-      return;
-    }
-
-    if (activeIndex === index) {
+  function handleCardClick(index: number) {
+    if (lastPointerType.current === "touch" && activeIndex === index) {
       settleSpread();
       return;
     }
@@ -2560,7 +2816,7 @@ function FloatingTarotSpread(props: {
               settleSpread();
             }
           }}
-          onClick={() => toggleCard(index)}
+          onClick={() => handleCardClick(index)}
           onFocus={() => {
             if (lastPointerType.current !== "touch") {
               featureCard(index);
@@ -2611,6 +2867,12 @@ function ProductIconVisual(props: { title: string }) {
       className={`pdu-product-visual pdu-product-visual--${visual.tone} mb-5`}
     >
       <div className="pdu-product-visual__halo" />
+      <div className="pdu-product-visual__portal" aria-hidden="true" />
+      <div className="pdu-product-visual__veil pdu-product-visual__veil--back" aria-hidden="true" />
+      <div className="pdu-product-visual__ring pdu-product-visual__ring--outer" aria-hidden="true" />
+      <div className="pdu-product-visual__ring pdu-product-visual__ring--inner" aria-hidden="true" />
+      <div className="pdu-product-visual__veil pdu-product-visual__veil--front" aria-hidden="true" />
+      <div className="pdu-product-visual__beam" aria-hidden="true" />
       {!failed ? (
         <div className="pdu-product-visual__image relative z-10 transition duration-500 group-hover:scale-[1.04]">
           <Image

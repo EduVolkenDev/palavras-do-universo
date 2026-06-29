@@ -6,7 +6,9 @@ export function usePduAtmosphere() {
   useEffect(() => {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const finePointer = window.matchMedia("(pointer: fine)");
-    const revealItems = Array.from(document.querySelectorAll(".pdu-reveal"));
+    const revealItems = Array.from(
+      document.querySelectorAll(".pdu-reveal, .pdu-scroll-reveal")
+    );
     const root = document.documentElement;
     const observedRevealItems = new Set<Element>();
 
@@ -58,13 +60,15 @@ export function usePduAtmosphere() {
         mutation.addedNodes.forEach((node) => {
           if (!(node instanceof Element)) return;
 
-          if (node.matches(".pdu-reveal")) {
+          if (node.matches(".pdu-reveal, .pdu-scroll-reveal")) {
             watchRevealItem(node);
           }
 
-          node.querySelectorAll(".pdu-reveal").forEach((item) => {
-            watchRevealItem(item);
-          });
+          node
+            .querySelectorAll(".pdu-reveal, .pdu-scroll-reveal")
+            .forEach((item) => {
+              watchRevealItem(item);
+            });
         });
       }
     });

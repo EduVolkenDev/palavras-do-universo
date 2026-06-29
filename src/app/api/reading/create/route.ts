@@ -28,6 +28,8 @@ import { readJsonBody } from "@/lib/http/request";
 const memory: Record<string, { fingerprint: string; ts: number }[]> = {};
 const freeUsage: Record<string, { day: string; used: number }> = {};
 const FREE_PER_DAY = 1;
+const ANONYMOUS_READING_COOKIE = "pdu_reader_id";
+const ANONYMOUS_READING_COOKIE_MAX_AGE = 60 * 60 * 24 * 400;
 
 type UsageSource = "memory" | "supabase";
 
@@ -43,6 +45,7 @@ type ReadingBody = {
 type ReadingSpreadPayload = {
   position: string;
   cardKey: string;
+  keyword: string;
   name: string;
   reversed: boolean;
   meaning: string;
@@ -180,8 +183,104 @@ Formato de entrega para Círculo do Universo:
   `.trim(),
 };
 
+function normalizeSpreadAxis(position: string) {
+  if (position === "SITUAÇÃO" || position === "SITUATION") return "situation";
+  if (position === "OBSTÁCULO" || position === "OBSTACLE") return "obstacle";
+  return "direction";
+}
+
+function buildSpreadCardMeaning(params: {
+  locale: "pt-BR" | "en";
+  question: string;
+  position: string;
+  cardName: string;
+  keyword: string;
+  reversed: boolean;
+}) {
+  const axis = normalizeSpreadAxis(params.position);
+  const cleanQuestion = params.question.replace(/\s+/g, " ").trim();
+  const suffix = cleanQuestion ? ` "${cleanQuestion}"` : "";
+
+  if (params.locale === "en") {
+    if (axis === "situation") {
+      return `${params.cardName} shows where ${params.keyword} is already shaping your question${suffix} and deserves to be read before you decide.`;
+    }
+    if (axis === "obstacle") {
+      return `${params.cardName}${params.reversed ? " reversed" : ""} reveals where ${params.keyword} can distort your question${suffix} through defense, haste, or avoidance.`;
+    }
+    return `${params.cardName}${params.reversed ? " reversed" : ""} points to the next clean movement: turn ${params.keyword} into one visible step for your question${suffix}.`;
+  }
+
+  if (axis === "situation") {
+    return `${params.cardName} mostra onde ${params.keyword} já está moldando sua pergunta${suffix} e precisa ser lido antes da decisão.`;
+  }
+  if (axis === "obstacle") {
+    return `${params.cardName}${params.reversed ? " reversa" : ""} revela onde ${params.keyword} pode distorcer sua pergunta${suffix} por defesa, pressa ou evitação.`;
+  }
+  return `${params.cardName}${params.reversed ? " reversa" : ""} aponta o próximo movimento limpo: transforme ${params.keyword} em um passo visível para sua pergunta${suffix}.`;
+}
+
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function parseCookieHeader(header: string | null) {
+  const cookies = new Map<string, string>();
+  if (!header) return cookies;
+
+  for (const part of header.split(";")) {
+    const [rawKey, ...rawValue] = part.trim().split("=");
+    if (!rawKey || !rawValue.length) continue;
+    cookies.set(rawKey, decodeURIComponent(rawValue.join("=")));
+  }
+
+  return cookies;
+}
+
+function isSafeAnonymousUserId(value: string) {
+  return /^pdu_[a-z0-9]{12,80}$/i.test(value);
+}
+
+function createAnonymousUserId() {
+  return `pdu_${crypto.randomUUID().replaceAll("-", "")}`;
+}
+
+function getRequestUserId(req: Request, authenticatedUserId: string | null, rawUserId: unknown) {
+  if (authenticatedUserId) {
+    return { userId: authenticatedUserId, anonymousUserId: null as string | null };
+  }
+
+  const cookies = parseCookieHeader(req.headers.get("cookie"));
+  const cookieUserId = cookies.get(ANONYMOUS_READING_COOKIE) ?? "";
+  if (isSafeAnonymousUserId(cookieUserId)) {
+    return { userId: cookieUserId, anonymousUserId: cookieUserId };
+  }
+
+  const bodyUserId = typeof rawUserId === "string" ? rawUserId.trim() : "";
+  const anonymousUserId = isSafeAnonymousUserId(bodyUserId)
+    ? bodyUserId
+    : createAnonymousUserId();
+
+  return { userId: anonymousUserId, anonymousUserId };
+}
+
+function withAnonymousCookie<T extends NextResponse>(
+  response: T,
+  anonymousUserId: string | null
+) {
+  response.headers.set("Cache-Control", "no-store, max-age=0");
+
+  if (!anonymousUserId) return response;
+
+  response.cookies.set(ANONYMOUS_READING_COOKIE, anonymousUserId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: ANONYMOUS_READING_COOKIE_MAX_AGE,
+  });
+
+  return response;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -565,16 +664,23 @@ export async function POST(req: Request) {
   if (question.length < 8) {
     return NextResponse.json({ error: "Question too short" }, { status: 400 });
   }
-  const userId = authenticatedUser?.id ?? String(body?.userId ?? "local-user");
+  const { userId, anonymousUserId } = getRequestUserId(
+    req,
+    authenticatedUser?.id ?? null,
+    body?.userId
+  );
   const paidProduct = isPaidReadingProduct(productKey);
   if (paidProduct && !authenticatedUser) {
-    return NextResponse.json(
-      {
-        error: "Authentication required",
-        code: "AUTH_REQUIRED",
-        productKey,
-      },
-      { status: 401 }
+    return withAnonymousCookie(
+      NextResponse.json(
+        {
+          error: "Authentication required",
+          code: "AUTH_REQUIRED",
+          productKey,
+        },
+        { status: 401 }
+      ),
+      anonymousUserId
     );
   }
   const entitlement = paidProduct
@@ -584,13 +690,16 @@ export async function POST(req: Request) {
     : null;
 
   if (paidProduct && !entitlement) {
-    return NextResponse.json(
-      {
-        error: "Entitlement required",
-        paywall: true,
-        productKey,
-      },
-      { status: 402 }
+    return withAnonymousCookie(
+      NextResponse.json(
+        {
+          error: "Entitlement required",
+          paywall: true,
+          productKey,
+        },
+        { status: 402 }
+      ),
+      anonymousUserId
     );
   }
 
@@ -598,11 +707,14 @@ export async function POST(req: Request) {
   const day = todayISO();
   const usage = paidProduct
     ? ({ source: "memory", used: 0 } as const)
-    : await getCurrentUsage(userId, day, remoteEnabled);
+    : await getCurrentUsage(userId, day, true);
   if (!paidProduct && usage.used >= FREE_PER_DAY) {
-    return NextResponse.json(
-      { error: "Free limit reached", paywall: true },
-      { status: 402 }
+    return withAnonymousCookie(
+      NextResponse.json(
+        { error: "Free limit reached", paywall: true, code: "FREE_DAILY_LIMIT" },
+        { status: 402 }
+      ),
+      anonymousUserId
     );
   }
 
@@ -616,15 +728,18 @@ export async function POST(req: Request) {
   });
 
   if (!repeat.allowed) {
-    return NextResponse.json(
-      {
-        error: "REPEATED_QUESTION",
-        title: "A resposta não muda. O ângulo muda.",
-        message: repeat.message,
-        suggestedRephrase: repeat.suggestedRephrase,
-        guidedFollowUps: repeat.guidedFollowUps,
-      },
-      { status: 429 }
+    return withAnonymousCookie(
+      NextResponse.json(
+        {
+          error: "REPEATED_QUESTION",
+          title: "A resposta não muda. O ângulo muda.",
+          message: repeat.message,
+          suggestedRephrase: repeat.suggestedRephrase,
+          guidedFollowUps: repeat.guidedFollowUps,
+        },
+        { status: 429 }
+      ),
+      anonymousUserId
     );
   }
 
@@ -639,7 +754,7 @@ export async function POST(req: Request) {
       day,
       used: usage.used,
       source: usage.source,
-      remoteEnabled,
+      remoteEnabled: true,
     });
   }
 
@@ -649,11 +764,17 @@ export async function POST(req: Request) {
   const spreadPayload = spread.map((d) => ({
     position: translateOraclePosition(d.position, locale),
     cardKey: d.card.key,
+    keyword: localizeTarotCard(d.card, locale).keywords[0],
     name: localizeTarotCard(d.card, locale).name,
     reversed: d.reversed,
-    meaning: d.reversed
-      ? localizeTarotCard(d.card, locale).reversed
-      : localizeTarotCard(d.card, locale).upright,
+    meaning: buildSpreadCardMeaning({
+      locale,
+      question,
+      position: translateOraclePosition(d.position, locale),
+      cardName: localizeTarotCard(d.card, locale).name,
+      keyword: localizeTarotCard(d.card, locale).keywords[0],
+      reversed: d.reversed,
+    }),
     assetPath: d.card.assetPath,
   }));
 
@@ -712,7 +833,7 @@ export async function POST(req: Request) {
 		5) READING BY POSITION
 		   For each card: practical meaning (1 sentence) and direction (1 sentence).
 		6) ACTIONS: 3 objective micro-steps (1 line each)
-		7) CLOSING: short ritual, 3-bullet summary, and recommended question
+		7) CLOSING: short ritual, 3-bullet summary, and an invitation to return tomorrow
 		`.trim()
       : `
 		Formato obrigatório para leitura gratuita:
@@ -723,7 +844,7 @@ export async function POST(req: Request) {
 	5) LEITURA POR POSIÇÃO
 	   Para cada carta: significado prático (1 frase) e direção (1 frase).
 	6) AÇÕES: 3 micro-passos objetivos (1 linha cada)
-	7) FECHAMENTO: ritual curto, resumo em 3 bullets e pergunta recomendada
+	7) FECHAMENTO: ritual curto, resumo em 3 bullets e convite para retornar amanhã
 	`.trim();
   const portalMemory = await getPortalMemory(userId, remoteEnabled);
   const dailyDay = getZonedDay(normalizeTimeZone(String(body?.timeZone ?? "")));
@@ -858,14 +979,17 @@ export async function POST(req: Request) {
   }
 
   // Response
-  return NextResponse.json({
-    ok: true,
-    readingId,
-    theme,
-    question,
-    mode,
-    productKey,
-    spread: spreadPayload,
-    interpretation,
-  });
+  return withAnonymousCookie(
+    NextResponse.json({
+      ok: true,
+      readingId,
+      theme,
+      question,
+      mode,
+      productKey,
+      spread: spreadPayload,
+      interpretation,
+    }),
+    anonymousUserId
+  );
 }

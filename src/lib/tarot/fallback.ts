@@ -321,6 +321,48 @@ const EN_POSITION_GUIDANCE: readonly (readonly string[])[] = [
   ],
 ];
 
+const PT_POSITION_CONTEXT: readonly (readonly string[])[] = [
+  [
+    "{card} enquadra {question}: {keyword} aparece como o primeiro sinal a ser lido antes de decidir o próximo passo.",
+    "Na situação, {card} traz {keyword} para dentro de {question}; comece separando fato, desejo e medo.",
+    "{card} mostra o terreno inicial de {question}: antes de agir, reconheça onde {keyword} já está organizando a cena.",
+    "A primeira camada de {question} passa por {card}; leia esse tema como contexto vivo, não como resposta fechada.",
+  ],
+  [
+    "{card} mostra a tensão dentro de {question}: {keyword} virou ponto de pressão e pede uma resposta menos automática.",
+    "No obstáculo, {card} revela onde {question} pode estar sendo atravessada por excesso, defesa ou pressa.",
+    "{card} não bloqueia a resposta; ele mostra onde {keyword} precisa ser visto antes que você escolha no impulso.",
+    "A sombra de {question} aparece em {card}: algo pede pausa para que {keyword} não vire repetição.",
+  ],
+  [
+    "{card} leva a resposta para ação: use {keyword} para fazer uma escolha possível, em vez de esperar a situação inteira ficar certa.",
+    "Como direção, {card} pede que {question} vire um gesto concreto guiado por {keyword}.",
+    "{card} aponta o movimento mais limpo: transforme esse tema em uma decisão pequena, visível e realizável.",
+    "A saída aberta por {card} não exige certeza total; ela pede um passo que confirme {keyword} no mundo real.",
+  ],
+];
+
+const EN_POSITION_CONTEXT: readonly (readonly string[])[] = [
+  [
+    "{card} frames {question}: {keyword} appears as the first signal to read before deciding what comes next.",
+    "In the situation, {card} brings {keyword} into {question}; begin by separating fact, desire, and fear.",
+    "{card} shows the starting ground of {question}: before acting, notice where {keyword} is already shaping the scene.",
+    "The first layer of {question} moves through {card}; read this theme as living context, not a closed answer.",
+  ],
+  [
+    "{card} shows the tension inside {question}: {keyword} is becoming a point of pressure and asks for a less automatic response.",
+    "As the obstacle, {card} reveals where {question} may be crossed by excess, defense, or haste.",
+    "{card} does not block the answer; it shows where {keyword} needs to be seen before you choose from impulse.",
+    "The shadow of {question} appears through {card}: something asks for pause so {keyword} does not become repetition.",
+  ],
+  [
+    "{card} turns the answer toward action: use {keyword} to make one possible choice instead of waiting for the whole situation to become certain.",
+    "As direction, {card} asks {question} to become one concrete gesture guided by {keyword}.",
+    "{card} points to the cleanest movement: turn this theme into a small, visible, doable decision.",
+    "The way opened by {card} does not demand total certainty; it asks for one step that confirms {keyword} in real life.",
+  ],
+];
+
 function normalizeTheme(theme: string) {
   const value = theme.toLowerCase();
   if (/amor|love|relacion|relationship/.test(value)) return "love";
@@ -339,6 +381,13 @@ function pickVariant<T>(items: readonly T[], seed: number, salt: string) {
   mixed = Math.imul(mixed ^ (mixed >>> 16), 0x45d9f3b);
   mixed = (mixed ^ (mixed >>> 16)) >>> 0;
   return items[mixed % items.length];
+}
+
+function fillTemplate(template: string, values: Record<string, string>) {
+  return Object.entries(values).reduce(
+    (text, [key, value]) => text.replaceAll(`{${key}}`, value),
+    template
+  );
 }
 
 export function generateFallbackReading(params: FallbackReadingParams) {
@@ -379,6 +428,33 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     draw.reversed ? draw.card.reversed : draw.card.upright;
   const label = (draw: (typeof localizedSpread)[number]) =>
     `${draw.card.name}${draw.reversed ? (isEnglish ? " (reversed)" : " (reversa)") : ""}`;
+  const cleanQuestion = question.replace(/\s+/g, " ").trim();
+  const shortQuestion =
+    cleanQuestion.length > 96 ? `${cleanQuestion.slice(0, 93).trim()}...` : cleanQuestion;
+  const contextualMeaning = (draw: (typeof localizedSpread)[number], index: number) => {
+    const cardMeaning = meaning(draw).replace(/\s+/g, " ").replace(/[.!?]\s.*$/, "").trim();
+    const keyword = draw.card.keywords[0] ?? (isEnglish ? "presence" : "presença");
+    const questionPart = shortQuestion
+      ? isEnglish
+        ? `your question "${shortQuestion}"`
+        : `sua pergunta "${shortQuestion}"`
+      : isEnglish
+        ? "this moment"
+        : "este momento";
+    const templates = isEnglish ? EN_POSITION_CONTEXT : PT_POSITION_CONTEXT;
+    const template = pickVariant(
+      templates[index] ?? templates[0],
+      seed,
+      `position-context:${index}:${draw.card.key}:${draw.reversed ? "r" : "u"}`
+    );
+
+    return fillTemplate(template, {
+      card: label(draw),
+      keyword,
+      meaning: cardMeaning || keyword,
+      question: questionPart,
+    });
+  };
 
   const contextualOpening = isEnglish
     ? `${pick(openings, "opening")} Today's energy, “${daily.energy},” asks you to approach ${copy.label} through ${situation.card.keywords[0]}.`
@@ -393,12 +469,27 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     : "";
   const mantra = pick(copy.mantras, "mantra");
   const productContext = PRODUCT_CONTEXT[productKey] ?? PRODUCT_CONTEXT.free_daily;
+  const triadLine = (draw: (typeof localizedSpread)[number], index: number) => {
+    const keyword = draw.card.keywords[0] ?? (isEnglish ? "presence" : "presença");
+    const templates = isEnglish
+      ? [
+          `${label(draw)} names the truth beneath the noise: ${keyword} is the first layer to acknowledge honestly.`,
+          `${label(draw)} shows the shadow clearly: ${keyword} needs to be seen before the pattern repeats.`,
+          `${label(draw)} opens direction through one grounded movement shaped by ${keyword}.`,
+        ]
+      : [
+          `${label(draw)} nomeia a verdade sob o ruído: ${keyword} é a primeira camada a reconhecer com honestidade.`,
+          `${label(draw)} mostra a sombra com clareza: ${keyword} precisa ser visto antes que o padrão se repita.`,
+          `${label(draw)} abre direção por meio de um movimento possível guiado por ${keyword}.`,
+        ];
+    return templates[index] ?? templates[0];
+  };
   const actions = unique([
     pick(copy.actions, "action-theme"),
     daily.advice,
     isEnglish
-      ? `Use ${direction.card.keywords[0]} as a filter: complete one concrete action before the day ends.`
-      : `Use ${direction.card.keywords[0]} como filtro: conclua uma ação concreta antes do fim do dia.`,
+      ? `Let ${label(direction)} define one concrete action you can complete before the day ends.`
+      : `Deixe ${label(direction)} definir uma ação concreta que você consiga concluir antes do fim do dia.`,
   ]).slice(0, 3);
   const recommendedQuestion = pick(copy.questions, "question");
 
@@ -417,14 +508,14 @@ export function generateFallbackReading(params: FallbackReadingParams) {
         `Plain meaning: ${daily.affirmation}`,
         "",
         "4) THE THREE THREADS",
-        `- Truth: ${meaning(situation)}`,
-        `- Shadow: ${meaning(obstacle)}`,
-        `- Direction: ${meaning(direction)}`,
+        `- Truth: ${triadLine(situation, 0)}`,
+        `- Shadow: ${triadLine(obstacle, 1)}`,
+        `- Direction: ${triadLine(direction, 2)}`,
         "",
         "5) READING BY POSITION",
         ...localizedSpread.flatMap((draw, index) => [
           `- ${draw.position} — ${label(draw)}`,
-          `  In practice: ${meaning(draw)}`,
+          `  In practice: ${contextualMeaning(draw, index)}`,
           `  ${pick(EN_POSITION_GUIDANCE[index], `position-${index}`)}`,
           "",
         ]),
@@ -452,14 +543,14 @@ export function generateFallbackReading(params: FallbackReadingParams) {
         `Tradução simples: ${daily.affirmation}`,
         "",
         "4) TRÍADE",
-        `- Verdade: ${meaning(situation)}`,
-        `- Sombra: ${meaning(obstacle)}`,
-        `- Direção: ${meaning(direction)}`,
+        `- Verdade: ${triadLine(situation, 0)}`,
+        `- Sombra: ${triadLine(obstacle, 1)}`,
+        `- Direção: ${triadLine(direction, 2)}`,
         "",
         "5) LEITURA POR POSIÇÃO",
         ...localizedSpread.flatMap((draw, index) => [
           `- ${draw.position} — ${label(draw)}`,
-          `  Na prática: ${meaning(draw)}`,
+          `  Na prática: ${contextualMeaning(draw, index)}`,
           `  ${pick(PT_POSITION_GUIDANCE[index], `position-${index}`)}`,
           "",
         ]),
