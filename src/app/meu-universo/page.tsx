@@ -630,6 +630,7 @@ export default function MeuUniversoPage() {
       item.source === "subscription" ||
       item.product_key === "circulo_do_universo"
   );
+  const hasOwnerAdminAccess = entitlements.some((item) => item.id.startsWith("owner-"));
   const recommendedProduct = useMemo(() => {
     const key = recommendedProductKey(profileComplete ? readingProfile : profileDraft);
     return (
@@ -755,6 +756,15 @@ export default function MeuUniversoPage() {
           <div className="flex items-center gap-2 text-sm text-[#6f615a]">
             <Sparkles size={16} />
             Meu Universo
+            {hasOwnerAdminAccess ? (
+              <Link
+                href="/admin/codigos"
+                className="ml-2 inline-flex items-center gap-1.5 rounded-lg border border-[#d8c3a6] bg-white/70 px-3 py-1.5 font-semibold text-[#4d3c31]"
+              >
+                <ShieldCheck size={14} />
+                Admin
+              </Link>
+            ) : null}
             {accountEmail ? (
               <form action="/auth/signout" method="post">
                 <button

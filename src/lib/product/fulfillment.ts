@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { finalizeVoucherCheckoutSession } from "@/lib/vouchers/service";
 
 type EntitlementProduct = {
   product_key: string;
@@ -117,18 +118,28 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
       .eq("provider", "stripe")
       .eq("provider_checkout_id", session.id);
 
-    await grantEntitlements({
-      userId,
-      productKey,
-      source: "subscription",
+  await grantEntitlements({
+    userId,
+    productKey,
+    source: "subscription",
       metadata: {
         checkout_session_id: session.id,
         stripe_subscription_id: subscriptionId,
       },
-    });
+  });
 
-    return { ok: true as const, userId, productKey, source: "subscription" as const };
+  const voucherId = getString(session.metadata?.voucher_id);
+  if (voucherId) {
+    await finalizeVoucherCheckoutSession({
+      voucherId,
+      checkoutSessionId: session.id,
+      userId,
+      email: getString(session.customer_details?.email) ?? getString(session.customer_email),
+    });
   }
+
+  return { ok: true as const, userId, productKey, source: "subscription" as const };
+}
 
   await supabase
     .from("purchases")
@@ -150,6 +161,16 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
       payment_intent_id: getString(session.payment_intent),
     },
   });
+
+  const voucherId = getString(session.metadata?.voucher_id);
+  if (voucherId) {
+    await finalizeVoucherCheckoutSession({
+      voucherId,
+      checkoutSessionId: session.id,
+      userId,
+      email: getString(session.customer_details?.email) ?? getString(session.customer_email),
+    });
+  }
 
   return { ok: true as const, userId, productKey, source: "purchase" as const };
 }

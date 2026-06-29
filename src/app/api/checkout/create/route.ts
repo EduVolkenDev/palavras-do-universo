@@ -10,10 +10,16 @@ import { getSiteUrl, getStripe, hasStripeConfig } from "@/lib/stripe/server";
 import { checkRateLimit } from "@/lib/security/rateLimit";
 import { readJsonBody } from "@/lib/http/request";
 import { isOwnerAccessUser } from "@/lib/product/ownerAccess";
+import {
+  applyDiscountVoucherToCheckout,
+  readVoucherCodeFromRequest,
+  recordPendingVoucherCheckout,
+} from "@/lib/vouchers/service";
 
 type CheckoutBody = {
   productKey?: unknown;
   email?: unknown;
+  voucherCode?: unknown;
 };
 
 type OracleProduct = {
@@ -38,15 +44,20 @@ function getCheckoutMode(product: OracleProduct): Stripe.Checkout.SessionCreateP
     : "payment";
 }
 
-function buildLineItem(product: OracleProduct): Stripe.Checkout.SessionCreateParams.LineItem {
-  if (product.provider_price_id) {
+function buildLineItem(
+  product: OracleProduct,
+  overrideAmountCents?: number | null
+): Stripe.Checkout.SessionCreateParams.LineItem {
+  if (product.provider_price_id && !overrideAmountCents) {
     return {
       price: product.provider_price_id,
       quantity: 1,
     };
   }
 
-  if (!product.price_cents || product.price_cents <= 0) {
+  const amountCents = overrideAmountCents ?? product.price_cents;
+
+  if (!amountCents || amountCents <= 0) {
     throw new Error("Product is missing a payable price");
   }
 
@@ -60,7 +71,7 @@ function buildLineItem(product: OracleProduct): Stripe.Checkout.SessionCreatePar
     quantity: 1,
     price_data: {
       currency,
-      unit_amount: product.price_cents,
+      unit_amount: amountCents,
       product_data: {
         name: product.title,
         metadata: {
@@ -135,6 +146,32 @@ export async function POST(req: Request) {
     return jsonError("Product is included in the Círculo do Universo", 409);
   }
 
+  const voucherCode = await readVoucherCodeFromRequest(
+    typeof body.voucherCode === "string" ? body.voucherCode : null
+  );
+  const voucherResult = voucherCode
+    ? await applyDiscountVoucherToCheckout({
+        code: voucherCode,
+        user: auth.user,
+        productKey: product.product_key,
+      })
+    : null;
+
+  if (voucherResult && !voucherResult.ok) {
+    return jsonError(voucherResult.message, 409);
+  }
+
+  const originalAmountCents = product.price_cents ?? 0;
+  const discountPercent = voucherResult?.ok ? voucherResult.voucher.discount_percent ?? 0 : 0;
+  const discountedAmountCents =
+    discountPercent > 0
+      ? Math.round(originalAmountCents * (1 - discountPercent / 100))
+      : originalAmountCents;
+
+  if (voucherResult?.ok && discountedAmountCents < 50) {
+    return jsonError("Use an access invitation instead of a near-zero checkout coupon", 409);
+  }
+
   const mode = getCheckoutMode(product);
   const siteUrl = getSiteUrl();
   const stripe = getStripe();
@@ -145,7 +182,12 @@ export async function POST(req: Request) {
     session = await stripe.checkout.sessions.create({
       mode,
       client_reference_id: userId,
-      line_items: [buildLineItem(product)],
+      line_items: [
+        buildLineItem(
+          product,
+          voucherResult?.ok && discountPercent > 0 ? discountedAmountCents : null
+        ),
+      ],
       customer_email: email,
       allow_promotion_codes: true,
       billing_address_collection: "auto",
@@ -159,6 +201,10 @@ export async function POST(req: Request) {
         user_id: userId,
         product_key: product.product_key,
         access_model: product.access_model ?? product.product_type,
+        voucher_id: voucherResult?.ok ? voucherResult.voucher.id : "",
+        voucher_code: voucherResult?.ok ? voucherResult.voucher.code : "",
+        voucher_discount_percent:
+          voucherResult?.ok ? String(voucherResult.voucher.discount_percent ?? "") : "",
       },
       subscription_data:
         mode === "subscription"
@@ -226,9 +272,27 @@ export async function POST(req: Request) {
     }
   }
 
+  if (voucherResult?.ok) {
+    await recordPendingVoucherCheckout({
+      voucher: voucherResult.voucher,
+      user: auth.user,
+      checkoutSessionId: session.id,
+      productKey: product.product_key,
+      originalAmountCents,
+      discountedAmountCents,
+    });
+  }
+
   return NextResponse.json({
     ok: true,
     checkoutUrl: session.url,
     sessionId: session.id,
+    appliedVoucher:
+      voucherResult?.ok
+        ? {
+            code: voucherResult.voucher.code,
+            discountPercent: voucherResult.voucher.discount_percent,
+          }
+        : null,
   });
 }
