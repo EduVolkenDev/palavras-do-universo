@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { I18nProvider } from "@/components/I18nProvider";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { LOCALE_COOKIE_NAME, normalizeLocale } from "@/lib/i18n/config";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,17 +26,22 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const initialLocale = normalizeLocale(
+    cookieStore.get(LOCALE_COOKIE_NAME)?.value ?? "pt-BR"
+  );
+
   return (
-    <html lang="pt-BR" data-scroll-behavior="smooth">
+    <html lang={initialLocale} data-scroll-behavior="smooth">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <I18nProvider>
+        <I18nProvider initialLocale={initialLocale}>
           {children}
           <LanguageSwitcher />
         </I18nProvider>

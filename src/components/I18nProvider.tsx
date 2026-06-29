@@ -83,18 +83,24 @@ function getInitialLocale() {
   return normalizeLocale(urlLocale ?? stored ?? cookieLocale ?? navigator.language);
 }
 
-export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, updateLocale] = useState<Locale>(() => getInitialLocale());
+export function I18nProvider({
+  children,
+  initialLocale = DEFAULT_LOCALE,
+}: {
+  children: React.ReactNode;
+  initialLocale?: Locale;
+}) {
+  const [locale, updateLocale] = useState<Locale>(initialLocale);
 
   useEffect(() => {
     const preferredLocale = getInitialLocale();
-    if (preferredLocale !== DEFAULT_LOCALE) {
+    if (preferredLocale !== locale) {
       const timeout = window.setTimeout(() => updateLocale(preferredLocale), 0);
       return () => window.clearTimeout(timeout);
     }
 
     return undefined;
-  }, []);
+  }, [locale]);
 
   const setLocale = useCallback((nextLocale: Locale) => {
     updateLocale(nextLocale);
