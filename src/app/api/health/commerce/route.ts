@@ -4,7 +4,15 @@ import {
   hasSupabaseConfig,
   hasSupabasePublicConfig,
 } from "@/lib/supabase/server";
-import { getSiteUrl, hasStripeConfig } from "@/lib/stripe/server";
+import { getSiteUrl, getStripe, hasStripeConfig } from "@/lib/stripe/server";
+
+type PaidProduct = {
+  product_key: string;
+  product_type: "one_time" | "subscription";
+  price_cents: number;
+  currency: string;
+  provider_price_id: string | null;
+};
 
 function hasAnthropicConfig() {
   const key = process.env.ANTHROPIC_API_KEY?.trim() ?? "";
@@ -18,45 +26,88 @@ function isAuthorized(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const checks = {
+  const checks: Record<string, boolean> = {
     supabaseServer: hasSupabaseConfig(),
     supabasePublic: hasSupabasePublicConfig(),
     stripeSecret: hasStripeConfig(),
     stripeWebhook: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
-    stripeCheckoutVerified: process.env.STRIPE_CHECKOUT_VERIFIED === "true",
-    stripeCustomerPortalVerified:
-      process.env.STRIPE_CUSTOMER_PORTAL_VERIFIED === "true",
+    stripeCheckoutVerified: false,
+    stripeCustomerPortalVerified: false,
     anthropicKey: hasAnthropicConfig(),
     productionUrl: !getSiteUrl().includes("localhost"),
     supportEmail: Boolean(process.env.NEXT_PUBLIC_SUPPORT_EMAIL),
   };
   let activePaidProducts = 0;
   let catalogError = "";
+  let stripeError = "";
+  let paidProducts: PaidProduct[] = [];
 
   if (checks.supabaseServer) {
     const { data, error } = await getSupabaseAdmin()
       .from("oracle_products")
-      .select("product_key")
+      .select(
+        "product_key,product_type,price_cents,currency,provider_price_id"
+      )
       .eq("status", "active")
-      .gt("price_cents", 0);
+      .gt("price_cents", 0)
+      .returns<PaidProduct[]>();
+    paidProducts = data ?? [];
     activePaidProducts = data?.length ?? 0;
     catalogError = error?.message ?? "";
+  }
+
+  if (checks.stripeSecret && !catalogError && paidProducts.length > 0) {
+    try {
+      const stripe = getStripe();
+      const [prices, portalConfigurations] = await Promise.all([
+        Promise.all(
+          paidProducts.map(async (product) => {
+            if (!product.provider_price_id) return false;
+            const price = await stripe.prices.retrieve(product.provider_price_id);
+            const expectsRecurring = product.product_type === "subscription";
+            return (
+              price.active &&
+              price.livemode &&
+              price.unit_amount === product.price_cents &&
+              price.currency.toUpperCase() === product.currency.toUpperCase() &&
+              Boolean(price.recurring) === expectsRecurring
+            );
+          })
+        ),
+        getStripe().billingPortal.configurations.list({
+          active: true,
+          is_default: true,
+          limit: 1,
+        }),
+      ]);
+
+      checks.stripeCheckoutVerified =
+        prices.length >= 4 && prices.every(Boolean);
+      checks.stripeCustomerPortalVerified =
+        portalConfigurations.data.length > 0;
+    } catch (error) {
+      stripeError =
+        error instanceof Error ? error.message : "Stripe verification failed";
+    }
   }
 
   const ready =
     Object.values(checks).every(Boolean) &&
     activePaidProducts >= 4 &&
-    !catalogError;
+    !catalogError &&
+    !stripeError;
   const oneTimeReady =
     checks.supabaseServer &&
     checks.supabasePublic &&
     checks.stripeSecret &&
     checks.stripeWebhook &&
+    checks.stripeCheckoutVerified &&
     checks.anthropicKey &&
     checks.productionUrl &&
     checks.supportEmail &&
     activePaidProducts >= 3 &&
-    !catalogError;
+    !catalogError &&
+    !stripeError;
 
   const summary = {
     ok: ready,
@@ -71,5 +122,6 @@ export async function GET(request: Request) {
     checks,
     activePaidProducts,
     catalogError: catalogError ? "Catalog query failed" : null,
+    stripeError: stripeError ? "Stripe verification failed" : null,
   });
 }

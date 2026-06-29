@@ -102,6 +102,19 @@ try {
   assert(baseline.length <= 7_500, "Portuguese fallback exceeded premium limit");
   assert(baseline.includes("Oito de Espadas"), "Direction card is missing");
   assert(baseline.includes("Caminho das 3 Cartas"), "Product context is missing");
+  assert(
+    baseline.includes("Como organizar minhas prioridades"),
+    "Card-by-position text must reference the user's question"
+  );
+  assert(
+    !/significado de baralho|deck meaning|na a pergunta/i.test(baseline),
+    "Fallback leaked generic or broken card-description language"
+  );
+
+  const dateVariant = generate(
+    params({ daily: { ...daily, dateKey: "2026-06-22" } })
+  );
+  assert(dateVariant !== baseline, "Date changes must produce a distinct fallback");
 
   const userVariants = new Set(
     Array.from({ length: 24 }, (_, index) =>
@@ -150,16 +163,34 @@ try {
     ritual: "Take three breaths and write today's honest step.",
   };
   const english = generate(
-    params({ daily: englishDaily, locale: "en", spread: spreadFor("en") })
+    params({
+      daily: englishDaily,
+      locale: "en",
+      question: "How can I organize my priorities without turning everything into urgency?",
+      spread: spreadFor("en"),
+    })
   );
   assert(english.includes("INITIAL LISTENING"), "English structure is missing");
+  assert(
+    english.includes("How to organize my priorities") ||
+      english.includes("How can I organize my priorities"),
+    "English card-by-position text must reference the user's question"
+  );
   assert(!english.includes("ESCUTA INICIAL"), "Portuguese leaked into English structure");
+  assert(
+    !/significado de baralho|na a pergunta/i.test(english),
+    "English fallback leaked generic or broken card-description language"
+  );
   assert(english.length <= 7_500, "English fallback exceeded premium limit");
 
   const spreadVariant = generate(params({ spread: spreadFor("pt-BR", 3) }));
   assert(spreadVariant !== baseline, "Card combination must change the fallback");
 
   const structuralCombinations = 78 * 77 * 76 * 8 * 4 * 4 * 4 * 3;
+  assert(
+    structuralCombinations >= 701_000_000,
+    `Structural fallback combinations dropped below 701M: ${structuralCombinations}`
+  );
   console.log(
     `Fallback valid: ${userVariants.size} user variants, ${modes.size} modes, ` +
       `${products.length} products; ` +

@@ -358,8 +358,8 @@ export function localizeDailyMessage(message: DailyMessage, localeInput: string)
       name: getCardEnglishNameFromPortuguese(item.name),
       keyword,
       meaning: item.reversed
-        ? `Notice where ${keyword} may be blocked or driven by fear. Give yourself time before reacting.`
-        : `Let ${keyword} guide one honest and grounded choice today.`,
+        ? `This card shows where ${keyword} may be shaped by fear, excess, or avoidance. Pause before reacting.`
+        : `${keyword} is active here; read it as context for one honest, grounded choice today.`,
     };
   });
   const focus = spread[2]?.keyword ?? spread[0]?.keyword ?? "clarity";
@@ -369,9 +369,9 @@ export function localizeDailyMessage(message: DailyMessage, localeInput: string)
     energy: energyTranslations[message.energy] ?? "A moment of clarity",
     message:
       "Something within you is asking for attention without urgency. Let this message be a pause to notice what is true before choosing what comes next.",
-    advice: `Choose one small action that brings more ${focus} into your day.`,
+    advice: "Choose one small action that puts this message into practice today.",
     affirmation: "I can listen to myself with honesty and move with calm.",
-    reflection: `What would change if I allowed ${focus} to guide my next step?`,
+    reflection: `What changes when you read this moment through the lens of ${focus}?`,
     ritual:
       "Take three slow breaths, write down one honest sentence, and choose one action you can complete today.",
     spread,
