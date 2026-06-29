@@ -14,7 +14,6 @@ import {
   History,
   LifeBuoy,
   LockKeyhole,
-  Menu,
   MoonStar,
   Quote,
   Share2,
@@ -49,8 +48,6 @@ import {
 import { usePduAtmosphere } from "@/lib/ui/usePduAtmosphere";
 import { usePushNotifications } from "@/lib/push/usePushNotifications";
 import { useI18n } from "@/components/I18nProvider";
-import { getCardEnglishName, translateOraclePosition } from "@/lib/i18n/oracle";
-import { UniverseExperience } from "@/components/art-direction/UniverseExperience";
 import {
   getImpactAction,
   IMPACT_AREA_LABELS,
@@ -214,24 +211,6 @@ const experienceAccessPaths = [
     text: "Círculo para histórico, padrões e experiências contínuas.",
     icon: History,
   },
-];
-
-const atmosphereWords = [
-  "clareza",
-  "travessia",
-  "ritual",
-  "presença",
-  "ciclos",
-  "sinais",
-  "escuta",
-  "direção",
-];
-
-const floatingSymbols = [
-  { label: "lua", icon: MoonStar },
-  { label: "estrela", icon: Sparkles },
-  { label: "coração", icon: Heart },
-  { label: "bússola", icon: Compass },
 ];
 
 const universeFeatureTokens = [
@@ -588,7 +567,7 @@ function OnboardingIconOption({
 }
 
 export default function Home() {
-  const { locale, t } = useI18n();
+  const { locale } = useI18n();
   const [userId, setUserId] = useState("");
   const [theme, setTheme] = useState("love");
   const [portalIntentId, setPortalIntentId] = useState("atravessar");
@@ -624,15 +603,6 @@ export default function Home() {
   const [dailyOpening, setDailyOpening] =
     useState<DailyMessage>(fallbackDailyMessage);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [selectedSpreadCard, setSelectedSpreadCard] = useState<{
-    position: string;
-    name: string;
-    reversed: boolean;
-    assetPath: string;
-    insight?: string;
-  } | null>(null);
-  const spreadCardDialogRef = useRef<HTMLDialogElement>(null);
 
   usePduAtmosphere();
   const push = usePushNotifications();
@@ -702,16 +672,6 @@ export default function Home() {
     window.setTimeout(() => scrollToId("leitura"), 120);
   }, []);
 
-  useEffect(() => {
-    const dialog = spreadCardDialogRef.current;
-    if (!dialog) return;
-    if (selectedSpreadCard) {
-      const id = window.setTimeout(() => { if (!dialog.open) dialog.showModal(); }, 80);
-      return () => clearTimeout(id);
-    }
-    if (dialog.open) dialog.close();
-  }, [selectedSpreadCard]);
-
   const selectedTheme = useMemo(
     () => themeOptions.find((option) => option.value === theme),
     [theme]
@@ -722,10 +682,6 @@ export default function Home() {
       portalIntentOptions.find((option) => option.id === portalIntentId) ??
       portalIntentOptions[0],
     [portalIntentId]
-  );
-  const localizedAtmosphereWords = useMemo(
-    () => atmosphereWords.map((word) => t(word)),
-    [t]
   );
   const impactActions = useMemo(() => getRecommendedImpactActions(theme), [theme]);
 
@@ -841,7 +797,6 @@ export default function Home() {
       setSpreadCards(ok.spread);
       setResult(ok.interpretation);
       setReadingId(ok.readingId);
-      window.setTimeout(() => scrollToId("cartas"), 260);
       if (!invitedBy && !impactCommitment) {
         const recommended = getRecommendedImpactActions(theme)[0];
         setImpactActionKey(recommended.key);
@@ -1101,16 +1056,7 @@ export default function Home() {
     }
   }
 
-  const localizedSpreadCards = useMemo(
-    () =>
-      spreadCards.map((card) => ({
-        ...card,
-        name: locale === "en" ? getCardEnglishName(card.cardKey, card.name) : card.name,
-        position: translateOraclePosition(card.position, locale),
-      })),
-    [spreadCards, locale]
-  );
-  const shownSpread = localizedSpreadCards.length ? localizedSpreadCards : dailyOpening.spread;
+  const shownSpread = spreadCards.length ? spreadCards : dailyOpening.spread;
   const reversedSuffix = locale === "en" ? " (reversed)" : " reversa";
   const activeReading = Boolean(result);
   const readingQuestion = question.trim();
@@ -1188,7 +1134,7 @@ export default function Home() {
           role="dialog"
           aria-modal="true"
           aria-label="Qual fase você está vivendo?"
-          className="pdu-onboarding-overlay fixed inset-0 z-[220] flex items-start justify-center overflow-y-auto overscroll-contain bg-[#03030a]/82 px-4 py-8 backdrop-blur-xl sm:items-center"
+          className="pdu-onboarding-overlay fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-[#03030a]/82 px-4 py-8 backdrop-blur-xl sm:items-center"
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(244,213,141,0.2),transparent_28%),radial-gradient(circle_at_82%_22%,rgba(167,215,197,0.16),transparent_30%),linear-gradient(135deg,rgba(255,247,232,0.08),transparent_38%)]" />
           <div className="pointer-events-none absolute left-[12%] top-[18%] h-24 w-24 rounded-full border border-[#f4d58d]/18 shadow-[0_0_70px_rgba(244,213,141,0.16)]" />
@@ -1290,82 +1236,16 @@ export default function Home() {
             </a>
           </nav>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => scrollToId("leitura")}
-              className="hidden items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1c1308] shadow-[0_14px_38px_rgba(244,213,141,0.22)] hover:bg-[#ffe3a3] sm:inline-flex"
-            >
-              <Sun size={16} />
-              Mensagem de hoje
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowMobileMenu(true)}
-              aria-label="Abrir menu"
-              className="grid h-9 w-9 place-items-center rounded-[8px] border border-white/12 bg-white/[0.06] text-[#cfc4b9] md:hidden"
-            >
-              <Menu size={18} />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => scrollToId("leitura")}
+            className="hidden items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1c1308] shadow-[0_14px_38px_rgba(244,213,141,0.22)] hover:bg-[#ffe3a3] sm:inline-flex"
+          >
+            <Sun size={16} />
+            Mensagem de hoje
+          </button>
         </div>
       </header>
-
-      {showMobileMenu ? (
-        <div
-          className="fixed inset-0 z-[300] flex flex-col bg-[#09080d]/96 backdrop-blur-xl"
-          onClick={() => setShowMobileMenu(false)}
-        >
-          <div
-            className="flex items-center justify-between border-b border-white/10 px-4 py-3"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span className="brand-serif text-lg font-semibold text-[#fff7e8]">
-              Palavras do Universo
-            </span>
-            <button
-              type="button"
-              onClick={() => setShowMobileMenu(false)}
-              aria-label="Fechar menu"
-              className="grid h-9 w-9 place-items-center rounded-[8px] border border-white/12 bg-white/[0.06] text-[#cfc4b9]"
-            >
-              <X size={18} />
-            </button>
-          </div>
-          <nav
-            className="flex flex-1 flex-col gap-1 px-4 py-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {[
-              { label: "Leitura", href: "#leitura" },
-              { label: "Carta do Dia", href: "/carta-do-dia" },
-              { label: "Ritual", href: "#ritual" },
-              { label: "Leituras", href: "#produtos" },
-              { label: "Baralho", href: "/baralho" },
-              { label: "Meu Universo", href: "/meu-universo" },
-            ].map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center rounded-[10px] border border-transparent px-4 py-4 text-base font-medium text-[#cfc4b9] hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
-          <div className="border-t border-white/10 px-4 py-5">
-            <button
-              type="button"
-              onClick={() => { setShowMobileMenu(false); scrollToId("leitura"); }}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#1c1308] shadow-[0_14px_38px_rgba(244,213,141,0.22)]"
-            >
-              <Sun size={16} />
-              Mensagem de hoje
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       {loading ? <ReadingCeremonyOverlay locale={locale} /> : null}
 
@@ -1375,9 +1255,6 @@ export default function Home() {
       >
         <div className="pdu-veil" />
         <div className="pdu-hero-stars" aria-hidden="true" />
-        <div className="pdu-universe-stage">
-          <UniverseExperience />
-        </div>
 
         <div className="pdu-hero-shell mx-auto max-w-7xl">
           <div className="pdu-hero-grid">
@@ -1460,8 +1337,8 @@ export default function Home() {
               <div className="pdu-portal-console">
                 <div className="pdu-portal-console__visual">
                   <Image
-                  src="/assets/palavrasuniverso.webp"
-                  alt=""
+                    src="/assets/palavrasuniverso.webp"
+                    alt=""
                     fill
                     priority
                     sizes="(max-width: 768px) 92vw, 48vw"
@@ -1613,9 +1490,8 @@ export default function Home() {
                       </div>
                     ) : (
                       <div
-                        id="cartas"
                         key={spreadCards.length ? spreadLine : dailyOpening.dateKey}
-                        className={`pdu-reading-card-grid -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-2 sm:overflow-visible sm:px-0 sm:pb-0 ${
+                        className={`pdu-reading-card-grid grid grid-cols-3 gap-2 ${
                           spreadCards.length ? "is-revealed" : ""
                         }`}
                       >
@@ -1623,21 +1499,11 @@ export default function Home() {
                           <div
                             key={card.position}
                             style={{ "--pdu-card-index": index } as CSSProperties}
-                            className="min-w-[min(46vw,160px)] flex-none snap-start sm:min-w-0 sm:flex-auto"
                           >
                             <TarotFrame
                               card={card}
                               compact
                               locale={locale}
-                              onClick={() => {
-                                const meaning = cardMeanings.find(
-                                  (m) => m.position === card.position
-                                );
-                                setSelectedSpreadCard({
-                                  ...card,
-                                  insight: meaning?.insight,
-                                });
-                              }}
                             />
                           </div>
                         ))}
@@ -2108,14 +1974,8 @@ export default function Home() {
 
       <section
         id="produtos"
-        className="pdu-experience-section px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
+        className="pdu-experience-section px-4 py-20 text-[#1f1713] sm:px-6 lg:px-8"
       >
-        <div className="pdu-section-orbit pdu-section-orbit--left" aria-hidden="true">
-          <MoonStar size={92} strokeWidth={1.15} />
-        </div>
-        <div className="pdu-section-orbit pdu-section-orbit--right" aria-hidden="true">
-          <Sparkles size={86} strokeWidth={1.15} />
-        </div>
         <div className="pdu-reveal relative z-10 mx-auto max-w-7xl">
           <div className="pdu-experience-header">
             <div className="max-w-2xl">
@@ -2139,17 +1999,6 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="pdu-magic-marquee pdu-scroll-reveal" aria-hidden="true">
-            <div className="pdu-magic-marquee__track">
-              {[...localizedAtmosphereWords, ...localizedAtmosphereWords].map((word, index) => (
-                <span key={`${word}-${index}`}>
-                  {word}
-                  <Sparkles size={18} strokeWidth={1.45} />
-                </span>
-              ))}
-            </div>
-          </div>
-
           <div className="pdu-pillar-row mt-8">
             {experiencePillars.map((pillar) => (
               <div key={pillar} className="pdu-pillar-chip">
@@ -2162,9 +2011,6 @@ export default function Home() {
             {experienceAccessPaths.map((path, index) => (
               <div key={path.label} className="pdu-access-guide__item">
                 <span className="pdu-access-guide__number">0{index + 1}</span>
-                <span className="pdu-access-guide__icon">
-                  <path.icon size={34} strokeWidth={1.35} />
-                </span>
                 <div>
                   <strong>{path.label}</strong>
                   <p>{path.text}</p>
@@ -2174,11 +2020,10 @@ export default function Home() {
           </div>
 
           <div className="pdu-product-river mt-10">
-            {productCards.map((product, index) => (
+            {productCards.map((product) => (
               <article
                 key={product.title}
                 className={`pdu-product-node pdu-product-node--${product.mode} group`}
-                style={{ "--pdu-product-index": index } as CSSProperties}
               >
                 <div className="pdu-product-node__top">
                   <span
@@ -2274,7 +2119,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="pdu-universe-preview px-4 py-28 sm:px-6 lg:px-8">
+      <section className="pdu-universe-preview px-4 py-24 sm:px-6 lg:px-8">
         <div className="pdu-reveal mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
           <div className="pdu-universe-preview__copy">
             <SectionEyebrow dark>Meu Universo</SectionEyebrow>
@@ -2296,28 +2141,6 @@ export default function Home() {
           </div>
 
           <div className="pdu-feature-cloud">
-            <div className="pdu-feature-cloud__core" aria-hidden="true">
-              <Image
-                src={glossyIcons.bookmark}
-                alt=""
-                width={190}
-                height={190}
-                className="h-full w-full object-contain"
-              />
-            </div>
-            {floatingSymbols.map((symbol, index) => {
-              const Icon = symbol.icon;
-              return (
-                <span
-                  key={symbol.label}
-                  className="pdu-floating-symbol"
-                  style={{ "--pdu-symbol-index": index } as CSSProperties}
-                  aria-hidden="true"
-                >
-                  <Icon size={34} strokeWidth={1.35} />
-                </span>
-              );
-            })}
             {universeFeatureTokens.map((item, index) => (
               <div
                 key={item}
@@ -2333,17 +2156,8 @@ export default function Home() {
 
       <section
         id="circulo"
-        className="pdu-circle-section border-y border-white/10 px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
+        className="border-y border-white/10 bg-[#f6efe6] px-4 py-16 text-[#1f1713] sm:px-6 lg:px-8"
       >
-        <div className="pdu-circle-sigil" aria-hidden="true">
-          <Image
-            src={glossyIcons.moon}
-            alt=""
-            width={260}
-            height={260}
-            className="h-full w-full object-contain"
-          />
-        </div>
         <div className="pdu-reveal mx-auto max-w-7xl">
           <div className="max-w-2xl">
             <SectionEyebrow>Assinatura</SectionEyebrow>
@@ -2530,50 +2344,6 @@ export default function Home() {
           </p>
         </div>
       </footer>
-
-      <dialog
-        ref={spreadCardDialogRef}
-        onClick={(e) => { if (e.target === spreadCardDialogRef.current) setSelectedSpreadCard(null); }}
-        className="m-auto max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-[14px] border border-white/14 bg-[#0f0e19] p-0 text-[#f8efe2] shadow-[0_40px_140px_rgba(0,0,0,0.72)] backdrop:bg-black/60 backdrop:backdrop-blur-sm"
-      >
-        {selectedSpreadCard ? (
-          <div>
-            <div className="relative aspect-[5/8]">
-              <Image
-                src={selectedSpreadCard.assetPath}
-                alt={selectedSpreadCard.name}
-                width={420}
-                height={680}
-                className={`h-full w-full object-cover ${selectedSpreadCard.reversed ? "rotate-180" : ""}`}
-              />
-              <button
-                type="button"
-                onClick={() => setSelectedSpreadCard(null)}
-                aria-label="Fechar"
-                className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border border-white/20 bg-black/50 text-white/80 backdrop-blur-sm hover:bg-black/70"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="p-5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
-                {selectedSpreadCard.position}
-              </p>
-              <h3 className="brand-serif mt-1 text-2xl font-semibold text-[#fff7e8]">
-                {selectedSpreadCard.name}
-                {selectedSpreadCard.reversed
-                  ? locale === "en" ? " (reversed)" : " reversa"
-                  : ""}
-              </h3>
-              {selectedSpreadCard.insight ? (
-                <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
-                  {selectedSpreadCard.insight}
-                </p>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-      </dialog>
     </main>
   );
 }
@@ -2604,18 +2374,12 @@ function TarotFrame(props: {
     assetPath: string;
   };
   compact?: boolean;
-  onClick?: () => void;
 }) {
   return (
     <div
-      className={`group relative overflow-hidden rounded-[8px] border border-[#f4d58d]/20 bg-[#111019] shadow-[0_18px_50px_rgba(0,0,0,0.2)] ${
+      className={`group overflow-hidden rounded-[8px] border border-[#f4d58d]/20 bg-[#111019] shadow-[0_18px_50px_rgba(0,0,0,0.2)] ${
         props.compact ? "min-h-36" : ""
-      } ${props.onClick ? "cursor-pointer hover:border-[#f4d58d]/50" : ""}`}
-      onClick={props.onClick}
-      role={props.onClick ? "button" : undefined}
-      tabIndex={props.onClick ? 0 : undefined}
-      onKeyDown={props.onClick ? (e) => { if (e.key === "Enter" || e.key === " ") props.onClick?.(); } : undefined}
-      aria-label={props.onClick ? `Ver detalhes de ${props.card.name}` : undefined}
+      }`}
     >
       <div className="relative aspect-[5/8]">
         <Image
@@ -2627,11 +2391,6 @@ function TarotFrame(props: {
             props.card.reversed ? "rotate-180" : ""
           }`}
         />
-        {props.onClick ? (
-          <div className="absolute inset-x-0 bottom-0 flex h-10 items-center justify-center bg-gradient-to-t from-black/60 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/80">Ver carta</span>
-          </div>
-        ) : null}
       </div>
       <div className="border-t border-[#f4d58d]/16 bg-black/30 p-2">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
@@ -2852,12 +2611,6 @@ function ProductIconVisual(props: { title: string }) {
       className={`pdu-product-visual pdu-product-visual--${visual.tone} mb-5`}
     >
       <div className="pdu-product-visual__halo" />
-      <div className="pdu-product-visual__portal" aria-hidden="true" />
-      <div className="pdu-product-visual__veil pdu-product-visual__veil--back" aria-hidden="true" />
-      <div className="pdu-product-visual__ring pdu-product-visual__ring--outer" aria-hidden="true" />
-      <div className="pdu-product-visual__ring pdu-product-visual__ring--inner" aria-hidden="true" />
-      <div className="pdu-product-visual__veil pdu-product-visual__veil--front" aria-hidden="true" />
-      <div className="pdu-product-visual__beam" aria-hidden="true" />
       {!failed ? (
         <div className="pdu-product-visual__image relative z-10 transition duration-500 group-hover:scale-[1.04]">
           <Image
