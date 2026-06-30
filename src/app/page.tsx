@@ -53,11 +53,14 @@ import {
 import { usePduAtmosphere } from "@/lib/ui/usePduAtmosphere";
 import { usePushNotifications } from "@/lib/push/usePushNotifications";
 import { useI18n } from "@/components/I18nProvider";
+import { normalizeLocale, type Locale } from "@/lib/i18n/config";
+import { localizeTarotCard, translateOraclePosition } from "@/lib/i18n/oracle";
 import {
   getImpactAction,
   IMPACT_AREA_LABELS,
   getRecommendedImpactActions,
 } from "@/lib/impact/actions";
+import { CARDS } from "@/lib/tarot/cards";
 
 type ApiOk = {
   ok: true;
@@ -76,6 +79,8 @@ type ApiOk = {
   }[];
   interpretation: string;
 };
+
+type ReadingSpreadCard = ApiOk["spread"][number];
 
 type ApiPaywall = {
   error: string;
@@ -187,6 +192,12 @@ const THEME_INTENT_ID: Record<string, string> = {
   love: "abrir",
   career: "desembaçar",
   money: "firmar",
+};
+
+const PT_POSITION_LABELS: Record<string, string> = {
+  SITUATION: "SITUAÇÃO",
+  OBSTACLE: "OBSTÁCULO",
+  DIRECTION: "DIREÇÃO",
 };
 
 const ritualPrompts = [
@@ -558,6 +569,77 @@ function getReadingMantra(reading: string, fallback: string) {
   return line?.replace(/^[-•]\s*/, "") || fallback;
 }
 
+function localizeReadingPosition(position: string, locale: Locale) {
+  if (locale === "en") {
+    return translateOraclePosition(position, locale);
+  }
+
+  return PT_POSITION_LABELS[position.toUpperCase()] ?? position;
+}
+
+function localizeReadingSpreadCard(
+  card: ReadingSpreadCard,
+  locale: Locale
+): ReadingSpreadCard {
+  const sourceCard = CARDS.find((item) => item.key === card.cardKey);
+  const localizedCard = sourceCard ? localizeTarotCard(sourceCard, locale) : null;
+  const meaning = localizedCard
+    ? card.reversed
+      ? localizedCard.reversed
+      : localizedCard.upright
+    : card.meaning;
+
+  return {
+    ...card,
+    position: localizeReadingPosition(card.position, locale),
+    name: localizedCard?.name ?? card.name,
+    keyword: localizedCard?.keywords[0] ?? card.keyword,
+    meaning,
+    assetPath: localizedCard?.assetPath ?? card.assetPath,
+  };
+}
+
+function buildLocalizedReadingText(params: {
+  cards: ReadingSpreadCard[];
+  locale: Locale;
+  dailyOpening: DailyMessage;
+}) {
+  const isEnglish = params.locale === "en";
+  const reversedSuffix = isEnglish ? " (reversed)" : " reversa";
+  const title = isEnglish
+    ? "READING IN THE SELECTED LANGUAGE"
+    : "LEITURA NO IDIOMA SELECIONADO";
+  const direct = isEnglish
+    ? "Read this answer through the question you opened and the three cards now visible."
+    : "Leia esta resposta a partir da pergunta que você abriu e das três cartas agora visíveis.";
+  const advice = isEnglish
+    ? "Choose one small, visible action today before trying to solve the whole path."
+    : "Escolha uma ação pequena e visível hoje antes de tentar resolver todo o caminho.";
+  const cardLines = params.cards.map((card) => {
+    const name = `${card.name}${card.reversed ? reversedSuffix : ""}`;
+    return `- ${card.position}: ${name} — ${card.meaning ?? ""}`;
+  });
+
+  return [
+    title,
+    "",
+    isEnglish ? "1) DIRECT ANSWER" : "1) RESPOSTA DIRETA",
+    direct,
+    "",
+    isEnglish ? "2) CARDS" : "2) CARTAS",
+    ...cardLines,
+    "",
+    isEnglish ? "3) ADVICE" : "3) CONSELHO",
+    advice,
+    "",
+    isEnglish ? "4) MANTRA" : "4) MANTRA",
+    params.dailyOpening.affirmation ||
+      (isEnglish
+        ? "I can listen with honesty and move with calm."
+        : "Eu posso me escutar com honestidade e agir com calma."),
+  ].join("\n");
+}
+
 function getReadingAction(reading: string, fallback: string) {
   const match = reading.match(
     /(?:^|\n)\s*(?:\d\)\s*)?(?:AÇÕES|ACOES|ACTIONS)\s*\n+([\s\S]*?)(?=\n\s*(?:\d\)\s*)?(?:INTEGRAÇÃO|INTEGRATION|RITUAL|RESUMO|SUMMARY)\b|$)/i
@@ -761,6 +843,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<number | null>(null);
   const [result, setResult] = useState("");
+  const [resultLocale, setResultLocale] = useState<Locale | null>(null);
   const [spreadLine, setSpreadLine] = useState("");
   const [spreadCards, setSpreadCards] = useState<ApiOk["spread"]>([]);
   const [readingId, setReadingId] = useState<string | null>(null);
@@ -838,6 +921,7 @@ export default function Home() {
         setSpreadLine(storedReading.spread_line);
         setSpreadCards(storedReading.spread_cards);
         setResult(storedReading.result);
+        setResultLocale(normalizeLocale(storedReading.locale));
         setReadingId(storedReading.reading_id);
         if (
           portalIntentOptions.some(
@@ -986,6 +1070,7 @@ export default function Home() {
     setLoading(true);
     setStatus(null);
     setResult("");
+    setResultLocale(null);
     setSpreadLine("");
     setSpreadCards([]);
     setReadingId(null);
@@ -1082,6 +1167,7 @@ export default function Home() {
       setSpreadLine(line);
       setSpreadCards(ok.spread);
       setResult(ok.interpretation);
+      setResultLocale(locale);
       setReadingId(ok.readingId);
       saveLocalActiveReading({
         locale,
@@ -1379,12 +1465,32 @@ export default function Home() {
     }
   }
 
-  const shownSpread = spreadCards.length ? spreadCards : dailyOpening.spread;
+  const localizedSpreadCards = useMemo(
+    () => spreadCards.map((card) => localizeReadingSpreadCard(card, locale)),
+    [locale, spreadCards]
+  );
+  const shownSpread = spreadCards.length ? localizedSpreadCards : dailyOpening.spread;
   const reversedSuffix = locale === "en" ? " (reversed)" : " reversa";
   const activeReading = Boolean(result);
   const readingQuestion = question.trim();
+  const readingNeedsLocaleSurface =
+    activeReading && resultLocale !== null && resultLocale !== locale;
+  const localizedSpreadLine = shownSpread.length
+    ? shownSpread
+        .map(
+          (card) =>
+            `${card.position}: ${card.name}${card.reversed ? reversedSuffix : ""}`
+        )
+        .join(" | ")
+    : spreadLine;
   const readingText =
-    result ||
+    readingNeedsLocaleSurface
+      ? buildLocalizedReadingText({
+          cards: localizedSpreadCards,
+          locale,
+          dailyOpening,
+        })
+      : result ||
     [
       "MANTRA",
       dailyOpening.affirmation,
@@ -1406,13 +1512,19 @@ export default function Home() {
       : dailyOpening.message;
   const openingAdvice = loading
     ? "As cartas anteriores foram recolhidas. Aguarde o novo spread se formar antes de interpretar."
-    : activeReading
-      ? getReadingAction(result, "Leia primeiro o conjunto das três cartas; depois escolha uma ação pequena para hoje.")
+    : activeReading && readingNeedsLocaleSurface
+      ? locale === "en"
+        ? "Choose one small action from the three cards and test it today."
+        : "Escolha uma ação pequena a partir das três cartas e teste hoje."
+      : activeReading
+        ? getReadingAction(result, "Leia primeiro o conjunto das três cartas; depois escolha uma ação pequena para hoje.")
       : dailyOpening.advice;
   const openingAffirmation = loading
     ? "Eu espero a leitura nova chegar antes de concluir."
-    : activeReading
-      ? getReadingMantra(result, dailyOpening.affirmation)
+    : activeReading && readingNeedsLocaleSurface
+      ? dailyOpening.affirmation
+      : activeReading
+        ? getReadingMantra(result, dailyOpening.affirmation)
       : dailyOpening.affirmation;
   const openingEyebrow = loading
     ? "Portal em movimento"
@@ -2092,7 +2204,7 @@ export default function Home() {
               <div className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
                 {loading
                   ? "O portal está escolhendo suas cartas"
-                  : spreadLine || "Mensagem do Universo"}
+                  : localizedSpreadLine || "Mensagem do Universo"}
               </div>
               <div
                 key={result ? readingId ?? spreadLine : "reading-preview"}
