@@ -33,9 +33,42 @@ export type LocalImpactCommitment = {
   local_only?: boolean;
 };
 
+export type LocalReadingDraft = {
+  theme: string;
+  portal_intent_id: string;
+  product_key: string;
+  question: string;
+  suggested_question_source: string;
+  updated_at: string;
+};
+
+export type LocalActiveReading = {
+  locale: string;
+  theme: string;
+  portal_intent_id: string;
+  product_key: string;
+  question: string;
+  suggested_question_source: string;
+  spread_line: string;
+  spread_cards: {
+    position: string;
+    cardKey: string;
+    keyword?: string;
+    name: string;
+    reversed: boolean;
+    meaning?: string;
+    assetPath: string;
+  }[];
+  result: string;
+  reading_id: string | null;
+  updated_at: string;
+};
+
 const USER_ID_KEY = "pdu_user_id";
 const SAVED_MESSAGES_KEY = "pdu_saved_messages";
 const IMPACT_COMMITMENTS_KEY = "pdu_impact_commitments";
+const READING_DRAFT_KEY = "pdu_reading_draft";
+const ACTIVE_READING_KEY = "pdu_active_reading";
 
 export function getOrCreateLocalUserId() {
   const existing = localStorage.getItem(USER_ID_KEY);
@@ -120,6 +153,92 @@ export function getLocalImpactCommitments() {
   } catch {
     return [];
   }
+}
+
+export function getLocalReadingDraft() {
+  try {
+    const raw = localStorage.getItem(READING_DRAFT_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as unknown;
+    if (typeof parsed !== "object" || parsed === null) return null;
+
+    return parsed as LocalReadingDraft;
+  } catch {
+    return null;
+  }
+}
+
+export function saveLocalReadingDraft(params: {
+  theme: string;
+  portalIntentId: string;
+  productKey: string;
+  question: string;
+  suggestedQuestionSource: string;
+}) {
+  const draft: LocalReadingDraft = {
+    theme: params.theme,
+    portal_intent_id: params.portalIntentId,
+    product_key: params.productKey,
+    question: params.question,
+    suggested_question_source: params.suggestedQuestionSource,
+    updated_at: new Date().toISOString(),
+  };
+
+  localStorage.setItem(READING_DRAFT_KEY, JSON.stringify(draft));
+  return draft;
+}
+
+export function clearLocalReadingDraft() {
+  localStorage.removeItem(READING_DRAFT_KEY);
+}
+
+export function getLocalActiveReading() {
+  try {
+    const raw = localStorage.getItem(ACTIVE_READING_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as unknown;
+    if (typeof parsed !== "object" || parsed === null) return null;
+
+    return parsed as LocalActiveReading;
+  } catch {
+    return null;
+  }
+}
+
+export function saveLocalActiveReading(params: {
+  locale: string;
+  theme: string;
+  portalIntentId: string;
+  productKey: string;
+  question: string;
+  suggestedQuestionSource: string;
+  spreadLine: string;
+  spreadCards: LocalActiveReading["spread_cards"];
+  result: string;
+  readingId: string | null;
+}) {
+  const reading: LocalActiveReading = {
+    locale: params.locale,
+    theme: params.theme,
+    portal_intent_id: params.portalIntentId,
+    product_key: params.productKey,
+    question: params.question,
+    suggested_question_source: params.suggestedQuestionSource,
+    spread_line: params.spreadLine,
+    spread_cards: params.spreadCards,
+    result: params.result,
+    reading_id: params.readingId,
+    updated_at: new Date().toISOString(),
+  };
+
+  localStorage.setItem(ACTIVE_READING_KEY, JSON.stringify(reading));
+  return reading;
+}
+
+export function clearLocalActiveReading() {
+  localStorage.removeItem(ACTIVE_READING_KEY);
 }
 
 export function saveLocalImpactCommitment(params: {

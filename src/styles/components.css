@@ -559,6 +559,12 @@
   margin-top: 0.85rem;
 }
 
+.pdu-touch-choice {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
 .pdu-portal-intents button {
   display: flex;
   min-width: 0;

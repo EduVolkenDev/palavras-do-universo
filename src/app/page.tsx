@@ -37,10 +37,15 @@ import {
   PRODUCT_THEMES,
 } from "@/lib/product/access";
 import {
+  clearLocalActiveReading,
+  getLocalActiveReading,
+  getLocalReadingDraft,
   getOrCreateLocalUserId,
   removeLocalImpactCommitments,
   removeLocalSavedMessages,
+  saveLocalActiveReading,
   saveLocalImpactCommitment,
+  saveLocalReadingDraft,
   saveLocalMessage,
   type LocalImpactCommitment,
   updateLocalImpactCommitment,
@@ -176,6 +181,13 @@ const portalIntentOptions = [
     assetPath: "/assets/CRYSTAL.webp",
   },
 ];
+
+const THEME_INTENT_ID: Record<string, string> = {
+  spirit: "atravessar",
+  love: "abrir",
+  career: "desembaçar",
+  money: "firmar",
+};
 
 const ritualPrompts = [
   "Respire antes de perguntar",
@@ -774,6 +786,9 @@ export default function Home() {
   const [dailyOpening, setDailyOpening] =
     useState<DailyMessage>(fallbackDailyMessage);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [readingStateHydrated, setReadingStateHydrated] = useState(false);
+  const hasRestoredReadingStateRef = useRef(false);
+  const shouldScrollToOpenedReadingRef = useRef(false);
 
   usePduAtmosphere();
   const push = usePushNotifications();
@@ -781,6 +796,61 @@ export default function Home() {
   useEffect(() => {
     setUserId(getOrCreateLocalUserId());
   }, []);
+
+  useEffect(() => {
+    if (hasRestoredReadingStateRef.current) return;
+    hasRestoredReadingStateRef.current = true;
+
+    const params = new URLSearchParams(window.location.search);
+    const hasRouteOverride =
+      params.has("product") || params.has("acao") || params.has("corrente");
+
+    if (!hasRouteOverride) {
+      const storedDraft = getLocalReadingDraft();
+      if (storedDraft) {
+        setTheme(storedDraft.theme);
+        setReadingProductKey(storedDraft.product_key);
+        setSuggestedQuestionSource(storedDraft.suggested_question_source);
+        setQuestion(
+          storedDraft.suggested_question_source
+            ? t(storedDraft.suggested_question_source)
+            : storedDraft.question
+        );
+        if (
+          portalIntentOptions.some(
+            (option) => option.id === storedDraft.portal_intent_id
+          )
+        ) {
+          setPortalIntentId(storedDraft.portal_intent_id);
+        }
+      }
+
+      const storedReading = getLocalActiveReading();
+      if (storedReading && storedReading.locale === locale) {
+        setTheme(storedReading.theme);
+        setReadingProductKey(storedReading.product_key);
+        setSuggestedQuestionSource(storedReading.suggested_question_source);
+        setQuestion(
+          storedReading.suggested_question_source
+            ? t(storedReading.suggested_question_source)
+            : storedReading.question
+        );
+        setSpreadLine(storedReading.spread_line);
+        setSpreadCards(storedReading.spread_cards);
+        setResult(storedReading.result);
+        setReadingId(storedReading.reading_id);
+        if (
+          portalIntentOptions.some(
+            (option) => option.id === storedReading.portal_intent_id
+          )
+        ) {
+          setPortalIntentId(storedReading.portal_intent_id);
+        }
+      }
+    }
+
+    setReadingStateHydrated(true);
+  }, [locale, t]);
 
   useEffect(() => {
     const seen = localStorage.getItem("pdu_onboarding_done");
@@ -867,6 +937,38 @@ export default function Home() {
     }
   }, [locale, suggestedQuestionSource, t]);
 
+  useEffect(() => {
+    if (!readingStateHydrated) return;
+    saveLocalReadingDraft({
+      theme,
+      portalIntentId,
+      productKey: readingProductKey,
+      question,
+      suggestedQuestionSource,
+    });
+  }, [
+    question,
+    readingProductKey,
+    readingStateHydrated,
+    suggestedQuestionSource,
+    theme,
+    portalIntentId,
+  ]);
+
+  useEffect(() => {
+    if (!shouldScrollToOpenedReadingRef.current) return;
+    if (!loading && !result) return;
+
+    const timer = window.setTimeout(() => {
+      scrollToId("reading-opened");
+      if (!loading && result) {
+        shouldScrollToOpenedReadingRef.current = false;
+      }
+    }, loading ? 180 : 90);
+
+    return () => window.clearTimeout(timer);
+  }, [loading, result]);
+
   const canRun = useMemo(
     () => question.trim().length >= 8 && !loading,
     [question, loading]
@@ -879,6 +981,8 @@ export default function Home() {
     const activeUserId = userId || getOrCreateLocalUserId();
     if (!userId) setUserId(activeUserId);
 
+    shouldScrollToOpenedReadingRef.current = true;
+    clearLocalActiveReading();
     setLoading(true);
     setStatus(null);
     setResult("");
@@ -979,6 +1083,18 @@ export default function Home() {
       setSpreadCards(ok.spread);
       setResult(ok.interpretation);
       setReadingId(ok.readingId);
+      saveLocalActiveReading({
+        locale,
+        theme,
+        portalIntentId,
+        productKey: readingProductKey,
+        question: q,
+        suggestedQuestionSource,
+        spreadLine: line,
+        spreadCards: ok.spread,
+        result: ok.interpretation,
+        readingId: ok.readingId,
+      });
       if (!invitedBy && !impactCommitment) {
         const recommended = getRecommendedImpactActions(theme)[0];
         setImpactActionKey(recommended.key);
@@ -988,6 +1104,30 @@ export default function Home() {
       setError(caught instanceof Error ? caught.message : "Falha de rede");
     } finally {
       setLoading(false);
+    }
+  }
+
+  function selectThemeOption(nextTheme: string) {
+    setTheme(nextTheme);
+
+    const mappedIntentId = THEME_INTENT_ID[nextTheme];
+    if (!mappedIntentId) return;
+
+    const mappedIntent = portalIntentOptions.find(
+      (option) => option.id === mappedIntentId
+    );
+    if (!mappedIntent) return;
+
+    setPortalIntentId(mappedIntent.id);
+
+    const trimmedQuestion = question.trim();
+    const translatedSuggestedQuestion = t(suggestedQuestionSource).trim();
+    const canRefreshSuggestedQuestion =
+      !trimmedQuestion || trimmedQuestion === translatedSuggestedQuestion;
+
+    if (canRefreshSuggestedQuestion) {
+      setSuggestedQuestionSource(mappedIntent.question);
+      setQuestion(t(mappedIntent.question));
     }
   }
 
@@ -1605,7 +1745,9 @@ export default function Home() {
                     type="button"
                     onClick={() => openPortalIntent(intent)}
                     data-active={intent.id === selectedPortalIntent.id}
+                    aria-pressed={intent.id === selectedPortalIntent.id}
                     aria-label={`${t(intent.label)}: ${t(intent.purpose)}`}
+                    className="pdu-touch-choice relative z-[1] touch-manipulation select-none"
                   >
                     <strong>{t(intent.label)}</strong>
                     <span>{t(intent.purpose)}</span>
@@ -1762,13 +1904,15 @@ export default function Home() {
                         <button
                           key={option.value}
                           type="button"
-                          onClick={() => setTheme(option.value)}
+                          onClick={() => selectThemeOption(option.value)}
                           disabled={loading}
+                          aria-pressed={theme === option.value}
+                          data-active={theme === option.value}
                           className={`inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium ${
                             theme === option.value
                               ? "border-[#f4d58d] bg-[#f4d58d] text-[#1c1308]"
                               : "border-white/12 bg-white/[0.05] text-[#d8ccc0] hover:border-[#f4d58d]/45"
-                          } disabled:cursor-wait disabled:opacity-50`}
+                          } pdu-touch-choice relative z-[1] touch-manipulation select-none disabled:cursor-wait disabled:opacity-50`}
                         >
                           <option.icon size={15} />
                           {option.label}
@@ -1798,7 +1942,7 @@ export default function Home() {
                         setQuestion(event.target.value);
                       }}
                       disabled={loading}
-                      className="mt-2 min-h-28 w-full resize-none rounded-[8px] border border-white/12 bg-black/24 p-3 text-sm leading-6 text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/70 focus:ring-2 focus:ring-[#f4d58d]/10"
+                      className="mt-2 min-h-28 w-full resize-none rounded-[8px] border border-white/12 bg-black/24 p-3 text-base leading-6 text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/70 focus:ring-2 focus:ring-[#f4d58d]/10 sm:text-sm"
                       placeholder="O que eu preciso enxergar sobre este momento?"
                     />
 
@@ -1871,7 +2015,10 @@ export default function Home() {
       </section>
 
       {result || loading ? (
-      <section className="pdu-depth-section relative overflow-hidden border-y border-white/10 px-4 py-20 text-[#f8efe2] sm:px-6 lg:px-8">
+      <section
+        id="reading-opened"
+        className="pdu-depth-section relative overflow-hidden border-y border-white/10 px-4 py-20 text-[#f8efe2] scroll-mt-28 sm:px-6 lg:px-8"
+      >
         <div className="pdu-reveal is-visible mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.74fr_1.26fr] lg:items-center">
           <div>
             <SectionEyebrow dark>
@@ -2101,7 +2248,7 @@ export default function Home() {
                 onChange={(event) => setImpactPlan(event.target.value)}
                 maxLength={500}
                 rows={3}
-                className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-4 py-3 text-sm leading-6 text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/60"
+                className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-4 py-3 text-base leading-6 text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/60 sm:text-sm"
                 placeholder="Quando, onde e como você realizará esta ação?"
               />
 
@@ -2112,7 +2259,7 @@ export default function Home() {
                     value={impactBeneficiary}
                     onChange={(event) => setImpactBeneficiary(event.target.value)}
                     maxLength={240}
-                    className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-3 py-2.5 text-sm font-normal normal-case tracking-normal text-[#fff7e8] outline-none focus:border-[#f4d58d]/60"
+                    className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-[#fff7e8] outline-none focus:border-[#f4d58d]/60 sm:text-sm"
                     placeholder="Ex.: uma amiga, minha rua, minha casa"
                   />
                 </label>
@@ -2122,7 +2269,7 @@ export default function Home() {
                     type="datetime-local"
                     value={impactScheduledFor}
                     onChange={(event) => setImpactScheduledFor(event.target.value)}
-                    className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-3 py-2.5 text-sm font-normal normal-case tracking-normal text-[#fff7e8] outline-none focus:border-[#f4d58d]/60"
+                    className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-[#fff7e8] outline-none focus:border-[#f4d58d]/60 sm:text-sm"
                   />
                 </label>
               </div>
@@ -2132,7 +2279,7 @@ export default function Home() {
                   value={impactFirstStep}
                   onChange={(event) => setImpactFirstStep(event.target.value)}
                   maxLength={500}
-                  className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-3 py-2.5 text-sm font-normal normal-case tracking-normal text-[#fff7e8] outline-none focus:border-[#f4d58d]/60"
+                  className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-[#fff7e8] outline-none focus:border-[#f4d58d]/60 sm:text-sm"
                   placeholder="Ex.: abrir a conversa e escrever a primeira frase"
                 />
               </label>
