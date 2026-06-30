@@ -45,7 +45,7 @@ import {
   saveLocalActiveReading,
   saveLocalImpactCommitment,
   saveLocalReadingDraft,
-  saveLocalMessage,
+  saveLocalReadingMessage,
   type LocalActiveReading,
   type LocalImpactCommitment,
   updateLocalImpactCommitment,
@@ -1076,6 +1076,19 @@ export default function Home() {
     setResult(storedReading.result);
     setResultLocale(normalizeLocale(storedReading.locale));
     setReadingId(storedReading.reading_id);
+    saveLocalReadingMessage({
+      readingId: storedReading.reading_id,
+      payload: {
+        savedAt: storedReading.updated_at,
+        locale: storedReading.locale,
+        theme: storedReading.theme,
+        productKey: storedReading.product_key,
+        question: storedReading.question,
+        spreadLine: storedReading.spread_line,
+        spreadCards: storedReading.spread_cards,
+        result: storedReading.result,
+      },
+    });
     if (
       portalIntentOptions.some(
         (option) => option.id === storedReading.portal_intent_id
@@ -1157,7 +1170,7 @@ export default function Home() {
         if (previousActiveReading) {
           restoreActiveReading(
             previousActiveReading,
-            "Você já usou a leitura gratuita de hoje. Reabrimos sua última tirada para você rever as cartas, o conselho e o caminho indicado."
+            t("Você já usou a leitura gratuita de hoje. Reabrimos sua última tirada para você rever as cartas, o conselho e o caminho indicado.")
           );
         } else {
           setError(
@@ -1227,6 +1240,19 @@ export default function Home() {
         result: ok.interpretation,
         readingId: ok.readingId,
       });
+      saveLocalReadingMessage({
+        readingId: ok.readingId,
+        payload: {
+          savedAt: new Date().toISOString(),
+          locale,
+          theme,
+          productKey: readingProductKey,
+          question: q,
+          spreadLine: line,
+          spreadCards: ok.spread,
+          result: ok.interpretation,
+        },
+      });
       if (!invitedBy && !impactCommitment) {
         const recommended = getRecommendedImpactActions(theme)[0];
         setImpactActionKey(recommended.key);
@@ -1279,16 +1305,17 @@ export default function Home() {
 
     const payload = {
       savedAt: new Date().toISOString(),
+      locale,
       theme,
+      productKey: readingProductKey,
       question,
       spreadLine,
       spreadCards,
       result,
     };
 
-    const localMessage = saveLocalMessage({
+    const localMessage = saveLocalReadingMessage({
       readingId,
-      messageType: "reading",
       payload,
     });
     setSaved(true);
@@ -2117,11 +2144,13 @@ export default function Home() {
                     {paywall ? (
                       <StatusPanel
                         tone="gold"
-                        title="Limite gratuito do dia"
-                        message="Você já recebeu a leitura gratuita de hoje. O próximo passo natural é uma leitura mais profunda no Círculo do Universo."
+                        title={t("Sua tirada continua disponível")}
+                        message={t("A leitura gratuita de hoje já foi usada. Crie uma conta grátis para proteger e rever esta tirada no Meu Universo, sem precisar assinar um plano.")}
                         status={status}
-                        actionLabel="Entrar no Círculo"
-                        onAction={() => scrollToId("circulo")}
+                        actionLabel={t("Criar conta grátis")}
+                        onAction={() => {
+                          window.location.href = `/entrar?reason=reading-history&next=${encodeURIComponent("/meu-universo?from=reading")}`;
+                        }}
                       />
                     ) : null}
 
@@ -2230,10 +2259,12 @@ export default function Home() {
             {readingNotice ? (
               <StatusPanel
                 tone="gold"
-                title="Última tirada reaberta"
+                title={t("Última tirada reaberta")}
                 message={readingNotice}
-                actionLabel="Ver opções premium"
-                onAction={() => scrollToId("produtos")}
+                actionLabel={t("Criar conta grátis")}
+                onAction={() => {
+                  window.location.href = `/entrar?reason=reading-history&next=${encodeURIComponent("/meu-universo?from=reading")}`;
+                }}
               />
             ) : null}
             {saveNotice ? (
@@ -2296,10 +2327,21 @@ export default function Home() {
             {t("Próximos caminhos")}
           </p>
           <h2 className="brand-serif mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
-            {t("A leitura grátis termina aqui. O próximo passo é uma escolha premium.")}
+            {t("Sua leitura pode continuar no Meu Universo.")}
           </h2>
           <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
-            {t("Hoje você já recebeu sua orientação gratuita. Para abrir uma leitura específica, escolha uma experiência avulsa ou entre no Círculo.")}
+            {t("Crie uma conta grátis para proteger esta tirada, rever suas cartas e construir um contexto que poderá tornar as próximas orientações mais pessoais.")}
+          </p>
+          <a
+            href={`/entrar?reason=reading-history&next=${encodeURIComponent("/meu-universo?from=reading")}`}
+            className="mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-6 py-3 text-sm font-semibold text-[#1c1308] transition hover:bg-[#ffe6a8]"
+          >
+            <UserRound size={17} />
+            {t("Criar conta grátis")}
+            <ArrowRight size={16} />
+          </a>
+          <p className="mt-10 text-xs font-semibold uppercase tracking-[0.16em] text-[#a9cdbf]">
+            {t("Quer abrir uma nova leitura agora?")}
           </p>
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             <a

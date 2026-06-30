@@ -589,10 +589,25 @@ export default function MeuUniversoPage() {
     load();
   }, [accountEmail, authChecked, userId]);
 
+  const savedReadingMessages = useMemo(() => {
+    const remoteReadingIds = new Set(readings.map((reading) => reading.id));
+    return messages.filter(
+      (message) =>
+        message.message_type === "reading" &&
+        isSavedReadingPayload(message.payload) &&
+        (!message.reading_id || !remoteReadingIds.has(message.reading_id))
+    );
+  }, [messages, readings]);
+  const otherSavedMessages = useMemo(
+    () => messages.filter((message) => message.message_type !== "reading"),
+    [messages]
+  );
+  const readingHistoryCount = readings.length + savedReadingMessages.length;
+
   const stats = useMemo(
     () => [
-      { label: "Leituras", value: readings.length, icon: History },
-      { label: "Salvas", value: messages.length, icon: Bookmark },
+      { label: "Leituras", value: readingHistoryCount, icon: History },
+      { label: "Salvas", value: otherSavedMessages.length, icon: Bookmark },
       { label: "Acessos", value: entitlements.length, icon: CheckCircle2 },
       {
         label: "Ações concluídas",
@@ -612,7 +627,13 @@ export default function MeuUniversoPage() {
         icon: MoonStar,
       },
     ],
-    [commitments, entitlements.length, messages.length, readings]
+    [
+      commitments,
+      entitlements.length,
+      otherSavedMessages.length,
+      readingHistoryCount,
+      readings,
+    ]
   );
 
   const profileCompletion = profileProgress(profileDraft);
@@ -1448,9 +1469,9 @@ export default function MeuUniversoPage() {
               <BookOpen size={22} className="text-[#b46b68]" />
             </div>
 
-            {loading && !readings.length ? (
+            {loading && !readingHistoryCount ? (
               <EmptyState text="Carregando seu histórico..." />
-            ) : readings.length ? (
+            ) : readingHistoryCount ? (
               <div className="space-y-3">
                 {readings.map((reading) => (
                   <article
@@ -1477,6 +1498,9 @@ export default function MeuUniversoPage() {
                     </p>
                   </article>
                 ))}
+                {savedReadingMessages.map((message) => (
+                  <SavedMessageArticle key={message.id} message={message} />
+                ))}
               </div>
             ) : (
               <EmptyState text="Faça sua primeira leitura para começar o histórico." />
@@ -1496,11 +1520,11 @@ export default function MeuUniversoPage() {
               <Bookmark size={22} className="text-[#b46b68]" />
             </div>
 
-            {loading && !messages.length ? (
+            {loading && !otherSavedMessages.length ? (
               <EmptyState text="Buscando mensagens salvas..." />
-            ) : messages.length ? (
+            ) : otherSavedMessages.length ? (
               <div className="space-y-3">
-                {messages.map((message) => (
+                {otherSavedMessages.map((message) => (
                   <SavedMessageArticle key={message.id} message={message} />
                 ))}
               </div>

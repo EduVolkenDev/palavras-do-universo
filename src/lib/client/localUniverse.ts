@@ -64,6 +64,17 @@ export type LocalActiveReading = {
   updated_at: string;
 };
 
+export type LocalReadingMessagePayload = {
+  savedAt: string;
+  locale: string;
+  theme: string;
+  productKey: string;
+  question: string;
+  spreadLine: string;
+  spreadCards: LocalActiveReading["spread_cards"];
+  result: string;
+};
+
 const USER_ID_KEY = "pdu_user_id";
 const SAVED_MESSAGES_KEY = "pdu_saved_messages";
 const IMPACT_COMMITMENTS_KEY = "pdu_impact_commitments";
@@ -122,6 +133,47 @@ export function saveLocalMessage(params: {
   localStorage.setItem(
     SAVED_MESSAGES_KEY,
     JSON.stringify([next, ...messages].slice(0, 50))
+  );
+
+  return next;
+}
+
+function hashLocalValue(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+export function saveLocalReadingMessage(params: {
+  readingId?: string | null;
+  payload: LocalReadingMessagePayload;
+}) {
+  const messages = getLocalSavedMessages();
+  const identity = [
+    params.readingId ?? "",
+    params.payload.productKey,
+    params.payload.question,
+    params.payload.spreadCards
+      .map((card) => `${card.cardKey}:${card.reversed ? "r" : "u"}`)
+      .join("|"),
+  ].join("::");
+  const id = `local_reading${hashLocalValue(identity)}`;
+  const existing = messages.find((message) => message.id === id);
+  const next: LocalSavedMessage = {
+    id,
+    reading_id: params.readingId ?? existing?.reading_id ?? null,
+    message_type: "reading",
+    payload: params.payload,
+    created_at: existing?.created_at ?? params.payload.savedAt,
+    local_only: true,
+  };
+
+  localStorage.setItem(
+    SAVED_MESSAGES_KEY,
+    JSON.stringify([next, ...messages.filter((message) => message.id !== id)].slice(0, 50))
   );
 
   return next;

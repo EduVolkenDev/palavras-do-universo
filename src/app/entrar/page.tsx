@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowLeft, Loader2, Mail, Sparkles } from "lucide-react";
+import { ArrowLeft, Bookmark, Loader2, Mail, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { productCards, pricingPlans } from "@/lib/product/catalog";
 
@@ -32,17 +33,20 @@ function getProductFromNextParam(): { title: string; price: string } | null {
 }
 
 export default function EntrarPage() {
+  const { locale } = useI18n();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<FormState>("idle");
   const [message, setMessage] = useState("");
   const [product, setProduct] = useState<{ title: string; price: string } | null>(null);
-  const [lang, setLang] = useState<"pt" | "en">("pt");
+  const [readingHistoryReason, setReadingHistoryReason] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setProduct(getProductFromNextParam());
-      const stored = localStorage.getItem("volynx_lang");
-      if (stored === "en") setLang("en");
+      setReadingHistoryReason(
+        new URLSearchParams(window.location.search).get("reason") ===
+          "reading-history"
+      );
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
@@ -54,7 +58,7 @@ export default function EntrarPage() {
     if (!supabase) {
       setState("error");
       setMessage(
-        lang === "en"
+        locale === "en"
           ? "Account connection is not configured yet."
           : "A conexão com a conta ainda não está configurada."
       );
@@ -80,7 +84,7 @@ export default function EntrarPage() {
     if (error) {
       setState("error");
       setMessage(
-        lang === "en"
+        locale === "en"
           ? "Could not send access link. Check the email and try again."
           : "Não foi possível enviar o acesso. Revise o e-mail e tente novamente."
       );
@@ -89,13 +93,13 @@ export default function EntrarPage() {
 
     setState("sent");
     setMessage(
-      lang === "en"
+      locale === "en"
         ? "We sent a secure link. Open it on this device to sign in."
         : "Enviamos um link seguro. Abra-o neste dispositivo para entrar."
     );
   }
 
-  const isEn = lang === "en";
+  const isEn = locale === "en";
 
   return (
     <main className="ritual-texture grid min-h-screen place-items-center px-4 py-12 text-[#241b18]">
@@ -118,7 +122,16 @@ export default function EntrarPage() {
           {isEn ? "Continue your path." : "Continue seu caminho."}
         </h1>
 
-        {product ? (
+        {readingHistoryReason ? (
+          <div className="mt-4 flex items-start gap-3 rounded-lg border border-[#a9cdbf] bg-[#eef8f2] px-4 py-3">
+            <Bookmark size={16} className="mt-0.5 shrink-0 text-[#315d56]" />
+            <p className="text-sm leading-6 text-[#315d56]">
+              {isEn
+                ? "Create your free account to protect the reading already saved on this device. After signing in, it will appear in My Universe."
+                : "Crie sua conta grátis para proteger a tirada que já está salva neste dispositivo. Depois de entrar, ela aparecerá no Meu Universo."}
+            </p>
+          </div>
+        ) : product ? (
           <div className="mt-4 flex items-start gap-3 rounded-lg border border-[#d4b896] bg-[#fdf3e3] px-4 py-3">
             <Sparkles size={16} className="mt-0.5 shrink-0 text-[#8a6b3f]" />
             <p className="text-sm leading-6 text-[#4d3c31]">
@@ -167,7 +180,9 @@ export default function EntrarPage() {
             {state === "sending" ? <Loader2 size={17} className="animate-spin" /> : null}
             {state === "sent"
               ? isEn ? "Link sent" : "Link enviado"
-              : isEn ? "Receive access link" : "Receber link de acesso"}
+              : readingHistoryReason
+                ? isEn ? "Create free account" : "Criar conta grátis"
+                : isEn ? "Receive access link" : "Receber link de acesso"}
           </button>
         </form>
 
