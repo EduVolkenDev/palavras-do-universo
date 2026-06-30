@@ -1562,7 +1562,7 @@
   display: grid;
   min-height: 500px;
   grid-template-columns: minmax(280px, 0.7fr) minmax(360px, 0.95fr);
-  align-items: center;
+  align-items: start;
   gap: clamp(1.25rem, 3vw, 2.75rem);
 }
 
