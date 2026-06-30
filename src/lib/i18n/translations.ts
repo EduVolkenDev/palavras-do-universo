@@ -378,6 +378,60 @@ const en: Record<string, string> = {
   "Energia da Semana": "Energy of the Week",
   "Mapa do Momento": "Map of the Moment",
   "Leitura do Círculo incluída": "Circle reading included",
+
+  // ── Testimonials ──────────────────────────────────────────────────────────
+  "Eu esperava algo genérico, mas a leitura foi cirúrgica. Nomeou exatamente o que eu não estava conseguindo verbalizar sobre minha situação no trabalho. Fiz a Clareza Urgente e tomei uma decisão que há meses eu adiava.": "I was expecting something generic, but the reading was precise. It named exactly what I had not been able to put into words about my situation at work. I got the Urgent Clarity and made a decision I had been putting off for months.",
+  "Nunca fui de tarot, mas o tom aqui é diferente — sem fatalismo, sem promessa vazia. É mais como uma conversa honesta com você mesmo mediada por símbolos. Já uso a mensagem diária todo dia antes de começar o trabalho.": "I was never into tarot, but the tone here is different — no fatalism, no empty promises. It feels more like an honest conversation with yourself mediated by symbols. I use the daily message every morning before starting work.",
+  "Assino o Círculo há dois meses. O que mais me surpreendeu foi perceber padrões no meu histórico de leituras — sempre aparecem as mesmas cartas quando entro em ciclos de ansiedade. Isso sozinho já valeu a assinatura.": "I have been in the Circle for two months. What surprised me most was noticing patterns in my reading history — the same cards always appear when I enter cycles of anxiety. That alone was worth the membership.",
+  "São Paulo, SP": "São Paulo, Brazil",
+  "Belo Horizonte, MG": "Belo Horizonte, Brazil",
+  "Florianópolis, SC": "Florianópolis, Brazil",
+
+  // ── Onboarding options ───────────────────────────────────────────────────
+  "Atravessando uma transição": "Going through a transition",
+  "Algo mudou por dentro ou por fora e pede uma direção mais limpa.": "Something shifted inside or outside and is asking for a clearer direction.",
+  "No meio de uma decisão difícil": "In the middle of a difficult decision",
+  "Existe um caminho pedindo escolha, limite ou coragem prática.": "There is a path asking for a choice, a boundary, or practical courage.",
+  "Vivendo uma questão afetiva": "Living through an emotional question",
+  "Um vínculo, desejo ou expectativa precisa ser olhado com presença.": "A bond, desire, or expectation needs to be seen with presence.",
+  "Criando algo novo": "Creating something new",
+  "Uma ideia, fase ou projeto quer ganhar forma sem perder alma.": "An idea, a phase, or a project wants to take shape without losing its soul.",
+  "Buscando paz interior": "Seeking inner peace",
+  "O corpo e a mente pedem silêncio, integração e menos ruído.": "The body and mind are asking for silence, integration, and less noise.",
+
+  // ── Portal intent noise/clarity descriptions (remaining) ─────────────────
+  "Ruído: apegar ao que foi em vez de sentir o que é.": "Noise: holding on to what was instead of feeling what is.",
+  "Clareza: dar espaço para o laço respirar antes de decidir.": "Clarity: giving the bond room to breathe before deciding.",
+  "Ruído: buscar certeza em vez de movimento.": "Noise: seeking certainty instead of movement.",
+  "Clareza: perceber qual das opções já foi escolhida pelo cansaço.": "Clarity: noticing which option has already been chosen by exhaustion.",
+  "Ruído: planejar sem começar.": "Noise: planning without starting.",
+  "Clareza: dar o primeiro gesto concreto ainda hoje.": "Clarity: making one concrete move today.",
+
+  // ── Fallback daily message ───────────────────────────────────────────────
+  "Recomeço silencioso": "A quiet restart",
+  "Há algo se reorganizando dentro de você. Nem toda mudança chega com barulho; algumas chegam como cansaço do que já não faz sentido.": "Something is reorganizing within you. Not every change arrives with noise — some arrive as exhaustion with what no longer makes sense.",
+  "Não force respostas hoje. Observe o que se repete.": "Do not force answers today. Observe what repeats.",
+  "Eu confio no tempo das coisas que estão se alinhando para mim.": "I trust the timing of everything that is aligning for me.",
+  "O que eu estou tentando controlar que poderia apenas observar?": "What am I trying to control that I could simply observe?",
+  "Escreva uma frase que começa com: hoje eu solto a pressa de...": "Write a sentence that begins with: today I release the urgency to…",
+
+  // ── Fallback spread card meanings ────────────────────────────────────────
+  "Nem tudo que assusta é ameaça. Observe antes de concluir.": "Not everything that frightens is a threat. Observe before concluding.",
+  "Defenda o que importa sem se explicar para todos.": "Defend what matters without explaining yourself to everyone.",
+  "Há uma luz discreta indicando caminho.": "There is a quiet light pointing the way.",
+
+  // ── Section headings and body text ───────────────────────────────────────
+  "Aprofunde a leitura": "Deepen the reading",
+  "Sua leitura gratuita abre o campo. Agora você pode transformar essa clareza em ação real.": "Your free reading opens the field. Now you can turn that clarity into real action.",
+  "Qual fase você está vivendo?": "What phase are you in?",
+  "Escolha uma para calibrar seu primeiro ritual.": "Choose one to calibrate your first ritual.",
+  "Começar meu ritual": "Start my ritual",
+  "Palavras que viram compromisso": "Words that become commitment",
+  "O que você vai fazer com essa clareza?": "What will you do with this clarity?",
+  "Palavras do Universo não é sobre prever o futuro.": "Palavras do Universo is not about predicting the future.",
+  "É sobre ouvir o agora com mais presença.": "It is about listening to the present with more presence.",
+  "Um novo spread está abrindo": "A new spread is opening",
+  "As cartas anteriores foram recolhidas. O portal está formando um caminho limpo para esta pergunta.": "The previous cards have been gathered. The portal is forming a clean path for this question.",
 };
 
 export const translations = { en };

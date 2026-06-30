@@ -50,7 +50,6 @@ import { usePduAtmosphere } from "@/lib/ui/usePduAtmosphere";
 import { usePushNotifications } from "@/lib/push/usePushNotifications";
 import { useI18n } from "@/components/I18nProvider";
 import { getCardEnglishName, translateOraclePosition } from "@/lib/i18n/oracle";
-import { UniverseExperience } from "@/components/art-direction/UniverseExperience";
 import {
   getImpactAction,
   IMPACT_AREA_LABELS,
@@ -1375,9 +1374,6 @@ export default function Home() {
       >
         <div className="pdu-veil" />
         <div className="pdu-hero-stars" aria-hidden="true" />
-        <div className="pdu-universe-stage">
-          <UniverseExperience />
-        </div>
 
         <div className="pdu-hero-shell mx-auto max-w-7xl">
           <div className="pdu-hero-grid">
@@ -2534,7 +2530,7 @@ export default function Home() {
       <dialog
         ref={spreadCardDialogRef}
         onClick={(e) => { if (e.target === spreadCardDialogRef.current) setSelectedSpreadCard(null); }}
-        className="m-auto max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-[14px] border border-white/14 bg-[#0f0e19] p-0 text-[#f8efe2] shadow-[0_40px_140px_rgba(0,0,0,0.72)] backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+        className="pdu-card-dialog m-auto max-h-[90dvh] w-[min(92vw,26rem)] overflow-y-auto rounded-[14px] border border-white/14 bg-[#0f0e19] p-0 text-[#f8efe2] shadow-[0_40px_140px_rgba(0,0,0,0.72)] backdrop:bg-black/60 backdrop:backdrop-blur-sm"
       >
         {selectedSpreadCard ? (
           <div>
