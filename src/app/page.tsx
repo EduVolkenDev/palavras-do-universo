@@ -37,7 +37,6 @@ import {
   PRODUCT_THEMES,
 } from "@/lib/product/access";
 import {
-  clearLocalActiveReading,
   getLocalActiveReading,
   getLocalReadingDraft,
   getOrCreateLocalUserId,
@@ -47,6 +46,7 @@ import {
   saveLocalImpactCommitment,
   saveLocalReadingDraft,
   saveLocalMessage,
+  type LocalActiveReading,
   type LocalImpactCommitment,
   updateLocalImpactCommitment,
 } from "@/lib/client/localUniverse";
@@ -849,6 +849,7 @@ export default function Home() {
   const [readingId, setReadingId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [saveNotice, setSaveNotice] = useState("");
+  const [readingNotice, setReadingNotice] = useState("");
   const [paywall, setPaywall] = useState<ApiPaywall | null>(null);
   const [repeat, setRepeat] = useState<ApiRepeat | null>(null);
   const [error, setError] = useState("");
@@ -1054,19 +1055,53 @@ export default function Home() {
   }, [loading, result]);
 
   const canRun = useMemo(
-    () => question.trim().length >= 8 && !loading,
-    [question, loading]
+    () => !loading,
+    [loading]
   );
+
+  function restoreActiveReading(
+    storedReading: LocalActiveReading,
+    notice?: string
+  ) {
+    setTheme(storedReading.theme);
+    setReadingProductKey(storedReading.product_key);
+    setSuggestedQuestionSource(storedReading.suggested_question_source);
+    setQuestion(
+      storedReading.suggested_question_source
+        ? t(storedReading.suggested_question_source)
+        : storedReading.question
+    );
+    setSpreadLine(storedReading.spread_line);
+    setSpreadCards(storedReading.spread_cards);
+    setResult(storedReading.result);
+    setResultLocale(normalizeLocale(storedReading.locale));
+    setReadingId(storedReading.reading_id);
+    if (
+      portalIntentOptions.some(
+        (option) => option.id === storedReading.portal_intent_id
+      )
+    ) {
+      setPortalIntentId(storedReading.portal_intent_id);
+    }
+    if (notice) setReadingNotice(notice);
+    shouldScrollToOpenedReadingRef.current = true;
+  }
 
   async function run(customQuestion?: string) {
     const q = (customQuestion ?? question).trim();
-    if (q.length < 8) return;
+    if (q.length < 8) {
+      setStatus(null);
+      setPaywall(null);
+      setRepeat(null);
+      setError("Escreva uma pergunta com pelo menos 8 caracteres para abrir a leitura.");
+      return;
+    }
 
     const activeUserId = userId || getOrCreateLocalUserId();
     if (!userId) setUserId(activeUserId);
+    const previousActiveReading = getLocalActiveReading();
 
     shouldScrollToOpenedReadingRef.current = true;
-    clearLocalActiveReading();
     setLoading(true);
     setStatus(null);
     setResult("");
@@ -1079,6 +1114,7 @@ export default function Home() {
     setError("");
     setSaved(false);
     setSaveNotice("");
+    setReadingNotice("");
 
     try {
       const [res] = await Promise.all([
@@ -1118,6 +1154,16 @@ export default function Home() {
               : "Free limit reached",
           paywall: true,
         });
+        if (previousActiveReading) {
+          restoreActiveReading(
+            previousActiveReading,
+            "Você já usou a leitura gratuita de hoje. Reabrimos sua última tirada para você rever as cartas, o conselho e o caminho indicado."
+          );
+        } else {
+          setError(
+            "Você já usou a leitura gratuita de hoje. Entre no Círculo ou escolha uma leitura premium para abrir uma nova tirada agora."
+          );
+        }
         return;
       }
 
@@ -2180,6 +2226,15 @@ export default function Home() {
                 Compartilhar
               </button>
               </div>
+            ) : null}
+            {readingNotice ? (
+              <StatusPanel
+                tone="gold"
+                title="Última tirada reaberta"
+                message={readingNotice}
+                actionLabel="Ver opções premium"
+                onAction={() => scrollToId("produtos")}
+              />
             ) : null}
             {saveNotice ? (
               <p className="mt-3 text-sm leading-6 text-[#cfc4b9]">
