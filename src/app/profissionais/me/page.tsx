@@ -354,7 +354,7 @@ export default function ProfessionalManagerPage() {
               Cadastre e publique seu perfil com controle fino de acesso.
             </h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-[#d6c9be]">
-              Este fluxo usa autenticação, salva o perfil de forma idempotente e evita ofertas órfãs. O objetivo é publicar com clareza, sem atalhos frágeis.
+              Apresente seu trabalho, suas formas de atendimento e as faixas de acesso que deseja oferecer. Você controla quando o perfil entra no ar.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
@@ -410,7 +410,7 @@ export default function ProfessionalManagerPage() {
                 <strong className="text-[#fff7e8]">{normalizeHandle(profile.handle) || "defina um nome curto"}</strong>
               </div>
               <div className="flex items-center justify-between gap-3 rounded-[18px] border border-white/10 bg-black/20 px-4 py-3">
-                <span>Completeness</span>
+                <span>Completude</span>
                 <strong className="text-[#fff7e8]">{completeness}/6</strong>
               </div>
               <div className="flex items-center justify-between gap-3 rounded-[18px] border border-white/10 bg-black/20 px-4 py-3">
@@ -422,7 +422,7 @@ export default function ProfessionalManagerPage() {
             <p className="rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-[#cfc4b9]">
               {loading
                 ? "Carregando seu perfil e suas ofertas com segurança..."
-                : "Salvar aqui atualiza o perfil público e sincroniza as ofertas, removendo o que foi apagado no formulário."}
+                : "Salve para atualizar o perfil público e manter suas ofertas em sincronia."}
             </p>
 
             {publishedPreview ? (
@@ -618,16 +618,15 @@ export default function ProfessionalManagerPage() {
                 />
                 Publicar no marketplace
               </label>
-              <label className="flex items-end gap-3 rounded-[18px] border border-white/10 bg-black/20 px-4 py-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={profile.isVerified}
-                  onChange={(event) =>
-                    setProfile((current) => ({ ...current, isVerified: event.target.checked }))
-                  }
+              <div className="flex items-center gap-3 rounded-[18px] border border-white/10 bg-black/20 px-4 py-3 text-sm">
+                <BadgeCheck
+                  size={16}
+                  className={profile.isVerified ? "text-[#a7d7c5]" : "text-[#8d837b]"}
                 />
-                Marcar como verificado
-              </label>
+                {profile.isVerified
+                  ? "Verificado pela plataforma"
+                  : "Verificação pendente"}
+              </div>
             </div>
 
             {error ? (
@@ -844,7 +843,7 @@ export default function ProfessionalManagerPage() {
                         </select>
                       </label>
                       <p className="flex items-end rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-[#cfc4b9]">
-                        A sincronização apaga as ofertas anteriores antes de inserir as atuais, então remover uma linha também remove do banco.
+                        Ao salvar, esta lista se torna a versão pública das suas ofertas. Itens removidos deixam de aparecer no perfil.
                       </p>
                     </div>
                   </article>
@@ -866,7 +865,7 @@ export default function ProfessionalManagerPage() {
                 Adicionar oferta
               </button>
               <p className="max-w-xl text-sm leading-6 text-[#cfc4b9]">
-                O backend já está preparado para publicar, pausar, aceitar social e aceitar gratuito sem duplicar registros antigos.
+                Defina com clareza quando a oferta está publicada, pausada, com valor social ou disponível gratuitamente.
               </p>
             </div>
           </section>

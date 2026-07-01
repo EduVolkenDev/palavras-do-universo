@@ -404,7 +404,13 @@ export default function ProfessionalsMarketplacePage() {
                     <div className="flex items-start gap-4">
                       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[24px] border border-[#f4d58d]/16 bg-[#0f0f17]">
                         {profile.avatarUrl ? (
-                          <Image src={profile.avatarUrl} alt="" fill className="object-cover" />
+                          <Image
+                            src={profile.avatarUrl}
+                            alt=""
+                            fill
+                            sizes="80px"
+                            className="object-cover"
+                          />
                         ) : (
                           <div className="grid h-full w-full place-items-center text-xl font-semibold text-[#f5d896]">
                             {profile.displayName
@@ -502,9 +508,35 @@ export default function ProfessionalsMarketplacePage() {
                 ))}
               </div>
             ) : (
-              <p className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-6 text-sm text-[#cfc4b9]">
-                {t("Nenhum profissional encontrado com esses filtros.")}
-              </p>
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.04] px-5 py-8 text-center">
+                <h3 className="brand-serif text-2xl font-semibold text-[#fff7e8]">
+                  {t("O primeiro círculo está sendo formado.")}
+                </h3>
+                <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#cfc4b9]">
+                  {t("Ainda não há profissionais publicados para estes filtros. Perfis só aparecem depois de configurar oferta, disponibilidade e forma de acesso.")}
+                </p>
+                <div className="mt-5 flex flex-wrap justify-center gap-3">
+                  <Link
+                    href="/profissionais/me"
+                    className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2.5 text-sm font-semibold text-[#1c1308] hover:bg-[#ffe3a3]"
+                  >
+                    {t("Publicar meu perfil profissional")}
+                    <ArrowRight size={16} />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery("");
+                      setSpecialty("");
+                      setAccess("");
+                      setAvailability("");
+                    }}
+                    className="inline-flex items-center rounded-full border border-white/12 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-[#fff7e8] hover:border-[#f4d58d]/45"
+                  >
+                    {t("Limpar filtros")}
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>

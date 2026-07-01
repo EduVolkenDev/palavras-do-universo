@@ -18,12 +18,15 @@ async function recordPaymentEvent(event: Stripe.Event) {
   if (!hasSupabaseConfig()) return false;
 
   const supabase = getSupabaseAdmin();
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from("payment_events")
     .select("status")
     .eq("provider", "stripe")
     .eq("provider_event_id", event.id)
     .maybeSingle();
+  if (existingError) {
+    throw new Error(`Could not read payment event: ${existingError.message}`);
+  }
   if (existing?.status === "processed") return false;
 
   const object = event.data.object as unknown as Record<string, unknown>;
@@ -32,7 +35,7 @@ async function recordPaymentEvent(event: Stripe.Event) {
       ? (object.metadata as Record<string, string>)
       : {};
 
-  await supabase.from("payment_events").upsert(
+  const { error: upsertError } = await supabase.from("payment_events").upsert(
     {
       provider: "stripe",
       provider_event_id: event.id,
@@ -44,6 +47,9 @@ async function recordPaymentEvent(event: Stripe.Event) {
     },
     { onConflict: "provider,provider_event_id" }
   );
+  if (upsertError) {
+    throw new Error(`Could not record payment event: ${upsertError.message}`);
+  }
   return true;
 }
 
@@ -51,11 +57,14 @@ async function markPaymentEventProcessed(event: Stripe.Event) {
   if (!hasSupabaseConfig()) return;
 
   const supabase = getSupabaseAdmin();
-  await supabase
+  const { error } = await supabase
     .from("payment_events")
     .update({ status: "processed", processed_at: new Date().toISOString() })
     .eq("provider", "stripe")
     .eq("provider_event_id", event.id);
+  if (error) {
+    throw new Error(`Could not finalize payment event: ${error.message}`);
+  }
 }
 
 

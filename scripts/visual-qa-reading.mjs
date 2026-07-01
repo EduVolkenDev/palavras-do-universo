@@ -106,8 +106,9 @@ try {
     });
 
     await page.reload({ waitUntil: "domcontentloaded", timeout: 45_000 });
+    await page.waitForTimeout(800);
     await page.locator("#question").fill("What do I need to understand about this next step today?");
-    await page.getByRole("button", { name: /open my reading|abrir minha leitura|fazer leitura/i }).first().click({
+    await page.getByTestId("open-reading-button").click({
       timeout: 15_000,
     });
     await page.locator("#reading-opened").waitFor({ state: "visible", timeout: 60_000 });

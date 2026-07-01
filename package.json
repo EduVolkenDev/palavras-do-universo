@@ -9,7 +9,9 @@
     "lint": "eslint",
     "convert:webp": "node scripts/convert-images-to-webp.mjs",
     "validate:fallback": "node scripts/validate-fallback.mjs",
-    "validate:tarot-assets": "node scripts/validate-tarot-assets.mjs"
+    "validate:tarot-assets": "node scripts/validate-tarot-assets.mjs",
+    "qa:routes": "node scripts/visual-qa-routes.mjs",
+    "qa:reading": "node scripts/visual-qa-reading.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",

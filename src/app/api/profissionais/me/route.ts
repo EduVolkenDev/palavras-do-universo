@@ -136,7 +136,7 @@ export async function PUT(request: Request) {
 
   const { data: existingProfile, error: existingError } = await supabase
     .from("professional_profiles")
-    .select("id")
+    .select("id, is_verified")
     .eq("user_id", auth.user.id)
     .maybeSingle();
 
@@ -158,7 +158,7 @@ export async function PUT(request: Request) {
     modalities: profile.modalities,
     availability: profile.availability,
     is_published: profile.isPublished,
-    is_verified: profile.isVerified,
+    is_verified: existingProfile?.is_verified ?? false,
     response_time: profile.responseTime || null,
   };
 
@@ -179,33 +179,69 @@ export async function PUT(request: Request) {
     return jsonError(savedProfile.error?.message ?? "Could not save profile", 500);
   }
 
-  const { error: deleteError } = await supabase
+  const { data: existingOffers, error: existingOffersError } = await supabase
     .from("professional_offers")
-    .delete()
+    .select("id")
     .eq("profile_id", savedProfile.data.id);
-  if (deleteError) return jsonError(deleteError.message, 500);
+  if (existingOffersError) return jsonError(existingOffersError.message, 500);
 
-  if (offers.length) {
-    const { error: insertError } = await supabase.from("professional_offers").insert(
-      offers.map((offer) => ({
-        profile_id: savedProfile.data.id,
-        title: offer.title,
-        description: offer.description,
-        category: offer.category,
-        pricing_model: offer.pricingModel,
-        price_cents: offer.priceCents,
-        social_price_cents: offer.socialPriceCents,
-        currency: offer.currency,
-        duration_minutes: offer.durationMinutes,
-        accepts_free: offer.acceptsFree,
-        accepts_social: offer.acceptsSocial,
-        status: offer.status,
-        sort_order: offer.sortOrder,
-      }))
-    );
+  const existingOfferIds = new Set(
+    (existingOffers ?? []).map((offer) => String(offer.id))
+  );
+  const savedOfferIds = new Set<string>();
 
-    if (insertError) return jsonError(insertError.message, 500);
+  for (const offer of offers) {
+    const offerPayload = {
+      profile_id: savedProfile.data.id,
+      title: offer.title,
+      description: offer.description,
+      category: offer.category,
+      pricing_model: offer.pricingModel,
+      price_cents: offer.priceCents,
+      social_price_cents: offer.socialPriceCents,
+      currency: offer.currency,
+      duration_minutes: offer.durationMinutes,
+      accepts_free: offer.acceptsFree,
+      accepts_social: offer.acceptsSocial,
+      status: offer.status,
+      sort_order: offer.sortOrder,
+    };
+    const canUpdate = Boolean(offer.id && existingOfferIds.has(offer.id));
+    const savedOffer = canUpdate
+      ? await supabase
+          .from("professional_offers")
+          .update(offerPayload)
+          .eq("id", offer.id as string)
+          .eq("profile_id", savedProfile.data.id)
+          .select("id")
+          .single()
+      : await supabase
+          .from("professional_offers")
+          .insert(offerPayload)
+          .select("id")
+          .single();
+
+    if (savedOffer.error || !savedOffer.data) {
+      return jsonError(savedOffer.error?.message ?? "Could not save offer", 500);
+    }
+    savedOfferIds.add(String(savedOffer.data.id));
   }
 
-  return NextResponse.json({ ok: true, profile: savedProfile.data });
+  const removedOfferIds = [...existingOfferIds].filter(
+    (id) => !savedOfferIds.has(id)
+  );
+  if (removedOfferIds.length) {
+    const { error: deleteError } = await supabase
+      .from("professional_offers")
+      .delete()
+      .eq("profile_id", savedProfile.data.id)
+      .in("id", removedOfferIds);
+    if (deleteError) return jsonError(deleteError.message, 500);
+  }
+
+  return NextResponse.json({
+    ok: true,
+    profile: savedProfile.data,
+    offerIds: [...savedOfferIds],
+  });
 }

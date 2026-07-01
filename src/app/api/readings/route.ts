@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("readings")
-    .select("id, theme, question, mode, spread_type, spread, interpretation, created_at")
+    .select("id, locale, theme, question, mode, spread_type, spread, interpretation, created_at")
     .eq("user_id", auth.user.id)
     .order("created_at", { ascending: false })
     .limit(limit);

@@ -250,6 +250,7 @@ export default async function ProfessionalProfilePage({ params }: PageParams) {
                   src={profile.avatarUrl}
                   alt=""
                   fill
+                  sizes="(max-width: 1024px) 100vw, 42vw"
                   className="object-cover"
                   priority
                 />

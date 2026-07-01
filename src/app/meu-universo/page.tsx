@@ -36,9 +36,13 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { IMPACT_AREA_LABELS, type ImpactArea } from "@/lib/impact/actions";
 import { productCards } from "@/lib/product/catalog";
 import { useI18n } from "@/components/I18nProvider";
+import { normalizeLocale, type Locale } from "@/lib/i18n/config";
+import { localizeTarotCard, translateOraclePosition } from "@/lib/i18n/oracle";
+import { CARDS } from "@/lib/tarot/cards";
 
 type Reading = {
   id: string;
+  locale?: string;
   theme: string;
   question: string;
   mode: string;
@@ -260,6 +264,7 @@ function isDailyCardPayload(value: unknown): value is {
 
 function isSavedReadingPayload(value: unknown): value is {
   savedAt?: string;
+  locale?: string;
   theme?: string;
   question?: string;
   spreadLine?: string;
@@ -381,8 +386,63 @@ function getInitialMapNextSteps(profile: ReadingProfile, hasHistory: boolean) {
   ];
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", {
+const themeLabels: Record<string, Record<Locale, string>> = {
+  love: { "pt-BR": "Amor", en: "Love" },
+  career: { "pt-BR": "Carreira", en: "Career" },
+  money: { "pt-BR": "Dinheiro", en: "Money" },
+  family: { "pt-BR": "Família", en: "Family" },
+  spirit: { "pt-BR": "Espiritual", en: "Spiritual" },
+};
+
+const ptPositionLabels: Record<string, string> = {
+  SITUATION: "SITUAÇÃO",
+  OBSTACLE: "OBSTÁCULO",
+  DIRECTION: "DIREÇÃO",
+};
+
+function localizeTheme(theme: string, locale: Locale) {
+  return themeLabels[theme]?.[locale] ?? theme;
+}
+
+function localizePosition(position: string, locale: Locale) {
+  if (locale === "en") return translateOraclePosition(position, locale);
+  return ptPositionLabels[position.toUpperCase()] ?? position;
+}
+
+function localizeHistoryCards(cards: ReadingSpreadCard[], locale: Locale) {
+  return cards.map((card) => {
+    const sourceCard = CARDS.find((item) => item.key === card.cardKey);
+    const localizedCard = sourceCard ? localizeTarotCard(sourceCard, locale) : null;
+
+    return {
+      ...card,
+      position: localizePosition(card.position, locale),
+      name: localizedCard?.name ?? card.name,
+      keyword: localizedCard?.keywords[0] ?? card.keyword,
+      meaning: localizedCard
+        ? card.reversed
+          ? localizedCard.reversed
+          : localizedCard.upright
+        : card.meaning,
+    };
+  });
+}
+
+function buildLocalizedHistorySummary(cards: ReadingSpreadCard[], locale: Locale) {
+  const heading = locale === "en" ? "Localized reading summary" : "Resumo localizado da leitura";
+  const reversedSuffix = locale === "en" ? " (reversed)" : " reversa";
+
+  return [
+    heading,
+    ...cards.map(
+      (card) =>
+        `${card.position}: ${card.name}${card.reversed ? reversedSuffix : ""}. ${card.meaning}`
+    ),
+  ].join("\n\n");
+}
+
+function formatDate(value: string, locale: Locale) {
+  return new Intl.DateTimeFormat(locale, {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
@@ -1588,6 +1648,7 @@ function ImpactCommitmentCard(props: {
   commitment: ImpactCommitment;
   onCompleted: (commitment: ImpactCommitment) => void;
 }) {
+  const { locale } = useI18n();
   const { commitment } = props;
   const [reflection, setReflection] = useState(commitment.reflection);
   const [notice, setNotice] = useState("");
@@ -1754,7 +1815,7 @@ function ImpactCommitmentCard(props: {
       ) : null}
       {commitment.scheduled_for ? (
         <p className="mt-2 text-xs leading-5 text-[#5f7163]">
-          <strong>Quando:</strong> {formatDate(commitment.scheduled_for)}
+          <strong>Quando:</strong> {formatDate(commitment.scheduled_for, locale)}
         </p>
       ) : null}
 
@@ -1838,10 +1899,17 @@ function EmptyState({ text }: { text: string }) {
 }
 
 function ReadingArticle({ reading }: { reading: Reading }) {
-  const spreadCards = normalizeSpreadCards(reading.spread);
+  const { locale, t } = useI18n();
+  const spreadCards = localizeHistoryCards(normalizeSpreadCards(reading.spread), locale);
+  const readingLocale = normalizeLocale(reading.locale);
+  const interpretation =
+    reading.locale && readingLocale !== locale
+      ? buildLocalizedHistorySummary(spreadCards, locale)
+      : reading.interpretation;
+  const reversedSuffix = locale === "en" ? " (reversed)" : " reversa";
   const spreadLine = spreadCards
     .map((card) => {
-      const reversed = card.reversed ? " reversa" : "";
+      const reversed = card.reversed ? reversedSuffix : "";
       return `${card.position}: ${card.name}${reversed}`;
     })
     .join(" | ");
@@ -1851,14 +1919,14 @@ function ReadingArticle({ reading }: { reading: Reading }) {
       <div className="p-4">
         <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
           <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
-            {reading.theme || "Leitura"}
+            {reading.theme ? localizeTheme(reading.theme, locale) : t("Leitura")}
           </span>
           <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
-            {reading.mode || "3 cartas"}
+            {reading.mode === "local" ? t("Neste dispositivo") : reading.mode || t("3 cartas")}
           </span>
           <span className="inline-flex items-center gap-1">
             <Clock size={13} />
-            {formatDate(reading.created_at)}
+            {formatDate(reading.created_at, locale)}
           </span>
         </div>
 
@@ -1884,7 +1952,7 @@ function ReadingArticle({ reading }: { reading: Reading }) {
                       {card.assetPath ? (
                         <Image
                           src={card.assetPath}
-                          alt={`Carta da leitura: ${card.name}`}
+                          alt={`${t("Carta da leitura")}: ${card.name}`}
                           width={144}
                           height={230}
                           className={`h-28 w-[4.35rem] rounded-md object-cover shadow-[0_16px_28px_rgba(60,42,24,0.18)] sm:h-36 sm:w-24 ${
@@ -1897,7 +1965,7 @@ function ReadingArticle({ reading }: { reading: Reading }) {
                     </div>
                     <p className="mt-2 text-xs font-semibold leading-4 text-[#332720]">
                       {card.name}
-                      {card.reversed ? " reversa" : ""}
+                      {card.reversed ? reversedSuffix : ""}
                     </p>
                     {card.meaning ? (
                       <p className="mt-1 line-clamp-3 text-[0.72rem] leading-4 text-[#6f615a]">
@@ -1918,7 +1986,7 @@ function ReadingArticle({ reading }: { reading: Reading }) {
         ) : null}
 
         <p className="mt-4 whitespace-pre-line text-sm leading-6 text-[#5c4b42]">
-          {reading.interpretation}
+          {interpretation}
         </p>
       </div>
     </article>
@@ -1926,33 +1994,42 @@ function ReadingArticle({ reading }: { reading: Reading }) {
 }
 
 function SavedMessageArticle({ message }: { message: SavedMessage }) {
+  const { locale, t } = useI18n();
   if (message.message_type === "reading" && isSavedReadingPayload(message.payload)) {
     const theme = asString(message.payload.theme);
     const question = asString(message.payload.question);
     const result = asString(message.payload.result);
-    const spreadCards = normalizeSpreadCards(message.payload.spreadCards);
+    const messageLocale = normalizeLocale(message.payload.locale);
+    const spreadCards = localizeHistoryCards(
+      normalizeSpreadCards(message.payload.spreadCards),
+      locale
+    );
+    const displayedResult =
+      message.payload.locale && messageLocale !== locale
+        ? buildLocalizedHistorySummary(spreadCards, locale)
+        : result;
 
     return (
       <article className="overflow-hidden rounded-lg border border-[#e4d3ba] bg-[#fbf6ee]">
         <div className="p-4">
           <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
             <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
-              Leitura de 3 cartas
+              {t("Leitura de 3 cartas")}
             </span>
             {theme ? (
               <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
-                {theme}
+                {localizeTheme(theme, locale)}
               </span>
             ) : null}
             {message.local_only ? (
               <span className="rounded-full bg-[#ead8d3] px-2 py-1">
-                local
+                {t("Neste dispositivo")}
               </span>
             ) : null}
           </div>
 
           <p className="mt-3 text-xs text-[#6f615a]">
-            {formatDate(message.created_at)}
+            {formatDate(message.created_at, locale)}
           </p>
           <h3 className="mt-2 font-semibold text-[#332720]">
             {question || "Leitura salva"}
@@ -1972,7 +2049,7 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
                     {assetPath ? (
                       <Image
                         src={assetPath}
-                        alt={`Carta da leitura: ${name}`}
+                        alt={`${t("Carta da leitura")}: ${name}`}
                         width={120}
                         height={192}
                         className={`h-24 w-16 rounded-md object-cover shadow-[0_14px_26px_rgba(60,42,24,0.18)] ${
@@ -1992,7 +2069,7 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
           ) : null}
 
           <p className="mt-3 line-clamp-5 text-sm leading-6 text-[#6f615a]">
-            {result}
+            {displayedResult}
           </p>
         </div>
       </article>
@@ -2045,7 +2122,7 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
             </div>
 
             <p className="mt-3 text-xs text-[#6f615a]">
-              {formatDate(message.created_at)}
+              {formatDate(message.created_at, locale)}
             </p>
             <h3 className="brand-serif mt-1 text-2xl font-semibold text-[#332720]">
               {cardName}
@@ -2069,7 +2146,7 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
 
   return (
     <article className="rounded-lg border border-[#e4d3ba] bg-[#fbf6ee] p-4">
-      <p className="text-xs text-[#6f615a]">{formatDate(message.created_at)}</p>
+      <p className="text-xs text-[#6f615a]">{formatDate(message.created_at, locale)}</p>
       <h3 className="mt-2 font-semibold text-[#332720]">
         {getSavedTitle(message)}
       </h3>

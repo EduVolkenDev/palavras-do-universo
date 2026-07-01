@@ -243,32 +243,38 @@ export async function POST(req: Request) {
         provider_checkout_id: session.id,
         provider_customer_id:
           typeof session.customer === "string" ? session.customer : null,
-        price_cents: product.price_cents,
+        price_cents: discountedAmountCents,
         currency: product.currency,
         metadata: {
           checkout_url: session.url,
+          original_amount_cents: originalAmountCents,
+          discount_percent: discountPercent,
         },
       });
 
     if (subscriptionError) {
-      return jsonError(subscriptionError.message, 500);
+      console.error("Could not persist pending subscription", subscriptionError.message);
+      return jsonError("Could not prepare subscription checkout", 500);
     }
   } else {
     const { error: purchaseError } = await supabase.from("purchases").insert({
       user_id: userId,
       product_key: product.product_key,
-      amount_cents: product.price_cents ?? 0,
+      amount_cents: discountedAmountCents,
       currency: product.currency,
       status: "pending",
       provider: "stripe",
       provider_checkout_id: session.id,
       metadata: {
         checkout_url: session.url,
+        original_amount_cents: originalAmountCents,
+        discount_percent: discountPercent,
       },
     });
 
     if (purchaseError) {
-      return jsonError(purchaseError.message, 500);
+      console.error("Could not persist pending purchase", purchaseError.message);
+      return jsonError("Could not prepare payment checkout", 500);
     }
   }
 

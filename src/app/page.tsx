@@ -883,7 +883,6 @@ export default function Home() {
     "O que eu preciso enxergar sobre o meu momento?"
   );
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<number | null>(null);
   const [result, setResult] = useState("");
   const [resultLocale, setResultLocale] = useState<Locale | null>(null);
   const [spreadLine, setSpreadLine] = useState("");
@@ -1145,7 +1144,6 @@ export default function Home() {
   async function run(customQuestion?: string) {
     const q = (customQuestion ?? question).trim();
     if (q.length < 8) {
-      setStatus(null);
       setPaywall(null);
       setRepeat(null);
       setError("Escreva uma pergunta com pelo menos 8 caracteres para abrir a leitura.");
@@ -1158,7 +1156,6 @@ export default function Home() {
 
     shouldScrollToOpenedReadingRef.current = true;
     setLoading(true);
-    setStatus(null);
     setResult("");
     setResultLocale(null);
     setSpreadLine("");
@@ -1189,8 +1186,6 @@ export default function Home() {
           window.setTimeout(resolve, READING_PORTAL_MINIMUM_MS)
         ),
       ]);
-
-      setStatus(res.status);
 
       const text = await res.text();
       let data: unknown = null;
@@ -1663,7 +1658,7 @@ export default function Home() {
           index,
           locale,
           question: activeReading ? readingQuestion : "",
-          themeLabel: selectedTheme?.label,
+          themeLabel: selectedTheme ? t(selectedTheme.label) : undefined,
         }
       ),
     };
@@ -2236,6 +2231,7 @@ export default function Home() {
                       type="button"
                       onClick={() => run()}
                       disabled={!canRun}
+                      data-testid="open-reading-button"
                       className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#a7d7c5] px-5 py-3 text-sm font-semibold text-[#07120e] shadow-[0_18px_46px_rgba(167,215,197,0.18)] hover:bg-[#c1ecdc] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Sparkles size={18} />
@@ -2247,7 +2243,6 @@ export default function Home() {
                         tone="gold"
                         title={t("Sua tirada continua disponível")}
                         message={t("A leitura gratuita de hoje já foi usada. Crie uma conta grátis para proteger e rever esta tirada no Meu Universo, sem precisar assinar um plano.")}
-                        status={status}
                         actionLabel={t("Criar conta grátis")}
                         onAction={() => {
                           window.location.href = `/entrar?reason=reading-history&next=${encodeURIComponent("/meu-universo?from=reading")}`;
@@ -2292,7 +2287,7 @@ export default function Home() {
                       <StatusPanel
                         tone="rose"
                         title="A leitura não abriu"
-                        message={`${error}${status ? ` (status ${status})` : ""}`}
+                        message={error}
                       />
                     ) : null}
                   </div>
@@ -2362,10 +2357,6 @@ export default function Home() {
                 tone="gold"
                 title={t("Última tirada reaberta")}
                 message={readingNotice}
-                actionLabel={t("Criar conta grátis")}
-                onAction={() => {
-                  window.location.href = `/entrar?reason=reading-history&next=${encodeURIComponent("/meu-universo?from=reading")}`;
-                }}
               />
             ) : null}
             {saveNotice ? (
@@ -3240,7 +3231,6 @@ function StatusPanel(props: {
   tone: "gold" | "rose";
   title: string;
   message: string;
-  status?: number | null;
   actionLabel?: string;
   onAction?: () => void;
 }) {
@@ -3262,9 +3252,6 @@ function StatusPanel(props: {
           {props.actionLabel}
           <ArrowRight size={16} />
         </button>
-      ) : null}
-      {props.status ? (
-        <p className="mt-3 text-xs opacity-75">Status: {props.status}</p>
       ) : null}
     </div>
   );

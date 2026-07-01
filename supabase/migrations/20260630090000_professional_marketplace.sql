@@ -74,6 +74,15 @@ begin
       check (status in ('draft', 'published', 'paused'));
   end if;
 
+  if not exists (select 1 from pg_constraint where conname = 'professional_offers_amounts_check') then
+    alter table public.professional_offers add constraint professional_offers_amounts_check
+      check (
+        (price_cents is null or price_cents >= 0)
+        and (social_price_cents is null or social_price_cents >= 0)
+        and (duration_minutes is null or duration_minutes > 0)
+      );
+  end if;
+
   if not exists (select 1 from pg_constraint where conname = 'professional_inquiries_status_check') then
     alter table public.professional_inquiries add constraint professional_inquiries_status_check
       check (status in ('new', 'reviewing', 'accepted', 'declined', 'closed'));
@@ -198,7 +207,18 @@ begin
     create policy professional_inquiries_insert_authenticated
       on public.professional_inquiries
       for insert
-      with check (auth.uid() is not null);
+      with check (
+        auth.uid()::text = client_id
+        and exists (
+          select 1
+          from public.professional_offers offer
+          join public.professional_profiles profile on profile.id = offer.profile_id
+          where offer.id = offer_id
+            and offer.status = 'published'
+            and profile.is_published = true
+            and profile.user_id = provider_user_id
+        )
+      );
   end if;
 
   if not exists (
@@ -215,6 +235,35 @@ begin
   end if;
 end;
 $$;
+
+create or replace function public.protect_professional_verification()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is not null then
+    if tg_op = 'INSERT' and new.is_verified then
+      raise exception 'Professional verification is managed by the platform';
+    end if;
+
+    if tg_op = 'UPDATE' and new.is_verified is distinct from old.is_verified then
+      raise exception 'Professional verification is managed by the platform';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.protect_professional_verification() from public, anon, authenticated;
+
+drop trigger if exists professional_profiles_protect_verification
+  on public.professional_profiles;
+create trigger professional_profiles_protect_verification
+before insert or update on public.professional_profiles
+for each row execute function public.protect_professional_verification();
 
 do $$
 begin

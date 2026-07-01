@@ -15,11 +15,12 @@ async function getEntitlementProducts(productKey: string) {
   const products = new Set<string>([productKey]);
 
   if (productKey === "circulo_do_universo") {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("oracle_products")
       .select("product_key")
       .contains("included_in", ["circulo_do_universo"])
       .returns<EntitlementProduct[]>();
+    if (error) throw new Error(`Could not resolve included products: ${error.message}`);
 
     for (const item of data ?? []) {
       products.add(item.product_key);
@@ -40,13 +41,16 @@ async function grantEntitlements(params: {
   const productKeys = await getEntitlementProducts(params.productKey);
 
   for (const productKey of productKeys) {
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from("user_entitlements")
       .select("id,usage_limit,usage_count,metadata")
       .eq("user_id", params.userId)
       .eq("product_key", productKey)
       .eq("source", params.source)
       .maybeSingle();
+    if (existingError) {
+      throw new Error(`Could not read entitlement: ${existingError.message}`);
+    }
 
     const existingMetadata =
       existing?.metadata && typeof existing.metadata === "object"
@@ -81,9 +85,14 @@ async function grantEntitlements(params: {
     };
 
     if (existing?.id) {
-      await supabase.from("user_entitlements").update(payload).eq("id", existing.id);
+      const { error } = await supabase
+        .from("user_entitlements")
+        .update(payload)
+        .eq("id", existing.id);
+      if (error) throw new Error(`Could not update entitlement: ${error.message}`);
     } else {
-      await supabase.from("user_entitlements").insert(payload);
+      const { error } = await supabase.from("user_entitlements").insert(payload);
+      if (error) throw new Error(`Could not create entitlement: ${error.message}`);
     }
   }
 }
@@ -107,7 +116,7 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
     const subscriptionId = getString(session.subscription);
     const customerId = getString(session.customer);
 
-    await supabase
+    const { error: subscriptionError } = await supabase
       .from("subscriptions")
       .update({
         status: "active",
@@ -117,31 +126,41 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
       })
       .eq("provider", "stripe")
       .eq("provider_checkout_id", session.id);
+    if (subscriptionError) {
+      throw new Error(`Could not activate subscription: ${subscriptionError.message}`);
+    }
 
-  await grantEntitlements({
-    userId,
-    productKey,
-    source: "subscription",
+    await grantEntitlements({
+      userId,
+      productKey,
+      source: "subscription",
       metadata: {
         checkout_session_id: session.id,
         stripe_subscription_id: subscriptionId,
       },
-  });
-
-  const voucherId = getString(session.metadata?.voucher_id);
-  if (voucherId) {
-    await finalizeVoucherCheckoutSession({
-      voucherId,
-      checkoutSessionId: session.id,
-      userId,
-      email: getString(session.customer_details?.email) ?? getString(session.customer_email),
     });
+
+    const voucherId = getString(session.metadata?.voucher_id);
+    if (voucherId) {
+      await finalizeVoucherCheckoutSession({
+        voucherId,
+        checkoutSessionId: session.id,
+        userId,
+        email:
+          getString(session.customer_details?.email) ??
+          getString(session.customer_email),
+      });
+    }
+
+    return {
+      ok: true as const,
+      userId,
+      productKey,
+      source: "subscription" as const,
+    };
   }
 
-  return { ok: true as const, userId, productKey, source: "subscription" as const };
-}
-
-  await supabase
+  const { error: purchaseError } = await supabase
     .from("purchases")
     .update({
       status: "paid",
@@ -151,6 +170,9 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
     })
     .eq("provider", "stripe")
     .eq("provider_checkout_id", session.id);
+  if (purchaseError) {
+    throw new Error(`Could not mark purchase as paid: ${purchaseError.message}`);
+  }
 
   await grantEntitlements({
     userId,
@@ -168,7 +190,9 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
       voucherId,
       checkoutSessionId: session.id,
       userId,
-      email: getString(session.customer_details?.email) ?? getString(session.customer_email),
+      email:
+        getString(session.customer_details?.email) ??
+        getString(session.customer_email),
     });
   }
 
@@ -183,7 +207,7 @@ export async function syncStripeSubscription(subscription: Stripe.Subscription) 
     ? new Date(subscription.items.data[0].current_period_end * 1000).toISOString()
     : null;
 
-  await supabase
+  const { error: subscriptionError } = await supabase
     .from("subscriptions")
     .update({
       status: subscription.status,
@@ -193,6 +217,9 @@ export async function syncStripeSubscription(subscription: Stripe.Subscription) 
     })
     .eq("provider", "stripe")
     .eq("provider_subscription_id", subscription.id);
+  if (subscriptionError) {
+    throw new Error(`Could not synchronize subscription: ${subscriptionError.message}`);
+  }
 
   if (!userId || !productKey) return;
 
@@ -209,7 +236,7 @@ export async function syncStripeSubscription(subscription: Stripe.Subscription) 
     });
   } else if (["canceled", "unpaid", "incomplete_expired"].includes(subscription.status)) {
     const productKeys = await getEntitlementProducts(productKey);
-    await supabase
+    const { error: revokeError } = await supabase
       .from("user_entitlements")
       .update({
         status: "revoked",
@@ -218,6 +245,9 @@ export async function syncStripeSubscription(subscription: Stripe.Subscription) 
       .eq("user_id", userId)
       .eq("source", "subscription")
       .in("product_key", productKeys);
+    if (revokeError) {
+      throw new Error(`Could not revoke subscription access: ${revokeError.message}`);
+    }
   }
 }
 
@@ -236,23 +266,29 @@ export async function syncStripeRefund(charge: Stripe.Charge) {
     return { ok: false as const, reason: "purchase_not_found" };
   }
 
-  await supabase
+  const { error: purchaseError } = await supabase
     .from("purchases")
     .update({ status: "refunded", updated_at: new Date().toISOString() })
     .eq("id", purchase.id);
+  if (purchaseError) {
+    throw new Error(`Could not mark purchase as refunded: ${purchaseError.message}`);
+  }
 
-  const { data: entitlement } = await supabase
+  const { data: entitlement, error: entitlementError } = await supabase
     .from("user_entitlements")
     .select("id,usage_limit,usage_count")
     .eq("user_id", purchase.user_id)
     .eq("product_key", purchase.product_key)
     .eq("source", "purchase")
     .maybeSingle();
+  if (entitlementError) {
+    throw new Error(`Could not read refunded entitlement: ${entitlementError.message}`);
+  }
   if (entitlement?.id && typeof entitlement.usage_limit === "number") {
     const usageCount =
       typeof entitlement.usage_count === "number" ? entitlement.usage_count : 0;
     const usageLimit = Math.max(entitlement.usage_limit - 1, usageCount);
-    await supabase
+    const { error: updateError } = await supabase
       .from("user_entitlements")
       .update({
         usage_limit: usageLimit,
@@ -260,6 +296,9 @@ export async function syncStripeRefund(charge: Stripe.Charge) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", entitlement.id);
+    if (updateError) {
+      throw new Error(`Could not update refunded entitlement: ${updateError.message}`);
+    }
   }
 
   return { ok: true as const, userId: purchase.user_id, productKey: purchase.product_key };
