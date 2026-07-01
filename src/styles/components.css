@@ -363,7 +363,6 @@
 .pdu-hero-side--logo {
   align-items: center;
   justify-content: center;
-  gap: 1rem;
   padding-top: clamp(0.5rem, 1vw, 1rem);
 }
 
@@ -1475,8 +1474,7 @@
   transition-delay: 440ms;
 }
 
-.pdu-motion-ready .pdu-hero-side--logo .pdu-hero-mark,
-.pdu-motion-ready .pdu-hero-side--logo .pdu-hero-mark-copy {
+.pdu-motion-ready .pdu-hero-side--logo .pdu-hero-mark {
   opacity: 0;
   filter: blur(2px);
   transform: translateY(12px);
@@ -1491,13 +1489,6 @@
   filter: none;
   transform: none;
   transition-delay: 100ms;
-}
-
-.pdu-motion-ready .pdu-hero-side--logo.is-visible .pdu-hero-mark-copy {
-  opacity: 1;
-  filter: none;
-  transform: none;
-  transition-delay: 220ms;
 }
 
 .pdu-motion-ready .pdu-marketplace-band.is-visible .pdu-marketplace-band__head,
@@ -1548,45 +1539,6 @@
   object-fit: contain;
   object-position: center;
   transform: none;
-}
-
-.pdu-hero-mark-copy {
-  position: relative;
-  z-index: 3;
-  display: grid;
-  gap: 0.75rem;
-  max-width: 34rem;
-  text-align: center;
-}
-
-.pdu-hero-mark-copy__eyebrow {
-  color: #f5d896;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.pdu-hero-mark-copy h2 {
-  margin: 0;
-  color: #fff7e8;
-  font-size: clamp(2rem, 2.8vw, 3.2rem);
-  line-height: 0.98;
-  letter-spacing: -0.06em;
-}
-
-.pdu-hero-mark-copy p {
-  margin: 0;
-  color: #d6c9be;
-  font-size: 0.92rem;
-  line-height: 1.7;
-}
-
-.pdu-hero-mark-copy__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.75rem;
 }
 
 .pdu-hero-mark__orbit {
@@ -3785,7 +3737,7 @@
   }
 
   .pdu-hero-side--logo {
-    gap: 0.9rem;
+    padding-top: 0.25rem;
   }
 
   .pdu-marketplace-card,
@@ -4027,7 +3979,7 @@
   }
 
   .pdu-hero-side--logo {
-    gap: 0.75rem;
+    padding-top: 0.15rem;
   }
 
   .pdu-marketplace-card,
@@ -4044,18 +3996,6 @@
 
   .pdu-hero-mark {
     width: min(100%, 88vw);
-  }
-
-  .pdu-hero-mark-copy {
-    max-width: 30rem;
-  }
-
-  .pdu-hero-mark-copy h2 {
-    font-size: clamp(1.7rem, 8vw, 2.55rem);
-  }
-
-  .pdu-hero-mark-copy p {
-    font-size: 0.88rem;
   }
 
   .pdu-hero-mark__orbit {

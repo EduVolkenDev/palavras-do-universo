@@ -94,16 +94,26 @@ export function I18nProvider({
 
   useEffect(() => {
     const preferredLocale = getInitialLocale();
-    if (preferredLocale !== locale) {
-      const timeout = window.setTimeout(() => updateLocale(preferredLocale), 0);
-      return () => window.clearTimeout(timeout);
-    }
-
-    return undefined;
-  }, [locale]);
+    const timeout = window.setTimeout(
+      () =>
+        updateLocale((currentLocale) =>
+          currentLocale === preferredLocale ? currentLocale : preferredLocale
+        ),
+      0
+    );
+    return () => window.clearTimeout(timeout);
+  }, []);
 
   const setLocale = useCallback((nextLocale: Locale) => {
     updateLocale(nextLocale);
+
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("lang", nextLocale);
+      window.history.replaceState(window.history.state, "", url);
+    } catch {
+      // URL synchronization is best-effort; state and persistence remain primary.
+    }
 
     try {
       window.localStorage?.setItem(LOCALE_STORAGE_KEY, nextLocale);
