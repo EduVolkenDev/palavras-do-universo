@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   pricingPlans,
   productCards,
@@ -379,6 +380,47 @@ const onboardingOptions: {
     icon: MoonStar,
   },
 ];
+
+const marketplaceSignals = [
+  {
+    title: "Perfil público",
+    text: "Bio, especialidades, idiomas e presença reconhecível.",
+    icon: UserRound,
+  },
+  {
+    title: "Preço social",
+    text: "Cada profissional decide quando abrir uma faixa acessível.",
+    icon: HandHeart,
+  },
+  {
+    title: "Atendimento gratuito",
+    text: "Vagas solidárias e atendimento aberto por escolha do profissional.",
+    icon: Heart,
+  },
+  {
+    title: "Briefing privado",
+    text: "A conversa começa com contexto e respeito, sem exposição pública.",
+    icon: ShieldCheck,
+  },
+] as const;
+
+const marketplaceFlow = [
+  {
+    title: "Descobrir",
+    text: "Buscar por especialidade, estilo de cuidado, idioma e faixa de valor.",
+    icon: Compass,
+  },
+  {
+    title: "Entender",
+    text: "Ver com clareza se o atendimento é cheio, social ou gratuito.",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Conectar",
+    text: "Enviar um briefing privado e começar a conversa no contexto certo.",
+    icon: HandHeart,
+  },
+] as const;
 
 const fallbackSpread: DailyMessage["spread"] = [
   {
@@ -1738,24 +1780,30 @@ export default function Home() {
             <a href="#leitura" className="hover:text-white">
               Leitura
             </a>
-            <a href="/carta-do-dia" className="hover:text-white">
+            <Link href="/carta-do-dia" className="hover:text-white">
               Carta do Dia
-            </a>
+            </Link>
             <a href="#ritual" className="hover:text-white">
               Ritual
             </a>
             <a href="#produtos" className="hover:text-white">
               Leituras
             </a>
-            <a href="/tiradas" className="hover:text-white">
+            <Link href="/tiradas" className="hover:text-white">
               {t("Tiradas")}
-            </a>
-            <a href="/baralho" className="hover:text-white">
+            </Link>
+            <Link href="/baralho" className="hover:text-white">
               Baralho
-            </a>
-            <a href="/meu-universo" className="hover:text-white">
+            </Link>
+            <Link href="/profissionais" className="hover:text-white">
+              Profissionais
+            </Link>
+            <Link href="/profissionais/me" className="hover:text-white">
+              Sou profissional
+            </Link>
+            <Link href="/meu-universo" className="hover:text-white">
               Meu Universo
-            </a>
+            </Link>
           </nav>
 
           <button
@@ -1857,21 +1905,74 @@ export default function Home() {
 
             </div>
 
-            <div className="pdu-reveal pdu-hero-side">
-              <div className="pdu-portal-console">
-                <div className="pdu-portal-console__visual">
-                  <Image
-                    src="/assets/palavrasuniverso.webp"
-                    alt=""
-                    fill
-                    priority
-                    sizes="(max-width: 768px) 92vw, 48vw"
-                    className="object-contain"
-                  />
-                </div>
+            <div className="pdu-reveal pdu-hero-side pdu-hero-side--logo">
+              <div className="pdu-hero-mark" aria-hidden="true">
+                <Image
+                  src="/assets/palavrasuniverso.webp"
+                  alt=""
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 86vw, 44vw"
+                  className="object-contain"
+                />
+                {marketplaceSignals.map((signal, index) => {
+                  const Icon = signal.icon;
+                  return (
+                    <span
+                      key={signal.title}
+                      className="pdu-hero-mark__orbit"
+                      style={{ "--pdu-market-index": index } as CSSProperties}
+                    >
+                      <Icon size={18} strokeWidth={1.8} />
+                    </span>
+                  );
+                })}
               </div>
             </div>
           </div>
+
+          <section
+            className="pdu-reveal pdu-marketplace-band"
+            id="profissionais"
+            aria-labelledby="profissionais-title"
+          >
+            <div className="pdu-marketplace-band__head">
+              <div>
+                <SectionEyebrow dark>{t("Marketplace de cuidado")}</SectionEyebrow>
+                <h2 id="profissionais-title" className="brand-serif">
+                  {t(
+                    "Um espaço para conectar pessoas a profissionais com presença, ética e faixa de acesso clara."
+                  )}
+                </h2>
+              </div>
+              <p>
+                {t(
+                  "Você pode buscar por especialidade, idioma e tipo de acesso. O mercado é aberto, mas a política de preço continua nas mãos de cada profissional."
+                )}
+              </p>
+            </div>
+
+            <div className="pdu-marketplace-flow">
+              {marketplaceFlow.map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <article
+                    key={item.title}
+                    className="pdu-marketplace-flow__card"
+                    style={
+                      { "--pdu-market-index": index } as CSSProperties
+                    }
+                  >
+                    <span className="pdu-marketplace-flow__icon">
+                      <Icon size={18} strokeWidth={1.8} />
+                    </span>
+                    <strong>{t(item.title)}</strong>
+                    <p>{t(item.text)}</p>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
 
           <div
             id="ritual"
@@ -2204,9 +2305,9 @@ export default function Home() {
       {result || loading ? (
       <section
         id="reading-opened"
-        className="pdu-depth-section relative overflow-hidden border-y border-white/10 px-4 py-20 text-[#f8efe2] scroll-mt-28 sm:px-6 lg:px-8"
+        className="pdu-depth-section relative overflow-hidden border-y border-white/10 px-4 py-14 text-[#f8efe2] scroll-mt-28 sm:px-6 lg:px-8"
       >
-        <div className="pdu-reveal is-visible mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.74fr_1.26fr] lg:items-center">
+        <div className="pdu-open-reading-layout pdu-reveal is-visible mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.56fr_1.44fr] lg:items-start">
           <div>
             <SectionEyebrow dark>
               {loading ? "Revelação em curso" : "Leitura aberta"}
@@ -2284,7 +2385,24 @@ export default function Home() {
             {loading ? (
               <ReadingSpreadPortal immersive />
             ) : (
-              <FloatingTarotSpread cards={shownSpread} />
+              <div className="pdu-result-card-strip" aria-label={localizedSpreadLine}>
+                {shownSpread.map((card, index) => (
+                  <article
+                    key={`${card.position}-${card.name}`}
+                    className="pdu-result-card-strip__item"
+                    style={{ "--pdu-card-index": index } as CSSProperties}
+                  >
+                    <TarotFrame card={card} compact locale={locale} />
+                    <div>
+                      <span>{card.position}</span>
+                      <strong>
+                        {card.name}
+                        {card.reversed ? reversedSuffix : ""}
+                      </strong>
+                    </div>
+                  </article>
+                ))}
+              </div>
             )}
             <div className="pdu-reading-transcript">
               <div className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
@@ -2993,7 +3111,7 @@ function TarotFrame(props: {
 }) {
   return (
     <div
-      className={`group overflow-hidden rounded-[8px] border border-[#f4d58d]/20 bg-[#111019] shadow-[0_18px_50px_rgba(0,0,0,0.2)] ${
+      className={`pdu-tarot-frame group overflow-hidden rounded-[8px] border border-[#f4d58d]/20 bg-[#111019] shadow-[0_18px_50px_rgba(0,0,0,0.2)] ${
         props.compact ? "min-h-36" : ""
       }`}
     >
@@ -3072,139 +3190,6 @@ function ReadingSpreadPortal(props: { immersive?: boolean }) {
         ))}
       </div>
       <p>Abrindo um novo caminho para sua pergunta</p>
-    </div>
-  );
-}
-
-function FloatingTarotSpread(props: {
-  cards: {
-    position: string;
-    name: string;
-    reversed: boolean;
-    assetPath: string;
-  }[];
-}) {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [settlingIndex, setSettlingIndex] = useState<number | null>(null);
-  const settleTimer = useRef<number | null>(null);
-  const lastPointerType = useRef<string | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (settleTimer.current !== null) {
-        window.clearTimeout(settleTimer.current);
-      }
-    };
-  }, []);
-
-  function featureCard(index: number) {
-    if (settleTimer.current !== null) {
-      window.clearTimeout(settleTimer.current);
-    }
-
-    setSettlingIndex(null);
-    setActiveIndex(index);
-  }
-
-  function handleCardClick(index: number) {
-    if (lastPointerType.current === "touch" && activeIndex === index) {
-      settleSpread();
-      return;
-    }
-
-    featureCard(index);
-  }
-
-  function settleSpread() {
-    if (activeIndex === null) {
-      return;
-    }
-
-    setSettlingIndex(activeIndex);
-    setActiveIndex(null);
-
-    if (settleTimer.current !== null) {
-      window.clearTimeout(settleTimer.current);
-    }
-
-    settleTimer.current = window.setTimeout(() => {
-      setSettlingIndex(null);
-      settleTimer.current = null;
-    }, 920);
-  }
-
-  return (
-    <div
-      className={`pdu-floating-spread ${
-        activeIndex !== null ? "is-active" : ""
-      } ${settlingIndex !== null ? "is-settling" : ""}`}
-      data-active={activeIndex ?? undefined}
-      data-settling={settlingIndex ?? undefined}
-      aria-label="Cartas da leitura"
-      onPointerLeave={(event) => {
-        if (event.pointerType !== "touch") {
-          settleSpread();
-        }
-      }}
-    >
-      <div className="pdu-floating-spread__orbit" />
-      {props.cards.map((card, index) => (
-        <figure
-          key={`floating-${card.position}`}
-          className={`pdu-floating-card pdu-floating-card--${index} ${
-            activeIndex === index ? "is-featured" : ""
-          } ${settlingIndex === index ? "is-settling-card" : ""}`}
-          role="button"
-          tabIndex={0}
-          aria-pressed={activeIndex === index}
-          onPointerDown={(event) => {
-            lastPointerType.current = event.pointerType;
-          }}
-          onPointerEnter={(event) => {
-            lastPointerType.current = event.pointerType;
-
-            if (event.pointerType !== "touch") {
-              featureCard(index);
-            }
-          }}
-          onPointerLeave={(event) => {
-            if (event.pointerType !== "touch") {
-              settleSpread();
-            }
-          }}
-          onClick={() => handleCardClick(index)}
-          onFocus={() => {
-            if (lastPointerType.current !== "touch") {
-              featureCard(index);
-            }
-          }}
-          onBlur={settleSpread}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              if (activeIndex === index) {
-                settleSpread();
-              } else {
-                featureCard(index);
-              }
-            }
-          }}
-        >
-          <Image
-            src={card.assetPath}
-            alt={`${card.position}: ${card.name}`}
-            width={420}
-            height={680}
-            className={`h-full w-full object-cover ${
-              card.reversed ? "rotate-180" : ""
-            }`}
-          />
-          <figcaption>
-            <span>{card.position}</span>
-            <strong>{card.name}</strong>
-          </figcaption>
-        </figure>
-      ))}
     </div>
   );
 }

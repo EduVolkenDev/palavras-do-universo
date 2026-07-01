@@ -85,6 +85,16 @@ type ImpactCommitment = Omit<LocalImpactCommitment, "local_only"> & {
   local_only?: boolean;
 };
 
+type ReadingSpreadCard = {
+  position: string;
+  cardKey: string;
+  keyword: string;
+  name: string;
+  reversed: boolean;
+  meaning: string;
+  assetPath: string;
+};
+
 const EMPTY_READING_PROFILE: ReadingProfile = {
   displayName: "",
   focusAreas: [],
@@ -152,6 +162,29 @@ function asString(value: unknown) {
 
 function asStringList(value: unknown) {
   return Array.isArray(value) ? value.map(asString).filter(Boolean) : [];
+}
+
+function normalizeSpreadCards(value: unknown): ReadingSpreadCard[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (!isRecord(item)) return null;
+      const name = asString(item.name);
+      const position = asString(item.position);
+      if (!name && !position) return null;
+
+      return {
+        position,
+        cardKey: asString(item.cardKey || item.card_key),
+        keyword: asString(item.keyword),
+        name,
+        reversed: item.reversed === true,
+        meaning: asString(item.meaning),
+        assetPath: asString(item.assetPath || item.asset_path),
+      };
+    })
+    .filter((card): card is ReadingSpreadCard => card !== null);
 }
 
 function readingProfileFromRemote(value: unknown): ReadingProfile {
@@ -300,13 +333,7 @@ function topLabels(values: string[], limit = 3) {
 }
 
 function getSpreadCards(value: unknown) {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => {
-      if (!isRecord(item)) return "";
-      return asString(item.name);
-    })
-    .filter(Boolean);
+  return normalizeSpreadCards(value).map((card) => card.name).filter(Boolean);
 }
 
 function getSymbolicPatterns(readings: Reading[], messages: SavedMessage[]) {
@@ -1474,29 +1501,7 @@ export default function MeuUniversoPage() {
             ) : readingHistoryCount ? (
               <div className="space-y-3">
                 {readings.map((reading) => (
-                  <article
-                    key={reading.id}
-                    className="rounded-lg border border-[#e4d3ba] bg-[#fbf6ee] p-4"
-                  >
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
-                      <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
-                        {reading.theme}
-                      </span>
-                      <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
-                        {reading.mode}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Clock size={13} />
-                        {formatDate(reading.created_at)}
-                      </span>
-                    </div>
-                    <h3 className="mt-3 font-semibold text-[#332720]">
-                      {reading.question}
-                    </h3>
-                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-[#6f615a]">
-                      {reading.interpretation}
-                    </p>
-                  </article>
+                  <ReadingArticle key={reading.id} reading={reading} />
                 ))}
                 {savedReadingMessages.map((message) => (
                   <SavedMessageArticle key={message.id} message={message} />
@@ -1832,14 +1837,100 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
+function ReadingArticle({ reading }: { reading: Reading }) {
+  const spreadCards = normalizeSpreadCards(reading.spread);
+  const spreadLine = spreadCards
+    .map((card) => {
+      const reversed = card.reversed ? " reversa" : "";
+      return `${card.position}: ${card.name}${reversed}`;
+    })
+    .join(" | ");
+
+  return (
+    <article className="overflow-hidden rounded-lg border border-[#e4d3ba] bg-[#fbf6ee]">
+      <div className="p-4">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
+          <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
+            {reading.theme || "Leitura"}
+          </span>
+          <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
+            {reading.mode || "3 cartas"}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Clock size={13} />
+            {formatDate(reading.created_at)}
+          </span>
+        </div>
+
+        <h3 className="mt-3 font-semibold text-[#332720]">
+          {reading.question || "Leitura salva"}
+        </h3>
+
+        {spreadCards.length ? (
+          <>
+            <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+              {spreadCards.map((card, index) => {
+                const label = card.position || `Carta ${index + 1}`;
+
+                return (
+                  <div
+                    key={`${card.cardKey || card.name}-${index}`}
+                    className="rounded-lg border border-[#e4d3ba] bg-[#fffaf2] p-2 text-center"
+                  >
+                    <span className="block text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">
+                      {label}
+                    </span>
+                    <div className="mt-2 flex justify-center">
+                      {card.assetPath ? (
+                        <Image
+                          src={card.assetPath}
+                          alt={`Carta da leitura: ${card.name}`}
+                          width={144}
+                          height={230}
+                          className={`h-28 w-[4.35rem] rounded-md object-cover shadow-[0_16px_28px_rgba(60,42,24,0.18)] sm:h-36 sm:w-24 ${
+                            card.reversed ? "rotate-180" : ""
+                          }`}
+                        />
+                      ) : (
+                        <div className="h-28 w-[4.35rem] rounded-md bg-[#e7dcc9] sm:h-36 sm:w-24" />
+                      )}
+                    </div>
+                    <p className="mt-2 text-xs font-semibold leading-4 text-[#332720]">
+                      {card.name}
+                      {card.reversed ? " reversa" : ""}
+                    </p>
+                    {card.meaning ? (
+                      <p className="mt-1 line-clamp-3 text-[0.72rem] leading-4 text-[#6f615a]">
+                        {card.meaning}
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+
+            {spreadLine ? (
+              <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">
+                {spreadLine}
+              </p>
+            ) : null}
+          </>
+        ) : null}
+
+        <p className="mt-4 whitespace-pre-line text-sm leading-6 text-[#5c4b42]">
+          {reading.interpretation}
+        </p>
+      </div>
+    </article>
+  );
+}
+
 function SavedMessageArticle({ message }: { message: SavedMessage }) {
   if (message.message_type === "reading" && isSavedReadingPayload(message.payload)) {
     const theme = asString(message.payload.theme);
     const question = asString(message.payload.question);
     const result = asString(message.payload.result);
-    const spreadCards = Array.isArray(message.payload.spreadCards)
-      ? message.payload.spreadCards
-      : [];
+    const spreadCards = normalizeSpreadCards(message.payload.spreadCards);
 
     return (
       <article className="overflow-hidden rounded-lg border border-[#e4d3ba] bg-[#fbf6ee]">
