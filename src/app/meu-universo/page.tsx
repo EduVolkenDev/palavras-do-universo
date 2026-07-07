@@ -843,7 +843,7 @@ export default function MeuUniversoPage() {
       const res = await fetch("/api/checkout/create", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ productKey }),
+        body: JSON.stringify({ productKey, locale }),
       });
       const data = (await res.json()) as unknown;
 

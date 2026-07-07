@@ -19,6 +19,7 @@ import {
 type CheckoutBody = {
   productKey?: unknown;
   email?: unknown;
+  locale?: unknown;
   voucherCode?: unknown;
 };
 
@@ -33,8 +34,47 @@ type OracleProduct = {
   provider_price_id: string | null;
 };
 
+type CheckoutLocale = "pt-BR" | "en";
+
+const checkoutCopyByLocale: Record<
+  CheckoutLocale,
+  Record<string, { title: string; description: string }>
+> = {
+  "pt-BR": {},
+  en: {
+    clareza_urgente: {
+      title: "Urgent Clarity",
+      description:
+        "A premium reading to breathe, understand what feels heavy, and choose today's next step.",
+    },
+    caminho_3_cartas: {
+      title: "Path of the 3 Cards",
+      description:
+        "Situation, shadow, and direction for one real question with practical clarity.",
+    },
+    sinais_do_amor: {
+      title: "Signs of Love",
+      description:
+        "Clarity for feelings, bonds, emotional patterns, and relationship choices.",
+    },
+    circulo_do_universo: {
+      title: "Circle of the Universe",
+      description:
+        "Symbolic history, rituals, cycles, favorites, and continued access to the main readings.",
+    },
+  },
+};
+
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
+}
+
+function normalizeCheckoutLocale(value: unknown): CheckoutLocale {
+  return value === "en" ? "en" : "pt-BR";
+}
+
+function getStripeLocale(locale: CheckoutLocale): Stripe.Checkout.SessionCreateParams.Locale {
+  return locale === "en" ? "en" : "pt-BR";
 }
 
 function getCheckoutMode(product: OracleProduct): Stripe.Checkout.SessionCreateParams.Mode {
@@ -46,9 +86,10 @@ function getCheckoutMode(product: OracleProduct): Stripe.Checkout.SessionCreateP
 
 function buildLineItem(
   product: OracleProduct,
-  overrideAmountCents?: number | null
+  overrideAmountCents?: number | null,
+  locale: CheckoutLocale = "pt-BR"
 ): Stripe.Checkout.SessionCreateParams.LineItem {
-  if (product.provider_price_id && !overrideAmountCents) {
+  if (product.provider_price_id && !overrideAmountCents && locale !== "en") {
     return {
       price: product.provider_price_id,
       quantity: 1,
@@ -66,6 +107,7 @@ function buildLineItem(
     getCheckoutMode(product) === "subscription"
       ? { recurring: { interval: "month" as const } }
       : {};
+  const localizedCopy = checkoutCopyByLocale[locale][product.product_key];
 
   return {
     quantity: 1,
@@ -73,7 +115,8 @@ function buildLineItem(
       currency,
       unit_amount: amountCents,
       product_data: {
-        name: product.title,
+        name: localizedCopy?.title ?? product.title,
+        description: localizedCopy?.description,
         metadata: {
           product_key: product.product_key,
         },
@@ -101,6 +144,7 @@ export async function POST(req: Request) {
   if (!parsed.ok) return parsed.response;
   const body = parsed.body;
   const productKey = String(body.productKey ?? "").trim();
+  const locale = normalizeCheckoutLocale(body.locale);
   const userId = auth.user.id;
   const email =
     typeof body.email === "string" && body.email.includes("@")
@@ -181,11 +225,13 @@ export async function POST(req: Request) {
   try {
     session = await stripe.checkout.sessions.create({
       mode,
+      locale: getStripeLocale(locale),
       client_reference_id: userId,
       line_items: [
         buildLineItem(
           product,
-          voucherResult?.ok && discountPercent > 0 ? discountedAmountCents : null
+          voucherResult?.ok && discountPercent > 0 ? discountedAmountCents : null,
+          locale
         ),
       ],
       customer_email: email,
