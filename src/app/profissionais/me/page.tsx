@@ -193,6 +193,15 @@ function parseCents(value: string) {
   return Math.round(amount * 100);
 }
 
+function getLoginHref() {
+  const params = new URLSearchParams();
+  const lang = new URLSearchParams(window.location.search).get("lang");
+  const localeSuffix = lang === "en" || lang === "pt-BR" ? `?lang=${lang}` : "";
+  params.set("next", `/profissionais/me${localeSuffix}`);
+  if (lang === "en" || lang === "pt-BR") params.set("lang", lang);
+  return `/entrar?${params.toString()}`;
+}
+
 export default function ProfessionalManagerPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -213,7 +222,7 @@ export default function ProfessionalManagerPage() {
             data: { session },
           } = await supabase.auth.getSession();
           if (!session) {
-            window.location.href = `/entrar?next=${encodeURIComponent("/profissionais/me")}`;
+            window.location.href = getLoginHref();
             return;
           }
         }
@@ -225,7 +234,7 @@ export default function ProfessionalManagerPage() {
         const data = (await response.json().catch(() => null)) as MeResponse | null;
 
         if (response.status === 401) {
-          window.location.href = `/entrar?next=${encodeURIComponent("/profissionais/me")}`;
+          window.location.href = getLoginHref();
           return;
         }
 
@@ -314,7 +323,7 @@ export default function ProfessionalManagerPage() {
 
       const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
       if (response.status === 401) {
-        window.location.href = `/entrar?next=${encodeURIComponent("/profissionais/me")}`;
+        window.location.href = getLoginHref();
         return;
       }
       if (!response.ok || !data || data.ok !== true) {
