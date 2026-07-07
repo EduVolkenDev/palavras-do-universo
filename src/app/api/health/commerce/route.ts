@@ -12,6 +12,7 @@ type PaidProduct = {
   price_cents: number;
   currency: string;
   provider_price_id: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 function hasAnthropicConfig() {
@@ -46,14 +47,15 @@ export async function GET(request: Request) {
     const { data, error } = await getSupabaseAdmin()
       .from("oracle_products")
       .select(
-        "product_key,product_type,price_cents,currency,provider_price_id"
+        "product_key,product_type,price_cents,currency,provider_price_id,metadata"
       )
       .eq("status", "active")
       .gt("price_cents", 0)
-      .not("metadata->>internal_test", "eq", "true")
       .returns<PaidProduct[]>();
-    paidProducts = data ?? [];
-    activePaidProducts = data?.length ?? 0;
+    paidProducts = (data ?? []).filter(
+      (product) => product.metadata?.internal_test !== true
+    );
+    activePaidProducts = paidProducts.length;
     catalogError = error?.message ?? "";
   }
 
