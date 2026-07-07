@@ -42,6 +42,11 @@ const checkoutCopyByLocale: Record<
 > = {
   "pt-BR": {},
   en: {
+    teste_checkout_50: {
+      title: "Checkout Test",
+      description:
+        "Internal payment validation for Palavras do Universo.",
+    },
     clareza_urgente: {
       title: "Urgent Clarity",
       description:

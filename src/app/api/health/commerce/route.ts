@@ -50,6 +50,7 @@ export async function GET(request: Request) {
       )
       .eq("status", "active")
       .gt("price_cents", 0)
+      .not("metadata->>internal_test", "eq", "true")
       .returns<PaidProduct[]>();
     paidProducts = data ?? [];
     activePaidProducts = data?.length ?? 0;
