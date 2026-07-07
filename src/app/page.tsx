@@ -101,6 +101,7 @@ type ApiError = {
 };
 
 const READING_PORTAL_MINIMUM_MS = 1200;
+const READING_REQUEST_TIMEOUT_MS = 45_000;
 
 const glossyIcons = {
   book: "/icons/pdu/glossy/book.webp",
@@ -580,6 +581,34 @@ function stableTextHash(value: string) {
     hash = Math.imul(hash, 16777619);
   }
   return hash >>> 0;
+}
+
+async function fetchJsonWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs: number
+) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+    const text = await response.text();
+    let data: unknown = null;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { error: "Resposta inválida do servidor" };
+    }
+
+    return { response, data };
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 function fillTextTemplate(template: string, values: Record<string, string>) {
@@ -1169,8 +1198,8 @@ export default function Home() {
     setReadingNotice("");
 
     try {
-      const [res] = await Promise.all([
-        fetch("/api/reading/create", {
+      const [{ response: res, data }] = await Promise.all([
+        fetchJsonWithTimeout("/api/reading/create", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -1181,20 +1210,11 @@ export default function Home() {
             locale,
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           }),
-        }),
+        }, READING_REQUEST_TIMEOUT_MS),
         new Promise((resolve) =>
           window.setTimeout(resolve, READING_PORTAL_MINIMUM_MS)
         ),
       ]);
-
-      const text = await res.text();
-      let data: unknown = null;
-
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = { error: "Resposta inválida do servidor" };
-      }
 
       if (res.status === 402 && isRecord(data)) {
         setPaywall({
@@ -1211,7 +1231,7 @@ export default function Home() {
           );
         } else {
           setError(
-            "Você já usou a leitura gratuita de hoje. Entre no Círculo ou escolha uma leitura premium para abrir uma nova tirada agora."
+            t("Você já usou a leitura gratuita de hoje. Crie uma conta grátis para proteger e rever esta tirada no Meu Universo, sem precisar assinar um plano.")
           );
         }
         return;
@@ -1296,7 +1316,18 @@ export default function Home() {
         setImpactPlan(recommended.suggestedPlan);
       }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Falha de rede");
+      const previousActiveReading = getLocalActiveReading();
+      if (previousActiveReading) {
+        restoreActiveReading(
+          previousActiveReading,
+          t("A conexão caiu durante a nova leitura. Reabrimos sua última tirada salva para você não perder o fio.")
+        );
+      }
+      const networkMessage =
+        caught instanceof DOMException && caught.name === "AbortError"
+          ? t("A leitura demorou mais que o esperado. Sua última tirada continua disponível e você pode tentar novamente em instantes.")
+          : t("A conexão oscilou antes da leitura abrir. Nada foi perdido; tente novamente quando a página estabilizar.");
+      setError(networkMessage);
     } finally {
       setLoading(false);
     }

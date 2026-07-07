@@ -6,9 +6,6 @@ node_modules/
 out/
 
 # Environment variables and secrets
-.env
-.env.*
-!.env.example
 !.env.production.template
 
 # Hosting and local tooling
@@ -34,3 +31,11 @@ Thumbs.db
 next-env.d.ts
 .vercel
 .env*.local
+
+.projects/cache
+.projects/vault
+.projects/state.test.json
+.projects/state.local.test.json
+.env
+.env.*
+!.env.example

@@ -4194,6 +4194,7 @@
 
   .pdu-result-stage {
     min-height: auto;
+    align-items: start;
     gap: 1.4rem;
   }
 
@@ -4281,9 +4282,12 @@
   }
 
   .pdu-reading-transcript {
-    padding-left: 1rem;
-    max-height: none;
-    overflow: visible;
+    max-height: min(64dvh, 520px);
+    overflow: auto;
+    border-top: 1px solid rgba(244, 213, 141, 0.22);
+    border-left: 0;
+    padding: 1rem 0.85rem 1rem 0;
+    -webkit-overflow-scrolling: touch;
   }
 
   .pdu-product-visual {

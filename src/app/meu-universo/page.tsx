@@ -24,12 +24,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   completeLocalImpactCommitment,
+  getLocalActiveReading,
   getLocalImpactCommitments,
   getLocalSavedMessages,
   getOrCreateLocalUserId,
   removeLocalImpactCommitments,
   removeLocalSavedMessages,
   type LocalImpactCommitment,
+  type LocalActiveReading,
   updateLocalImpactCommitment,
 } from "@/lib/client/localUniverse";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -307,6 +309,28 @@ function getSavedTitle(message: SavedMessage) {
   return typeof question === "string" && question ? question : "Mensagem salva";
 }
 
+function activeReadingAsSavedMessage(reading: LocalActiveReading | null) {
+  if (!reading?.result) return null;
+
+  return {
+    id: `active-${reading.reading_id ?? reading.updated_at}`,
+    reading_id: reading.reading_id,
+    message_type: "reading",
+    payload: {
+      savedAt: reading.updated_at,
+      locale: reading.locale,
+      theme: reading.theme,
+      productKey: reading.product_key,
+      question: reading.question,
+      spreadLine: reading.spread_line,
+      spreadCards: reading.spread_cards,
+      result: reading.result,
+    },
+    created_at: reading.updated_at,
+    local_only: true,
+  } satisfies SavedMessage;
+}
+
 function getSavedPreview(message: SavedMessage) {
   if (message.message_type === "daily_card" && isDailyCardPayload(message.payload)) {
     return asString(message.payload.reading?.meaning);
@@ -498,7 +522,11 @@ export default function MeuUniversoPage() {
     async function load() {
       setLoading(true);
       setError("");
-      const initialLocalMessages = getLocalSavedMessages();
+      const activeReadingMessage = activeReadingAsSavedMessage(getLocalActiveReading());
+      const initialLocalMessages = [
+        ...(activeReadingMessage ? [activeReadingMessage] : []),
+        ...getLocalSavedMessages(),
+      ];
       const initialLocalCommitments = getLocalImpactCommitments();
       if (initialLocalMessages.length) {
         setMessages(initialLocalMessages);
@@ -629,7 +657,11 @@ export default function MeuUniversoPage() {
         const remoteMessages = isRecord(messagesData)
           ? (asArray(messagesData.messages) as SavedMessage[])
           : [];
-        const localMessages = getLocalSavedMessages();
+        const currentActiveReadingMessage = activeReadingAsSavedMessage(getLocalActiveReading());
+        const localMessages = [
+          ...(currentActiveReadingMessage ? [currentActiveReadingMessage] : []),
+          ...getLocalSavedMessages(),
+        ];
         const seen = new Set<string>();
         const mergedMessages = [...remoteMessages, ...localMessages].filter(
           (message) => {

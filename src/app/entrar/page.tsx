@@ -9,6 +9,8 @@ import { productCards, pricingPlans } from "@/lib/product/catalog";
 
 type FormState = "idle" | "sending" | "sent" | "error";
 
+const RESEND_WAIT_SECONDS = 60;
+
 function getProductFromNextParam(): { title: string; price: string } | null {
   if (typeof window === "undefined") return null;
   const next = new URLSearchParams(window.location.search).get("next");
@@ -39,6 +41,8 @@ export default function EntrarPage() {
   const [message, setMessage] = useState("");
   const [product, setProduct] = useState<{ title: string; price: string } | null>(null);
   const [readingHistoryReason, setReadingHistoryReason] = useState(false);
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -50,6 +54,12 @@ export default function EntrarPage() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!resendAvailableAt) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendAvailableAt]);
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -92,14 +102,20 @@ export default function EntrarPage() {
     }
 
     setState("sent");
+    setResendAvailableAt(Date.now() + RESEND_WAIT_SECONDS * 1000);
     setMessage(
       locale === "en"
-        ? "We sent a secure link. Open it on this device to sign in."
-        : "Enviamos um link seguro. Abra-o neste dispositivo para entrar."
+        ? "We sent a secure link. If it does not arrive, check spam or promotions before requesting a new one."
+        : "Enviamos um link seguro. Se ele não chegar, confira spam ou promoções antes de pedir outro."
     );
   }
 
   const isEn = locale === "en";
+  const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "suporte@palavrasdouniverso.com";
+  const resendSeconds = resendAvailableAt
+    ? Math.max(0, Math.ceil((resendAvailableAt - now) / 1000))
+    : 0;
+  const canResend = state === "sent" && resendSeconds === 0;
 
   return (
     <main className="ritual-texture grid min-h-screen place-items-center px-4 py-12 text-[#241b18]">
@@ -174,12 +190,14 @@ export default function EntrarPage() {
           </div>
           <button
             type="submit"
-            disabled={state === "sending" || state === "sent"}
+            disabled={state === "sending" || (state === "sent" && !canResend)}
             className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#241b18] px-4 py-3 text-sm font-semibold text-[#fff7e8] hover:bg-[#3a2c25] disabled:cursor-default disabled:opacity-70"
           >
             {state === "sending" ? <Loader2 size={17} className="animate-spin" /> : null}
-            {state === "sent"
-              ? isEn ? "Link sent" : "Link enviado"
+            {state === "sent" && !canResend
+              ? isEn ? `Resend in ${resendSeconds}s` : `Reenviar em ${resendSeconds}s`
+              : state === "sent" && canResend
+                ? isEn ? "Send a new link" : "Enviar novo link"
               : readingHistoryReason
                 ? isEn ? "Create free account" : "Criar conta grátis"
                 : isEn ? "Receive access link" : "Receber link de acesso"}
@@ -202,6 +220,11 @@ export default function EntrarPage() {
           {isEn
             ? "No password to remember. The link expires and can only be used once."
             : "Sem senha para lembrar. O link expira e só pode ser usado uma vez."}
+          {" "}
+          {isEn ? "Still no email?" : "Ainda não chegou?"}{" "}
+          <a className="font-semibold text-[#5f462f] underline-offset-4 hover:underline" href={`mailto:${supportEmail}`}>
+            {supportEmail}
+          </a>
         </p>
       </section>
     </main>

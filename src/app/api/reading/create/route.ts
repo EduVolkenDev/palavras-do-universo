@@ -571,6 +571,7 @@ async function incrementFreeUsage(params: {
 
 async function persistReading(params: {
   userId: string;
+  locale: "pt-BR" | "en";
   theme: string;
   question: string;
   mode: string;
@@ -588,6 +589,7 @@ async function persistReading(params: {
       .from("readings")
       .insert({
         user_id: params.userId,
+        locale: params.locale,
         theme: params.theme,
         question: params.question,
         mode: params.mode,
@@ -966,6 +968,7 @@ export async function POST(req: Request) {
 
   const readingId = await persistReading({
     userId,
+    locale,
     theme,
     question,
     mode,
