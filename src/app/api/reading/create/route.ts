@@ -35,6 +35,8 @@ type UsageSource = "memory" | "supabase";
 
 type ReadingBody = {
   locale?: unknown;
+  onboardingFocus?: unknown;
+  onboardingSignal?: unknown;
   question?: unknown;
   theme?: unknown;
   userId?: unknown;
@@ -289,6 +291,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function asString(value: unknown) {
   return typeof value === "string" ? value : "";
+}
+
+function cleanContextText(value: unknown, max = 120) {
+  return typeof value === "string"
+    ? value.trim().replace(/\s+/g, " ").slice(0, max)
+    : "";
 }
 
 function extractSpreadCards(value: unknown) {
@@ -654,6 +662,8 @@ export async function POST(req: Request) {
   const rawQuestion = String(body?.question ?? "");
   const theme = String(body?.theme ?? "love").trim();
   const productKey = String(body?.productKey ?? "free_daily").trim();
+  const onboardingFocus = cleanContextText(body?.onboardingFocus);
+  const onboardingSignal = cleanContextText(body?.onboardingSignal, 80);
   const locale = String(body?.locale ?? "pt-BR").startsWith("en")
     ? "en"
     : "pt-BR";
@@ -849,6 +859,17 @@ export async function POST(req: Request) {
 	7) FECHAMENTO: ritual curto, resumo em 3 bullets e convite para retornar amanhã
 	`.trim();
   const portalMemory = await getPortalMemory(userId, remoteEnabled);
+  const localOnboardingMemory =
+    !remoteEnabled && (onboardingFocus || onboardingSignal)
+      ? [
+          "Contexto inicial local informado antes da leitura:",
+          onboardingFocus ? `Fase/tema de entrada: ${onboardingFocus}.` : "",
+          onboardingSignal ? `Sinal simbólico escolhido: ${onboardingSignal}.` : "",
+          "Use isso apenas como ponto de partida; não trate como diagnóstico nem como identidade fixa.",
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : "";
   const dailyDay = getZonedDay(normalizeTimeZone(String(body?.timeZone ?? "")));
   const dailyOpening = localizeDailyMessage(
     getDailyMessage({
@@ -903,6 +924,8 @@ export async function POST(req: Request) {
 
 	Memória viva do portal:
 	${portalMemory}
+
+	${localOnboardingMemory}
 
 	Abertura diária individual deste usuário:
 	${dailyOpeningText}

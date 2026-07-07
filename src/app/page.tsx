@@ -123,20 +123,32 @@ const themeOptions = [
 
 const journeySteps = [
   {
-    label: "1. Mensagem",
-    text: "Grátis. Abre o clima do dia com uma orientação curta.",
+    label: "1. Mensagem do dia",
+    text: "Abre o clima emocional do dia. É uma orientação curta, não uma resposta para uma pergunta.",
     icon: Sparkles,
     assetPath: glossyIcons.moon,
   },
   {
-    label: "2. Leitura",
-    text: "Você faz uma pergunta e recebe 3 cartas com direção prática.",
+    label: "2. Carta do dia",
+    text: "Mostra um símbolo para contemplar. A carta ilumina um tema; a leitura aprofunda uma escolha.",
+    icon: Star,
+    assetPath: glossyIcons.sprout,
+  },
+  {
+    label: "3. Leitura",
+    text: "Você faz uma pergunta e recebe 3 cartas com direção prática, conselho e próximos passos.",
     icon: Compass,
     assetPath: glossyIcons.book,
   },
   {
-    label: "3. Meu Universo",
-    text: "Salva padrões, cartas e decisões para acompanhar sua jornada.",
+    label: "4. Ritual",
+    text: "Transforma a leitura em uma ação simples para levar a clareza para o corpo e para a rotina.",
+    icon: Sun,
+    assetPath: glossyIcons.meditation,
+  },
+  {
+    label: "5. Meu Universo",
+    text: "Guarda mensagens, leituras e padrões para você rever sua jornada com contexto.",
     icon: Bookmark,
     assetPath: glossyIcons.bookmark,
   },
@@ -407,18 +419,18 @@ const marketplaceSignals = [
 
 const marketplaceFlow = [
   {
-    title: "Descobrir",
-    text: "Buscar por especialidade, estilo de cuidado, idioma e faixa de valor.",
+    title: "Quando procurar",
+    text: "Use depois de uma leitura quando o tema pedir escuta humana, acompanhamento ou presença profissional.",
     icon: Compass,
   },
   {
-    title: "Entender",
-    text: "Ver com clareza se o atendimento é cheio, social ou gratuito.",
+    title: "Como escolher",
+    text: "Compare especialidade, idioma, estilo de cuidado e faixa de acesso antes de iniciar contato.",
     icon: ShieldCheck,
   },
   {
-    title: "Conectar",
-    text: "Enviar um briefing privado e começar a conversa no contexto certo.",
+    title: "Como conectar",
+    text: "Envie um briefing privado apenas quando fizer sentido continuar a conversa com alguém qualificado.",
     icon: HandHeart,
   },
 ] as const;
@@ -940,6 +952,7 @@ export default function Home() {
   const [dailyOpening, setDailyOpening] =
     useState<DailyMessage>(fallbackDailyMessage);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingFocusId, setOnboardingFocusId] = useState("");
   const [readingStateHydrated, setReadingStateHydrated] = useState(false);
   const hasRestoredReadingStateRef = useRef(false);
   const shouldScrollToOpenedReadingRef = useRef(false);
@@ -1008,6 +1021,8 @@ export default function Home() {
   }, [locale, t]);
 
   useEffect(() => {
+    const storedFocus = localStorage.getItem("pdu_focus") ?? "";
+    if (storedFocus) setOnboardingFocusId(storedFocus);
     const seen = localStorage.getItem("pdu_onboarding_done");
     if (!seen) {
       // Small delay so the page renders first
@@ -1208,6 +1223,10 @@ export default function Home() {
             question: q,
             productKey: readingProductKey,
             locale,
+            onboardingFocus: onboardingFocusOption
+              ? t(onboardingFocusOption.label)
+              : "",
+            onboardingSignal: onboardingFocusOption?.signal ?? "",
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           }),
         }, READING_REQUEST_TIMEOUT_MS),
@@ -1694,10 +1713,17 @@ export default function Home() {
       ),
     };
   });
+  const onboardingFocusOption = useMemo(
+    () => onboardingOptions.find((option) => option.id === onboardingFocusId),
+    [onboardingFocusId]
+  );
 
   function completeOnboarding(focus?: string) {
     localStorage.setItem("pdu_onboarding_done", "1");
-    if (focus) localStorage.setItem("pdu_focus", focus);
+    if (focus) {
+      localStorage.setItem("pdu_focus", focus);
+      setOnboardingFocusId(focus);
+    }
     setShowOnboarding(false);
 
     // Persist to Supabase profile so the AI reading uses it via "Fase atual declarada"
@@ -1957,6 +1983,30 @@ export default function Home() {
             </div>
           </div>
 
+          <div
+            id="ritual"
+            className="pdu-reveal pdu-journey-map"
+            aria-label={t("Como a experiência funciona")}
+          >
+            {journeySteps.map((step) => (
+              <div key={step.label} className="pdu-journey-map__item">
+                <span className="pdu-journey-map__icon">
+                  <Image
+                    src={step.assetPath}
+                    alt=""
+                    fill
+                    sizes="(max-width: 768px) 4.75rem, 7.25rem"
+                    className="object-contain"
+                  />
+                </span>
+                <div>
+                  <strong>{t(step.label)}</strong>
+                  <p>{t(step.text)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <section
             className="pdu-reveal pdu-marketplace-band"
             id="profissionais"
@@ -1964,16 +2014,16 @@ export default function Home() {
           >
             <div className="pdu-marketplace-band__head">
               <div>
-                <SectionEyebrow dark>{t("Marketplace de cuidado")}</SectionEyebrow>
+                <SectionEyebrow dark>{t("Cuidado humano opcional")}</SectionEyebrow>
                 <h2 id="profissionais-title" className="brand-serif">
                   {t(
-                    "Um espaço para conectar pessoas a profissionais com presença, ética e faixa de acesso clara."
+                    "Quando uma leitura pede presença humana, você pode procurar profissionais com ética, idioma e faixa de acesso clara."
                   )}
                 </h2>
               </div>
               <p>
                 {t(
-                  "Você pode buscar por especialidade, idioma e tipo de acesso. O mercado é aberto, mas a política de preço continua nas mãos de cada profissional."
+                  "Profissionais não substituem a sua leitura e a leitura não substitui cuidado humano. Este espaço existe para continuar a conversa quando você quiser apoio real, com escolha e privacidade."
                 )}
               </p>
             </div>
@@ -2000,53 +2050,30 @@ export default function Home() {
             </div>
           </section>
 
-          <div
-            id="ritual"
-            className="pdu-reveal pdu-journey-map"
-            aria-label={t("Como a experiência funciona")}
-          >
-            {journeySteps.map((step) => (
-              <div key={step.label} className="pdu-journey-map__item">
-                <span className="pdu-journey-map__icon">
-                  <Image
-                    src={step.assetPath}
-                    alt=""
-                    width={92}
-                    height={92}
-                    className="h-full w-full object-contain"
-                  />
-                </span>
-                <div>
-                  <strong>{step.label}</strong>
-                  <p>{step.text}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
           <div className="pdu-reveal pdu-portal-entry">
             <div className="pdu-portal-entry__copy">
-              <p className="pdu-portal-console__eyebrow">Antes da pergunta</p>
+              <p className="pdu-portal-console__eyebrow">{t("Antes da pergunta")}</p>
               <h2 className="brand-serif">{t(selectedPortalIntent.title)}</h2>
               <p>
-                Escolha o tipo de clareza que você quer abrir. Isso muda a
-                pergunta sugerida, o tema da leitura e o tom da resposta.
+                {t(
+                  "Escolha o tipo de clareza que você quer abrir. Isso muda a pergunta sugerida, o tema da leitura e o tom da resposta."
+                )}
               </p>
             </div>
             <div className="pdu-portal-entry__controls">
               <div className="pdu-portal-current">
-                <span>Intenção selecionada</span>
+                <span>{t("Intenção selecionada")}</span>
                 <strong>{t(selectedPortalIntent.label)}</strong>
                 <p>{t(selectedPortalIntent.purpose)}</p>
               </div>
               <div className="pdu-portal-transform" aria-live="polite">
                 <div>
-                  <span>Antes</span>
+                  <span>{t("Antes")}</span>
                   <p>{t(selectedPortalIntent.from)}</p>
                 </div>
                 <ArrowRight size={18} />
                 <div>
-                  <span>Depois</span>
+                  <span>{t("Depois")}</span>
                   <p>{t(selectedPortalIntent.to)}</p>
                 </div>
               </div>
@@ -2231,6 +2258,20 @@ export default function Home() {
                         </button>
                       ))}
                     </div>
+
+                    {onboardingFocusOption ? (
+                      <div className="mt-4 rounded-[8px] border border-[#f4d58d]/20 bg-[#f4d58d]/8 p-3 text-sm leading-6 text-[#efe2d2]">
+                        <span className="font-semibold text-[#f5d896]">
+                          {locale === "en" ? "Starting point:" : "Ponto de partida:"}
+                        </span>{" "}
+                        {t(onboardingFocusOption.label)}.{" "}
+                        <span className="text-[#cfc4b9]">
+                          {locale === "en"
+                            ? "This signal helps shape the tone of this reading."
+                            : "Esse sinal ajuda a moldar o tom desta leitura."}
+                        </span>
+                      </div>
+                    ) : null}
 
                     <label
                       htmlFor="question"

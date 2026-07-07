@@ -475,7 +475,7 @@ function formatDate(value: string, locale: Locale) {
 }
 
 export default function MeuUniversoPage() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [userId, setUserId] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
   const [authChecked, setAuthChecked] = useState(false);
@@ -722,6 +722,14 @@ export default function MeuUniversoPage() {
     [messages]
   );
   const readingHistoryCount = readings.length + savedReadingMessages.length;
+  const profileCompletion = profileProgress(profileDraft);
+  const profileComplete = profileProgress(readingProfile) >= 4;
+  const hasAnyJourneySignal =
+    readingHistoryCount > 0 ||
+    otherSavedMessages.length > 0 ||
+    entitlements.length > 0 ||
+    commitments.length > 0 ||
+    profileCompletion > 0;
 
   const stats = useMemo(
     () => [
@@ -742,21 +750,20 @@ export default function MeuUniversoPage() {
       },
       {
         label: "Tema mais recente",
-        value: readings[0]?.theme ?? "—",
+        value: readings[0]?.theme ? localizeTheme(readings[0].theme, locale) : "—",
         icon: MoonStar,
       },
     ],
     [
       commitments,
       entitlements.length,
+      locale,
       otherSavedMessages.length,
       readingHistoryCount,
       readings,
     ]
   );
 
-  const profileCompletion = profileProgress(profileDraft);
-  const profileComplete = profileProgress(readingProfile) >= 4;
   const symbolicPatterns = useMemo(
     () => getSymbolicPatterns(readings, messages),
     [messages, readings]
@@ -1074,9 +1081,90 @@ export default function MeuUniversoPage() {
         ) : null}
 
         {authChecked && accountEmail ? (
+          <>
+          {!loading && !hasAnyJourneySignal ? (
+            <section className="mt-8 overflow-hidden rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] shadow-[0_30px_90px_rgba(80,57,34,0.1)]">
+              <div className="grid gap-0 lg:grid-cols-[0.86fr_1.14fr]">
+                <div className="bg-[#241b18] p-6 text-[#fff7e8] sm:p-8">
+                  <p className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/25 bg-white/[0.06] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+                    <Sparkles size={13} />
+                    {locale === "en" ? "Start here" : "Comece por aqui"}
+                  </p>
+                  <h2 className="brand-serif mt-5 text-4xl font-semibold leading-tight">
+                    {locale === "en"
+                      ? "Your Universe is ready. It just needs its first signal."
+                      : "Seu Universo está pronto. Falta só o primeiro sinal."}
+                  </h2>
+                  <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
+                    {locale === "en"
+                      ? "Nothing is broken or missing. A new account starts as a calibrated space: first profile, then first reading, then the archive begins to show patterns."
+                      : "Nada está quebrado ou perdido. Uma conta nova começa como um espaço calibrado: primeiro perfil, depois primeira leitura, então o arquivo começa a revelar padrões."}
+                  </p>
+                </div>
+                <div className="grid gap-3 p-5 sm:p-6 lg:grid-cols-3 lg:p-8">
+                  {[
+                    {
+                      icon: UserRound,
+                      title: locale === "en" ? "1. Calibrate" : "1. Calibrar",
+                      text:
+                        locale === "en"
+                          ? "Fill four signals in the Initial Map so readings stop feeling generic."
+                          : "Preencha quatro sinais no Mapa Inicial para as leituras deixarem de parecer genéricas.",
+                      href: "#mapa-inicial",
+                    },
+                    {
+                      icon: BookOpen,
+                      title: locale === "en" ? "2. Open" : "2. Abrir",
+                      text:
+                        locale === "en"
+                          ? "Ask one real question and let three cards become your first record."
+                          : "Faça uma pergunta real e deixe três cartas virarem seu primeiro registro.",
+                      href: "/#leitura",
+                    },
+                    {
+                      icon: HandHeart,
+                      title: locale === "en" ? "3. Act" : "3. Agir",
+                      text:
+                        locale === "en"
+                          ? "Turn one sentence from the reading into a small action in real life."
+                          : "Transforme uma frase da leitura em uma ação pequena na vida real.",
+                      href: "/#acao",
+                    },
+                  ].map((step) => {
+                    const Icon = step.icon;
+                    return (
+                      <Link
+                        key={step.title}
+                        href={step.href}
+                        className="group rounded-2xl border border-[#e4d3ba] bg-white/65 p-4 transition duration-300 hover:-translate-y-0.5 hover:border-[#c4a678] hover:bg-white"
+                      >
+                        <span className="grid h-11 w-11 place-items-center rounded-full bg-[#f4d58d]/35 text-[#8a6b3f]">
+                          <Icon size={18} />
+                        </span>
+                        <strong className="mt-4 block text-sm text-[#332720]">
+                          {step.title}
+                        </strong>
+                        <p className="mt-2 text-sm leading-6 text-[#6f615a]">
+                          {step.text}
+                        </p>
+                        <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">
+                          {locale === "en" ? "Continue" : "Continuar"}
+                          <ArrowRight size={13} />
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          ) : null}
+
           <section className="mt-8 overflow-hidden rounded-[28px] border border-[#241b18]/10 bg-[#111019] text-[#fff7e8] shadow-[0_34px_100px_rgba(36,27,24,0.18)]">
             <div className="grid gap-0 lg:grid-cols-[0.78fr_1.22fr]">
-              <div className="relative min-h-full overflow-hidden border-b border-white/10 p-6 lg:border-b-0 lg:border-r lg:p-8">
+              <div
+                id="mapa-inicial"
+                className="relative min-h-full scroll-mt-28 overflow-hidden border-b border-white/10 p-6 lg:border-b-0 lg:border-r lg:p-8"
+              >
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_20%,rgba(244,213,141,0.18),transparent_30%),radial-gradient(circle_at_80%_60%,rgba(167,215,197,0.16),transparent_34%)]" />
                 <div className="relative">
                   <p className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/22 bg-white/[0.05] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
@@ -1254,6 +1342,7 @@ export default function MeuUniversoPage() {
               </div>
             </div>
           </section>
+          </>
         ) : null}
 
         {authChecked && accountEmail && recommendedProduct ? (
@@ -1487,7 +1576,7 @@ export default function MeuUniversoPage() {
           ) : null}
 
           {loading && !entitlements.length ? (
-            <EmptyState text="Verificando seus acessos..." />
+            <UniverseSkeleton variant="access" />
           ) : entitlements.length ? (
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {entitlements.map((entitlement) => (
@@ -1526,7 +1615,7 @@ export default function MeuUniversoPage() {
               ))}
             </div>
           ) : (
-            <EmptyState text="Quando você desbloquear uma leitura ou entrar no Círculo, o acesso aparece aqui." />
+            <UniverseEmptyState kind="access" />
           )}
         </section>
 
@@ -1570,7 +1659,7 @@ export default function MeuUniversoPage() {
               ))}
             </div>
           ) : (
-            <EmptyState text="Quando você assumir uma ação, ela aparecerá aqui para ser acompanhada até a conclusão." />
+            <UniverseEmptyState kind="actions" />
           )}
         </section>
 
@@ -1589,7 +1678,7 @@ export default function MeuUniversoPage() {
             </div>
 
             {loading && !readingHistoryCount ? (
-              <EmptyState text="Carregando seu histórico..." />
+              <UniverseSkeleton variant="readings" />
             ) : readingHistoryCount ? (
               <div className="space-y-3">
                 {readings.map((reading) => (
@@ -1600,7 +1689,7 @@ export default function MeuUniversoPage() {
                 ))}
               </div>
             ) : (
-              <EmptyState text="Faça sua primeira leitura para começar o histórico." />
+              <UniverseEmptyState kind="readings" />
             )}
           </section>
 
@@ -1618,7 +1707,7 @@ export default function MeuUniversoPage() {
             </div>
 
             {loading && !otherSavedMessages.length ? (
-              <EmptyState text="Buscando mensagens salvas..." />
+              <UniverseSkeleton variant="saved" />
             ) : otherSavedMessages.length ? (
               <div className="space-y-3">
                 {otherSavedMessages.map((message) => (
@@ -1626,7 +1715,7 @@ export default function MeuUniversoPage() {
                 ))}
               </div>
             ) : (
-              <EmptyState text="Salve uma leitura para montar seu arquivo pessoal." />
+              <UniverseEmptyState kind="saved" />
             )}
           </section>
         </div>
@@ -1922,10 +2011,137 @@ function ImpactCommitmentCard(props: {
   );
 }
 
-function EmptyState({ text }: { text: string }) {
+function UniverseSkeleton({ variant }: { variant: "access" | "readings" | "saved" }) {
+  const { locale } = useI18n();
+  const title =
+    variant === "access"
+      ? locale === "en"
+        ? "Checking your access"
+        : "Verificando seus acessos"
+      : variant === "saved"
+        ? locale === "en"
+          ? "Gathering saved messages"
+          : "Reunindo mensagens salvas"
+        : locale === "en"
+          ? "Opening your history"
+          : "Abrindo seu histórico";
+  const line =
+    locale === "en"
+      ? "Your archive is being assembled with readings from this account and this device."
+      : "Seu arquivo está sendo montado com leituras desta conta e deste dispositivo.";
+
   return (
-    <div className="rounded-lg border border-dashed border-[#d8c3a6] bg-[#fbf6ee] p-5 text-sm leading-6 text-[#6f615a]">
-      {text}
+    <div className="overflow-hidden rounded-2xl border border-[#e4d3ba] bg-[#fbf6ee] p-5">
+      <div className="flex items-start gap-3">
+        <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#f4d58d]/30 text-[#8a6b3f]">
+          <Sparkles size={18} className="animate-pulse" />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-[#332720]">{title}</p>
+          <p className="mt-1 text-sm leading-6 text-[#6f615a]">{line}</p>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        {[0, 1, 2].map((item) => (
+          <div
+            key={item}
+            className="h-24 animate-pulse rounded-2xl border border-[#eadcc8] bg-[linear-gradient(100deg,rgba(255,255,255,0.4),rgba(244,213,141,0.22),rgba(255,255,255,0.42))]"
+            style={{ animationDelay: `${item * 120}ms` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function UniverseEmptyState({
+  kind,
+}: {
+  kind: "access" | "actions" | "readings" | "saved";
+}) {
+  const { locale } = useI18n();
+  const copy = {
+    access: {
+      icon: CreditCard,
+      title:
+        locale === "en"
+          ? "No active unlocks yet."
+          : "Nenhum desbloqueio ativo ainda.",
+      text:
+        locale === "en"
+          ? "Paid readings and Circle access appear here after checkout. You can still calibrate your map and open the free reading first."
+          : "Leituras pagas e acesso ao Círculo aparecem aqui depois do checkout. Você ainda pode calibrar o mapa e abrir a leitura grátis primeiro.",
+      cta: locale === "en" ? "See experiences" : "Ver experiências",
+      href: "/#produtos",
+    },
+    actions: {
+      icon: HandHeart,
+      title:
+        locale === "en"
+          ? "No real-life action registered yet."
+          : "Nenhuma ação de vida real registrada ainda.",
+      text:
+        locale === "en"
+          ? "After a reading, choose one possible gesture. This turns the oracle into movement instead of passive prediction."
+          : "Depois de uma leitura, escolha um gesto possível. Isso transforma o oráculo em movimento, não em previsão passiva.",
+      cta: locale === "en" ? "Choose an action" : "Escolher uma ação",
+      href: "/#acao",
+    },
+    readings: {
+      icon: BookOpen,
+      title:
+        locale === "en"
+          ? "Your first reading will live here."
+          : "Sua primeira leitura vai morar aqui.",
+      text:
+        locale === "en"
+          ? "Ask one honest question. The cards, answer, and advice become the first point in your personal map."
+          : "Faça uma pergunta honesta. As cartas, a resposta e o conselho viram o primeiro ponto do seu mapa pessoal.",
+      cta: locale === "en" ? "Open first reading" : "Abrir primeira leitura",
+      href: "/#leitura",
+    },
+    saved: {
+      icon: Bookmark,
+      title:
+        locale === "en"
+          ? "Nothing saved yet."
+          : "Nada salvo ainda.",
+      text:
+        locale === "en"
+          ? "Save a reading or daily card when it feels useful. This area becomes your private archive of phrases worth returning to."
+          : "Salve uma leitura ou carta do dia quando ela fizer sentido. Esta área vira seu arquivo privado de frases para revisitar.",
+      cta: locale === "en" ? "See today’s card" : "Ver carta do dia",
+      href: "/carta-do-dia",
+    },
+  }[kind];
+  const Icon = copy.icon;
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-[#e4d3ba] bg-[#fbf6ee]">
+      <div className="grid gap-0 sm:grid-cols-[1fr_auto] sm:items-center">
+        <div className="p-5">
+          <div className="flex items-start gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#f4d58d]/35 text-[#8a6b3f]">
+              <Icon size={18} />
+            </span>
+            <div>
+              <h3 className="font-semibold text-[#332720]">{copy.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-[#6f615a]">
+                {copy.text}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-[#e4d3ba] bg-white/45 p-5 sm:border-l sm:border-t-0">
+          <Link
+            href={copy.href}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#241b18] px-4 py-2.5 text-sm font-semibold text-[#fff7e8] transition duration-300 hover:-translate-y-0.5 hover:bg-[#3a2c25] sm:w-auto"
+          >
+            {copy.cta}
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
