@@ -1965,6 +1965,7 @@ export default function Home() {
                   fill
                   priority
                   sizes="(max-width: 768px) 86vw, 44vw"
+                  quality={74}
                   className="object-contain"
                 />
                 {marketplaceSignals.map((signal, index) => {
@@ -3282,9 +3283,12 @@ function ProductIconVisual(props: { title: string }) {
           <Image
             src={visual.assetPath}
             alt=""
-            fill
-            sizes="(max-width: 768px) 280px, 20vw"
-            className="object-contain"
+            width={420}
+            height={420}
+            sizes="(max-width: 768px) 280px, 320px"
+            loading="lazy"
+            quality={72}
+            className="h-full w-full object-contain"
             onError={() => setFailed(true)}
           />
         </div>

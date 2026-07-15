@@ -3922,6 +3922,36 @@
     transform: none;
   }
 
+  .pdu-home::before,
+  .pdu-portal-console::before,
+  .pdu-portal-console__visual,
+  .pdu-hero-mark {
+    transform: none;
+  }
+
+  .pdu-hero-stars,
+  .pdu-hero-side::before,
+  .pdu-hero-side::after,
+  .pdu-portal-console__visual,
+  .pdu-hero-mark,
+  .pdu-hero-mark__orbit,
+  .pdu-product-visual__halo,
+  .pdu-product-visual__portal,
+  .pdu-product-visual__ring,
+  .pdu-product-visual__veil,
+  .pdu-product-visual__beam {
+    animation: none;
+  }
+
+  .pdu-hero-side::before {
+    filter: blur(14px);
+    opacity: 0.42;
+  }
+
+  .pdu-hero-side::after {
+    opacity: 0.34;
+  }
+
   .pdu-hero-shell {
     min-height: auto;
     padding-top: 0;
@@ -4004,6 +4034,7 @@
 
   .pdu-hero-mark {
     width: min(100%, 88vw);
+    filter: drop-shadow(0 22px 54px rgba(0, 0, 0, 0.3));
   }
 
   .pdu-hero-mark__orbit {

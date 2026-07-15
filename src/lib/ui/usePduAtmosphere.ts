@@ -6,6 +6,7 @@ export function usePduAtmosphere() {
   useEffect(() => {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const finePointer = window.matchMedia("(pointer: fine)");
+    const compactViewport = window.matchMedia("(max-width: 768px)");
     const revealItems = Array.from(
       document.querySelectorAll(".pdu-reveal, .pdu-scroll-reveal")
     );
@@ -99,6 +100,7 @@ export function usePduAtmosphere() {
     };
 
     const updateScrollAtmosphere = () => {
+      if (!finePointer.matches || compactViewport.matches) return;
       if (scrollFrame) return;
 
       scrollFrame = window.requestAnimationFrame(() => {
@@ -115,10 +117,13 @@ export function usePduAtmosphere() {
     };
 
     window.addEventListener("pointermove", onPointerMove, { passive: true });
-    window.addEventListener("scroll", updateScrollAtmosphere, {
-      passive: true,
-    });
-    updateScrollAtmosphere();
+
+    if (finePointer.matches && !compactViewport.matches) {
+      window.addEventListener("scroll", updateScrollAtmosphere, {
+        passive: true,
+      });
+      updateScrollAtmosphere();
+    }
 
     return () => {
       observer.disconnect();

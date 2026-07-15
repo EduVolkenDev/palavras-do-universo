@@ -46,6 +46,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactCompiler: true,
   poweredByHeader: false,
+  images: {
+    qualities: [72, 74, 75],
+  },
   async redirects() {
     return legacyHosts.map((host) => ({
       source: "/:path*",
