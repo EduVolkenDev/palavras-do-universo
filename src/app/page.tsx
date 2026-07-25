@@ -62,6 +62,7 @@ import {
   getRecommendedImpactActions,
 } from "@/lib/impact/actions";
 import { CARDS } from "@/lib/tarot/cards";
+import { PDU_ASSETS } from "@/lib/pdu-assets";
 
 type ApiOk = {
   ok: true;
@@ -104,13 +105,13 @@ const READING_PORTAL_MINIMUM_MS = 1200;
 const READING_REQUEST_TIMEOUT_MS = 45_000;
 
 const glossyIcons = {
-  book: "/icons/pdu/glossy/book.webp",
-  bookmark: "/icons/pdu/glossy/bookmark.webp",
-  heart: "/icons/pdu/glossy/heart.webp",
-  meditation: "/icons/pdu/glossy/meditation.webp",
-  moon: "/icons/pdu/glossy/moon.webp",
-  shield: "/icons/pdu/glossy/shield.webp",
-  sprout: "/icons/pdu/glossy/sprout.webp",
+  book: PDU_ASSETS.icons.book,
+  bookmark: PDU_ASSETS.icons.bookmark,
+  heart: PDU_ASSETS.icons.heart,
+  meditation: PDU_ASSETS.icons.meditation,
+  moon: PDU_ASSETS.icons.moon,
+  shield: PDU_ASSETS.icons.shield,
+  sprout: PDU_ASSETS.icons.sprout,
 } as const;
 
 const themeOptions = [
@@ -126,33 +127,49 @@ const journeySteps = [
     label: "1. Mensagem do dia",
     text: "Abre o clima emocional do dia. É uma orientação curta, não uma resposta para uma pergunta.",
     icon: Sparkles,
-    assetPath: glossyIcons.moon,
+    assetPath: PDU_ASSETS.icons.book,
   },
   {
     label: "2. Carta do dia",
     text: "Mostra um símbolo para contemplar. A carta ilumina um tema; a leitura aprofunda uma escolha.",
     icon: Star,
-    assetPath: glossyIcons.sprout,
+    assetPath: PDU_ASSETS.icons.bookmark,
   },
   {
     label: "3. Leitura",
     text: "Você faz uma pergunta e recebe 3 cartas com direção prática, conselho e próximos passos.",
     icon: Compass,
-    assetPath: glossyIcons.book,
+    assetPath: PDU_ASSETS.products.threeCardPath,
+    visualClass: "pdu-journey-map__icon--three-cards",
   },
   {
     label: "4. Ritual",
     text: "Transforma a leitura em uma ação simples para levar a clareza para o corpo e para a rotina.",
     icon: Sun,
-    assetPath: glossyIcons.meditation,
+    assetPath: PDU_ASSETS.icons.meditation,
   },
   {
     label: "5. Meu Universo",
     text: "Guarda mensagens, leituras e padrões para você rever sua jornada com contexto.",
     icon: Bookmark,
-    assetPath: glossyIcons.bookmark,
+    assetPath: PDU_ASSETS.icons.moon,
   },
 ];
+
+const heroArtifacts = [
+  {
+    label: "1. Mensagem do dia",
+    assetPath: PDU_ASSETS.icons.book,
+  },
+  {
+    label: "2. Carta do dia",
+    assetPath: PDU_ASSETS.icons.bookmark,
+  },
+  {
+    label: "4. Ritual",
+    assetPath: PDU_ASSETS.icons.meditation,
+  },
+] as const;
 
 const portalIntentOptions = [
   {
@@ -164,7 +181,7 @@ const portalIntentOptions = [
     from: "Ruído: tentar explicar tudo antes de sentir.",
     to: "Clareza: nomear o primeiro passo sem se violentar.",
     question: "O que eu preciso atravessar com mais presença agora?",
-    assetPath: "/assets/portal.webp",
+    assetPath: PDU_ASSETS.editorial.portal,
   },
   {
     id: "abrir",
@@ -175,7 +192,7 @@ const portalIntentOptions = [
     from: "Ruído: procurar garantia onde existe vínculo vivo.",
     to: "Clareza: ouvir o que o sentimento está tentando ensinar.",
     question: "Que chave emocional eu ainda não estou querendo enxergar?",
-    assetPath: "/assets/key.webp",
+    assetPath: PDU_ASSETS.editorial.key,
   },
   {
     id: "desembaçar",
@@ -186,7 +203,7 @@ const portalIntentOptions = [
     from: "Ruído: confundir urgência com chamado.",
     to: "Clareza: separar desejo, medo e movimento possível.",
     question: "Qual direção fica mais honesta quando eu retiro a pressa?",
-    assetPath: "/assets/mirror.webp",
+    assetPath: PDU_ASSETS.editorial.mirror,
   },
   {
     id: "firmar",
@@ -197,7 +214,7 @@ const portalIntentOptions = [
     from: "Ruído: esperar o momento perfeito para agir.",
     to: "Clareza: escolher uma atitude pequena, limpa e possível.",
     question: "Que gesto concreto sustenta melhor a minha energia hoje?",
-    assetPath: "/assets/CRYSTAL.webp",
+    assetPath: PDU_ASSETS.editorial.crystal,
   },
 ];
 
@@ -280,16 +297,19 @@ const experienceAccessPaths = [
     label: "Comece grátis",
     text: "Mensagem e Carta do Dia para criar o hábito sem compromisso.",
     icon: Sparkles,
+    assetPath: PDU_ASSETS.products.messageOfTheDay,
   },
   {
     label: "Resolva uma questão",
     text: "Leituras avulsas para amor, decisões ou clareza urgente.",
     icon: Compass,
+    assetPath: PDU_ASSETS.products.urgentClarity,
   },
   {
     label: "Acompanhe sua jornada",
     text: "Círculo para histórico, padrões e experiências contínuas.",
     icon: History,
+    assetPath: PDU_ASSETS.ambient.allConnected,
   },
 ];
 
@@ -305,10 +325,10 @@ const atmosphereWords = [
 ];
 
 const floatingSymbols = [
-  { label: "lua", icon: MoonStar },
-  { label: "estrela", icon: Sparkles },
-  { label: "coração", icon: Heart },
-  { label: "bússola", icon: Compass },
+  { label: "Mensagens salvas", assetPath: PDU_ASSETS.icons.bookmark },
+  { label: "Ciclos", assetPath: PDU_ASSETS.icons.moon },
+  { label: "Vínculos", assetPath: PDU_ASSETS.icons.heart },
+  { label: "Ritual", assetPath: PDU_ASSETS.icons.meditation },
 ];
 
 const universeFeatureTokens = [
@@ -421,17 +441,17 @@ const marketplaceFlow = [
   {
     title: "Quando procurar",
     text: "Use depois de uma leitura quando o tema pedir escuta humana, acompanhamento ou presença profissional.",
-    icon: Compass,
+    assetPath: PDU_ASSETS.icons.moon,
   },
   {
     title: "Como escolher",
     text: "Compare especialidade, idioma, estilo de cuidado e faixa de acesso antes de iniciar contato.",
-    icon: ShieldCheck,
+    assetPath: PDU_ASSETS.icons.shield,
   },
   {
     title: "Como conectar",
     text: "Envie um briefing privado apenas quando fizer sentido continuar a conversa com alguém qualificado.",
-    icon: HandHeart,
+    assetPath: PDU_ASSETS.icons.heart,
   },
 ] as const;
 
@@ -487,37 +507,37 @@ const productIconVisuals: Record<
   }
 > = {
   "Mensagem do Dia": {
-    assetPath: "/icons/pdu/mensagem-do-dia.webp",
+    assetPath: PDU_ASSETS.products.messageOfTheDay,
     fallbackIcon: Sparkles,
     tone: "gold",
   },
   "Carta do Dia": {
-    assetPath: "/icons/pdu/carta-do-dia.webp",
+    assetPath: PDU_ASSETS.products.cardOfTheDay,
     fallbackIcon: MoonStar,
     tone: "blue",
   },
   "Clareza Urgente": {
-    assetPath: "/icons/pdu/clareza-urgente.webp",
+    assetPath: PDU_ASSETS.products.urgentClarity,
     fallbackIcon: LifeBuoy,
     tone: "rose",
   },
   "Caminho das 3 Cartas": {
-    assetPath: "/icons/pdu/caminho-3-cartas.webp",
+    assetPath: PDU_ASSETS.products.threeCardPath,
     fallbackIcon: Compass,
     tone: "mint",
   },
   "Sinais do Amor": {
-    assetPath: "/icons/pdu/sinais-do-amor.webp",
+    assetPath: PDU_ASSETS.products.loveSignals,
     fallbackIcon: Heart,
     tone: "rose",
   },
   "Energia da Semana": {
-    assetPath: "/icons/pdu/energia-da-semana.webp",
+    assetPath: PDU_ASSETS.products.weekEnergy,
     fallbackIcon: Sun,
     tone: "gold",
   },
   "Mapa do Momento": {
-    assetPath: "/icons/pdu/mapa-do-momento.webp",
+    assetPath: PDU_ASSETS.products.momentMap,
     fallbackIcon: UserRound,
     tone: "blue",
   },
@@ -1960,12 +1980,12 @@ export default function Home() {
             <div className="pdu-reveal pdu-hero-side pdu-hero-side--logo">
               <div className="pdu-hero-mark" aria-hidden="true">
                 <Image
-                  src="/assets/palavrasuniverso.webp"
+                  src={PDU_ASSETS.brand.mark}
                   alt=""
                   fill
                   priority
                   sizes="(max-width: 768px) 86vw, 44vw"
-                  quality={74}
+                  quality={88}
                   className="object-contain"
                 />
                 {marketplaceSignals.map((signal, index) => {
@@ -1981,6 +2001,23 @@ export default function Home() {
                   );
                 })}
               </div>
+              <div className="pdu-hero-artifact-rail" aria-label={t("Âncoras da experiência")}>
+                {heroArtifacts.map((artifact) => (
+                  <div className="pdu-hero-artifact" key={artifact.label}>
+                    <span className="pdu-hero-artifact__visual relative">
+                      <Image
+                        src={artifact.assetPath}
+                        alt=""
+                        fill
+                        sizes="(max-width: 768px) 4rem, 5rem"
+                        quality={75}
+                        className="object-contain"
+                      />
+                    </span>
+                    <strong>{t(artifact.label)}</strong>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1991,7 +2028,7 @@ export default function Home() {
           >
             {journeySteps.map((step) => (
               <div key={step.label} className="pdu-journey-map__item">
-                <span className="pdu-journey-map__icon">
+                <span className={`pdu-journey-map__icon ${step.visualClass ?? ""}`}>
                   <Image
                     src={step.assetPath}
                     alt=""
@@ -2031,7 +2068,6 @@ export default function Home() {
 
             <div className="pdu-marketplace-flow">
               {marketplaceFlow.map((item, index) => {
-                const Icon = item.icon;
                 return (
                   <article
                     key={item.title}
@@ -2040,8 +2076,14 @@ export default function Home() {
                       { "--pdu-market-index": index } as CSSProperties
                     }
                   >
-                    <span className="pdu-marketplace-flow__icon">
-                      <Icon size={18} strokeWidth={1.8} />
+                    <span className="pdu-marketplace-flow__icon relative">
+                      <Image
+                        src={item.assetPath}
+                        alt=""
+                        fill
+                        sizes="2.5rem"
+                        className="object-contain"
+                      />
                     </span>
                     <strong>{t(item.title)}</strong>
                     <p>{t(item.text)}</p>
@@ -2052,6 +2094,19 @@ export default function Home() {
           </section>
 
           <div className="pdu-reveal pdu-portal-entry">
+            <div className="pdu-portal-entry__art" aria-hidden="true">
+              <div className="pdu-portal-entry__art-glow" />
+              <Image
+                key={selectedPortalIntent.id}
+                src={selectedPortalIntent.assetPath}
+                alt=""
+                fill
+                sizes="(max-width: 1120px) 180px, 220px"
+                quality={84}
+                className="object-contain"
+              />
+              <span>{t(selectedPortalIntent.label)}</span>
+            </div>
             <div className="pdu-portal-entry__copy">
               <p className="pdu-portal-console__eyebrow">{t("Antes da pergunta")}</p>
               <h2 className="brand-serif">{t(selectedPortalIntent.title)}</h2>
@@ -2121,8 +2176,14 @@ export default function Home() {
                         : dailyOpening.energy}
                     </h2>
                   </div>
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#f4d58d]/25 bg-[#f4d58d]/10 text-[#f5d896]">
-                    <MoonStar size={21} />
+                  <span className="pdu-reading-header-art relative grid h-14 w-14 shrink-0 place-items-center rounded-full border border-[#f4d58d]/25 bg-[#f4d58d]/10 text-[#f5d896]">
+                    <Image
+                      src={PDU_ASSETS.products.threeCardPath}
+                      alt=""
+                      fill
+                      sizes="3.5rem"
+                      className="object-contain"
+                    />
                   </span>
                 </div>
 
@@ -2771,8 +2832,14 @@ export default function Home() {
             {experienceAccessPaths.map((path, index) => (
               <div key={path.label} className="pdu-access-guide__item">
                 <span className="pdu-access-guide__number">0{index + 1}</span>
-                <span className="pdu-access-guide__icon">
-                  <path.icon size={34} strokeWidth={1.35} />
+                <span className="pdu-access-guide__icon relative">
+                  <Image
+                    src={path.assetPath}
+                    alt=""
+                    fill
+                    sizes="6rem"
+                    className="object-contain"
+                  />
                 </span>
                 <div>
                   <strong>{path.label}</strong>
@@ -2907,7 +2974,7 @@ export default function Home() {
           <div className="pdu-feature-cloud">
             <div className="pdu-feature-cloud__core" aria-hidden="true">
               <Image
-                src={glossyIcons.bookmark}
+                src={PDU_ASSETS.ambient.allConnected}
                 alt=""
                 width={190}
                 height={190}
@@ -2915,7 +2982,6 @@ export default function Home() {
               />
             </div>
             {floatingSymbols.map((symbol, index) => {
-              const Icon = symbol.icon;
               return (
                 <span
                   key={symbol.label}
@@ -2923,7 +2989,13 @@ export default function Home() {
                   style={{ "--pdu-symbol-index": index } as CSSProperties}
                   aria-hidden="true"
                 >
-                  <Icon size={34} strokeWidth={1.35} />
+                  <Image
+                    src={symbol.assetPath}
+                    alt=""
+                    fill
+                    sizes="(max-width: 768px) 4.6rem, 8rem"
+                    className="object-contain"
+                  />
                 </span>
               );
             })}
@@ -2946,7 +3018,7 @@ export default function Home() {
       >
         <div className="pdu-circle-sigil" aria-hidden="true">
           <Image
-            src={glossyIcons.moon}
+            src={PDU_ASSETS.ambient.mandala}
             alt=""
             width={260}
             height={260}
@@ -3261,7 +3333,7 @@ function ReadingSpreadPortal(props: { immersive?: boolean }) {
 function ProductIconVisual(props: { title: string }) {
   const [failed, setFailed] = useState(false);
   const visual = productIconVisuals[props.title] ?? {
-    assetPath: "/icons/pdu/mensagem-do-dia.webp",
+    assetPath: PDU_ASSETS.products.messageOfTheDay,
     fallbackIcon: Sparkles,
     tone: "gold" as const,
   };
