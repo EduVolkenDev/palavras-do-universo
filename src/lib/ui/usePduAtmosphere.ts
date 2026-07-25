@@ -13,7 +13,11 @@ export function usePduAtmosphere() {
     const root = document.documentElement;
     const observedRevealItems = new Set<Element>();
 
-    if (reduceMotion.matches || !("IntersectionObserver" in window)) {
+    if (
+      reduceMotion.matches ||
+      compactViewport.matches ||
+      !("IntersectionObserver" in window)
+    ) {
       revealItems.forEach((item) => item.classList.add("is-visible"));
       root.classList.add("pdu-motion-ready");
       return () => root.classList.remove("pdu-motion-ready");

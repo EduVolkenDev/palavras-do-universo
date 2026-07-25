@@ -11,7 +11,6 @@ export const PDU_ASSETS = {
   icons: {
     book: "/assets/pdu-icon-book.webp",
     bookmark: "/assets/pdu-icon-bookmark.webp",
-    readingCards: "/assets/cards.webp",
     heart: "/assets/pdu-icon-heart.webp",
     meditation: "/assets/pdu-icon-meditation.webp",
     moon: "/assets/pdu-icon-moon.webp",

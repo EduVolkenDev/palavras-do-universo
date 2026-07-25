@@ -52,6 +52,7 @@ import {
   updateLocalImpactCommitment,
 } from "@/lib/client/localUniverse";
 import { usePduAtmosphere } from "@/lib/ui/usePduAtmosphere";
+import { usePduScrollRecovery } from "@/lib/ui/usePduScrollRecovery";
 import { usePushNotifications } from "@/lib/push/usePushNotifications";
 import { useI18n } from "@/components/I18nProvider";
 import { normalizeLocale, type Locale } from "@/lib/i18n/config";
@@ -107,7 +108,6 @@ const READING_REQUEST_TIMEOUT_MS = 45_000;
 const glossyIcons = {
   book: PDU_ASSETS.icons.book,
   bookmark: PDU_ASSETS.icons.bookmark,
-  readingCards: PDU_ASSETS.icons.readingCards,
   heart: PDU_ASSETS.icons.heart,
   meditation: PDU_ASSETS.icons.meditation,
   moon: PDU_ASSETS.icons.moon,
@@ -136,20 +136,19 @@ const journeySteps: JourneyStep[] = [
     label: "1. Mensagem do dia",
     text: "Abre o clima emocional do dia. É uma orientação curta, não uma resposta para uma pergunta.",
     icon: Sparkles,
-    assetPath: PDU_ASSETS.icons.book,
+    assetPath: PDU_ASSETS.icons.moon,
   },
   {
     label: "2. Carta do dia",
     text: "Mostra um símbolo para contemplar. A carta ilumina um tema; a leitura aprofunda uma escolha.",
     icon: Star,
-    assetPath: PDU_ASSETS.icons.bookmark,
+    assetPath: PDU_ASSETS.icons.sprout,
   },
   {
     label: "3. Leitura",
     text: "Você faz uma pergunta e recebe 3 cartas com direção prática, conselho e próximos passos.",
     icon: Compass,
-    assetPath: PDU_ASSETS.icons.readingCards,
-    visualClass: "pdu-journey-map__icon--reading-cards",
+    assetPath: PDU_ASSETS.icons.book,
   },
   {
     label: "4. Ritual",
@@ -161,7 +160,7 @@ const journeySteps: JourneyStep[] = [
     label: "5. Meu Universo",
     text: "Guarda mensagens, leituras e padrões para você rever sua jornada com contexto.",
     icon: Bookmark,
-    assetPath: PDU_ASSETS.icons.moon,
+    assetPath: PDU_ASSETS.icons.bookmark,
   },
 ];
 
@@ -987,6 +986,7 @@ export default function Home() {
   const shouldScrollToOpenedReadingRef = useRef(false);
 
   usePduAtmosphere();
+  usePduScrollRecovery();
   const push = usePushNotifications();
 
   useEffect(() => {
@@ -1848,12 +1848,29 @@ export default function Home() {
 
       <header className="pdu-site-header fixed left-0 right-0 top-0 border-b border-white/10 bg-[#09080d]/62 backdrop-blur-2xl">
         <div className="pdu-site-header__inner mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <a href="#topo" className="group flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-[8px] border border-[#d7b66b]/35 bg-[#f4d58d]/10 text-[#f5d896] shadow-[0_0_32px_rgba(215,182,107,0.16)]">
-              <Sparkles size={18} strokeWidth={1.7} />
+          <a
+            href="#topo"
+            className="group flex min-w-0 items-center gap-2.5 sm:gap-3"
+            aria-label="Palavras do Universo"
+          >
+            <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[8px] border border-[#d7b66b]/35 bg-[#f4d58d]/10 shadow-[0_0_32px_rgba(215,182,107,0.16)]">
+              <img
+                src="/assets/palavras-symbol.webp"
+                alt=""
+                width={36}
+                height={36}
+                className="h-full w-full object-contain p-1.5"
+              />
             </span>
-            <span className="brand-serif text-lg font-semibold tracking-normal text-[#fff7e8]">
-              Palavras do Universo
+            <span className="relative block h-7 w-[min(12.5rem,46vw)] shrink sm:h-8 sm:w-56">
+              <Image
+                src="/assets/new-wordmark-transparent.webp"
+                alt="Palavras do Universo"
+                fill
+                priority
+                sizes="(max-width: 640px) 46vw, 224px"
+                className="object-contain object-left"
+              />
             </span>
           </a>
 
@@ -1994,7 +2011,7 @@ export default function Home() {
                   fill
                   priority
                   sizes="(max-width: 768px) 86vw, 44vw"
-                  quality={88}
+                  quality={74}
                   className="object-contain"
                 />
                 {marketplaceSignals.map((signal, index) => {
@@ -3366,7 +3383,7 @@ function ProductIconVisual(props: { title: string }) {
             alt=""
             width={420}
             height={420}
-            sizes="(max-width: 768px) 280px, 320px"
+            sizes="(max-width: 768px) 180px, 320px"
             loading="lazy"
             quality={72}
             className="h-full w-full object-contain"

@@ -1,6 +1,6 @@
 "use client";
 
-import { Languages } from "lucide-react";
+import Image from "next/image";
 import { useI18n } from "@/components/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 
@@ -18,11 +18,18 @@ export function LanguageSwitcher() {
       aria-label={locale === "en" ? "Language" : "Idioma"}
       data-i18n-ignore
     >
-      <Languages
-        size={15}
-        className="ml-2 mr-1 hidden text-[#f5d896] sm:block"
+      <span
+        className="relative ml-1 h-5 w-5 shrink-0 overflow-hidden rounded-full sm:ml-1.5"
         aria-hidden="true"
-      />
+      >
+        <Image
+          src="/assets/palavras-symbol.webp"
+          alt=""
+          fill
+          sizes="20px"
+          className="object-contain"
+        />
+      </span>
       <button
         type="button"
         onClick={() => handleLocaleClick("pt-BR")}

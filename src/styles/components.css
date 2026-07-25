@@ -5309,16 +5309,6 @@
     drop-shadow(0 0 16px rgba(244, 213, 141, 0.16));
 }
 
-.pdu-journey-map__icon--reading-cards img {
-  transform: translateY(2%) scale(1.44);
-  filter:
-    saturate(1.22)
-    contrast(1.12)
-    brightness(1.12)
-    drop-shadow(0 0 18px rgba(149, 99, 255, 0.42))
-    drop-shadow(0 14px 22px rgba(69, 206, 255, 0.22));
-}
-
 @media (max-width: 768px) {
   .pdu-journey-map__icon {
     width: clamp(7rem, 18vw, 9.5rem);
@@ -5329,10 +5319,6 @@
     transform: scale(1.28);
   }
 
-  .pdu-journey-map__icon--reading-cards img {
-    transform: translateY(2%) scale(1.52);
-  }
-  
   .pdu-access-guide__icon {
     width: clamp(6.5rem, 16vw, 9rem);
     height: clamp(6.5rem, 16vw, 9rem);
@@ -5430,4 +5416,76 @@
 
 .pdu-floating-symbol::after {
   animation-delay: calc(var(--pdu-symbol-index, 0) * 0.5s);
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  .pdu-motion-ready .pdu-reveal,
+  .pdu-motion-ready .pdu-scroll-reveal {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    transition: none;
+  }
+
+  .pdu-home::before,
+  .pdu-home::after,
+  .pdu-veil,
+  .pdu-hero-stars,
+  .pdu-hero-side::before,
+  .pdu-hero-side::after,
+  .pdu-hero-mark::after,
+  .pdu-product-visual::before,
+  .pdu-product-visual::after,
+  .pdu-product-visual__halo,
+  .pdu-product-visual__portal,
+  .pdu-product-visual__ring,
+  .pdu-product-visual__veil,
+  .pdu-product-visual__beam {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .pdu-hero-mark,
+  .pdu-hero-mark__orbit,
+  .pdu-hero-artifact,
+  .pdu-magic-marquee__track,
+  .pdu-journey-map__icon,
+  .pdu-access-guide__icon,
+  .pdu-feature-cloud__core,
+  .pdu-floating-symbol,
+  .pdu-circle-sigil,
+  .pdu-product-visual__image {
+    animation: none !important;
+  }
+
+  .pdu-hero-mark::after,
+  .pdu-product-visual__halo,
+  .pdu-product-visual__ring,
+  .pdu-product-visual__veil,
+  .pdu-product-visual__beam {
+    display: none;
+  }
+
+  .pdu-journey-map__icon::after,
+  .pdu-access-guide__icon::after,
+  .pdu-floating-symbol::after {
+    display: none;
+  }
+
+  .pdu-hero-mark {
+    filter: drop-shadow(0 18px 42px rgba(0, 0, 0, 0.28));
+  }
+
+  .pdu-product-visual {
+    perspective: none;
+  }
+
+  .pdu-product-visual__image {
+    filter: drop-shadow(0 24px 34px rgba(42, 28, 18, 0.22));
+    transform: none;
+  }
+
+  .pdu-magic-marquee__track {
+    transform: none;
+  }
 }
