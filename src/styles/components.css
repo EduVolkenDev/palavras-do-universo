@@ -5309,6 +5309,16 @@
     drop-shadow(0 0 16px rgba(244, 213, 141, 0.16));
 }
 
+.pdu-journey-map__icon--reading-cards img {
+  transform: translateY(2%) scale(1.44);
+  filter:
+    saturate(1.22)
+    contrast(1.12)
+    brightness(1.12)
+    drop-shadow(0 0 18px rgba(149, 99, 255, 0.42))
+    drop-shadow(0 14px 22px rgba(69, 206, 255, 0.22));
+}
+
 @media (max-width: 768px) {
   .pdu-journey-map__icon {
     width: clamp(7rem, 18vw, 9.5rem);
@@ -5317,6 +5327,10 @@
   
   .pdu-journey-map__icon img {
     transform: scale(1.28);
+  }
+
+  .pdu-journey-map__icon--reading-cards img {
+    transform: translateY(2%) scale(1.52);
   }
   
   .pdu-access-guide__icon {

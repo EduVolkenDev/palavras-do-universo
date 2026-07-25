@@ -107,6 +107,7 @@ const READING_REQUEST_TIMEOUT_MS = 45_000;
 const glossyIcons = {
   book: PDU_ASSETS.icons.book,
   bookmark: PDU_ASSETS.icons.bookmark,
+  readingCards: PDU_ASSETS.icons.readingCards,
   heart: PDU_ASSETS.icons.heart,
   meditation: PDU_ASSETS.icons.meditation,
   moon: PDU_ASSETS.icons.moon,
@@ -122,7 +123,15 @@ const themeOptions = [
   { value: "spirit", label: "Espiritual", icon: MoonStar },
 ];
 
-const journeySteps = [
+type JourneyStep = {
+  label: string;
+  text: string;
+  icon: LucideIcon;
+  assetPath: string;
+  visualClass?: string;
+};
+
+const journeySteps: JourneyStep[] = [
   {
     label: "1. Mensagem do dia",
     text: "Abre o clima emocional do dia. É uma orientação curta, não uma resposta para uma pergunta.",
@@ -139,8 +148,8 @@ const journeySteps = [
     label: "3. Leitura",
     text: "Você faz uma pergunta e recebe 3 cartas com direção prática, conselho e próximos passos.",
     icon: Compass,
-    assetPath: PDU_ASSETS.products.threeCardPath,
-    visualClass: "pdu-journey-map__icon--three-cards",
+    assetPath: PDU_ASSETS.icons.readingCards,
+    visualClass: "pdu-journey-map__icon--reading-cards",
   },
   {
     label: "4. Ritual",
