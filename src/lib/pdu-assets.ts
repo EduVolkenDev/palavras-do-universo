@@ -6,7 +6,9 @@
  */
 export const PDU_ASSETS = {
   brand: {
-    mark: "/assets/palavrasuniverso.webp",
+    mark: "/assets/palavrasuniverso-1600.webp",
+    markDesktop: "/assets/palavrasuniverso-1600.webp",
+    markMobile: "/assets/palavrasuniverso-mobile.webp",
   },
   icons: {
     book: "/assets/pdu-icon-book.webp",

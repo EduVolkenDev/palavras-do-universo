@@ -13,7 +13,6 @@ import {
   Heart,
   History,
   LifeBuoy,
-  LockKeyhole,
   MoonStar,
   Quote,
   Share2,
@@ -512,6 +511,7 @@ const productIconVisuals: Record<
     assetPath: string;
     fallbackIcon: LucideIcon;
     tone: "gold" | "mint" | "blue" | "rose";
+    variant?: "three-card-path";
   }
 > = {
   "Mensagem do Dia": {
@@ -533,6 +533,7 @@ const productIconVisuals: Record<
     assetPath: PDU_ASSETS.products.threeCardPath,
     fallbackIcon: Compass,
     tone: "mint",
+    variant: "three-card-path",
   },
   "Sinais do Amor": {
     assetPath: PDU_ASSETS.products.loveSignals,
@@ -1847,34 +1848,34 @@ export default function Home() {
       ) : null}
 
       <header className="pdu-site-header fixed left-0 right-0 top-0 border-b border-white/10 bg-[#09080d]/62 backdrop-blur-2xl">
-        <div className="pdu-site-header__inner mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+        <div className="pdu-site-header__inner mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <a
             href="#topo"
-            className="group flex min-w-0 items-center gap-2.5 sm:gap-3"
+            className="group flex min-w-0 items-center gap-3 sm:gap-4"
             aria-label="Palavras do Universo"
           >
-            <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[8px] border border-[#d7b66b]/35 bg-[#f4d58d]/10 shadow-[0_0_32px_rgba(215,182,107,0.16)]">
+            <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[10px] border border-[#d7b66b]/24 bg-[#f4d58d]/8 shadow-[0_0_34px_rgba(215,182,107,0.14)] sm:h-16 sm:w-16">
               <img
                 src="/assets/palavras-symbol.webp"
                 alt=""
-                width={36}
-                height={36}
-                className="h-full w-full object-contain p-1.5"
+                width={64}
+                height={64}
+                className="h-full w-full object-contain p-1.5 sm:p-2"
               />
             </span>
-            <span className="relative block h-7 w-[min(12.5rem,46vw)] shrink sm:h-8 sm:w-56">
+            <span className="relative block h-9 w-[min(12rem,41vw)] shrink sm:h-12 sm:w-72">
               <Image
-                src="/assets/new-wordmark-transparent.webp"
+                src="/assets/pdu-new-wordmark-transparent-ofi.webp"
                 alt="Palavras do Universo"
                 fill
                 priority
-                sizes="(max-width: 640px) 46vw, 224px"
+                sizes="(max-width: 640px) 41vw, 288px"
                 className="object-contain object-left"
               />
             </span>
           </a>
 
-          <nav className="hidden items-center gap-6 text-sm text-[#cfc4b9] md:flex">
+          <nav className="pdu-site-header__nav hidden items-center text-sm text-[#cfc4b9] md:flex">
             <a href="#leitura" className="hover:text-white">
               Leitura
             </a>
@@ -1961,20 +1962,28 @@ export default function Home() {
               </div>
 
               <div className="pdu-hero-proof">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck size={16} className="text-[#a7d7c5]" />
+                <div className="pdu-proof-chip">
+                  <span className="pdu-mini-sigil">
+                    <Image src={PDU_ASSETS.icons.shield} alt="" fill sizes="1.6rem" className="object-contain" />
+                  </span>
                   Sem fatalismo
                 </div>
-                <div className="flex items-center gap-2">
-                  <BadgeCheck size={16} className="text-[#a7d7c5]" />
+                <div className="pdu-proof-chip">
+                  <span className="pdu-mini-sigil">
+                    <Image src={PDU_ASSETS.icons.sprout} alt="" fill sizes="1.6rem" className="object-contain" />
+                  </span>
                   Clareza prática
                 </div>
-                <div className="flex items-center gap-2">
-                  <LockKeyhole size={16} className="text-[#a7d7c5]" />
+                <div className="pdu-proof-chip">
+                  <span className="pdu-mini-sigil">
+                    <Image src={PDU_ASSETS.icons.bookmark} alt="" fill sizes="1.6rem" className="object-contain" />
+                  </span>
                   Jornada privada
                 </div>
-                <div className="flex items-center gap-2 text-[#f5d896]">
-                  <Sparkles size={16} />
+                <div className="pdu-proof-chip pdu-proof-chip--gold">
+                  <span className="pdu-mini-sigil">
+                    <Image src={PDU_ASSETS.icons.moon} alt="" fill sizes="1.6rem" className="object-contain" />
+                  </span>
                   {(1240 + (new Date().getDate() * 37 + new Date().getMonth() * 113) % 380).toLocaleString(locale)}
                   {" "}
                   {locale === "en" ? "readings opened today" : "leituras abertas hoje"}
@@ -2005,15 +2014,25 @@ export default function Home() {
 
             <div className="pdu-reveal pdu-hero-side pdu-hero-side--logo">
               <div className="pdu-hero-mark" aria-hidden="true">
-                <Image
-                  src={PDU_ASSETS.brand.mark}
-                  alt=""
-                  fill
-                  priority
-                  sizes="(max-width: 768px) 86vw, 44vw"
-                  quality={74}
-                  className="object-contain"
-                />
+                <picture>
+                  <source
+                    media="(max-width: 768px)"
+                    srcSet={PDU_ASSETS.brand.markMobile}
+                  />
+                  <source
+                    media="(min-width: 769px)"
+                    srcSet={PDU_ASSETS.brand.markDesktop}
+                  />
+                  <img
+                    src={PDU_ASSETS.brand.markDesktop}
+                    alt=""
+                    width={1600}
+                    height={1600}
+                    decoding="async"
+                    fetchPriority="high"
+                    className="h-full w-full object-contain"
+                  />
+                </picture>
                 {marketplaceSignals.map((signal, index) => {
                   const Icon = signal.icon;
                   return (
@@ -2892,64 +2911,66 @@ export default function Home() {
                   </span>
                 </div>
                 <ProductIconVisual title={product.title} />
-                <p className="pdu-product-node__eyebrow">
-                  {product.archetype}
-                </p>
-                <h3 className="brand-serif pdu-product-node__title">
-                  {product.title}
-                </h3>
-                <p className="pdu-product-node__promise">
-                  {product.promise}
-                </p>
-                <div className="pdu-product-node__transformation">
-                  <span className="font-semibold text-[#4d3c31]">
-                    Transformação:
-                  </span>{" "}
-                  {product.transformation}
-                </div>
-                <div className="pdu-product-node__details">
-                  <p>
+                <div className="pdu-product-node__content">
+                  <p className="pdu-product-node__eyebrow">
+                    {product.archetype}
+                  </p>
+                  <h3 className="brand-serif pdu-product-node__title">
+                    {product.title}
+                  </h3>
+                  <p className="pdu-product-node__promise">
+                    {product.promise}
+                  </p>
+                  <div className="pdu-product-node__transformation">
                     <span className="font-semibold text-[#4d3c31]">
-                      Melhor para:
+                      Transformação:
                     </span>{" "}
-                    {product.bestFor}
-                  </p>
-                  <p>
-                    <span className="font-semibold text-[#4d3c31]">
-                      Não é para:
-                    </span>{" "}
-                    {product.notFor}
-                  </p>
+                    {product.transformation}
+                  </div>
+                  <div className="pdu-product-node__details">
+                    <p>
+                      <span className="font-semibold text-[#4d3c31]">
+                        Melhor para:
+                      </span>{" "}
+                      {product.bestFor}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-[#4d3c31]">
+                        Não é para:
+                      </span>{" "}
+                      {product.notFor}
+                    </p>
+                  </div>
+                  {product.price ? (
+                    <p className="pdu-product-node__price">
+                      {product.price}
+                    </p>
+                  ) : null}
+                  {product.href ? (
+                    <a href={product.href} className={productActionClass}>
+                      {product.cta}
+                      <ArrowRight size={16} />
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        product.mode === "paid"
+                          ? startCheckout(product.productKey)
+                          : product.mode === "included"
+                            ? scrollToId("circulo")
+                            : scrollToId("leitura")
+                      }
+                      disabled={checkoutLoading === product.productKey}
+                      className={productActionClass}
+                    >
+                      {checkoutLoading === product.productKey
+                        ? "Abrindo checkout..."
+                        : product.cta}
+                      <ArrowRight size={16} />
+                    </button>
+                  )}
                 </div>
-                {product.price ? (
-                  <p className="pdu-product-node__price">
-                    {product.price}
-                  </p>
-                ) : null}
-                {product.href ? (
-                  <a href={product.href} className={productActionClass}>
-                    {product.cta}
-                    <ArrowRight size={16} />
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      product.mode === "paid"
-                        ? startCheckout(product.productKey)
-                        : product.mode === "included"
-                          ? scrollToId("circulo")
-                          : scrollToId("leitura")
-                    }
-                    disabled={checkoutLoading === product.productKey}
-                    className={productActionClass}
-                  >
-                    {checkoutLoading === product.productKey
-                      ? "Abrindo checkout..."
-                      : product.cta}
-                    <ArrowRight size={16} />
-                  </button>
-                )}
               </article>
             ))}
           </div>
@@ -2960,16 +2981,22 @@ export default function Home() {
           ) : null}
 
           <div className="pdu-trust-ribbon">
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck size={14} />
+            <span className="pdu-trust-ribbon__item">
+              <span className="pdu-mini-sigil pdu-mini-sigil--light">
+                <Image src={PDU_ASSETS.icons.shield} alt="" fill sizes="1.35rem" className="object-contain" />
+              </span>
               Pagamento seguro via Stripe
             </span>
-            <span className="flex items-center gap-1.5">
-              <BadgeCheck size={14} />
+            <span className="pdu-trust-ribbon__item">
+              <span className="pdu-mini-sigil pdu-mini-sigil--light">
+                <Image src={PDU_ASSETS.icons.heart} alt="" fill sizes="1.35rem" className="object-contain" />
+              </span>
               Satisfação garantida — refazemos a leitura se não trouxer clareza
             </span>
-            <span className="flex items-center gap-1.5">
-              <LockKeyhole size={14} />
+            <span className="pdu-trust-ribbon__item">
+              <span className="pdu-mini-sigil pdu-mini-sigil--light">
+                <Image src={PDU_ASSETS.icons.bookmark} alt="" fill sizes="1.35rem" className="object-contain" />
+              </span>
               Suas perguntas são privadas e nunca compartilhadas
             </span>
           </div>
@@ -3007,33 +3034,37 @@ export default function Home() {
                 className="h-full w-full object-contain"
               />
             </div>
-            {floatingSymbols.map((symbol, index) => {
-              return (
-                <span
+            <div className="pdu-feature-cloud__symbols">
+              {floatingSymbols.map((symbol, index) => (
+                <div
                   key={symbol.label}
-                  className="pdu-floating-symbol"
+                  className="pdu-feature-cloud__symbol"
                   style={{ "--pdu-symbol-index": index } as CSSProperties}
-                  aria-hidden="true"
                 >
-                  <Image
-                    src={symbol.assetPath}
-                    alt=""
-                    fill
-                    sizes="(max-width: 768px) 4.6rem, 8rem"
-                    className="object-contain"
-                  />
-                </span>
-              );
-            })}
-            {universeFeatureTokens.map((item, index) => (
-              <div
-                key={item}
-                className="pdu-feature-token"
-                style={{ "--pdu-token-index": index } as CSSProperties}
-              >
-                {item}
-              </div>
-            ))}
+                  <span className="pdu-floating-symbol" aria-hidden="true">
+                    <Image
+                      src={symbol.assetPath}
+                      alt=""
+                      fill
+                      sizes="(max-width: 768px) 5rem, 8rem"
+                      className="object-contain"
+                    />
+                  </span>
+                  <span>{symbol.label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="pdu-feature-cloud__tokens">
+              {universeFeatureTokens.map((item, index) => (
+                <div
+                  key={item}
+                  className="pdu-feature-token"
+                  style={{ "--pdu-token-index": index } as CSSProperties}
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -3181,16 +3212,22 @@ export default function Home() {
           </div>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-[#8d837b]">
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck size={14} className="text-[#a7d7c5]" />
+            <span className="pdu-proof-chip pdu-proof-chip--quiet">
+              <span className="pdu-mini-sigil">
+                <Image src={PDU_ASSETS.icons.shield} alt="" fill sizes="1.35rem" className="object-contain" />
+              </span>
               Pagamento seguro via Stripe
             </span>
-            <span className="flex items-center gap-1.5">
-              <BadgeCheck size={14} className="text-[#a7d7c5]" />
+            <span className="pdu-proof-chip pdu-proof-chip--quiet">
+              <span className="pdu-mini-sigil">
+                <Image src={PDU_ASSETS.icons.heart} alt="" fill sizes="1.35rem" className="object-contain" />
+              </span>
               Satisfação garantida — refazemos a leitura se não trouxer clareza
             </span>
-            <span className="flex items-center gap-1.5">
-              <LockKeyhole size={14} className="text-[#a7d7c5]" />
+            <span className="pdu-proof-chip pdu-proof-chip--quiet">
+              <span className="pdu-mini-sigil">
+                <Image src={PDU_ASSETS.icons.bookmark} alt="" fill sizes="1.35rem" className="object-contain" />
+              </span>
               Suas perguntas são privadas e nunca compartilhadas
             </span>
           </div>
@@ -3367,7 +3404,9 @@ function ProductIconVisual(props: { title: string }) {
 
   return (
     <div
-      className={`pdu-product-visual pdu-product-visual--${visual.tone} mb-5`}
+      className={`pdu-product-visual pdu-product-visual--${visual.tone}${
+        visual.variant ? ` pdu-product-visual--${visual.variant}` : ""
+      } mb-5`}
     >
       <div className="pdu-product-visual__halo" />
       <div className="pdu-product-visual__portal" aria-hidden="true" />
@@ -3378,17 +3417,30 @@ function ProductIconVisual(props: { title: string }) {
       <div className="pdu-product-visual__beam" aria-hidden="true" />
       {!failed ? (
         <div className="pdu-product-visual__image relative z-10 transition duration-500 group-hover:scale-[1.04]">
-          <Image
-            src={visual.assetPath}
-            alt=""
-            width={420}
-            height={420}
-            sizes="(max-width: 768px) 180px, 320px"
-            loading="lazy"
-            quality={72}
-            className="h-full w-full object-contain"
-            onError={() => setFailed(true)}
-          />
+          {visual.variant === "three-card-path" ? (
+            <img
+              src={visual.assetPath}
+              alt=""
+              width={420}
+              height={420}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-contain"
+              onError={() => setFailed(true)}
+            />
+          ) : (
+            <Image
+              src={visual.assetPath}
+              alt=""
+              width={420}
+              height={420}
+              sizes="(max-width: 768px) 180px, 320px"
+              loading="lazy"
+              quality={72}
+              className="h-full w-full object-contain"
+              onError={() => setFailed(true)}
+            />
+          )}
         </div>
       ) : (
         <div className="relative z-10 grid h-40 place-items-center">
