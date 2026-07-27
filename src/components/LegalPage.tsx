@@ -1,12 +1,18 @@
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import { PDU_ASSETS } from "@/lib/pdu-assets";
 
 export function LegalPage(props: {
   eyebrow: string;
   title: string;
   intro: string;
+  visual?: string;
+  visualAlt?: string;
   sections: { title: string; body: React.ReactNode }[];
 }) {
+  const visual = props.visual ?? PDU_ASSETS.brand.symbol;
+
   return (
     <main className="ritual-texture min-h-screen px-4 py-10 text-[#241b18] sm:px-6">
       <article className="mx-auto max-w-3xl rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-6 shadow-[0_24px_70px_rgba(66,48,31,0.12)] sm:p-10">
@@ -14,7 +20,15 @@ export function LegalPage(props: {
           <ArrowLeft size={16} />
           Voltar
         </Link>
-        <Sparkles size={22} className="mt-10 text-[#8a6b3f]" />
+        <span className="mt-10 grid h-12 w-12 place-items-center rounded-2xl border border-[#dfccb0] bg-white/70">
+          <Image
+            src={visual}
+            alt={props.visualAlt ?? props.title}
+            width={34}
+            height={34}
+            className="h-8 w-8 object-contain"
+          />
+        </span>
         <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">
           {props.eyebrow}
         </p>

@@ -9,7 +9,6 @@ import {
   Clock,
   Compass,
   CreditCard,
-  History,
   HandHeart,
   LogIn,
   MoonStar,
@@ -41,6 +40,7 @@ import { useI18n } from "@/components/I18nProvider";
 import { normalizeLocale, type Locale } from "@/lib/i18n/config";
 import { localizeTarotCard, translateOraclePosition } from "@/lib/i18n/oracle";
 import { CARDS } from "@/lib/tarot/cards";
+import { PDU_ASSETS } from "@/lib/pdu-assets";
 
 type Reading = {
   id: string;
@@ -99,6 +99,12 @@ type ReadingSpreadCard = {
   reversed: boolean;
   meaning: string;
   assetPath: string;
+};
+
+type UniverseStat = {
+  label: string;
+  value: string | number;
+  visual: string;
 };
 
 const EMPTY_READING_PROFILE: ReadingProfile = {
@@ -732,26 +738,26 @@ export default function MeuUniversoPage() {
     profileCompletion > 0;
 
   const stats = useMemo(
-    () => [
-      { label: "Leituras", value: readingHistoryCount, icon: History },
-      { label: "Salvas", value: otherSavedMessages.length, icon: Bookmark },
-      { label: "Acessos", value: entitlements.length, icon: CheckCircle2 },
+    (): UniverseStat[] => [
+      { label: "Leituras", value: readingHistoryCount, visual: PDU_ASSETS.surfaces.readings },
+      { label: "Salvas", value: otherSavedMessages.length, visual: PDU_ASSETS.surfaces.saved },
+      { label: "Acessos", value: entitlements.length, visual: PDU_ASSETS.surfaces.access },
       {
         label: "Ações concluídas",
         value: commitments.filter((commitment) => commitment.status === "completed").length,
-        icon: HandHeart,
+        visual: PDU_ASSETS.surfaces.actionComplete,
       },
       {
         label: "Em movimento",
         value: commitments.filter((commitment) =>
           ["committed", "deferred"].includes(commitment.status)
         ).length,
-        icon: HandHeart,
+        visual: PDU_ASSETS.surfaces.movement,
       },
       {
         label: "Tema mais recente",
         value: readings[0]?.theme ? localizeTheme(readings[0].theme, locale) : "—",
-        icon: MoonStar,
+        visual: PDU_ASSETS.surfaces.map,
       },
     ],
     [
@@ -1021,7 +1027,13 @@ export default function MeuUniversoPage() {
               key={stat.label}
               className="rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-5"
             >
-              <stat.icon size={19} className="text-[#607464]" />
+              <Image
+                src={stat.visual}
+                alt=""
+                width={24}
+                height={24}
+                className="h-6 w-6 object-contain"
+              />
               <p className="mt-4 text-sm text-[#6f615a]">{stat.label}</p>
               <p className="mt-1 text-2xl font-semibold text-[#241b18]">
                 {stat.value}
@@ -1104,7 +1116,7 @@ export default function MeuUniversoPage() {
                 <div className="grid gap-3 p-5 sm:p-6 lg:grid-cols-3 lg:p-8">
                   {[
                     {
-                      icon: UserRound,
+                      visual: PDU_ASSETS.surfaces.profile,
                       title: locale === "en" ? "1. Calibrate" : "1. Calibrar",
                       text:
                         locale === "en"
@@ -1113,7 +1125,7 @@ export default function MeuUniversoPage() {
                       href: "#mapa-inicial",
                     },
                     {
-                      icon: BookOpen,
+                      visual: PDU_ASSETS.surfaces.readings,
                       title: locale === "en" ? "2. Open" : "2. Abrir",
                       text:
                         locale === "en"
@@ -1122,7 +1134,7 @@ export default function MeuUniversoPage() {
                       href: "/#leitura",
                     },
                     {
-                      icon: HandHeart,
+                      visual: PDU_ASSETS.surfaces.action,
                       title: locale === "en" ? "3. Act" : "3. Agir",
                       text:
                         locale === "en"
@@ -1130,16 +1142,20 @@ export default function MeuUniversoPage() {
                           : "Transforme uma frase da leitura em uma ação pequena na vida real.",
                       href: "/#acao",
                     },
-                  ].map((step) => {
-                    const Icon = step.icon;
-                    return (
+                  ].map((step) => (
                       <Link
                         key={step.title}
                         href={step.href}
                         className="group rounded-2xl border border-[#e4d3ba] bg-white/65 p-4 transition duration-300 hover:-translate-y-0.5 hover:border-[#c4a678] hover:bg-white"
                       >
                         <span className="grid h-11 w-11 place-items-center rounded-full bg-[#f4d58d]/35 text-[#8a6b3f]">
-                          <Icon size={18} />
+                          <Image
+                            src={step.visual}
+                            alt=""
+                            width={25}
+                            height={25}
+                            className="h-6 w-6 object-contain"
+                          />
                         </span>
                         <strong className="mt-4 block text-sm text-[#332720]">
                           {step.title}
@@ -1152,8 +1168,7 @@ export default function MeuUniversoPage() {
                           <ArrowRight size={13} />
                         </span>
                       </Link>
-                    );
-                  })}
+                    ))}
                 </div>
               </div>
             </section>
@@ -2013,6 +2028,12 @@ function ImpactCommitmentCard(props: {
 
 function UniverseSkeleton({ variant }: { variant: "access" | "readings" | "saved" }) {
   const { locale } = useI18n();
+  const visual =
+    variant === "access"
+      ? PDU_ASSETS.surfaces.access
+      : variant === "saved"
+        ? PDU_ASSETS.surfaces.saved
+        : PDU_ASSETS.surfaces.readings;
   const title =
     variant === "access"
       ? locale === "en"
@@ -2034,7 +2055,13 @@ function UniverseSkeleton({ variant }: { variant: "access" | "readings" | "saved
     <div className="overflow-hidden rounded-2xl border border-[#e4d3ba] bg-[#fbf6ee] p-5">
       <div className="flex items-start gap-3">
         <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#f4d58d]/30 text-[#8a6b3f]">
-          <Sparkles size={18} className="animate-pulse" />
+          <Image
+            src={visual}
+            alt=""
+            width={24}
+            height={24}
+            className="h-6 w-6 animate-pulse object-contain"
+          />
         </span>
         <div>
           <p className="text-sm font-semibold text-[#332720]">{title}</p>
@@ -2062,7 +2089,7 @@ function UniverseEmptyState({
   const { locale } = useI18n();
   const copy = {
     access: {
-      icon: CreditCard,
+      visual: PDU_ASSETS.surfaces.access,
       title:
         locale === "en"
           ? "No active unlocks yet."
@@ -2075,7 +2102,7 @@ function UniverseEmptyState({
       href: "/#produtos",
     },
     actions: {
-      icon: HandHeart,
+      visual: PDU_ASSETS.surfaces.action,
       title:
         locale === "en"
           ? "No real-life action registered yet."
@@ -2088,7 +2115,7 @@ function UniverseEmptyState({
       href: "/#acao",
     },
     readings: {
-      icon: BookOpen,
+      visual: PDU_ASSETS.surfaces.readings,
       title:
         locale === "en"
           ? "Your first reading will live here."
@@ -2101,7 +2128,7 @@ function UniverseEmptyState({
       href: "/#leitura",
     },
     saved: {
-      icon: Bookmark,
+      visual: PDU_ASSETS.surfaces.saved,
       title:
         locale === "en"
           ? "Nothing saved yet."
@@ -2114,7 +2141,6 @@ function UniverseEmptyState({
       href: "/carta-do-dia",
     },
   }[kind];
-  const Icon = copy.icon;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[#e4d3ba] bg-[#fbf6ee]">
@@ -2122,7 +2148,13 @@ function UniverseEmptyState({
         <div className="p-5">
           <div className="flex items-start gap-3">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#f4d58d]/35 text-[#8a6b3f]">
-              <Icon size={18} />
+              <Image
+                src={copy.visual}
+                alt=""
+                width={25}
+                height={25}
+                className="h-6 w-6 object-contain"
+              />
             </span>
             <div>
               <h3 className="font-semibold text-[#332720]">{copy.title}</h3>

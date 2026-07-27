@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, Gift, Percent, ShieldCheck, Sparkles } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import VoucherClaimCard from "@/components/vouchers/VoucherClaimCard";
 import { getAuthenticatedUser, hasSupabaseConfig } from "@/lib/supabase/server";
 import { getVoucherByCode } from "@/lib/vouchers/service";
 import { pricingPlans, productCards } from "@/lib/product/catalog";
+import { PDU_ASSETS } from "@/lib/pdu-assets";
 
 function getProductTitle(productKey: string | null) {
   if (!productKey) return null;
@@ -28,8 +30,12 @@ export default async function VoucherClaimPage(props: {
     )
   ) as string[];
 
-  const kindIcon =
-    voucher?.kind === "invite" ? Gift : voucher?.kind === "discount" ? Percent : Sparkles;
+  const kindVisual =
+    voucher?.kind === "invite"
+      ? PDU_ASSETS.surfaces.voucherInvite
+      : voucher?.kind === "discount"
+        ? PDU_ASSETS.surfaces.voucherDiscount
+        : PDU_ASSETS.surfaces.voucherAccess;
 
   return (
     <main className="ritual-texture grid min-h-screen place-items-center bg-[#110f16] px-4 py-10 text-[#f3eadf]">
@@ -52,7 +58,13 @@ export default async function VoucherClaimPage(props: {
           </div>
 
           <div className="grid h-16 w-16 place-items-center rounded-[24px] border border-[#5e5137] bg-[#1b1713] text-[#f4d58d]">
-            {kindIcon === Gift ? <Gift size={24} /> : kindIcon === Percent ? <Percent size={24} /> : <Sparkles size={24} />}
+            <Image
+              src={kindVisual}
+              alt=""
+              width={42}
+              height={42}
+              className="h-10 w-10 object-contain"
+            />
           </div>
         </div>
 

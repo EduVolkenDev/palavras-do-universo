@@ -1,4 +1,5 @@
 import { LegalPage } from "@/components/LegalPage";
+import { PDU_ASSETS } from "@/lib/pdu-assets";
 
 export default function PrivacyPage() {
   return (
@@ -6,6 +7,8 @@ export default function PrivacyPage() {
       eyebrow="Confiança"
       title="Privacidade"
       intro="Coletamos somente o necessário para entregar a experiência, proteger sua conta e comprovar acessos pagos."
+      visual={PDU_ASSETS.surfaces.legalPrivacy}
+      visualAlt="Escudo de privacidade"
       sections={[
         {
           title: "Dados utilizados",

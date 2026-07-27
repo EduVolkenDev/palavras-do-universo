@@ -1,7 +1,9 @@
-import { ArrowRight, CheckCircle2, HandHeart, Sparkles, Users } from "lucide-react";
+import { ArrowRight, CheckCircle2, Users } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { getSupabaseAdmin, hasSupabaseConfig } from "@/lib/supabase/server";
 import { IMPACT_AREA_LABELS, type ImpactArea } from "@/lib/impact/actions";
+import { PDU_ASSETS } from "@/lib/pdu-assets";
 
 type PublicParticipation = {
   action_key: string;
@@ -41,7 +43,13 @@ export default async function PublicActionPage(props: {
     return (
       <main className="ritual-texture grid min-h-screen place-items-center px-4 py-12 text-[#241b18]">
         <section className="w-full max-w-xl rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-7 text-center">
-          <Sparkles className="mx-auto text-[#8a6b3f]" />
+          <Image
+            src={PDU_ASSETS.surfaces.action}
+            alt=""
+            width={44}
+            height={44}
+            className="mx-auto h-11 w-11 object-contain"
+          />
           <h1 className="brand-serif mt-5 text-4xl font-semibold">
             Esta corrente ainda não pode ser aberta.
           </h1>
@@ -61,7 +69,15 @@ export default async function PublicActionPage(props: {
     <main className="ritual-texture min-h-screen px-4 py-12 text-[#241b18] sm:py-20">
       <section className="mx-auto max-w-3xl overflow-hidden rounded-lg border border-[#bdd2c2] bg-[#fffaf2] shadow-[0_28px_90px_rgba(49,93,86,0.16)]">
         <div className="bg-[#173b38] px-6 py-9 text-[#fff7e8] sm:px-10">
-          <HandHeart size={28} className="text-[#f4d58d]" />
+          <span className="grid h-12 w-12 place-items-center rounded-2xl border border-[#f4d58d]/20 bg-white/[0.06]">
+            <Image
+              src={PDU_ASSETS.surfaces.action}
+              alt=""
+              width={34}
+              height={34}
+              className="h-8 w-8 object-contain"
+            />
+          </span>
           <p className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-[#cde3d7]">
             Uma palavra virou ação
           </p>

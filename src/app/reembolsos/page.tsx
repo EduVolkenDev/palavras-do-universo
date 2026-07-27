@@ -1,4 +1,5 @@
 import { LegalPage } from "@/components/LegalPage";
+import { PDU_ASSETS } from "@/lib/pdu-assets";
 
 export default function RefundPage() {
   return (
@@ -6,6 +7,8 @@ export default function RefundPage() {
       eyebrow="Compra segura"
       title="Cancelamentos e reembolsos"
       intro="Queremos que toda compra seja clara, recuperável e tratada com respeito."
+      visual={PDU_ASSETS.surfaces.legalRefunds}
+      visualAlt="Marcador de compra segura"
       sections={[
         {
           title: "Compras avulsas",

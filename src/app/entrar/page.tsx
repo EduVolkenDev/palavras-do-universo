@@ -1,17 +1,30 @@
 "use client";
 
-import { ArrowLeft, Bookmark, Loader2, Mail, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2, Mail } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useI18n } from "@/components/I18nProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { productCards, pricingPlans } from "@/lib/product/catalog";
+import { PDU_ASSETS } from "@/lib/pdu-assets";
 
 type FormState = "idle" | "sending" | "sent" | "error";
 
 const RESEND_WAIT_SECONDS = 60;
 
-function getProductFromNextParam(): { title: string; price: string } | null {
+const productVisuals: Record<string, string> = {
+  mensagem_do_dia: PDU_ASSETS.products.messageOfTheDay,
+  carta_do_dia: PDU_ASSETS.products.cardOfTheDay,
+  clareza_urgente: PDU_ASSETS.products.urgentClarity,
+  caminho_3_cartas: PDU_ASSETS.products.threeCardPath,
+  sinais_do_amor: PDU_ASSETS.products.loveSignals,
+  energia_da_semana: PDU_ASSETS.products.weekEnergy,
+  mapa_do_momento: PDU_ASSETS.products.momentMap,
+  circulo_do_universo: PDU_ASSETS.ambient.mandala,
+};
+
+function getProductFromNextParam(): { title: string; price: string; visual: string } | null {
   if (typeof window === "undefined") return null;
   const next = new URLSearchParams(window.location.search).get("next");
   if (!next) return null;
@@ -23,10 +36,22 @@ function getProductFromNextParam(): { title: string; price: string } | null {
     if (!key) return null;
 
     const fromCards = productCards.find((p) => p.productKey === key);
-    if (fromCards?.price) return { title: fromCards.title, price: fromCards.price };
+    if (fromCards?.price) {
+      return {
+        title: fromCards.title,
+        price: fromCards.price,
+        visual: productVisuals[key] ?? PDU_ASSETS.surfaces.account,
+      };
+    }
 
     const fromPlans = pricingPlans.find((p) => p.productKey === key);
-    if (fromPlans) return { title: fromPlans.title, price: `${fromPlans.price}/${fromPlans.cadence}` };
+    if (fromPlans) {
+      return {
+        title: fromPlans.title,
+        price: `${fromPlans.price}/${fromPlans.cadence}`,
+        visual: productVisuals[key] ?? PDU_ASSETS.surfaces.account,
+      };
+    }
   } catch {
     // ignore parse errors
   }
@@ -39,7 +64,7 @@ export default function EntrarPage() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<FormState>("idle");
   const [message, setMessage] = useState("");
-  const [product, setProduct] = useState<{ title: string; price: string } | null>(null);
+  const [product, setProduct] = useState<{ title: string; price: string; visual: string } | null>(null);
   const [readingHistoryReason, setReadingHistoryReason] = useState(false);
   const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -128,8 +153,15 @@ export default function EntrarPage() {
           {isEn ? "Back" : "Voltar"}
         </Link>
 
-        <div className="mt-8 grid h-11 w-11 place-items-center rounded-lg bg-[#241b18] text-[#f4d58d]">
-          <Sparkles size={20} />
+        <div className="mt-8 grid h-12 w-12 place-items-center rounded-lg border border-[#dfccb0] bg-white/70">
+          <Image
+            src={PDU_ASSETS.surfaces.account}
+            alt={isEn ? "Palavras do Universo account" : "Conta Palavras do Universo"}
+            width={36}
+            height={36}
+            priority
+            className="h-9 w-9 object-contain"
+          />
         </div>
         <p className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">
           {isEn ? "Your account" : "Sua conta"}
@@ -140,7 +172,13 @@ export default function EntrarPage() {
 
         {readingHistoryReason ? (
           <div className="mt-4 flex items-start gap-3 rounded-lg border border-[#a9cdbf] bg-[#eef8f2] px-4 py-3">
-            <Bookmark size={16} className="mt-0.5 shrink-0 text-[#315d56]" />
+            <Image
+              src={PDU_ASSETS.surfaces.saved}
+              alt=""
+              width={22}
+              height={22}
+              className="mt-0.5 h-5 w-5 shrink-0 object-contain"
+            />
             <p className="text-sm leading-6 text-[#315d56]">
               {isEn
                 ? "Create your free account to protect the reading already saved on this device. After signing in, it will appear in My Universe."
@@ -149,7 +187,13 @@ export default function EntrarPage() {
           </div>
         ) : product ? (
           <div className="mt-4 flex items-start gap-3 rounded-lg border border-[#d4b896] bg-[#fdf3e3] px-4 py-3">
-            <Sparkles size={16} className="mt-0.5 shrink-0 text-[#8a6b3f]" />
+            <Image
+              src={product.visual}
+              alt=""
+              width={28}
+              height={28}
+              className="mt-0.5 h-6 w-6 shrink-0 rounded object-cover"
+            />
             <p className="text-sm leading-6 text-[#4d3c31]">
               {isEn ? (
                 <>

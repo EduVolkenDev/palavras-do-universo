@@ -1,4 +1,5 @@
 import { LegalPage } from "@/components/LegalPage";
+import { PDU_ASSETS } from "@/lib/pdu-assets";
 
 export default function TermsPage() {
   return (
@@ -6,6 +7,8 @@ export default function TermsPage() {
       eyebrow="Transparência"
       title="Termos de uso"
       intro="Estes termos explicam o que o Palavras do Universo oferece e os limites necessários para uma experiência responsável."
+      visual={PDU_ASSETS.surfaces.legalTerms}
+      visualAlt="Livro dos termos"
       sections={[
         {
           title: "Natureza da experiência",
