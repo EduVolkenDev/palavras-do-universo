@@ -977,6 +977,8 @@ export async function POST(req: Request) {
         !portalMemory.includes("não pôde ser consultada"),
       locale,
       mode,
+      onboardingFocus,
+      onboardingSignal,
       productKey,
       question,
       spread: spread.map((draw) => ({

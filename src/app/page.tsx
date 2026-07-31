@@ -509,6 +509,7 @@ const productIconVisuals: Record<
   string,
   {
     assetPath: string;
+    mobileAssetPath?: string;
     fallbackIcon: LucideIcon;
     tone: "gold" | "mint" | "blue" | "rose";
     variant?: "three-card-path";
@@ -521,6 +522,7 @@ const productIconVisuals: Record<
   },
   "Carta do Dia": {
     assetPath: PDU_ASSETS.products.cardOfTheDay,
+    mobileAssetPath: PDU_ASSETS.products.cardOfTheDayMobile,
     fallbackIcon: MoonStar,
     tone: "blue",
   },
@@ -531,22 +533,26 @@ const productIconVisuals: Record<
   },
   "Caminho das 3 Cartas": {
     assetPath: PDU_ASSETS.products.threeCardPath,
+    mobileAssetPath: PDU_ASSETS.products.threeCardPathMobile,
     fallbackIcon: Compass,
     tone: "mint",
     variant: "three-card-path",
   },
   "Sinais do Amor": {
     assetPath: PDU_ASSETS.products.loveSignals,
+    mobileAssetPath: PDU_ASSETS.products.loveSignalsMobile,
     fallbackIcon: Heart,
     tone: "rose",
   },
   "Energia da Semana": {
     assetPath: PDU_ASSETS.products.weekEnergy,
+    mobileAssetPath: PDU_ASSETS.products.weekEnergyMobile,
     fallbackIcon: Sun,
     tone: "gold",
   },
   "Mapa do Momento": {
     assetPath: PDU_ASSETS.products.momentMap,
+    mobileAssetPath: PDU_ASSETS.products.momentMapMobile,
     fallbackIcon: UserRound,
     tone: "blue",
   },
@@ -2223,7 +2229,7 @@ export default function Home() {
                   </div>
                   <span className="pdu-reading-header-art relative grid h-14 w-14 shrink-0 place-items-center rounded-full border border-[#f4d58d]/25 bg-[#f4d58d]/10 text-[#f5d896]">
                     <Image
-                      src={PDU_ASSETS.products.threeCardPath}
+                      src={PDU_ASSETS.products.threeCardPathMobile}
                       alt=""
                       fill
                       sizes="3.5rem"
@@ -3418,16 +3424,24 @@ function ProductIconVisual(props: { title: string }) {
       {!failed ? (
         <div className="pdu-product-visual__image relative z-10 transition duration-500 group-hover:scale-[1.04]">
           {visual.variant === "three-card-path" ? (
-            <img
-              src={visual.assetPath}
-              alt=""
-              width={420}
-              height={420}
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-contain"
-              onError={() => setFailed(true)}
-            />
+            <picture>
+              {visual.mobileAssetPath ? (
+                <source
+                  media="(max-width: 768px)"
+                  srcSet={visual.mobileAssetPath}
+                />
+              ) : null}
+              <img
+                src={visual.assetPath}
+                alt=""
+                width={420}
+                height={420}
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-contain"
+                onError={() => setFailed(true)}
+              />
+            </picture>
           ) : (
             <Image
               src={visual.assetPath}

@@ -14,6 +14,8 @@ type FallbackReadingParams = {
   hasPortalMemory: boolean;
   locale: Locale;
   mode: string;
+  onboardingFocus?: string;
+  onboardingSignal?: string;
   productKey: string;
   question: string;
   spread: FallbackDraw[];
@@ -225,6 +227,72 @@ const PT_OPENINGS: Record<string, readonly string[]> = {
   ],
 };
 
+const PT_MOMENT_PATTERNS = {
+  urgency: [
+    "Parece que você não está buscando uma frase bonita; está buscando um pouco de chão para não decidir só pela pressão.",
+    "O ponto humano aqui é a pressa interna: uma parte sua quer resolver, outra precisa se sentir segura antes.",
+    "Existe uma urgência legítima, mas ela não precisa virar comando. Ela pode virar critério.",
+  ],
+  relationship: [
+    "O que mais pesa aqui não é só a resposta; é a vontade de entender sem se perder no outro.",
+    "A pergunta toca vínculo, expectativa e proteção emocional. Por isso, a leitura precisa devolver centro antes de devolver direção.",
+    "Há afeto envolvido, mas também há um pedido de dignidade: sentir não obriga você a se abandonar.",
+  ],
+  work: [
+    "A sensação é de muita coisa competindo por prioridade, como se tudo pedisse resposta ao mesmo tempo.",
+    "O centro desta pergunta parece material: energia, prazo, escolha, consequência e foco.",
+    "A leitura precisa tirar peso do ruído e devolver uma sequência possível de ação.",
+  ],
+  transition: [
+    "Você parece estar entre uma versão antiga de si e uma forma nova de agir que ainda não ficou confortável.",
+    "O momento tem cara de passagem: não é falta de resposta, é excesso de vida se reorganizando.",
+    "Existe uma transição em curso, e a parte delicada é não exigir certeza total antes do primeiro movimento.",
+  ],
+  selfTrust: [
+    "Talvez o ponto sensível seja confiar no que você já percebe, sem transformar cada sensação em prova.",
+    "A pergunta pede menos validação externa e mais honestidade com o que seu corpo já vem sinalizando.",
+    "Aqui existe um convite para se escutar sem endurecer, e para agir sem se atropelar.",
+  ],
+  general: [
+    "A pergunta tem uma camada prática e uma camada emocional; as duas precisam ser ouvidas para a resposta não ficar rasa.",
+    "O que aparece aqui é uma busca por clareza suficiente, não por controle absoluto.",
+    "A resposta mais humana começa reconhecendo que você já está tentando cuidar disso, mesmo sem ter tudo resolvido.",
+  ],
+} as const;
+
+const EN_MOMENT_PATTERNS = {
+  urgency: [
+    "It feels like you are not looking for a pretty sentence; you are looking for enough ground not to decide only from pressure.",
+    "The human point here is inner urgency: one part of you wants resolution, another needs to feel safe first.",
+    "There is legitimate urgency here, but it does not need to become a command. It can become a criterion.",
+  ],
+  relationship: [
+    "What weighs here is not only the answer; it is the wish to understand without losing yourself in someone else.",
+    "The question touches connection, expectation, and emotional protection. So the reading needs to return you to your center before it gives direction.",
+    "There is care involved, but also dignity: feeling deeply does not require abandoning yourself.",
+  ],
+  work: [
+    "The feeling is of too many things competing for priority, as if everything is asking for an answer at once.",
+    "The center of this question seems material: energy, timing, choice, consequence, and focus.",
+    "This reading needs to remove weight from the noise and return a possible sequence of action.",
+  ],
+  transition: [
+    "You seem to be between an older version of yourself and a newer way of acting that is not comfortable yet.",
+    "This moment feels like a passage: not lack of answer, but a lot of life reorganizing at once.",
+    "There is a transition underway, and the delicate part is not demanding total certainty before the first movement.",
+  ],
+  selfTrust: [
+    "Maybe the sensitive point is trusting what you already perceive without turning every feeling into evidence.",
+    "The question asks for less external validation and more honesty with what your body has already been signaling.",
+    "There is an invitation here to listen without becoming rigid, and to act without rushing yourself.",
+  ],
+  general: [
+    "This question has a practical layer and an emotional layer; both need to be heard for the answer not to feel shallow.",
+    "What appears here is a search for enough clarity, not absolute control.",
+    "The most human answer begins by recognizing that you are already trying to care for this, even without having everything resolved.",
+  ],
+} as const;
+
 const EN_OPENINGS: Record<string, readonly string[]> = {
   CURA: [
     "Your question needs care before speed.",
@@ -371,6 +439,51 @@ function normalizeTheme(theme: string) {
   return "general";
 }
 
+function detectMomentPattern(question: string, theme: string) {
+  const value = `${question} ${theme}`.toLowerCase();
+  if (/(urg|agora|hoje|press|ansiedade|ansious|panic|now|today|immediate)/i.test(value)) {
+    return "urgency";
+  }
+  if (/(amor|relacion|vínculo|vinculo|volta|sumiu|mensagem|love|relationship|partner|ex\\b|crush)/i.test(value)) {
+    return "relationship";
+  }
+  if (/(trabalho|carreira|emprego|cliente|dinheiro|projeto|work|career|money|job|client|project)/i.test(value)) {
+    return "work";
+  }
+  if (/(mudar|transi|recome|novo ciclo|encerr|change|transition|new cycle|ending|start over)/i.test(value)) {
+    return "transition";
+  }
+  if (/(confio|intuição|intuicao|medo|duvida|dúvida|escolher|trust|intuition|fear|doubt|choose)/i.test(value)) {
+    return "selfTrust";
+  }
+  return "general";
+}
+
+function buildLocalPresenceLine(params: {
+  isEnglish: boolean;
+  onboardingFocus?: string;
+  onboardingSignal?: string;
+  patternLine: string;
+}) {
+  const focus = params.onboardingFocus?.trim();
+  const signal = params.onboardingSignal?.trim();
+  if (!focus && !signal) return params.patternLine;
+
+  if (params.isEnglish) {
+    return [
+      params.patternLine,
+      focus ? `You entered the reading through "${focus}", so I will treat this as part of the emotional weather around the question.` : "",
+      signal ? `The chosen signal, "${signal}", works here as a symbolic tone rather than a fixed label about you.` : "",
+    ].filter(Boolean).join(" ");
+  }
+
+  return [
+    params.patternLine,
+    focus ? `Você entrou na leitura por "${focus}", então vou tratar isso como parte do clima emocional da pergunta.` : "",
+    signal ? `O sinal escolhido, "${signal}", funciona aqui como tom simbólico, não como rótulo fixo sobre você.` : "",
+  ].filter(Boolean).join(" ");
+}
+
 function unique<T>(values: T[]) {
   return [...new Set(values)];
 }
@@ -396,6 +509,8 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     hasPortalMemory,
     locale,
     mode,
+    onboardingFocus,
+    onboardingSignal,
     productKey,
     question,
     spread,
@@ -416,10 +531,15 @@ export function generateFallbackReading(params: FallbackReadingParams) {
   );
   const themeKey = normalizeTheme(theme);
   const copy = (isEnglish ? EN_THEMES : PT_THEMES)[themeKey];
-  const openings = (isEnglish ? EN_OPENINGS : PT_OPENINGS)[mode] ??
-    (isEnglish ? EN_OPENINGS : PT_OPENINGS).NEVOA;
   const pick = <T,>(items: readonly T[], salt: string) =>
     pickVariant(items, seed, salt);
+  const momentPattern = detectMomentPattern(question, theme);
+  const momentLine = pick(
+    (isEnglish ? EN_MOMENT_PATTERNS : PT_MOMENT_PATTERNS)[momentPattern],
+    `moment-pattern:${momentPattern}`
+  );
+  const openings = (isEnglish ? EN_OPENINGS : PT_OPENINGS)[mode] ??
+    (isEnglish ? EN_OPENINGS : PT_OPENINGS).NEVOA;
   const localizedSpread = spread;
   const situation = localizedSpread[0];
   const obstacle = localizedSpread[1];
@@ -459,9 +579,15 @@ export function generateFallbackReading(params: FallbackReadingParams) {
   const contextualOpening = isEnglish
     ? `${pick(openings, "opening")} Today's energy, “${daily.energy},” asks you to approach ${copy.label} through ${situation.card.keywords[0]}.`
     : `${pick(openings, "opening")} A energia “${daily.energy}” convida você a olhar para ${copy.label} pela lente de ${situation.card.keywords[0]}.`;
+  const localPresenceLine = buildLocalPresenceLine({
+    isEnglish,
+    onboardingFocus,
+    onboardingSignal,
+    patternLine: momentLine,
+  });
   const directAnswer = isEnglish
-    ? `Your question is not asking for a perfect certainty; it is asking you to read the situation through ${label(situation)}, notice the tension shown by ${label(obstacle)}, and choose the direction opened by ${label(direction)}. The clearest next step is to stop treating the doubt as a delay and turn it into one honest movement.`
-    : `A sua pergunta não está pedindo certeza perfeita; ela pede que você leia a situação por ${label(situation)}, perceba a tensão mostrada por ${label(obstacle)} e escolha a direção aberta por ${label(direction)}. O próximo passo mais claro é parar de tratar a dúvida como atraso e transformar isso em um movimento honesto.`;
+    ? `${localPresenceLine} Your question is not asking for perfect certainty; it is asking you to read the situation through ${label(situation)}, notice the tension shown by ${label(obstacle)}, and choose the direction opened by ${label(direction)}.`
+    : `${localPresenceLine} A sua pergunta não está pedindo certeza perfeita; ela pede que você leia a situação por ${label(situation)}, perceba a tensão mostrada por ${label(obstacle)} e escolha a direção aberta por ${label(direction)}.`;
   const memoryLine = hasPortalMemory
     ? isEnglish
       ? "Your saved journey suggests this is part of a continuing pattern; notice what is repeating without forcing a conclusion."

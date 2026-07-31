@@ -13,23 +13,26 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { productCards } from "@/lib/product/catalog";
 import { useI18n } from "@/components/I18nProvider";
+import { PDU_ASSETS } from "@/lib/pdu-assets";
 
 type SpreadKind = {
   productKey: string;
   icon: LucideIcon;
+  visual: string;
   layer: string;
 };
 
 const spreadKinds: SpreadKind[] = [
-  { productKey: "carta_do_dia", icon: Sparkles, layer: "Grátis" },
-  { productKey: "caminho_3_cartas", icon: Layers3, layer: "Avulsa" },
-  { productKey: "sinais_do_amor", icon: Heart, layer: "Avulsa" },
-  { productKey: "clareza_urgente", icon: Compass, layer: "Avulsa" },
-  { productKey: "energia_da_semana", icon: CalendarDays, layer: "Círculo" },
-  { productKey: "mapa_do_momento", icon: MoonStar, layer: "Círculo" },
+  { productKey: "carta_do_dia", icon: Sparkles, visual: PDU_ASSETS.products.cardOfTheDayMobile, layer: "Grátis" },
+  { productKey: "caminho_3_cartas", icon: Layers3, visual: PDU_ASSETS.products.threeCardPathMobile, layer: "Avulsa" },
+  { productKey: "sinais_do_amor", icon: Heart, visual: PDU_ASSETS.products.loveSignalsMobile, layer: "Avulsa" },
+  { productKey: "clareza_urgente", icon: Compass, visual: PDU_ASSETS.products.urgentClarity, layer: "Avulsa" },
+  { productKey: "energia_da_semana", icon: CalendarDays, visual: PDU_ASSETS.products.weekEnergyMobile, layer: "Círculo" },
+  { productKey: "mapa_do_momento", icon: MoonStar, visual: PDU_ASSETS.products.momentMapMobile, layer: "Círculo" },
 ];
 
 function productHref(productKey: string) {
@@ -110,18 +113,25 @@ export default function TiradasPage() {
                   className="group relative min-h-[28rem] overflow-hidden rounded-[8px] border border-white/10 bg-[#15131d] p-6 transition duration-300 hover:-translate-y-1 hover:border-[#f4d58d]/55 hover:bg-[#191621]"
                 >
                   <div className="absolute -right-10 -top-10 h-44 w-44 rounded-full bg-[#f4d58d]/10 blur-2xl transition group-hover:bg-[#f4d58d]/18" />
+                  <div className="absolute inset-x-6 top-20 h-44 overflow-hidden rounded-[8px] border border-white/10 bg-black/18">
+                    <Image
+                      src={kind.visual}
+                      alt=""
+                      fill
+                      sizes="(max-width: 768px) 260px, 360px"
+                      className="object-contain p-5 opacity-90 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-100"
+                    />
+                  </div>
                   <div className="relative z-10 flex h-full flex-col">
                     <div className="flex items-start justify-between gap-4">
                       <span className="rounded-full border border-[#f4d58d]/24 bg-[#f4d58d]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
                         {t(kind.layer)}
                       </span>
-                      <Icon
-                        size={74}
-                        strokeWidth={1}
-                        className="text-[#f4d58d] drop-shadow-[0_20px_45px_rgba(244,213,141,0.2)] transition duration-300 group-hover:scale-110"
-                      />
+                      <span className="grid h-11 w-11 place-items-center rounded-full border border-[#f4d58d]/22 bg-black/24 text-[#f4d58d]">
+                        <Icon size={18} strokeWidth={1.6} />
+                      </span>
                     </div>
-                    <p className="mt-12 text-xs font-semibold uppercase tracking-[0.16em] text-[#a7d7c5]">
+                    <p className="mt-56 text-xs font-semibold uppercase tracking-[0.16em] text-[#a7d7c5]">
                       {t(product.archetype)}
                     </p>
                     <h2 className="brand-serif mt-3 text-3xl font-semibold leading-tight">

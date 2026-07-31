@@ -3930,7 +3930,7 @@
   }
 
   .pdu-hero-copy {
-    order: 1;
+    order: 2;
     max-width: 760px;
     margin: 0 auto;
     padding-top: 0;
@@ -3938,7 +3938,7 @@
   }
 
   .pdu-hero-side {
-    order: 2;
+    order: 1;
     min-height: auto;
   }
 

@@ -9,6 +9,7 @@ import {
   removeLocalSavedMessages,
   saveLocalMessage,
 } from "@/lib/client/localUniverse";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type DailyCardPayload = {
   date_key: string;
@@ -59,11 +60,19 @@ export function SaveDailyCardButton(props: { payload: DailyCardPayload }) {
 
     const controller = new AbortController();
     getOrCreateLocalUserId();
+    const supabase = getSupabaseBrowserClient();
 
-    fetch("/api/saved-messages?limit=30", {
-      signal: controller.signal,
-    })
-      .then((response) => (response.ok ? response.json() : null))
+    if (!supabase) return;
+
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        if (!data.user) return null;
+        return fetch("/api/saved-messages?limit=30", {
+          signal: controller.signal,
+        });
+      })
+      .then((response) => (response?.ok ? response.json() : null))
       .then((data: unknown) => {
         if (!data || typeof data !== "object") return;
         const messages = (data as { messages?: unknown }).messages;
@@ -113,6 +122,15 @@ export function SaveDailyCardButton(props: { payload: DailyCardPayload }) {
     };
 
     try {
+      const supabase = getSupabaseBrowserClient();
+      const { data } = supabase
+        ? await supabase.auth.getUser()
+        : { data: { user: null } };
+
+      if (!data.user) {
+        throw new Error("Usuário visitante");
+      }
+
       const response = await fetch("/api/saved-messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
