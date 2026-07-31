@@ -15,12 +15,12 @@ const RESEND_WAIT_SECONDS = 60;
 
 const productVisuals: Record<string, string> = {
   mensagem_do_dia: PDU_ASSETS.products.messageOfTheDay,
-  carta_do_dia: PDU_ASSETS.products.cardOfTheDay,
+  carta_do_dia: PDU_ASSETS.products.cardOfTheDayDisplay,
   clareza_urgente: PDU_ASSETS.products.urgentClarity,
   caminho_3_cartas: PDU_ASSETS.products.threeCardPath,
-  sinais_do_amor: PDU_ASSETS.products.loveSignals,
-  energia_da_semana: PDU_ASSETS.products.weekEnergy,
-  mapa_do_momento: PDU_ASSETS.products.momentMap,
+  sinais_do_amor: PDU_ASSETS.products.loveSignalsDisplay,
+  energia_da_semana: PDU_ASSETS.products.weekEnergyDisplay,
+  mapa_do_momento: PDU_ASSETS.products.momentMapDisplay,
   circulo_do_universo: PDU_ASSETS.ambient.mandala,
 };
 

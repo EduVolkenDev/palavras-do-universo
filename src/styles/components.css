@@ -4308,6 +4308,18 @@
     backdrop-filter: none;
   }
 
+  .pdu-portal-entry__copy {
+    order: 1;
+  }
+
+  .pdu-portal-entry__controls {
+    order: 2;
+  }
+
+  .pdu-portal-entry__art {
+    order: 3;
+  }
+
   .pdu-portal-entry::before {
     inset: 14% -18% 5%;
     opacity: 0.58;
@@ -5119,15 +5131,18 @@
   }
 
   .pdu-portal-entry__art {
+    order: 3;
     grid-row: auto;
     min-height: 180px;
   }
 
   .pdu-portal-entry__copy {
+    order: 1;
     padding: 0.2rem 0.25rem;
   }
 
   .pdu-portal-entry__controls {
+    order: 2;
     border-left: 0;
   }
 

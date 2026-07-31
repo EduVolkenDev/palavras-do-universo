@@ -521,7 +521,7 @@ const productIconVisuals: Record<
     tone: "gold",
   },
   "Carta do Dia": {
-    assetPath: PDU_ASSETS.products.cardOfTheDay,
+    assetPath: PDU_ASSETS.products.cardOfTheDayDisplay,
     mobileAssetPath: PDU_ASSETS.products.cardOfTheDayMobile,
     fallbackIcon: MoonStar,
     tone: "blue",
@@ -539,19 +539,19 @@ const productIconVisuals: Record<
     variant: "three-card-path",
   },
   "Sinais do Amor": {
-    assetPath: PDU_ASSETS.products.loveSignals,
+    assetPath: PDU_ASSETS.products.loveSignalsDisplay,
     mobileAssetPath: PDU_ASSETS.products.loveSignalsMobile,
     fallbackIcon: Heart,
     tone: "rose",
   },
   "Energia da Semana": {
-    assetPath: PDU_ASSETS.products.weekEnergy,
+    assetPath: PDU_ASSETS.products.weekEnergyDisplay,
     mobileAssetPath: PDU_ASSETS.products.weekEnergyMobile,
     fallbackIcon: Sun,
     tone: "gold",
   },
   "Mapa do Momento": {
-    assetPath: PDU_ASSETS.products.momentMap,
+    assetPath: PDU_ASSETS.products.momentMapDisplay,
     mobileAssetPath: PDU_ASSETS.products.momentMapMobile,
     fallbackIcon: UserRound,
     tone: "blue",
@@ -575,8 +575,20 @@ function getReadingShareText(reading: string) {
   return reading.split("\n").filter(Boolean).slice(0, 4).join("\n");
 }
 
+function shouldUseInstantScroll() {
+  if (typeof window === "undefined") return true;
+
+  return (
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+    window.matchMedia("(max-width: 768px)").matches ||
+    window.matchMedia("(pointer: coarse)").matches
+  );
+}
+
 function scrollToId(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  document
+    .getElementById(id)
+    ?.scrollIntoView({ behavior: shouldUseInstantScroll() ? "auto" : "smooth" });
 }
 
 function isUuid(value: string | null) {
@@ -1861,7 +1873,7 @@ export default function Home() {
             aria-label="Palavras do Universo"
           >
             <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[10px] border border-[#d7b66b]/24 bg-[#f4d58d]/8 shadow-[0_0_34px_rgba(215,182,107,0.14)] sm:h-16 sm:w-16">
-              <img
+              <Image
                 src="/assets/palavras-symbol.webp"
                 alt=""
                 width={64}
@@ -3423,14 +3435,12 @@ function ProductIconVisual(props: { title: string }) {
       <div className="pdu-product-visual__beam" aria-hidden="true" />
       {!failed ? (
         <div className="pdu-product-visual__image relative z-10 transition duration-500 group-hover:scale-[1.04]">
-          {visual.variant === "three-card-path" ? (
+          {visual.mobileAssetPath ? (
             <picture>
-              {visual.mobileAssetPath ? (
-                <source
-                  media="(max-width: 768px)"
-                  srcSet={visual.mobileAssetPath}
-                />
-              ) : null}
+              <source
+                media="(max-width: 768px)"
+                srcSet={visual.mobileAssetPath}
+              />
               <img
                 src={visual.assetPath}
                 alt=""

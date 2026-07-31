@@ -37,7 +37,7 @@ export default async function RootLayout({
   );
 
   return (
-    <html lang={initialLocale} data-scroll-behavior="smooth">
+    <html lang={initialLocale}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
