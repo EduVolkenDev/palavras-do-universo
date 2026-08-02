@@ -66,6 +66,10 @@
   padding-bottom: 0.28rem;
 }
 
+.pdu-site-header__cta {
+  flex: 0 0 auto;
+}
+
 .pdu-site-header__nav {
   gap: calc(var(--spacing) * 7);
   white-space: nowrap;
@@ -79,6 +83,38 @@
 
 .pdu-site-header__nav a:hover {
   transform: translateY(-1px);
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .pdu-site-header__cta {
+    display: none;
+  }
+
+  .pdu-site-header__brand {
+    flex: 0 0 auto;
+  }
+
+  .pdu-site-header__brand > span:last-child {
+    width: 9rem;
+  }
+
+  .pdu-site-header__nav {
+    min-width: 0;
+    flex: 1 1 auto;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-inline: 0.75rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .pdu-site-header__nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pdu-site-header__nav a {
+    flex: 0 0 auto;
+  }
 }
 
 .pdu-veil {
@@ -3049,6 +3085,7 @@
   min-width: 200%;
   gap: clamp(1.5rem, 4vw, 4rem);
   animation: pdu-marquee-drift 34s linear infinite;
+  will-change: transform;
 }
 
 .pdu-magic-marquee span {
@@ -4933,18 +4970,20 @@
 }
 
 .pdu-portal-entry__art::before {
-  inset: 13%;
-  border: 1px solid rgba(244, 213, 141, 0.18);
+  inset: 15% 12%;
+  border: 1px solid rgba(244, 213, 141, 0.14);
   border-radius: 50%;
-  transform: rotate(-12deg) scaleX(1.12);
+  opacity: 0.82;
+  transform: rotate(-10deg) scaleX(1.08);
 }
 
 .pdu-portal-entry__art::after {
-  inset: auto 12% 12%;
-  height: 18%;
+  inset: auto 18% 11%;
+  height: 14%;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.38);
-  filter: blur(14px);
+  background: rgba(0, 0, 0, 0.28);
+  filter: blur(16px);
+  opacity: 0.82;
 }
 
 .pdu-portal-entry__art-glow {
@@ -5133,7 +5172,32 @@
   .pdu-portal-entry__art {
     order: 3;
     grid-row: auto;
-    min-height: 180px;
+    min-height: clamp(168px, 45vw, 220px);
+  }
+
+  .pdu-portal-entry__art::before {
+    inset: 17% 16%;
+    opacity: 0.62;
+    transform: rotate(-8deg) scaleX(1.04);
+  }
+
+  .pdu-portal-entry__art::after {
+    inset: auto 24% 12%;
+    height: 11%;
+    opacity: 0.6;
+    filter: blur(12px);
+  }
+
+  .pdu-portal-entry__art img {
+    inset: 8% 12% 12%;
+    width: 76%;
+    height: 80%;
+  }
+
+  .pdu-portal-entry__art span {
+    left: 0.75rem;
+    bottom: 0.65rem;
+    font-size: 0.58rem;
   }
 
   .pdu-portal-entry__copy {
@@ -5143,7 +5207,26 @@
 
   .pdu-portal-entry__controls {
     order: 2;
+    display: contents;
     border-left: 0;
+  }
+
+  .pdu-portal-intents {
+    order: 2;
+    margin-top: 0;
+  }
+
+  .pdu-portal-current {
+    order: 4;
+    margin-top: 0.85rem;
+  }
+
+  .pdu-portal-transform {
+    order: 5;
+  }
+
+  .pdu-portal-console__cta {
+    order: 6;
   }
 
   .pdu-product-node {
@@ -5715,7 +5798,6 @@
   .pdu-hero-mark,
   .pdu-hero-mark__orbit,
   .pdu-hero-artifact,
-  .pdu-magic-marquee__track,
   .pdu-journey-map__icon,
   .pdu-access-guide__icon,
   .pdu-feature-cloud__core,
@@ -5814,7 +5896,7 @@
   }
 
   .pdu-magic-marquee__track {
-    transform: none;
+    animation-duration: 46s;
   }
 }
 

@@ -1869,7 +1869,7 @@ export default function Home() {
         <div className="pdu-site-header__inner mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <a
             href="#topo"
-            className="group flex min-w-0 items-center gap-3 sm:gap-4"
+            className="pdu-site-header__brand group flex min-w-0 items-center gap-3 sm:gap-4"
             aria-label="Palavras do Universo"
           >
             <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[10px] border border-[#d7b66b]/24 bg-[#f4d58d]/8 shadow-[0_0_34px_rgba(215,182,107,0.14)] sm:h-16 sm:w-16">
@@ -1926,7 +1926,7 @@ export default function Home() {
           <button
             type="button"
             onClick={() => scrollToId("leitura")}
-            className="hidden items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1c1308] shadow-[0_14px_38px_rgba(244,213,141,0.22)] hover:bg-[#ffe3a3] sm:inline-flex"
+            className="pdu-site-header__cta hidden items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1c1308] shadow-[0_14px_38px_rgba(244,213,141,0.22)] hover:bg-[#ffe3a3] sm:inline-flex"
           >
             <Sun size={16} />
             Mensagem de hoje

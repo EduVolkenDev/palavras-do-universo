@@ -12,44 +12,23 @@ export default function TermsPage() {
       sections={[
         {
           title: "Natureza da experiência",
-          body: (
-            <p>
-              O Palavras do Universo oferece conteúdo simbólico, reflexivo e de
-              entretenimento. Leituras, cartas e ações sugeridas não substituem
-              aconselhamento médico, psicológico, jurídico ou financeiro.
-            </p>
-          ),
+          body:
+            "O Palavras do Universo oferece conteúdo simbólico, reflexivo e de entretenimento. Leituras, cartas e ações sugeridas não substituem aconselhamento médico, psicológico, jurídico ou financeiro.",
         },
         {
           title: "Conta e uso responsável",
-          body: (
-            <p>
-              Você é responsável por proteger o acesso ao seu e-mail e por usar
-              a plataforma de forma legal e respeitosa. Não use o serviço para
-              ameaçar, controlar, diagnosticar ou tomar decisões em nome de outras pessoas.
-            </p>
-          ),
+          body:
+            "Você é responsável por proteger o acesso ao seu e-mail e por usar a plataforma de forma legal e respeitosa. Não use o serviço para ameaçar, controlar, diagnosticar ou tomar decisões em nome de outras pessoas.",
         },
         {
           title: "Produtos pagos",
-          body: (
-            <p>
-              Preços, periodicidade e conteúdo incluído são apresentados antes
-              do pagamento. Compras avulsas liberam os usos informados. Assinaturas
-              permanecem ativas enquanto o pagamento estiver regular e podem ser
-              gerenciadas no Meu Universo.
-            </p>
-          ),
+          body:
+            "Preços, periodicidade e conteúdo incluído são apresentados antes do pagamento. Compras avulsas liberam os usos informados. Assinaturas permanecem ativas enquanto o pagamento estiver regular e podem ser gerenciadas no Meu Universo.",
         },
         {
           title: "Disponibilidade e mudanças",
-          body: (
-            <p>
-              Podemos melhorar recursos e conteúdo sem reduzir acessos já pagos.
-              Em caso de indisponibilidade relevante, trabalharemos para restaurar
-              o serviço ou oferecer uma solução adequada.
-            </p>
-          ),
+          body:
+            "Podemos melhorar recursos e conteúdo sem reduzir acessos já pagos. Em caso de indisponibilidade relevante, trabalharemos para restaurar o serviço ou oferecer uma solução adequada.",
         },
       ]}
     />

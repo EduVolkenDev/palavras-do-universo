@@ -12,41 +12,23 @@ export default function PrivacyPage() {
       sections={[
         {
           title: "Dados utilizados",
-          body: (
-            <p>
-              Podemos tratar e-mail, leituras, mensagens salvas, compromissos
-              pessoais, histórico de acesso e registros de pagamento. Dados de
-              cartão são processados pela Stripe e não ficam armazenados no Palavras do Universo.
-            </p>
-          ),
+          body:
+            "Podemos tratar e-mail, leituras, mensagens salvas, compromissos pessoais, histórico de acesso e registros de pagamento. Dados de cartão são processados pela Stripe e não ficam armazenados no Palavras do Universo.",
         },
         {
           title: "Como usamos",
-          body: (
-            <p>
-              Os dados são usados para autenticação, sincronização, entrega de
-              produtos, prevenção de abuso, suporte e melhoria da experiência.
-              Leituras podem ser processadas por serviços de inteligência artificial.
-            </p>
-          ),
+          body:
+            "Os dados são usados para autenticação, sincronização, entrega de produtos, prevenção de abuso, suporte e melhoria da experiência. Leituras podem ser processadas por serviços de inteligência artificial.",
         },
         {
           title: "Correntes de ação",
-          body: (
-            <p>
-              Correntes públicas mostram apenas tipo de ação e contagens agregadas
-              declaradas. Planos pessoais, beneficiários e reflexões permanecem privados.
-            </p>
-          ),
+          body:
+            "Correntes públicas mostram apenas tipo de ação e contagens agregadas declaradas. Planos pessoais, beneficiários e reflexões permanecem privados.",
         },
         {
           title: "Seus direitos",
-          body: (
-            <p>
-              Você pode solicitar acesso, correção ou exclusão dos seus dados pelo
-              canal de suporte informado no checkout ou no comprovante de pagamento.
-            </p>
-          ),
+          body:
+            "Você pode solicitar acesso, correção ou exclusão dos seus dados pelo canal de suporte informado no checkout ou no comprovante de pagamento.",
         },
       ]}
     />
