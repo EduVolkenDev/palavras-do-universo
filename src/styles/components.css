@@ -85,7 +85,7 @@
   transform: translateY(-1px);
 }
 
-@media (min-width: 768px) and (max-width: 1279px) {
+@media (min-width: 768px) and (max-width: 1439px) {
   .pdu-site-header__cta {
     display: none;
   }
@@ -114,6 +114,16 @@
 
   .pdu-site-header__nav a {
     flex: 0 0 auto;
+  }
+}
+
+@media (min-width: 1440px) {
+  .pdu-site-header__cta {
+    margin-left: 1rem;
+  }
+
+  .pdu-site-header__nav {
+    gap: 1.5rem;
   }
 }
 
