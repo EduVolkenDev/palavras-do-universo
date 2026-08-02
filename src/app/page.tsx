@@ -13,6 +13,7 @@ import {
   Heart,
   History,
   LifeBuoy,
+  Menu,
   MoonStar,
   Quote,
   Share2,
@@ -1001,12 +1002,24 @@ export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingFocusId, setOnboardingFocusId] = useState("");
   const [readingStateHydrated, setReadingStateHydrated] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const hasRestoredReadingStateRef = useRef(false);
   const shouldScrollToOpenedReadingRef = useRef(false);
 
   usePduAtmosphere();
   usePduScrollRecovery();
   const push = usePushNotifications();
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     setUserId(getOrCreateLocalUserId());
@@ -1931,7 +1944,68 @@ export default function Home() {
             <Sun size={16} />
             Mensagem de hoje
           </button>
+
+          <button
+            type="button"
+            className="pdu-site-header__mobile-toggle inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.06] p-2.5 text-[#f5d896] md:hidden"
+            aria-label={mobileMenuOpen ? t("Fechar menu") : t("Abrir menu")}
+            aria-controls="pdu-mobile-menu"
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen((open) => !open)}
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
+
+        {mobileMenuOpen ? (
+          <div
+            id="pdu-mobile-menu"
+            className="pdu-mobile-menu border-t border-white/10 bg-[#09080d]/98 px-4 pb-5 pt-3 md:hidden"
+            role="dialog"
+            aria-label={t("Navegação principal")}
+          >
+            <nav className="grid gap-1" aria-label={t("Navegação principal")}>
+              <a href="#leitura" onClick={() => setMobileMenuOpen(false)}>
+                {t("Leitura")}
+              </a>
+              <Link href="/carta-do-dia" onClick={() => setMobileMenuOpen(false)}>
+                {t("Carta do Dia")}
+              </Link>
+              <a href="#ritual" onClick={() => setMobileMenuOpen(false)}>
+                {t("Ritual")}
+              </a>
+              <a href="#produtos" onClick={() => setMobileMenuOpen(false)}>
+                {t("Leituras")}
+              </a>
+              <Link href="/tiradas" onClick={() => setMobileMenuOpen(false)}>
+                {t("Tiradas")}
+              </Link>
+              <Link href="/baralho" onClick={() => setMobileMenuOpen(false)}>
+                {t("Baralho")}
+              </Link>
+              <Link href="/profissionais" onClick={() => setMobileMenuOpen(false)}>
+                {t("Profissionais")}
+              </Link>
+              <Link href="/profissionais/me" onClick={() => setMobileMenuOpen(false)}>
+                {t("Sou profissional")}
+              </Link>
+              <Link href="/meu-universo" onClick={() => setMobileMenuOpen(false)}>
+                {t("Meu Universo")}
+              </Link>
+            </nav>
+            <button
+              type="button"
+              className="pdu-mobile-menu__cta mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-4 py-3 text-sm font-semibold text-[#1c1308]"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                scrollToId("leitura");
+              }}
+            >
+              <Sun size={16} />
+              {t("Mensagem de hoje")}
+            </button>
+          </div>
+        ) : null}
       </header>
 
       {loading ? <ReadingCeremonyOverlay locale={locale} /> : null}

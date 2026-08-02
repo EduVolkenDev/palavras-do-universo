@@ -14,12 +14,12 @@ export function LanguageSwitcher() {
 
   return (
     <div
-      className="fixed right-2.5 top-[calc(.55rem+env(safe-area-inset-top))] z-[100] flex max-w-[calc(100vw-2rem)] items-center gap-1 rounded-full border border-white/15 bg-[#111019]/92 p-1 text-xs font-semibold text-[#fff7e8] shadow-[0_18px_54px_rgba(0,0,0,0.34)] backdrop-blur-xl sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:right-4 sm:top-auto"
+      className="pdu-language-switcher fixed right-2.5 top-[calc(.55rem+env(safe-area-inset-top))] z-[100] flex max-w-[calc(100vw-2rem)] items-center gap-1 rounded-full border border-white/15 bg-[#111019]/92 p-1 text-xs font-semibold text-[#fff7e8] shadow-[0_18px_54px_rgba(0,0,0,0.34)] backdrop-blur-xl sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:right-4 sm:top-auto"
       aria-label={locale === "en" ? "Language" : "Idioma"}
       data-i18n-ignore
     >
       <span
-        className="relative ml-1 h-5 w-5 shrink-0 overflow-hidden rounded-full sm:ml-1.5"
+        className="pdu-language-switcher__mark relative ml-1 h-5 w-5 shrink-0 overflow-hidden rounded-full sm:ml-1.5"
         aria-hidden="true"
       >
         <Image
