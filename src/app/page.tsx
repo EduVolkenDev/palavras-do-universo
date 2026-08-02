@@ -2086,7 +2086,7 @@ export default function Home() {
 
           <div
             id="ritual"
-            className="pdu-reveal pdu-journey-map"
+            className="pdu-reveal pdu-mobile-deferred pdu-journey-map"
             aria-label={t("Como a experiência funciona")}
           >
             {journeySteps.map((step) => (
@@ -2109,7 +2109,7 @@ export default function Home() {
           </div>
 
           <section
-            className="pdu-reveal pdu-marketplace-band"
+            className="pdu-reveal pdu-mobile-deferred pdu-marketplace-band"
             id="profissionais"
             aria-labelledby="profissionais-title"
           >
@@ -2156,7 +2156,7 @@ export default function Home() {
             </div>
           </section>
 
-          <div className="pdu-reveal pdu-portal-entry">
+          <div className="pdu-reveal pdu-mobile-deferred pdu-portal-entry">
             <div className="pdu-portal-entry__art" aria-hidden="true">
               <div className="pdu-portal-entry__art-glow" />
               <Image
@@ -2225,7 +2225,7 @@ export default function Home() {
 
           <div
             id="leitura"
-            className="pdu-reveal pdu-hero-reading relative z-10 mx-auto w-full max-w-6xl scroll-mt-28"
+            className="pdu-reveal pdu-mobile-deferred pdu-hero-reading relative z-10 mx-auto w-full max-w-6xl scroll-mt-28"
           >
             <div className="pdu-oracle-shell p-4 sm:p-5">
                 <div className="mb-4 flex items-start justify-between gap-4 border-b border-white/10 pb-4">
@@ -2497,7 +2497,7 @@ export default function Home() {
       {result || loading ? (
       <section
         id="reading-opened"
-        className="pdu-depth-section relative overflow-hidden border-y border-white/10 px-4 py-14 text-[#f8efe2] scroll-mt-28 sm:px-6 lg:px-8"
+        className="pdu-mobile-deferred pdu-depth-section relative overflow-hidden border-y border-white/10 px-4 py-14 text-[#f8efe2] scroll-mt-28 sm:px-6 lg:px-8"
       >
         <div className="pdu-open-reading-layout pdu-reveal is-visible mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.56fr_1.44fr] lg:items-start">
           <div>
@@ -2627,7 +2627,7 @@ export default function Home() {
       ) : null}
 
       {result && readingProductKey === "free_daily" ? (
-      <section className="border-b border-white/10 bg-[#0d0d16] px-4 py-16 text-[#f8efe2] sm:px-6 lg:px-8">
+      <section className="pdu-mobile-deferred border-b border-white/10 bg-[#0d0d16] px-4 py-16 text-[#f8efe2] sm:px-6 lg:px-8">
         <div className="pdu-reveal is-visible mx-auto max-w-3xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f4d58d]">
             {t("Próximos caminhos")}
@@ -2702,7 +2702,7 @@ export default function Home() {
       {result || showInvitedAction ? (
       <section
         id="acao"
-        className="border-b border-white/10 bg-[#101019] px-4 py-20 text-[#f8efe2] sm:px-6 lg:px-8"
+        className="pdu-mobile-deferred border-b border-white/10 bg-[#101019] px-4 py-20 text-[#f8efe2] sm:px-6 lg:px-8"
       >
         <div className="pdu-reveal is-visible mx-auto max-w-7xl">
           <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
@@ -2845,7 +2845,7 @@ export default function Home() {
 
       <section
         id="produtos"
-        className="pdu-experience-section px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
+        className="pdu-mobile-deferred pdu-experience-section px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
       >
         <div className="pdu-section-orbit pdu-section-orbit--left" aria-hidden="true">
           <MoonStar size={92} strokeWidth={1.15} />
@@ -3025,7 +3025,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="pdu-universe-preview px-4 py-28 sm:px-6 lg:px-8">
+      <section className="pdu-mobile-deferred pdu-universe-preview px-4 py-28 sm:px-6 lg:px-8">
         <div className="pdu-reveal mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
           <div className="pdu-universe-preview__copy">
             <SectionEyebrow dark>Meu Universo</SectionEyebrow>
@@ -3093,7 +3093,7 @@ export default function Home() {
 
       <section
         id="circulo"
-        className="pdu-circle-section border-y border-white/10 px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
+        className="pdu-mobile-deferred pdu-circle-section border-y border-white/10 px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
       >
         <div className="pdu-circle-sigil" aria-hidden="true">
           <Image
@@ -3199,7 +3199,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="border-b border-white/10 bg-[#0a0918] px-4 py-16 sm:px-6 lg:px-8">
+      <section className="pdu-mobile-deferred border-b border-white/10 bg-[#0a0918] px-4 py-16 sm:px-6 lg:px-8">
         <div className="pdu-reveal mx-auto max-w-7xl">
           <div className="text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
