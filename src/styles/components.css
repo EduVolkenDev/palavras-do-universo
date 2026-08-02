@@ -85,6 +85,18 @@
   transform: translateY(-1px);
 }
 
+.pdu-next-paths__destination {
+  display: inline-block;
+  white-space: nowrap;
+  color: #f4d58d;
+  background: linear-gradient(110deg, #f4d58d 0%, #fff2d1 46%, #a9cdbf 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-style: italic;
+  letter-spacing: -0.02em;
+}
+
 @media (min-width: 768px) and (max-width: 1439px) {
   .pdu-site-header__cta {
     display: none;

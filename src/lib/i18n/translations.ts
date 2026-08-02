@@ -90,7 +90,7 @@ const en: Record<string, string> = {
   "Próximos caminhos": "Next paths",
   "A leitura grátis termina aqui. O próximo passo é uma escolha premium.": "The free reading ends here. The next step is a premium choice.",
   "Hoje você já recebeu sua orientação gratuita. Para abrir uma leitura específica, escolha uma experiência avulsa ou entre no Círculo.": "Today you already received your free guidance. To open a specific reading, choose a one-time experience or join the Circle.",
-  "Sua leitura pode continuar no Meu Universo.": "Your reading can continue in My Universe.",
+  "Sua leitura pode continuar no": "Your reading can continue in",
   "Crie uma conta grátis para proteger esta tirada, rever suas cartas e construir um contexto que poderá tornar as próximas orientações mais pessoais.": "Create a free account to protect this reading, revisit your cards, and build context that can make future guidance more personal.",
   "Quer abrir uma nova leitura agora?": "Want to open a new reading now?",
   "Leitura individual": "Individual reading",

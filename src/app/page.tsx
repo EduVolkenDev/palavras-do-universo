@@ -2632,8 +2632,12 @@ export default function Home() {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f4d58d]">
             {t("Próximos caminhos")}
           </p>
-          <h2 className="brand-serif mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
-            {t("Sua leitura pode continuar no Meu Universo.")}
+          <h2 className="pdu-next-paths__title brand-serif mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
+            {t("Sua leitura pode continuar no")}
+            <br aria-hidden="true" />
+            <span className="pdu-next-paths__destination">
+              {t("Meu Universo")}.
+            </span>
           </h2>
           <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
             {t("Crie uma conta grátis para proteger esta tirada, rever suas cartas e construir um contexto que poderá tornar as próximas orientações mais pessoais.")}
