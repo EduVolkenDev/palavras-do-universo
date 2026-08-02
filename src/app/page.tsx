@@ -55,6 +55,7 @@ import { usePduAtmosphere } from "@/lib/ui/usePduAtmosphere";
 import { usePduScrollRecovery } from "@/lib/ui/usePduScrollRecovery";
 import { usePushNotifications } from "@/lib/push/usePushNotifications";
 import { useI18n } from "@/components/I18nProvider";
+import FeedbackDialog from "@/components/FeedbackDialog";
 import { normalizeLocale, type Locale } from "@/lib/i18n/config";
 import { localizeTarotCard, translateOraclePosition } from "@/lib/i18n/oracle";
 import {
@@ -2621,6 +2622,7 @@ export default function Home() {
                 <Share2 size={16} />
                 Compartilhar
               </button>
+              <FeedbackDialog source="reading" readingId={readingId} locale={locale} />
               </div>
             ) : null}
             {readingNotice ? (
@@ -3305,6 +3307,41 @@ export default function Home() {
                 </footer>
               </blockquote>
             ))}
+          </div>
+
+          <div className="pdu-feedback-invitation mt-10">
+            <div className="pdu-feedback-invitation__art" aria-hidden="true">
+              <Image
+                src={PDU_ASSETS.editorial.portal}
+                alt=""
+                fill
+                sizes="8rem"
+                className="object-contain"
+              />
+              <Image
+                src={PDU_ASSETS.editorial.key}
+                alt=""
+                fill
+                sizes="6rem"
+                className="pdu-feedback-invitation__key object-contain"
+              />
+            </div>
+            <div className="relative z-10 max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f4d58d]">
+                {locale === "en" ? "The portal listens too" : "O portal também escuta"}
+              </p>
+              <h3 className="brand-serif mt-2 text-2xl font-semibold text-[#fff7e8] sm:text-3xl">
+                {locale === "en"
+                  ? "One sentence from you can light someone else’s way."
+                  : "Uma frase sua pode iluminar o caminho de outra pessoa."}
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-[#d8ccc0]">
+                {locale === "en"
+                  ? "Tell us what changed, what touched you, or which question stayed alive after the experience."
+                  : "Conte o que mudou, o que tocou você ou qual pergunta ficou viva depois da experiência."}
+              </p>
+            </div>
+            <FeedbackDialog source="footer" readingId={readingId} locale={locale} className="relative z-10 shrink-0" />
           </div>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-[#8d837b]">
