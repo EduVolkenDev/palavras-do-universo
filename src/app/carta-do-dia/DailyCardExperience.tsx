@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SaveDailyCardButton } from "@/components/SaveDailyCardButton";
+import { PduAssetStory } from "@/components/PduAssetStory";
+import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 import { useI18n } from "@/components/I18nProvider";
 
 type DailyCard = {
@@ -324,6 +326,8 @@ export function DailyCardExperience() {
           </div>
         </div>
       </section>
+
+      <PduAssetStory {...PDU_ASSET_STORIES.daily} />
     </main>
   );
 }

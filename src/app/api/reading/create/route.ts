@@ -24,6 +24,7 @@ import {
   translateOraclePosition,
 } from "@/lib/i18n/oracle";
 import { readJsonBody } from "@/lib/http/request";
+import { LUME_AI_INSTRUCTIONS } from "@/lib/lume/persona";
 
 const memory: Record<string, { fingerprint: string; ts: number }[]> = {};
 const freeUsage: Record<string, { day: string; used: number }> = {};
@@ -32,6 +33,11 @@ const ANONYMOUS_READING_COOKIE = "pdu_reader_id";
 const ANONYMOUS_READING_COOKIE_MAX_AGE = 60 * 60 * 24 * 400;
 
 type UsageSource = "memory" | "supabase";
+
+type ReadingIdentity = {
+  userId: string;
+  anonymousUserId: string | null;
+};
 
 type ReadingBody = {
   locale?: unknown;
@@ -247,13 +253,21 @@ function createAnonymousUserId() {
   return `pdu_${crypto.randomUUID().replaceAll("-", "")}`;
 }
 
-function getRequestUserId(req: Request, authenticatedUserId: string | null, rawUserId: unknown) {
-  if (authenticatedUserId) {
-    return { userId: authenticatedUserId, anonymousUserId: null as string | null };
-  }
-
+function getRequestUserId(
+  req: Request,
+  authenticatedUserId: string | null,
+  rawUserId: unknown
+): ReadingIdentity {
   const cookies = parseCookieHeader(req.headers.get("cookie"));
   const cookieUserId = cookies.get(ANONYMOUS_READING_COOKIE) ?? "";
+
+  if (authenticatedUserId) {
+    return {
+      userId: authenticatedUserId,
+      anonymousUserId: isSafeAnonymousUserId(cookieUserId) ? cookieUserId : null,
+    };
+  }
+
   if (isSafeAnonymousUserId(cookieUserId)) {
     return { userId: cookieUserId, anonymousUserId: cookieUserId };
   }
@@ -506,42 +520,47 @@ function getMemoryUsage(userId: string, day: string) {
   return freeUsage[userId].used;
 }
 
-function incrementMemoryUsage(userId: string, day: string) {
-  getMemoryUsage(userId, day);
-  freeUsage[userId].used += 1;
-}
-
 async function getCurrentUsage(
   userId: string,
   day: string,
-  remoteEnabled: boolean
+  remoteEnabled: boolean,
+  additionalUserIds: string[] = []
 ) {
+  const usageUserIds = [...new Set([userId, ...additionalUserIds].filter(Boolean))];
+
   if (!remoteEnabled || !hasSupabaseConfig()) {
-    return { source: "memory" as const, used: getMemoryUsage(userId, day) };
+    return {
+      source: "memory" as const,
+      used: Math.max(...usageUserIds.map((id) => getMemoryUsage(id, day)), 0),
+    };
   }
 
   try {
-    await ensureSupabaseProfile(userId);
+    await Promise.all(usageUserIds.map((id) => ensureSupabaseProfile(id)));
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from("usage_daily")
       .select("free_readings_used")
-      .eq("user_id", userId)
+      .in("user_id", usageUserIds)
       .eq("day", day)
-      .maybeSingle();
+      .order("free_readings_used", { ascending: false })
+      .limit(1);
 
     if (error) throw error;
 
     return {
       source: "supabase" as const,
       used:
-        data && typeof data.free_readings_used === "number"
-          ? data.free_readings_used
+        Array.isArray(data) && typeof data[0]?.free_readings_used === "number"
+          ? data[0].free_readings_used
           : 0,
     };
   } catch (caught) {
     console.warn("Supabase usage fallback:", caught);
-    return { source: "memory" as const, used: getMemoryUsage(userId, day) };
+    return {
+      source: "memory" as const,
+      used: Math.max(...usageUserIds.map((id) => getMemoryUsage(id, day)), 0),
+    };
   }
 }
 
@@ -551,30 +570,89 @@ async function incrementFreeUsage(params: {
   used: number;
   source: UsageSource;
   remoteEnabled: boolean;
+  additionalUserIds?: string[];
 }) {
-  const { userId, day, used, source, remoteEnabled } = params;
+  const { userId, day, used, source, remoteEnabled, additionalUserIds = [] } =
+    params;
+  const usageUserIds = [...new Set([userId, ...additionalUserIds].filter(Boolean))];
 
   if (remoteEnabled && source === "supabase" && hasSupabaseConfig()) {
     try {
       const supabase = getSupabaseAdmin();
-      const { error } = await supabase.from("usage_daily").upsert(
-        {
-          user_id: userId,
-          day,
-          free_readings_used: used + 1,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id,day" }
+      const results = await Promise.all(
+        usageUserIds.map((usageUserId) =>
+          supabase.from("usage_daily").upsert(
+            {
+              user_id: usageUserId,
+              day,
+              free_readings_used: used + 1,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,day" }
+          )
+        )
       );
 
-      if (error) throw error;
+      const failed = results.find(({ error }) => error);
+      if (failed?.error) throw failed.error;
       return;
     } catch (caught) {
       console.warn("Supabase usage increment fallback:", caught);
     }
   }
 
-  incrementMemoryUsage(userId, day);
+  usageUserIds.forEach((usageUserId) => {
+    getMemoryUsage(usageUserId, day);
+    freeUsage[usageUserId].used = used + 1;
+  });
+}
+
+async function claimFreeReading(params: {
+  userId: string;
+  anonymousUserId: string | null;
+  day: string;
+  remoteEnabled: boolean;
+}) {
+  const { userId, anonymousUserId, day, remoteEnabled } = params;
+  const additionalUserIds = anonymousUserId ? [anonymousUserId] : [];
+
+  if (remoteEnabled && hasSupabaseConfig()) {
+    try {
+      await Promise.all(
+        [userId, ...additionalUserIds].map((id) => ensureSupabaseProfile(id))
+      );
+      const supabase = getSupabaseAdmin();
+      const { data, error } = await supabase.rpc("claim_free_reading", {
+        p_user_id: userId,
+        p_alias_user_id: anonymousUserId,
+        p_day: day,
+      });
+
+      if (!error && typeof data === "boolean") return data;
+      if (error) throw error;
+    } catch (caught) {
+      // Keep older environments functional until the atomic migration is applied.
+      console.warn("Atomic free reading claim unavailable:", caught);
+    }
+  }
+
+  const usage = await getCurrentUsage(
+    userId,
+    day,
+    remoteEnabled,
+    additionalUserIds
+  );
+  if (usage.used >= FREE_PER_DAY) return false;
+
+  await incrementFreeUsage({
+    userId,
+    day,
+    used: usage.used,
+    source: usage.source,
+    remoteEnabled,
+    additionalUserIds,
+  });
+  return true;
 }
 
 async function persistReading(params: {
@@ -717,10 +795,15 @@ export async function POST(req: Request) {
 
   // Free limit (1 por dia). Paid/unlocked readings are controlled by entitlements.
   const day = todayISO();
-  const usage = paidProduct
-    ? ({ source: "memory", used: 0 } as const)
-    : await getCurrentUsage(userId, day, true);
-  if (!paidProduct && usage.used >= FREE_PER_DAY) {
+  const freeReadingClaimed = paidProduct
+    ? true
+    : await claimFreeReading({
+        userId,
+        anonymousUserId,
+        day,
+        remoteEnabled: hasSupabaseConfig(),
+      });
+  if (!paidProduct && !freeReadingClaimed) {
     return withAnonymousCookie(
       NextResponse.json(
         { error: "Free limit reached", paywall: true, code: "FREE_DAILY_LIMIT" },
@@ -760,15 +843,6 @@ export async function POST(req: Request) {
     ...history,
     { fingerprint: makeFingerprint(question), ts: Date.now() },
   ].slice(-50);
-  if (!paidProduct) {
-    await incrementFreeUsage({
-      userId,
-      day,
-      used: usage.used,
-      source: usage.source,
-      remoteEnabled: true,
-    });
-  }
 
   // 1) Mode + 3 cartas
   const mode = routeMode(question);
@@ -900,7 +974,9 @@ export async function POST(req: Request) {
   ].join("\n");
 
 	const prompt = `
-	Você é "Palavras do Universo", um oráculo digital premium de entretenimento, reflexão interna, inteligência emocional e clareza para decisões.
+	${LUME_AI_INSTRUCTIONS}
+
+	Você está dentro de "Palavras do Universo", um ritual digital premium de reflexão interna, inteligência emocional e clareza para decisões.
 	Você usa as cartas como linguagem simbólica, não como previsão fixa.
 	Você escreve com elegância, presença e mistério, MAS precisa ser fácil de entender para qualquer pessoa.
 

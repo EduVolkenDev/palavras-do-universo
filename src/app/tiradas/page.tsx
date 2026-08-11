@@ -18,6 +18,8 @@ import Link from "next/link";
 import { productCards } from "@/lib/product/catalog";
 import { useI18n } from "@/components/I18nProvider";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
+import { PduAssetStory } from "@/components/PduAssetStory";
+import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 
 type SpreadKind = {
   productKey: string;
@@ -172,6 +174,8 @@ export default function TiradasPage() {
           </div>
         </div>
       </section>
+
+      <PduAssetStory {...PDU_ASSET_STORIES.spreads} />
     </main>
   );
 }

@@ -27,6 +27,8 @@ import {
   type ProfessionalPricingModel,
 } from "@/lib/professionals/catalog";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { PduAssetStory } from "@/components/PduAssetStory";
+import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 
 type ApiProfile = {
   handle?: string | null;
@@ -450,6 +452,8 @@ export default function ProfessionalManagerPage() {
           </div>
         </div>
       </section>
+
+      <PduAssetStory {...PDU_ASSET_STORIES.professionalStudio} />
 
       <form onSubmit={saveProfile} className="px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1fr_1.05fr]">

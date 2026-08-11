@@ -8,6 +8,8 @@ import { useI18n } from "@/components/I18nProvider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { productCards, pricingPlans } from "@/lib/product/catalog";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
+import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
+import { PduAssetStory } from "@/components/PduAssetStory";
 
 type FormState = "idle" | "sending" | "sent" | "error";
 
@@ -143,8 +145,8 @@ export default function EntrarPage() {
   const canResend = state === "sent" && resendSeconds === 0;
 
   return (
-    <main className="ritual-texture grid min-h-screen place-items-center px-4 py-12 text-[#241b18]">
-      <section className="w-full max-w-md rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-6 shadow-[0_24px_70px_rgba(66,48,31,0.16)] sm:p-8">
+    <main className="ritual-texture min-h-screen px-4 py-12 text-[#241b18]">
+      <section className="mx-auto w-full max-w-md rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-6 shadow-[0_24px_70px_rgba(66,48,31,0.16)] sm:p-8">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm font-semibold text-[#6f615a]"
@@ -271,6 +273,7 @@ export default function EntrarPage() {
           </a>
         </p>
       </section>
+      <PduAssetStory {...PDU_ASSET_STORIES.auth} tone="light" />
     </main>
   );
 }

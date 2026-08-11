@@ -4,6 +4,8 @@ import Link from "next/link";
 import { getSupabaseAdmin, hasSupabaseConfig } from "@/lib/supabase/server";
 import { IMPACT_AREA_LABELS, type ImpactArea } from "@/lib/impact/actions";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
+import { PduAssetStory } from "@/components/PduAssetStory";
+import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 
 type PublicParticipation = {
   action_key: string;
@@ -125,6 +127,7 @@ export default async function PublicActionPage(props: {
           </Link>
         </div>
       </section>
+      <PduAssetStory {...PDU_ASSET_STORIES.impact} tone="light" />
     </main>
   );
 }

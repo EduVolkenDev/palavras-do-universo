@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { I18nProvider } from "@/components/I18nProvider";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import LumeGuide from "@/components/LumeGuide";
 import { LOCALE_COOKIE_NAME, normalizeLocale } from "@/lib/i18n/config";
 import "./globals.css";
 
@@ -43,6 +44,7 @@ export default async function RootLayout({
       >
         <I18nProvider initialLocale={initialLocale}>
           {children}
+          <LumeGuide />
           <LanguageSwitcher />
         </I18nProvider>
       </body>

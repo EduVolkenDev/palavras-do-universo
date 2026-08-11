@@ -28,6 +28,8 @@ import {
   trimText,
 } from "@/lib/professionals/catalog";
 import { getSupabaseAdmin, hasSupabaseConfig } from "@/lib/supabase/server";
+import { PduAssetStory } from "@/components/PduAssetStory";
+import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 
 type PageParams = {
   params: Promise<{ handle: string }>;
@@ -286,6 +288,8 @@ export default async function ProfessionalProfilePage({ params }: PageParams) {
           </aside>
         </div>
       </section>
+
+      <PduAssetStory {...PDU_ASSET_STORIES.professionalProfile} />
 
       <section className="px-4 pb-16 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[1.08fr_0.92fr]">

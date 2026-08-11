@@ -65,6 +65,11 @@ import {
 } from "@/lib/impact/actions";
 import { CARDS } from "@/lib/tarot/cards";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
+import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
+import { PduAssetStory } from "@/components/PduAssetStory";
+import { LUME_NAME } from "@/lib/lume/persona";
+import { LumePresence, requestLumeOpen } from "@/components/LumeGuide";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type ApiOk = {
   ok: true;
@@ -101,6 +106,11 @@ type ApiRepeat = {
 
 type ApiError = {
   error: string;
+};
+
+type HeroMarkCandidate = {
+  assetPath: string;
+  mobileAssetPath?: string;
 };
 
 const READING_PORTAL_MINIMUM_MS = 1200;
@@ -593,6 +603,11 @@ function scrollToId(id: string) {
     ?.scrollIntoView({ behavior: shouldUseInstantScroll() ? "auto" : "smooth" });
 }
 
+const fallbackHeroMark =
+  PDU_ASSETS.brand.heroMarkRotation[
+    PDU_ASSETS.brand.heroMarkRotation.length - 1
+  ];
+
 function isUuid(value: string | null) {
   return Boolean(
     value &&
@@ -966,6 +981,7 @@ export default function Home() {
   const [theme, setTheme] = useState("love");
   const [portalIntentId, setPortalIntentId] = useState("atravessar");
   const [readingProductKey, setReadingProductKey] = useState("free_daily");
+  const [resumeCheckoutProduct, setResumeCheckoutProduct] = useState<string | null>(null);
   const [question, setQuestion] = useState(
     "O que eu preciso enxergar sobre o meu momento?"
   );
@@ -1004,8 +1020,13 @@ export default function Home() {
   const [onboardingFocusId, setOnboardingFocusId] = useState("");
   const [readingStateHydrated, setReadingStateHydrated] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [selectedHeroMark, setSelectedHeroMark] =
+    useState<HeroMarkCandidate>(fallbackHeroMark);
   const hasRestoredReadingStateRef = useRef(false);
   const shouldScrollToOpenedReadingRef = useRef(false);
+  const startCheckoutRef = useRef<(productKey: string) => Promise<void>>(
+    async () => undefined
+  );
 
   usePduAtmosphere();
   usePduScrollRecovery();
@@ -1025,6 +1046,44 @@ export default function Home() {
   useEffect(() => {
     setUserId(getOrCreateLocalUserId());
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function pickHeroMark() {
+      try {
+        const surface = window.matchMedia("(max-width: 768px)").matches
+          ? "mobile"
+          : "desktop";
+        const response = await fetch(`/api/assets/hero-marks?surface=${surface}`, {
+          cache: "no-store",
+        });
+        const data = (await response.json()) as { marks?: HeroMarkCandidate[] };
+        const marks = Array.isArray(data.marks) ? data.marks : [];
+
+        if (cancelled || marks.length === 0) return;
+
+        const randomValue =
+          typeof window.crypto?.getRandomValues === "function"
+            ? window.crypto.getRandomValues(new Uint32Array(1))[0] ?? Date.now()
+            : Date.now();
+
+        setSelectedHeroMark(marks[randomValue % marks.length] ?? fallbackHeroMark);
+      } catch {
+        // The stable brand mark remains visible if the manifest request fails.
+      }
+    }
+
+    void pickHeroMark();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function handleHeroMarkError() {
+    setSelectedHeroMark(fallbackHeroMark);
+  }
 
   useEffect(() => {
     if (hasRestoredReadingStateRef.current) return;
@@ -1123,6 +1182,7 @@ export default function Home() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const product = params.get("product");
+    const resume = params.get("resume");
     const invitedActionKey = params.get("acao");
     const chainId = params.get("corrente");
 
@@ -1137,13 +1197,25 @@ export default function Home() {
       }
     }
 
+    const isCheckoutProduct = Boolean(
+      product &&
+        (productCards.some((item) => item.productKey === product) ||
+          pricingPlans.some((item) => item.productKey === product))
+    );
+    if (resume === "checkout" && isCheckoutProduct && product) {
+      setResumeCheckoutProduct(product);
+    }
+
     if (!product || !PRODUCT_DEFAULT_QUESTIONS[product]) return;
 
     setReadingProductKey(product);
     setTheme(PRODUCT_THEMES[product] ?? "spirit");
     setSuggestedQuestionSource(PRODUCT_DEFAULT_QUESTIONS[product]);
     setQuestion(PRODUCT_DEFAULT_QUESTIONS[product]);
-    window.setTimeout(() => scrollToId("leitura"), 120);
+    window.setTimeout(
+      () => scrollToId(resume === "checkout" ? "produtos" : "leitura"),
+      120
+    );
   }, []);
 
   const selectedTheme = useMemo(
@@ -1192,7 +1264,10 @@ export default function Home() {
     if (!loading && !result) return;
 
     const timer = window.setTimeout(() => {
-      scrollToId("reading-opened");
+      // During the ritual, show Lume's opening state. Once the new spread is
+      // ready, return to the top of the reading so the three cards are the
+      // first thing the person sees instead of opening below the fold.
+      scrollToId(loading ? "reading-opened" : "leitura");
       if (!loading && result) {
         shouldScrollToOpenedReadingRef.current = false;
       }
@@ -1664,7 +1739,9 @@ export default function Home() {
       const data = (await res.json()) as unknown;
 
       if (res.status === 401) {
-        const next = `/?product=${encodeURIComponent(productKey)}#produtos`;
+        const next = `/?product=${encodeURIComponent(
+          productKey
+        )}&resume=checkout#produtos`;
         window.location.href = `/entrar?next=${encodeURIComponent(next)}`;
         return;
       }
@@ -1686,6 +1763,52 @@ export default function Home() {
       setCheckoutLoading("");
     }
   }
+
+  startCheckoutRef.current = startCheckout;
+
+  useEffect(() => {
+    if (!resumeCheckoutProduct) return;
+
+    const supabaseClient = getSupabaseBrowserClient();
+    if (!supabaseClient) return;
+    const client = supabaseClient;
+    const productKey = resumeCheckoutProduct;
+
+    let cancelled = false;
+    let started = false;
+    let timer: number | undefined;
+
+    async function resumeCheckout() {
+      const {
+        data: { session },
+      } = await client.auth.getSession();
+
+      if (cancelled || started || !session) return;
+
+      started = true;
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete("resume");
+      window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+      setResumeCheckoutProduct(null);
+      timer = window.setTimeout(() => {
+        if (!cancelled) void startCheckoutRef.current(productKey);
+      }, 220);
+    }
+
+    void resumeCheckout();
+
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((_event, session) => {
+      if (session) void resumeCheckout();
+    });
+
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+      subscription.unsubscribe();
+    };
+  }, [resumeCheckoutProduct]);
 
   const localizedSpreadCards = useMemo(
     () => spreadCards.map((card) => localizeReadingSpreadCard(card, locale)),
@@ -1728,12 +1851,12 @@ export default function Home() {
     ].join("\n");
   const readingBlocks = splitReadingIntoBlocks(readingText);
   const openingTitle = loading
-    ? "A leitura está abrindo."
+    ? t("Lume está abrindo uma nova leitura.")
     : activeReading
       ? readingQuestion || "Sua leitura foi aberta."
       : dailyOpening.message;
   const openingAdvice = loading
-    ? "As cartas anteriores foram recolhidas. Aguarde o novo spread se formar antes de interpretar."
+    ? t("Lume recolheu as cartas anteriores e está formando um caminho novo para esta pergunta.")
     : activeReading && readingNeedsLocaleSurface
       ? locale === "en"
         ? "Choose one small action from the three cards and test it today."
@@ -1742,14 +1865,14 @@ export default function Home() {
         ? getReadingAction(result, "Leia primeiro o conjunto das três cartas; depois escolha uma ação pequena para hoje.")
       : dailyOpening.advice;
   const openingAffirmation = loading
-    ? "Eu espero a leitura nova chegar antes de concluir."
+    ? t("Eu deixo Lume abrir a leitura nova antes de concluir.")
     : activeReading && readingNeedsLocaleSurface
       ? dailyOpening.affirmation
       : activeReading
         ? getReadingMantra(result, dailyOpening.affirmation)
       : dailyOpening.affirmation;
   const openingEyebrow = loading
-    ? "Portal em movimento"
+    ? t("Lume em movimento")
     : activeReading
       ? "Leitura desta pergunta"
       : "Sua energia de hoje";
@@ -1823,6 +1946,22 @@ export default function Home() {
                   <Sparkles size={13} />
                   Antes de começar
                 </span>
+                <div className="pdu-onboarding-lume" aria-label={locale === "en" ? "Lume is guiding this beginning" : "Lume guia este começo"}>
+                  <span className="pdu-onboarding-lume__seal relative">
+                    <Image
+                      src={PDU_ASSETS.symbolic.wingOracle}
+                      alt=""
+                      fill
+                      sizes="38px"
+                      quality={84}
+                      className="object-contain"
+                    />
+                  </span>
+                  <span>
+                    <strong>Lume</strong>
+                    <small>{locale === "en" ? "is shaping this beginning" : "está guiando este começo"}</small>
+                  </span>
+                </div>
                 <h2 className="pdu-onboarding-title brand-serif mt-5 text-4xl font-semibold leading-[1.02] text-[#fff7e8] sm:text-5xl">
                   Qual energia está mais presente agora?
                 </h2>
@@ -2036,6 +2175,8 @@ export default function Home() {
                 lembrar que o invisível também acompanha o seu caminho.
               </p>
 
+              <LumePresence />
+
               <div className="pdu-hero-actions">
                 <button
                   type="button"
@@ -2107,23 +2248,22 @@ export default function Home() {
 
             <div className="pdu-reveal pdu-hero-side pdu-hero-side--logo">
               <div className="pdu-hero-mark" aria-hidden="true">
-                <picture>
-                  <source
-                    media="(max-width: 768px)"
-                    srcSet={PDU_ASSETS.brand.markMobile}
-                  />
-                  <source
-                    media="(min-width: 769px)"
-                    srcSet={PDU_ASSETS.brand.markDesktop}
-                  />
+                <picture key={selectedHeroMark.assetPath}>
+                  {selectedHeroMark.mobileAssetPath ? (
+                    <source
+                      media="(max-width: 768px)"
+                      srcSet={selectedHeroMark.mobileAssetPath}
+                    />
+                  ) : null}
                   <img
-                    src={PDU_ASSETS.brand.markDesktop}
+                    src={selectedHeroMark.assetPath}
                     alt=""
                     width={1600}
                     height={1600}
                     decoding="async"
                     fetchPriority="high"
                     className="h-full w-full object-contain"
+                    onError={handleHeroMarkError}
                   />
                 </picture>
                 {marketplaceSignals.map((signal, index) => {
@@ -2303,6 +2443,33 @@ export default function Home() {
             className="pdu-reveal pdu-mobile-deferred pdu-hero-reading relative z-10 mx-auto w-full max-w-6xl scroll-mt-28"
           >
             <div className="pdu-oracle-shell p-4 sm:p-5">
+                <div
+                  className="pdu-lume-reading-signature"
+                  aria-label={locale === "en" ? "Reading guided by Lume" : "Leitura guiada por Lume"}
+                >
+                  <span className="pdu-lume-reading-signature__seal relative">
+                    <Image
+                      src={PDU_ASSETS.symbolic.wingOracle}
+                      alt=""
+                      fill
+                      sizes="40px"
+                      quality={86}
+                      className="object-contain"
+                    />
+                  </span>
+                  <span className="pdu-lume-reading-signature__copy">
+                    <strong>{locale === "en" ? "A reading with Lume" : "Uma leitura com Lume"}</strong>
+                    <span>
+                      {locale === "en"
+                        ? "Interpretation with context, possibility and choice."
+                        : "Interpretação com contexto, possibilidade e escolha."}
+                    </span>
+                  </span>
+                  <button type="button" onClick={requestLumeOpen} className="pdu-lume-reading-signature__button">
+                    {locale === "en" ? "Meet Lume" : "Conhecer Lume"}
+                    <ArrowRight size={13} />
+                  </button>
+                </div>
                 <div className="mb-4 flex items-start justify-between gap-4 border-b border-white/10 pb-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]">
@@ -2355,7 +2522,7 @@ export default function Home() {
                     </div>
 
                     {loading ? (
-                      <ReadingSpreadPortal />
+                      <ReadingSpreadPortal locale={locale} />
                     ) : !activeReading ? (
                       <div className="pdu-reading-awaiting">
                         <span>
@@ -2577,17 +2744,17 @@ export default function Home() {
         <div className="pdu-open-reading-layout pdu-reveal is-visible mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.56fr_1.44fr] lg:items-start">
           <div>
             <SectionEyebrow dark>
-              {loading ? "Revelação em curso" : "Leitura aberta"}
+              {loading ? t("Lume está abrindo") : t("Leitura aberta")}
             </SectionEyebrow>
             <h2 className="brand-serif max-w-xl text-4xl font-semibold leading-tight sm:text-5xl">
               {loading
-                ? "Suas cartas estão encontrando posição."
-                : "Clareza que vira próximo passo."}
+                ? t("Lume está encontrando a posição das suas cartas.")
+                : t("Clareza que vira próximo passo.")}
             </h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-[#d8ccc0]">
               {loading
-                ? "Não há cartas antigas neste intervalo. Um novo spread está sendo formado exclusivamente para a pergunta que você acabou de fazer."
-                : "O Palavras do Universo não promete prever sua vida. Ele ajuda a escutar melhor o momento que você está vivendo."}
+                ? t("As cartas antigas foram recolhidas. Lume está formando um caminho exclusivo para a pergunta que você acabou de fazer.")
+                : t("O Palavras do Universo não promete prever sua vida. Lume ajuda a escutar melhor o momento que você está vivendo.")}
             </p>
             {result ? (
               <div className="pdu-reading-outcome-guide mt-6">
@@ -2647,7 +2814,7 @@ export default function Home() {
 
           <div className="pdu-result-stage">
             {loading ? (
-              <ReadingSpreadPortal immersive />
+              <ReadingSpreadPortal immersive locale={locale} />
             ) : (
               <div className="pdu-result-card-strip" aria-label={localizedSpreadLine}>
                 {shownSpread.map((card, index) => (
@@ -2671,8 +2838,8 @@ export default function Home() {
             <div className="pdu-reading-transcript">
               <div className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
                 {loading
-                  ? "O portal está escolhendo suas cartas"
-                  : localizedSpreadLine || "Mensagem do Universo"}
+                  ? t("Lume está escolhendo suas cartas")
+                  : localizedSpreadLine || t("Mensagem do Universo")}
               </div>
               <div
                 key={result ? readingId ?? spreadLine : "reading-preview"}
@@ -2680,9 +2847,7 @@ export default function Home() {
               >
                 {loading ? (
                   <p className="pdu-reading-block text-sm leading-7 text-[#efe2d2]">
-                    Sua pergunta atravessa o portal. As cartas antigas já foram
-                    recolhidas e um novo caminho está sendo formado para este
-                    momento.
+                    {t("Sua pergunta chegou até Lume. Um novo caminho está sendo formado para este momento.")}
                   </p>
                 ) : (
                   readingBlocks.map((block, index) => (
@@ -2731,7 +2896,7 @@ export default function Home() {
           </p>
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             <a
-              href={`/entrar?next=${encodeURIComponent("/?product=clareza_urgente#produtos")}`}
+              href={`/entrar?next=${encodeURIComponent("/?product=clareza_urgente&resume=checkout#produtos")}`}
               className="group flex flex-col rounded-[10px] border border-[#f4d58d]/30 bg-white/[0.05] p-6 text-left transition hover:border-[#f4d58d]/60 hover:bg-white/[0.08]"
             >
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4d58d]">
@@ -2751,7 +2916,7 @@ export default function Home() {
               </span>
             </a>
             <a
-              href={`/entrar?next=${encodeURIComponent("/?product=circulo_do_universo#produtos")}`}
+              href={`/entrar?next=${encodeURIComponent("/?product=circulo_do_universo&resume=checkout#produtos")}`}
               className="group flex flex-col rounded-[10px] border border-[#a9cdbf]/30 bg-white/[0.05] p-6 text-left transition hover:border-[#a9cdbf]/60 hover:bg-white/[0.08]"
             >
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#a9cdbf]">
@@ -2918,6 +3083,8 @@ export default function Home() {
         </div>
       </section>
       ) : null}
+
+      <PduAssetStory {...PDU_ASSET_STORIES.home} />
 
       <section
         id="produtos"
@@ -3479,12 +3646,12 @@ function ReadingCeremonyOverlay(props: { locale: "pt-BR" | "en" }) {
   const copy =
     props.locale === "en"
       ? {
-          title: "A new spread is opening",
-          body: "Old cards have been gathered. The portal is drawing a clean path for this question.",
+          title: `${LUME_NAME} is opening a new spread`,
+          body: "The previous cards have been gathered. Lume is drawing a clean path for this question.",
         }
       : {
-          title: "Um novo spread está abrindo",
-          body: "As cartas antigas foram recolhidas. O portal está formando um caminho limpo para esta pergunta.",
+          title: `${LUME_NAME} está abrindo uma nova leitura`,
+          body: "As cartas antigas foram recolhidas. Lume está formando um caminho limpo para esta pergunta.",
         };
 
   return (
@@ -3494,7 +3661,7 @@ function ReadingCeremonyOverlay(props: { locale: "pt-BR" | "en" }) {
         <span />
         <span />
       </div>
-      <ReadingSpreadPortal />
+      <ReadingSpreadPortal locale={props.locale} />
       <div className="pdu-reading-ceremony__copy">
         <strong>{copy.title}</strong>
         <span>{copy.body}</span>
@@ -3503,7 +3670,7 @@ function ReadingCeremonyOverlay(props: { locale: "pt-BR" | "en" }) {
   );
 }
 
-function ReadingSpreadPortal(props: { immersive?: boolean }) {
+function ReadingSpreadPortal(props: { immersive?: boolean; locale?: "pt-BR" | "en" }) {
   return (
     <div
       className={`pdu-reading-spread-portal ${
@@ -3521,7 +3688,11 @@ function ReadingSpreadPortal(props: { immersive?: boolean }) {
           />
         ))}
       </div>
-      <p>Abrindo um novo caminho para sua pergunta</p>
+      <p>
+        {props.locale === "en"
+          ? "Lume is opening a new path for your question"
+          : "Lume está abrindo um novo caminho para sua pergunta"}
+      </p>
     </div>
   );
 }

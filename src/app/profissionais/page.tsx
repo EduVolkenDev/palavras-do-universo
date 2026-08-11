@@ -19,6 +19,8 @@ import {
 } from "@/lib/professionals/catalog";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useI18n } from "@/components/I18nProvider";
+import { PduAssetStory } from "@/components/PduAssetStory";
+import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 
 type MarketplaceResponse =
   | {
@@ -305,6 +307,8 @@ export default function ProfessionalsMarketplacePage() {
           </div>
         </div>
       </section>
+
+      <PduAssetStory {...PDU_ASSET_STORIES.professionals} />
 
       <section id="busca" className="px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">

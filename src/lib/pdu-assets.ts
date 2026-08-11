@@ -10,6 +10,22 @@ export const PDU_ASSETS = {
     mark: "/assets/palavrasuniverso-1600.webp",
     markDesktop: "/assets/palavrasuniverso-1600.webp",
     markMobile: "/assets/palavrasuniverso-mobile.webp",
+    fullWordmark: "/assets/palavrasuniverso.webp",
+    newWordmark: "/assets/pdu-new-wordmark-transparent-ofi.webp",
+    heroMarkRotation: [
+      { assetPath: "/assets/new-pdu-dock5.webp" },
+      { assetPath: "/assets/new-pdu-dock4.webp" },
+      { assetPath: "/assets/new-pdu-dock3.webp" },
+      { assetPath: "/assets/pdu-logomark1.webp" },
+      {
+        assetPath: "/assets/pdu-dock.webp",
+        mobileAssetPath: "/assets/pdu-dock-mobile.webp",
+      },
+      {
+        assetPath: "/assets/palavrasuniverso-1600.webp",
+        mobileAssetPath: "/assets/palavrasuniverso-mobile.webp",
+      },
+    ],
   },
   icons: {
     book: "/assets/pdu-icon-book.webp",
@@ -39,7 +55,9 @@ export const PDU_ASSETS = {
     butterfly: "/assets/butterfly.webp",
     chalice: "/assets/calice.webp",
     threeCardsEditorial: "/assets/caminho3cartas.webp",
-    cards: "/assets/cards.webp",
+    // The old `cards.webp` reference no longer exists in the asset folder.
+    // Keep this semantic slot pointed at the maintained three-card artwork.
+    cards: "/assets/product-caminho-das-3-cartas.webp",
     scepter: "/assets/cetro.webp",
     direction: "/assets/direction.webp",
     dreamFilter: "/assets/filtrodossonhos.webp",
@@ -66,10 +84,11 @@ export const PDU_ASSETS = {
     messageOfTheDay: "/assets/product-mensagem-do-dia.webp",
     cardOfTheDay: "/assets/product-carta-do-dia.webp",
     cardOfTheDayMobile: "/assets/product-carta-do-dia-mobile.webp",
-    cardOfTheDayDisplay: "/assets/product-carta-do-dia-mobile.webp",
+    cardOfTheDayDisplay: "/assets/product-carta-do-dia.webp",
     urgentClarity: "/assets/product-clareza-urgente.webp",
     threeCardPath: "/assets/caminho3cartas.webp",
     threeCardPathMobile: "/assets/product-caminho-das-3-cartas-mobile.webp",
+    threeCardPathDisplay: "/assets/product-caminho-das-3-cartas.webp",
     loveSignals: "/assets/pdu-heart.webp",
     loveSignalsMobile: "/assets/pdu-heart-mobile.webp",
     loveSignalsDisplay: "/assets/pdu-heart-mobile.webp",

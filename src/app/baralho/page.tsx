@@ -22,6 +22,8 @@ import { CARDS } from "@/lib/tarot/cards";
 import { usePduAtmosphere } from "@/lib/ui/usePduAtmosphere";
 import { useI18n } from "@/components/I18nProvider";
 import { localizeTarotCard } from "@/lib/i18n/oracle";
+import { PduAssetStory } from "@/components/PduAssetStory";
+import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 
 type FilterId = "all" | "major" | TarotSuit;
 type DeckCard = (typeof TAROT_CARD_CATALOG)[number] & {
@@ -381,6 +383,8 @@ export default function BaralhoPage() {
           ) : null}
         </div>
       </section>
+
+      <PduAssetStory {...PDU_ASSET_STORIES.deck} />
 
       {/* Card detail modal */}
       <dialog

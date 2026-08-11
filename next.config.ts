@@ -47,7 +47,7 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   poweredByHeader: false,
   images: {
-    qualities: [72, 74, 75, 84, 88],
+    qualities: [72, 74, 75, 84, 86, 88, 90, 95],
   },
   async redirects() {
     return legacyHosts.map((host) => ({

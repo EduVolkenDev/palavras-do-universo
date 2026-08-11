@@ -6,6 +6,8 @@ import { getAuthenticatedUser, hasSupabaseConfig } from "@/lib/supabase/server";
 import { getVoucherByCode } from "@/lib/vouchers/service";
 import { pricingPlans, productCards } from "@/lib/product/catalog";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
+import { PduAssetStory } from "@/components/PduAssetStory";
+import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 
 function getProductTitle(productKey: string | null) {
   if (!productKey) return null;
@@ -38,7 +40,7 @@ export default async function VoucherClaimPage(props: {
         : PDU_ASSETS.surfaces.voucherAccess;
 
   return (
-    <main className="ritual-texture grid min-h-screen place-items-center bg-[#110f16] px-4 py-10 text-[#f3eadf]">
+    <main className="ritual-texture min-h-screen bg-[#110f16] px-4 py-10 text-[#f3eadf]">
       <section className="w-full max-w-3xl rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(244,213,141,0.14),transparent_22%),linear-gradient(180deg,rgba(20,17,27,0.96),rgba(8,7,13,0.96))] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.32)] sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-2xl">
@@ -154,6 +156,7 @@ export default async function VoucherClaimPage(props: {
           )}
         </div>
       </section>
+      <PduAssetStory {...PDU_ASSET_STORIES.auth} />
     </main>
   );
 }

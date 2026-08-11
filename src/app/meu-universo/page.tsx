@@ -41,6 +41,8 @@ import { normalizeLocale, type Locale } from "@/lib/i18n/config";
 import { localizeTarotCard, translateOraclePosition } from "@/lib/i18n/oracle";
 import { CARDS } from "@/lib/tarot/cards";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
+import { PduAssetStory } from "@/components/PduAssetStory";
+import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 
 type Reading = {
   id: string;
@@ -990,12 +992,12 @@ export default function MeuUniversoPage() {
               <h2 className="brand-serif mt-5 text-3xl font-semibold leading-tight">
                 {accountEmail
                   ? "A memória dá profundidade às próximas leituras."
-                  : "Crie conta para a IA lembrar do seu contexto."}
+                  : t("Crie sua conta para Lume guardar o contexto que você escolheu compartilhar.")}
               </h2>
               <p className="mt-3 text-sm leading-6 text-[#d8ccc0]">
-                {accountEmail
-                  ? "Seu universo combina histórico, preferências e sinais recorrentes para respostas menos genéricas."
-                  : "Depois do login, você calibra fase, foco, tom e limites. A leitura deixa de parecer solta e passa a responder dentro da sua jornada."}
+                  {accountEmail
+                    ? "Seu universo combina histórico, preferências e sinais recorrentes para respostas menos genéricas."
+                    : t("A conta dá a Lume um lugar para guardar somente o contexto que você escolheu compartilhar, proteger seu histórico e continuar sua jornada.")}
               </p>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -1021,19 +1023,25 @@ export default function MeuUniversoPage() {
           </div>
         </div>
 
+        <PduAssetStory {...PDU_ASSET_STORIES.universe} tone="light" />
+
         <div className="mt-8 grid gap-3 md:grid-cols-4">
           {stats.map((stat) => (
             <div
               key={stat.label}
               className="rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-5"
             >
-              <Image
-                src={stat.visual}
-                alt=""
-                width={24}
-                height={24}
-                className="h-6 w-6 object-contain"
-              />
+              <span className="grid h-14 w-14 place-items-center rounded-2xl border border-[#d8c3a6] bg-white/75 shadow-[0_10px_24px_rgba(80,57,34,0.08)]">
+                <Image
+                  src={stat.visual}
+                  alt=""
+                  width={56}
+                  height={58}
+                  quality={95}
+                  sizes="56px"
+                  className="h-12 w-12 object-contain"
+                />
+              </span>
               <p className="mt-4 text-sm text-[#6f615a]">{stat.label}</p>
               <p className="mt-1 text-2xl font-semibold text-[#241b18]">
                 {stat.value}
@@ -1191,7 +1199,7 @@ export default function MeuUniversoPage() {
                   </h2>
                   <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
                     Depois de criar conta, esse mapa vira contexto real para as
-                    leituras. A IA entende fase, tom, limites e foco sem você
+                    leituras. Lume entende fase, tom, limites e foco sem você
                     repetir tudo a cada pergunta.
                   </p>
 

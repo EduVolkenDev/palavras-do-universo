@@ -1,0 +1,142 @@
+import { PDU_ASSETS } from "@/lib/pdu-assets";
+import type { PduAssetStoryData } from "@/components/PduAssetStory";
+
+export const PDU_ASSET_STORIES = {
+  home: {
+    eyebrow: "Símbolos de entrada",
+    title: "Antes da resposta, existe um modo de olhar.",
+    description: "As imagens que abrem o portal não são ornamento: elas ajudam a respirar, observar e transformar uma pergunta em presença.",
+    items: [
+      { src: PDU_ASSETS.symbolic.wingOracle, alt: "Oráculo alado em azul e violeta", label: "Orientação", title: "A intuição ganha contorno", text: "Um símbolo para quando você precisa escutar o que já sabe sem pressa." },
+      { src: PDU_ASSETS.symbolic.hand, alt: "Mão simbólica com um olho e estrelas", label: "Escolha", title: "A resposta volta para você", text: "A leitura ilumina possibilidades; o gesto continua sendo seu." },
+      { src: PDU_ASSETS.symbolic.bigEye, alt: "Olho cósmico dentro de um círculo", label: "Observação", title: "Ver sem reagir", text: "Nem todo sinal pede movimento imediato. Alguns pedem atenção." },
+      { src: PDU_ASSETS.brand.fullWordmark, alt: "Marca Palavras do Universo", label: "Portal", title: "Uma pausa com identidade", text: "A linguagem visual acompanha a mesma promessa: clareza sem fatalismo." },
+      { src: PDU_ASSETS.symbolic.cards, alt: "Cartas cósmicas em composição azul", label: "Possibilidade", title: "Nenhuma leitura começa pronta", text: "O símbolo abre espaço para perguntas diferentes e respostas que não se repetem." },
+      { src: PDU_ASSETS.symbolic.threeCardsEditorial, alt: "Três cartas em uma composição ritualística", label: "Caminho", title: "Contexto antes da conclusão", text: "Uma sequência ajuda a olhar para situação, movimento e próximo passo." },
+    ],
+  },
+  daily: {
+    eyebrow: "Ritual do dia",
+    title: "Uma chamada suave para voltar ao centro.",
+    description: "A Carta do Dia ganha um pequeno santuário visual para marcar o começo, a espera e o fechamento do ritual.",
+    items: [
+      { src: PDU_ASSETS.symbolic.bell, alt: "Sino verde com estrela dourada", label: "Chamada", title: "O dia começa quando você escuta", text: "Um lembrete luminoso para abrir espaço antes de pedir uma resposta." },
+      { src: PDU_ASSETS.symbolic.pendulum, alt: "Pêndulo azul com cristal", label: "Pausa", title: "Entre impulso e direção", text: "O pêndulo simboliza a pergunta antes da decisão automática." },
+      { src: PDU_ASSETS.ambient.candle, alt: "Vela ritualística iluminada", label: "Presença", title: "Acender o momento", text: "Um gesto pequeno para transformar a mensagem em prática." },
+      { src: PDU_ASSETS.symbolic.hourglass, alt: "Ampulheta simbólica", label: "Tempo", title: "Nem tudo precisa ser resolvido agora", text: "O tempo também participa da leitura." },
+      { src: PDU_ASSETS.symbolic.mandalaBase, alt: "Mandala azul e violeta", label: "Centro", title: "Voltar ao que importa", text: "Um ponto de referência para encerrar a leitura com presença." },
+      { src: PDU_ASSETS.symbolic.feather, alt: "Pena rosa e violeta com símbolos", label: "Palavra", title: "Levar uma frase com você", text: "A mensagem ganha corpo quando encontra uma linguagem que permanece." },
+    ],
+  },
+  deck: {
+    eyebrow: "O baralho por dentro",
+    title: "Conheça os símbolos antes de escolher uma carta.",
+    description: "O baralho deixa de ser uma grade fria e passa a ter portas para percepção, meditação e imaginação.",
+    items: [
+      { src: PDU_ASSETS.symbolic.lotus, alt: "Lótus cósmico rosa e violeta", label: "Abertura", title: "O que se revela devagar", text: "Para leituras de introspecção, cura e começo de ciclo." },
+      { src: PDU_ASSETS.symbolic.meditation, alt: "Figura em meditação com formas azuis", label: "Silêncio", title: "A carta também pede escuta", text: "Uma imagem para lembrar que contemplar é parte do caminho." },
+      { src: PDU_ASSETS.symbolic.magicBook, alt: "Livro mágico brilhando", label: "Memória", title: "Cada símbolo guarda camadas", text: "O baralho é um arquivo vivo de perguntas e retornos." },
+      { src: PDU_ASSETS.symbolic.oracle, alt: "Oráculo simbólico em azul e violeta", label: "Leitura", title: "Uma imagem abre uma conversa", text: "O significado nasce do encontro entre símbolo, momento e pergunta." },
+      { src: PDU_ASSETS.symbolic.bigGem, alt: "Gema azul e violeta", label: "Núcleo", title: "Encontrar o ponto de maior brilho", text: "Alguns símbolos ajudam a separar o essencial do ruído." },
+      { src: PDU_ASSETS.symbolic.bigEye, alt: "Olho cósmico dentro de um círculo", label: "Visão", title: "Observar antes de nomear", text: "A leitura começa quando você permite que o símbolo faça uma pergunta de volta." },
+    ],
+  },
+  spreads: {
+    eyebrow: "Escolha pela energia",
+    title: "Cada porta tem uma atmosfera própria.",
+    description: "Antes de clicar em uma tirada, veja qual símbolo combina com o tipo de clareza que você está procurando.",
+    items: [
+      { src: PDU_ASSETS.symbolic.geisha, alt: "Máscara de gueixa cósmica em rosa e violeta", label: "Vínculos", title: "Sentir sem se perder", text: "Para perguntas de afeto, desejo, limite e presença." },
+      { src: PDU_ASSETS.symbolic.fire, alt: "Recipiente ritualístico com fogo azul", label: "Urgência", title: "Transformar pressão em eixo", text: "Para quando a próxima decisão precisa de firmeza e cuidado." },
+      { src: PDU_ASSETS.symbolic.vessel, alt: "Garrafa cósmica com cristais", label: "Mensagem", title: "Guardar o que importa", text: "Para leituras que precisam ser revisitadas e integradas." },
+      { src: PDU_ASSETS.symbolic.chalice, alt: "Cálice azul com símbolo solar", label: "Receber", title: "Abrir espaço para uma resposta", text: "Para entrar na leitura com curiosidade e disponibilidade." },
+      { src: PDU_ASSETS.symbolic.scepter, alt: "Cetro roxo com cristal", label: "Firmeza", title: "Escolher um eixo", text: "Para perguntas que pedem decisão sem perder delicadeza." },
+      { src: PDU_ASSETS.symbolic.direction, alt: "Símbolo de direção azul e violeta", label: "Próximo passo", title: "A clareza precisa apontar", text: "Uma leitura útil termina com uma possibilidade praticável." },
+    ],
+  },
+  universe: {
+    eyebrow: "Meu Universo visual",
+    title: "Sua jornada também pode ser reconhecida por imagens.",
+    description: "O histórico deixa de parecer apenas uma lista: cada ciclo ganha um símbolo, uma atmosfera e um jeito de retornar.",
+    items: [
+      { src: PDU_ASSETS.symbolic.zodiac, alt: "Roda zodiacal azul e dourada", label: "Ciclos", title: "Reconhecer o movimento", text: "Uma imagem para acompanhar fases sem transformar a vida em destino fixo." },
+      { src: PDU_ASSETS.symbolic.butterfly, alt: "Borboleta cósmica com joias", label: "Mudança", title: "Perceber o que está se transformando", text: "Para fases de passagem, desapego e recomeço." },
+      { src: PDU_ASSETS.symbolic.dragonfly, alt: "Libélula verde com fundo estrelado", label: "Leveza", title: "Mudar de perspectiva", text: "Para quando a clareza chega por um ângulo inesperado." },
+      { src: PDU_ASSETS.products.weekEnergy, alt: "Imagem visual dos ciclos da semana", label: "Ritmo", title: "Dar forma à semana", text: "Uma âncora visual para acompanhar energia, foco e descanso." },
+      { src: PDU_ASSETS.products.loveSignals, alt: "Mapa visual de sinais do amor", label: "Vínculos", title: "Ler os sinais com cuidado", text: "O afeto merece contexto, limite e espaço para mudar." },
+      { src: PDU_ASSETS.products.momentMap, alt: "Mapa visual do momento", label: "Orientação", title: "Localizar o agora", text: "Um mapa não escolhe por você; ele ajuda a enxergar onde está." },
+      { src: PDU_ASSETS.products.threeCardPathDisplay, alt: "Caminho visual das três cartas", label: "Integração", title: "Voltar ao fio da leitura", text: "A jornada fica mais fácil de revisitar quando cada etapa tem uma imagem." },
+    ],
+  },
+  professionals: {
+    eyebrow: "Cuidado com presença",
+    title: "Quando a reflexão pede uma conversa humana.",
+    description: "O espaço dos profissionais precisa parecer acolhedor, ético e vivo — não um diretório genérico.",
+    items: [
+      { src: PDU_ASSETS.symbolic.consultation, alt: "Cena simbólica de consulta", label: "Encontro", title: "Encontrar a pessoa certa", text: "A escolha começa por linguagem, especialidade e disponibilidade claras." },
+      { src: PDU_ASSETS.symbolic.feather, alt: "Pena rosa e violeta com símbolos", label: "Escuta", title: "Falar com delicadeza", text: "Um símbolo para conversas que precisam de espaço e cuidado." },
+      { src: PDU_ASSETS.symbolic.hand, alt: "Mão simbólica com olho central", label: "Apoio", title: "Não atravessar tudo sozinho", text: "A orientação digital pode abrir caminho para presença profissional." },
+      { src: PDU_ASSETS.symbolic.wingOracle, alt: "Oráculo alado azul e violeta", label: "Direção", title: "Escolher com mais contexto", text: "A jornada continua quando a pessoa encontra suporte confiável." },
+      { src: PDU_ASSETS.symbolic.mandalaBase, alt: "Mandala azul e violeta", label: "Cuidado", title: "Um espaço que não atropela", text: "A presença profissional começa por escuta, segurança e consentimento." },
+    ],
+  },
+  professionalProfile: {
+    eyebrow: "O perfil por dentro",
+    title: "Uma presença profissional deve ser sentida antes do contato.",
+    description: "O perfil individual ganha uma composição visual que comunica especialidade, profundidade e forma de cuidado.",
+    items: [
+      { src: PDU_ASSETS.symbolic.essence, alt: "Essência simbólica azul e violeta", label: "Essência", title: "O que sustenta o trabalho", text: "Uma entrada visual para a linguagem e a abordagem de cada profissional." },
+      { src: PDU_ASSETS.symbolic.bigGem, alt: "Gema azul e violeta", label: "Clareza", title: "Valor percebido com transparência", text: "A proposta, o preço e o acesso aparecem sem esconderijo." },
+      { src: PDU_ASSETS.editorial.mirror, alt: "Espelho editorial", label: "Reflexão", title: "O encontro também devolve algo", text: "A pessoa escolhe o profissional que melhor conversa com seu momento." },
+      { src: PDU_ASSETS.symbolic.cards, alt: "Cartas cósmicas em composição azul", label: "Método", title: "Explicar como o trabalho acontece", text: "A forma de conduzir importa tanto quanto a promessa do resultado." },
+    ],
+  },
+  professionalStudio: {
+    eyebrow: "Estúdio profissional",
+    title: "Construa uma presença que as pessoas consigam reconhecer.",
+    description: "O painel de edição também merece inspiração: cada campo preenchido deve aproximar o profissional da própria voz.",
+    items: [
+      { src: PDU_ASSETS.symbolic.dock, alt: "Dock simbólico azul", label: "Base", title: "Organizar o próprio espaço", text: "Um símbolo de estrutura para montar perfil, oferta e disponibilidade." },
+      { src: PDU_ASSETS.symbolic.dreamFilter, alt: "Filtro dos sonhos cósmico", label: "Curadoria", title: "Escolher o que deixar passar", text: "A clareza do perfil também nasce de bons limites." },
+      { src: PDU_ASSETS.symbolic.direction, alt: "Símbolo de direção azul e violeta", label: "Direção", title: "Mostrar para onde você conduz", text: "Uma presença forte começa com uma promessa compreensível." },
+      { src: PDU_ASSETS.symbolic.scepter, alt: "Cetro ritualístico", label: "Ofício", title: "Dar dignidade ao trabalho", text: "O detalhe visual reforça que cuidado e profissionalismo caminham juntos." },
+      { src: PDU_ASSETS.symbolic.bigGem, alt: "Gema azul e violeta", label: "Valor", title: "Mostrar o que merece atenção", text: "Uma boa oferta deixa claro o que entrega, para quem serve e quanto custa." },
+    ],
+  },
+  auth: {
+    eyebrow: "Entrada no portal",
+    title: "A sua conta começa com uma imagem de pertencimento.",
+    description: "A autenticação e os acessos especiais também podem carregar a atmosfera do Universo sem perder clareza.",
+    items: [
+      { src: PDU_ASSETS.brand.fullWordmark, alt: "Marca Palavras do Universo", label: "Identidade", title: "Reconhecer onde você está", text: "A marca abre a passagem com elegância." },
+      { src: PDU_ASSETS.brand.newWordmark, alt: "Novo wordmark transparente de Palavras do Universo", label: "Portal", title: "Uma nova camada da mesma jornada", text: "A assinatura visual reforça continuidade entre acesso e experiência." },
+      { src: PDU_ASSETS.brand.mark, alt: "Símbolo visual completo de Palavras do Universo", label: "Continuidade", title: "Voltar ao mesmo Universo", text: "A identidade acompanha a pessoa entre leitura, conta e histórico." },
+      { src: PDU_ASSETS.brand.markMobile, alt: "Marca mobile de Palavras do Universo", label: "Presença", title: "Cabe também no pequeno", text: "A experiência mantém seu reconhecimento mesmo em telas compactas." },
+      { src: PDU_ASSETS.symbolic.vessel, alt: "Garrafa cósmica", label: "Acesso", title: "Guardar o que é seu", text: "A conta protege leituras, mensagens e padrões." },
+      { src: PDU_ASSETS.ambient.candle, alt: "Vela ritualística", label: "Ritual", title: "Voltar também é um gesto", text: "A entrada não termina no login: ela abre continuidade." },
+    ],
+  },
+  legal: {
+    eyebrow: "Cuidado e transparência",
+    title: "Até as páginas silenciosas merecem beleza.",
+    description: "Termos, privacidade e reembolsos também fazem parte da confiança que sustenta o Universo.",
+    items: [
+      { src: PDU_ASSETS.symbolic.bell, alt: "Sino verde ritualístico", label: "Atenção", title: "Ler antes de continuar", text: "A informação importante merece um convite gentil." },
+      { src: PDU_ASSETS.symbolic.mandalaBase, alt: "Mandala azul e violeta", label: "Estrutura", title: "Organizar o que protege você", text: "Clareza também é uma forma de cuidado." },
+      { src: PDU_ASSETS.symbolic.mandalaDeep, alt: "Mandala profunda", label: "Profundidade", title: "Nada importante fica escondido", text: "A linguagem legal pode ser humana e compreensível." },
+      { src: PDU_ASSETS.symbolic.feather, alt: "Pena ritualística", label: "Palavra", title: "Escrever com respeito", text: "Cada regra deve explicar, não intimidar." },
+      { src: PDU_ASSETS.symbolic.hourglass, alt: "Ampulheta simbólica", label: "Processo", title: "A confiança também precisa de tempo", text: "Transparência é facilitar a compreensão de cada escolha." },
+    ],
+  },
+  impact: {
+    eyebrow: "Uma palavra vira ação",
+    title: "A clareza fica mais bonita quando chega ao mundo.",
+    description: "As correntes de cuidado ganham símbolos de fogo, força, movimento e transformação para convidar participação real.",
+    items: [
+      { src: PDU_ASSETS.symbolic.fire, alt: "Fogo ritualístico azul", label: "Impulso", title: "Acender o primeiro gesto", text: "Toda ação começa pequena, mas pode carregar energia." },
+      { src: PDU_ASSETS.symbolic.hand, alt: "Mão de proteção com olho", label: "Cuidado", title: "Agir sem ultrapassar limites", text: "A corrente respeita segurança, autonomia e realidade." },
+      { src: PDU_ASSETS.symbolic.direction, alt: "Símbolo de direção", label: "Movimento", title: "Transformar intenção em passo", text: "A imagem lembra que uma palavra pode ter consequência prática." },
+      { src: PDU_ASSETS.symbolic.vessel, alt: "Recipiente cósmico", label: "Preservar", title: "Guardar o sentido do gesto", text: "O que se compartilha pode continuar vivo sem expor planos pessoais." },
+    ],
+  },
+} satisfies Record<string, PduAssetStoryData>;
