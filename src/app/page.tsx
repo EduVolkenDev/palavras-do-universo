@@ -1020,6 +1020,10 @@ export default function Home() {
   const [onboardingFocusId, setOnboardingFocusId] = useState("");
   const [readingStateHydrated, setReadingStateHydrated] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [heroMarks, setHeroMarks] = useState<HeroMarkCandidate[]>([
+    fallbackHeroMark,
+  ]);
+  const [heroMarkIndex, setHeroMarkIndex] = useState(0);
   const [selectedHeroMark, setSelectedHeroMark] =
     useState<HeroMarkCandidate>(fallbackHeroMark);
   const hasRestoredReadingStateRef = useRef(false);
@@ -1063,12 +1067,48 @@ export default function Home() {
 
         if (cancelled || marks.length === 0) return;
 
-        const randomValue =
+        const randomizedMarks = [...marks];
+        const randomValues =
           typeof window.crypto?.getRandomValues === "function"
-            ? window.crypto.getRandomValues(new Uint32Array(1))[0] ?? Date.now()
-            : Date.now();
+            ? window.crypto.getRandomValues(new Uint32Array(randomizedMarks.length))
+            : new Uint32Array(randomizedMarks.map(() => Date.now() + Math.random() * 1_000));
 
-        setSelectedHeroMark(marks[randomValue % marks.length] ?? fallbackHeroMark);
+        for (let index = randomizedMarks.length - 1; index > 0; index -= 1) {
+          const swapIndex = (randomValues[index] ?? 0) % (index + 1);
+          [randomizedMarks[index], randomizedMarks[swapIndex]] = [
+            randomizedMarks[swapIndex],
+            randomizedMarks[index],
+          ];
+        }
+
+        if (cancelled || randomizedMarks.length === 0) return;
+
+        try {
+          const lastHeroPath = window.localStorage.getItem("pdu_last_hero_mark");
+          if (randomizedMarks.length > 1 && randomizedMarks[0]?.assetPath === lastHeroPath) {
+            const firstMark = randomizedMarks.shift();
+            if (firstMark) randomizedMarks.push(firstMark);
+          }
+          window.localStorage.setItem(
+            "pdu_last_hero_mark",
+            randomizedMarks[0]?.assetPath ?? fallbackHeroMark.assetPath
+          );
+        } catch {
+          // A restricted storage context should not block the visual experience.
+        }
+
+        setHeroMarks(randomizedMarks);
+        setHeroMarkIndex(0);
+        setSelectedHeroMark(randomizedMarks[0] ?? fallbackHeroMark);
+
+        randomizedMarks.slice(1).forEach((mark) => {
+          const preload = new window.Image();
+          preload.src = mark.assetPath;
+          if (mark.mobileAssetPath) {
+            const mobilePreload = new window.Image();
+            mobilePreload.src = mark.mobileAssetPath;
+          }
+        });
       } catch {
         // The stable brand mark remains visible if the manifest request fails.
       }
@@ -1080,6 +1120,25 @@ export default function Home() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      heroMarks.length < 2 ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setHeroMarkIndex((currentIndex) => (currentIndex + 1) % heroMarks.length);
+    }, 8_000);
+
+    return () => window.clearInterval(timer);
+  }, [heroMarks.length]);
+
+  useEffect(() => {
+    setSelectedHeroMark(heroMarks[heroMarkIndex] ?? fallbackHeroMark);
+  }, [heroMarkIndex, heroMarks]);
 
   function handleHeroMarkError() {
     setSelectedHeroMark(fallbackHeroMark);
@@ -1322,6 +1381,30 @@ export default function Home() {
     shouldScrollToOpenedReadingRef.current = true;
   }
 
+  function clearReadingView() {
+    shouldScrollToOpenedReadingRef.current = false;
+    setResult("");
+    setResultLocale(null);
+    setSpreadLine("");
+    setSpreadCards([]);
+    setReadingId(null);
+    setPaywall(null);
+    setRepeat(null);
+    setError("");
+    setSaved(false);
+    setSaveNotice("");
+    setReadingNotice("");
+  }
+
+  function openDailyMessage() {
+    if (loading) return;
+
+    // A home-page entry should begin with the daily ritual, never with a
+    // restored spread from a previous question.
+    clearReadingView();
+    window.requestAnimationFrame(() => scrollToId("leitura"));
+  }
+
   async function run(customQuestion?: string) {
     const q = (customQuestion ?? question).trim();
     if (q.length < 8) {
@@ -1337,17 +1420,8 @@ export default function Home() {
 
     shouldScrollToOpenedReadingRef.current = true;
     setLoading(true);
-    setResult("");
-    setResultLocale(null);
-    setSpreadLine("");
-    setSpreadCards([]);
-    setReadingId(null);
-    setPaywall(null);
-    setRepeat(null);
-    setError("");
-    setSaved(false);
-    setSaveNotice("");
-    setReadingNotice("");
+    clearReadingView();
+    shouldScrollToOpenedReadingRef.current = true;
 
     try {
       const [{ response: res, data }] = await Promise.all([
@@ -2138,7 +2212,7 @@ export default function Home() {
               className="pdu-mobile-menu__cta mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-4 py-3 text-sm font-semibold text-[#1c1308]"
               onClick={() => {
                 setMobileMenuOpen(false);
-                scrollToId("leitura");
+                openDailyMessage();
               }}
             >
               <Sun size={16} />
@@ -2180,7 +2254,7 @@ export default function Home() {
               <div className="pdu-hero-actions">
                 <button
                   type="button"
-                  onClick={() => scrollToId("leitura")}
+                  onClick={openDailyMessage}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#1c1308] shadow-[0_18px_50px_rgba(244,213,141,0.24)] hover:bg-[#ffe3a3] sm:w-auto"
                 >
                   <Sparkles size={18} />
@@ -2262,7 +2336,7 @@ export default function Home() {
                     height={1600}
                     decoding="async"
                     fetchPriority="high"
-                    className="h-full w-full object-contain"
+                    className="pdu-hero-mark__image h-full w-full object-contain"
                     onError={handleHeroMarkError}
                   />
                 </picture>

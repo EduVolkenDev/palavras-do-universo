@@ -346,6 +346,12 @@ export default function VoucherAdminPage({
                   {t("Atualizar")}
                 </button>
                 <Link
+                  href="/admin/feedback"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#8faea3] bg-[#10251f] px-4 py-2 text-sm font-semibold text-[#c6eadb]"
+                >
+                  Feedbacks
+                </Link>
+                <Link
                   href="/meu-universo"
                   className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1b1713]"
                 >

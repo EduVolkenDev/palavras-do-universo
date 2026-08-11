@@ -13,10 +13,22 @@ export const PDU_ASSETS = {
     fullWordmark: "/assets/palavrasuniverso.webp",
     newWordmark: "/assets/pdu-new-wordmark-transparent-ofi.webp",
     heroMarkRotation: [
-      { assetPath: "/assets/new-pdu-dock5.webp" },
-      { assetPath: "/assets/new-pdu-dock4.webp" },
-      { assetPath: "/assets/new-pdu-dock3.webp" },
-      { assetPath: "/assets/pdu-logomark1.webp" },
+      {
+        assetPath: "/assets/new-pdu-dock.webp",
+        mobileAssetPath: "/assets/pdu-hero-new-dock-mobile.webp",
+      },
+      {
+        assetPath: "/assets/new-pdu-dock3.webp",
+        mobileAssetPath: "/assets/pdu-hero-new-dock3-mobile.webp",
+      },
+      {
+        assetPath: "/assets/new-pdu-dock4.webp",
+        mobileAssetPath: "/assets/pdu-hero-new-dock4-mobile.webp",
+      },
+      {
+        assetPath: "/assets/new-pdu-dock5.webp",
+        mobileAssetPath: "/assets/pdu-hero-new-dock5-mobile.webp",
+      },
       {
         assetPath: "/assets/pdu-dock.webp",
         mobileAssetPath: "/assets/pdu-dock-mobile.webp",
