@@ -345,6 +345,34 @@ const PRODUCT_CONTEXT: Record<string, { en: string; pt: string }> = {
     en: "Círculo do Universo connects this answer with continuity, memory, and personal ritual.",
     pt: "O Círculo do Universo conecta esta resposta com continuidade, memória e ritual pessoal.",
   },
+  tirada_diamante: {
+    en: "The Diamond reads inner influence, outer influence, resolution, and integration as one connected question.",
+    pt: "O Diamante lê influência interna, influência externa, resolução e integração como uma única questão conectada.",
+  },
+  passaro_voando: {
+    en: "The Flying Bird distinguishes fear, receptivity, action, and the horizon that becomes possible when movement gains integrity.",
+    pt: "O Pássaro Voando diferencia medo, receptividade, ação e o horizonte que surge quando o movimento ganha integridade.",
+  },
+  a_chave: {
+    en: "The Key treats hidden layers as symbolic hypotheses and looks for the understanding that restores choice.",
+    pt: "A Chave trata camadas ocultas como hipóteses simbólicas e procura a compreensão que devolve escolha.",
+  },
+  o_espelho: {
+    en: "The Mirror keeps the reading within your field: projection, need, boundary, conversation, and choice.",
+    pt: "O Espelho mantém a leitura no seu campo: projeção, necessidade, limite, conversa e escolha.",
+  },
+  cruz_celta: {
+    en: "The Celtic Cross organizes the wider map into context, tension, roots, environment, and integration.",
+    pt: "A Cruz Celta organiza o mapa amplo em contexto, tensão, raízes, campo e integração.",
+  },
+  relacionar: {
+    en: "Relating observes your field, the other field, what emerges between both, and the awareness that makes the bond more honest.",
+    pt: "Relacionar observa seu campo, o outro campo, o que nasce entre ambos e a consciência que torna o vínculo mais honesto.",
+  },
+  o_paradoxo: {
+    en: "The Paradox gives both truths room to breathe until a third perspective becomes possible.",
+    pt: "O Paradoxo dá espaço para as duas verdades respirarem até que um terceiro olhar se torne possível.",
+  },
 };
 
 const PT_POSITION_GUIDANCE: readonly (readonly string[])[] = [
@@ -365,6 +393,12 @@ const PT_POSITION_GUIDANCE: readonly (readonly string[])[] = [
     "Leve a direção para uma ação que possa ser concluída.",
     "Escolha o menor gesto capaz de confirmar esta direção.",
     "Use esta energia como critério para dizer um sim ou um não.",
+  ],
+  [
+    "Leia esta posição como parte do mapa inteiro, não como uma mensagem isolada.",
+    "Observe como esta camada conversa com as cartas anteriores e prepara a próxima.",
+    "Deixe esta posição acrescentar nuance antes de procurar uma conclusão.",
+    "Pergunte o que muda no conjunto quando esta energia é reconhecida.",
   ],
 ];
 
@@ -387,6 +421,12 @@ const EN_POSITION_GUIDANCE: readonly (readonly string[])[] = [
     "Choose the smallest gesture that confirms this direction.",
     "Use this energy as a criterion for one clear yes or no.",
   ],
+  [
+    "Read this position as part of the whole map, not as an isolated message.",
+    "Notice how this layer speaks to the cards before it and prepares the next one.",
+    "Let this position add nuance before looking for a conclusion.",
+    "Ask what changes in the full spread when this energy is acknowledged.",
+  ],
 ];
 
 const PT_POSITION_CONTEXT: readonly (readonly string[])[] = [
@@ -408,6 +448,12 @@ const PT_POSITION_CONTEXT: readonly (readonly string[])[] = [
     "{card} aponta o movimento mais limpo: transforme esse tema em uma decisão pequena, visível e realizável.",
     "A saída aberta por {card} não exige certeza total; ela pede um passo que confirme {keyword} no mundo real.",
   ],
+  [
+    "Nesta camada, {card} acrescenta {keyword} ao mapa de {question}; leia a relação com as outras posições antes de concluir.",
+    "{card} amplia {question} por meio de {keyword}; essa posição ganha sentido no diálogo com o conjunto.",
+    "A posição ocupada por {card} revela uma nuance de {keyword} que reorganiza a leitura de {question}.",
+    "{card} pede que {keyword} seja integrado ao restante da tirada, sem transformar uma única carta em sentença.",
+  ],
 ];
 
 const EN_POSITION_CONTEXT: readonly (readonly string[])[] = [
@@ -428,6 +474,12 @@ const EN_POSITION_CONTEXT: readonly (readonly string[])[] = [
     "As direction, {card} asks {question} to become one concrete gesture guided by {keyword}.",
     "{card} points to the cleanest movement: turn this theme into a small, visible, doable decision.",
     "The way opened by {card} does not demand total certainty; it asks for one step that confirms {keyword} in real life.",
+  ],
+  [
+    "In this layer, {card} adds {keyword} to the map of {question}; read its relationship with the other positions before concluding.",
+    "{card} expands {question} through {keyword}; this position gains meaning in dialogue with the whole spread.",
+    "The position held by {card} reveals a nuance of {keyword} that reorganizes the reading of {question}.",
+    "{card} asks you to integrate {keyword} with the rest of the spread without turning one card into a verdict.",
   ],
 ];
 
@@ -542,8 +594,10 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     (isEnglish ? EN_OPENINGS : PT_OPENINGS).NEVOA;
   const localizedSpread = spread;
   const situation = localizedSpread[0];
-  const obstacle = localizedSpread[1];
-  const direction = localizedSpread[2];
+  const obstacle = localizedSpread[1] ?? localizedSpread[0];
+  const direction = localizedSpread.at(-1) ?? localizedSpread[0];
+  const midpoint = localizedSpread[Math.floor((localizedSpread.length - 1) / 2)] ?? obstacle;
+  const hasExtendedSpread = localizedSpread.length > 3;
   const meaning = (draw: (typeof localizedSpread)[number]) =>
     draw.reversed ? draw.card.reversed : draw.card.upright;
   const label = (draw: (typeof localizedSpread)[number]) =>
@@ -563,7 +617,7 @@ export function generateFallbackReading(params: FallbackReadingParams) {
         : "este momento";
     const templates = isEnglish ? EN_POSITION_CONTEXT : PT_POSITION_CONTEXT;
     const template = pickVariant(
-      templates[index] ?? templates[0],
+      templates[index] ?? templates[3] ?? templates[0],
       seed,
       `position-context:${index}:${draw.card.key}:${draw.reversed ? "r" : "u"}`
     );
@@ -586,8 +640,12 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     patternLine: momentLine,
   });
   const directAnswer = isEnglish
-    ? `${localPresenceLine} Your question is not asking for perfect certainty; it is asking you to read the situation through ${label(situation)}, notice the tension shown by ${label(obstacle)}, and choose the direction opened by ${label(direction)}.`
-    : `${localPresenceLine} A sua pergunta não está pedindo certeza perfeita; ela pede que você leia a situação por ${label(situation)}, perceba a tensão mostrada por ${label(obstacle)} e escolha a direção aberta por ${label(direction)}.`;
+    ? hasExtendedSpread
+      ? `${localPresenceLine} Your question is not asking for perfect certainty; this ${localizedSpread.length}-position map begins with ${label(situation)}, turns through ${label(midpoint)}, and converges toward ${label(direction)}.`
+      : `${localPresenceLine} Your question is not asking for perfect certainty; it is asking you to read the situation through ${label(situation)}, notice the tension shown by ${label(obstacle)}, and choose the direction opened by ${label(direction)}.`
+    : hasExtendedSpread
+      ? `${localPresenceLine} A sua pergunta não está pedindo certeza perfeita; este mapa de ${localizedSpread.length} posições começa em ${label(situation)}, atravessa ${label(midpoint)} e converge para ${label(direction)}.`
+      : `${localPresenceLine} A sua pergunta não está pedindo certeza perfeita; ela pede que você leia a situação por ${label(situation)}, perceba a tensão mostrada por ${label(obstacle)} e escolha a direção aberta por ${label(direction)}.`;
   const memoryLine = hasPortalMemory
     ? isEnglish
       ? "Your saved journey suggests this is part of a continuing pattern; notice what is repeating without forcing a conclusion."
@@ -633,16 +691,16 @@ export function generateFallbackReading(params: FallbackReadingParams) {
         mantra,
         `Plain meaning: ${daily.affirmation}`,
         "",
-        "4) THE THREE THREADS",
-        `- Truth: ${triadLine(situation, 0)}`,
-        `- Shadow: ${triadLine(obstacle, 1)}`,
-        `- Direction: ${triadLine(direction, 2)}`,
+        hasExtendedSpread ? "4) MAP OF THE SPREAD" : "4) THE THREE THREADS",
+        `- ${hasExtendedSpread ? "Opening" : "Truth"}: ${triadLine(situation, 0)}`,
+        `- ${hasExtendedSpread ? "Turning point" : "Shadow"}: ${triadLine(hasExtendedSpread ? midpoint : obstacle, 1)}`,
+        `- ${hasExtendedSpread ? "Integration" : "Direction"}: ${triadLine(direction, 2)}`,
         "",
         "5) READING BY POSITION",
         ...localizedSpread.flatMap((draw, index) => [
           `- ${draw.position} — ${label(draw)}`,
           `  In practice: ${contextualMeaning(draw, index)}`,
-          `  ${pick(EN_POSITION_GUIDANCE[index], `position-${index}`)}`,
+          `  ${pick(EN_POSITION_GUIDANCE[index] ?? EN_POSITION_GUIDANCE[3], `position-${index}`)}`,
           "",
         ]),
         "6) ACTIONS",
@@ -668,16 +726,16 @@ export function generateFallbackReading(params: FallbackReadingParams) {
         mantra,
         `Tradução simples: ${daily.affirmation}`,
         "",
-        "4) TRÍADE",
-        `- Verdade: ${triadLine(situation, 0)}`,
-        `- Sombra: ${triadLine(obstacle, 1)}`,
-        `- Direção: ${triadLine(direction, 2)}`,
+        hasExtendedSpread ? "4) MAPA DA TIRADA" : "4) TRÍADE",
+        `- ${hasExtendedSpread ? "Abertura" : "Verdade"}: ${triadLine(situation, 0)}`,
+        `- ${hasExtendedSpread ? "Ponto de virada" : "Sombra"}: ${triadLine(hasExtendedSpread ? midpoint : obstacle, 1)}`,
+        `- ${hasExtendedSpread ? "Integração" : "Direção"}: ${triadLine(direction, 2)}`,
         "",
         "5) LEITURA POR POSIÇÃO",
         ...localizedSpread.flatMap((draw, index) => [
           `- ${draw.position} — ${label(draw)}`,
           `  Na prática: ${contextualMeaning(draw, index)}`,
-          `  ${pick(PT_POSITION_GUIDANCE[index], `position-${index}`)}`,
+          `  ${pick(PT_POSITION_GUIDANCE[index] ?? PT_POSITION_GUIDANCE[3], `position-${index}`)}`,
           "",
         ]),
         "6) AÇÕES",

@@ -13,6 +13,8 @@ import {
   Heart,
   History,
   LifeBuoy,
+  Layers3,
+  LockKeyhole,
   Menu,
   MoonStar,
   Quote,
@@ -64,6 +66,7 @@ import {
   getRecommendedImpactActions,
 } from "@/lib/impact/actions";
 import { CARDS } from "@/lib/tarot/cards";
+import { getSpreadForProduct } from "@/lib/tarot/spreads";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 import { PduAssetStory } from "@/components/PduAssetStory";
@@ -77,6 +80,8 @@ type ApiOk = {
   theme: string;
   question: string;
   mode: string;
+  spreadType: string;
+  spreadLabel: string;
   spread: {
     position: string;
     cardKey: string;
@@ -94,6 +99,8 @@ type ReadingSpreadCard = ApiOk["spread"][number];
 type ApiPaywall = {
   error: string;
   paywall: true;
+  kind: "free_limit" | "auth" | "access";
+  productKey?: string;
 };
 
 type ApiRepeat = {
@@ -281,6 +288,12 @@ const ptCardInsightTemplates = [
     "{card} aponta o movimento mais limpo: transforme esse tema em uma decisão pequena e visível.",
     "A saída aberta por {card} não exige certeza total; pede um passo que confirme {keyword}.",
   ],
+  [
+    "Nesta posição, {card} acrescenta {keyword} ao mapa de {topic}{theme}; leia a relação com o conjunto antes de concluir.",
+    "{card} amplia {topic}{theme} por meio de {keyword}; esta camada ganha sentido no diálogo com as outras cartas.",
+    "A posição de {card} revela uma nuance de {keyword} que reorganiza o mapa sem virar sentença isolada.",
+    "Integre {keyword} ao restante da tirada: {card} é uma parte da resposta, não a resposta inteira.",
+  ],
 ];
 
 const enCardInsightTemplates = [
@@ -301,6 +314,12 @@ const enCardInsightTemplates = [
     "As direction, {card} asks {topic}{theme} to become one concrete gesture guided by {keyword}.",
     "{card} points to the cleanest movement: turn this theme into a small, visible decision.",
     "The way opened by {card} does not demand total certainty; it asks for one step that confirms {keyword}.",
+  ],
+  [
+    "In this position, {card} adds {keyword} to the map of {topic}{theme}; read its relationship with the whole before concluding.",
+    "{card} expands {topic}{theme} through {keyword}; this layer gains meaning in dialogue with the other cards.",
+    "The position of {card} reveals a nuance of {keyword} that reorganizes the map without becoming an isolated verdict.",
+    "Integrate {keyword} with the rest of the spread: {card} is part of the answer, not the entire answer.",
   ],
 ];
 
@@ -517,6 +536,16 @@ const fallbackDailyMessage: DailyMessage = {
   spread: fallbackSpread,
 };
 
+const readingExperienceVisuals: Record<string, string> = {
+  tirada_diamante: PDU_ASSETS.spreads.diamondMobile,
+  passaro_voando: PDU_ASSETS.spreads.flyingBirdMobile,
+  a_chave: PDU_ASSETS.spreads.keyMobile,
+  o_espelho: PDU_ASSETS.spreads.mirrorMobile,
+  cruz_celta: PDU_ASSETS.spreads.celticCrossMobile,
+  relacionar: PDU_ASSETS.spreads.relationshipMobile,
+  o_paradoxo: PDU_ASSETS.spreads.paradoxMobile,
+};
+
 const productIconVisuals: Record<
   string,
   {
@@ -555,6 +584,41 @@ const productIconVisuals: Record<
     mobileAssetPath: PDU_ASSETS.products.loveSignalsMobile,
     fallbackIcon: Heart,
     tone: "rose",
+  },
+  "O Diamante": {
+    assetPath: PDU_ASSETS.spreads.diamondMobile,
+    fallbackIcon: Sparkles,
+    tone: "blue",
+  },
+  "O Pássaro Voando": {
+    assetPath: PDU_ASSETS.spreads.flyingBirdMobile,
+    fallbackIcon: Compass,
+    tone: "mint",
+  },
+  "A Chave": {
+    assetPath: PDU_ASSETS.spreads.keyMobile,
+    fallbackIcon: LockKeyhole,
+    tone: "gold",
+  },
+  "O Espelho": {
+    assetPath: PDU_ASSETS.spreads.mirrorMobile,
+    fallbackIcon: Heart,
+    tone: "blue",
+  },
+  "Cruz Celta": {
+    assetPath: PDU_ASSETS.spreads.celticCrossMobile,
+    fallbackIcon: Layers3,
+    tone: "blue",
+  },
+  "Relacionar": {
+    assetPath: PDU_ASSETS.spreads.relationshipMobile,
+    fallbackIcon: Heart,
+    tone: "rose",
+  },
+  "O Paradoxo": {
+    assetPath: PDU_ASSETS.spreads.paradoxMobile,
+    fallbackIcon: MoonStar,
+    tone: "gold",
   },
   "Energia da Semana": {
     assetPath: PDU_ASSETS.products.weekEnergyDisplay,
@@ -757,8 +821,8 @@ function buildLocalizedReadingText(params: {
     ? "READING IN THE SELECTED LANGUAGE"
     : "LEITURA NO IDIOMA SELECIONADO";
   const direct = isEnglish
-    ? "Read this answer through the question you opened and the three cards now visible."
-    : "Leia esta resposta a partir da pergunta que você abriu e das três cartas agora visíveis.";
+    ? `Read this answer through the question you opened and the ${params.cards.length} cards now visible.`
+    : `Leia esta resposta a partir da pergunta que você abriu e das ${params.cards.length} cartas agora visíveis.`;
   const advice = isEnglish
     ? "Choose one small, visible action today before trying to solve the whole path."
     : "Escolha uma ação pequena e visível hoje antes de tentar resolver todo o caminho.";
@@ -887,7 +951,9 @@ function getContextualCardInsight(
     .trim();
   const positionIndex =
     typeof context?.index === "number"
-      ? context.index
+      ? context.index > 2
+        ? 3
+        : context.index
       : position.includes("obst") || position.includes("shadow") || position.includes("sombra")
         ? 1
         : position.includes("dire") || position.includes("direction")
@@ -1020,12 +1086,11 @@ export default function Home() {
   const [onboardingFocusId, setOnboardingFocusId] = useState("");
   const [readingStateHydrated, setReadingStateHydrated] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [heroMarks, setHeroMarks] = useState<HeroMarkCandidate[]>([
-    fallbackHeroMark,
-  ]);
+  const [headerCondensed, setHeaderCondensed] = useState(false);
+  const [heroMarks, setHeroMarks] = useState<HeroMarkCandidate[]>([]);
   const [heroMarkIndex, setHeroMarkIndex] = useState(0);
   const [selectedHeroMark, setSelectedHeroMark] =
-    useState<HeroMarkCandidate>(fallbackHeroMark);
+    useState<HeroMarkCandidate | null>(null);
   const hasRestoredReadingStateRef = useRef(false);
   const shouldScrollToOpenedReadingRef = useRef(false);
   const startCheckoutRef = useRef<(productKey: string) => Promise<void>>(
@@ -1046,6 +1111,29 @@ export default function Home() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    let frame = 0;
+
+    const updateHeaderState = () => {
+      if (frame) return;
+
+      frame = window.requestAnimationFrame(() => {
+        setHeaderCondensed(window.scrollY > 32);
+        frame = 0;
+      });
+    };
+
+    updateHeaderState();
+    window.addEventListener("scroll", updateHeaderState, { passive: true });
+    window.addEventListener("resize", updateHeaderState);
+
+    return () => {
+      window.removeEventListener("scroll", updateHeaderState);
+      window.removeEventListener("resize", updateHeaderState);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
 
   useEffect(() => {
     setUserId(getOrCreateLocalUserId());
@@ -1097,18 +1185,30 @@ export default function Home() {
           // A restricted storage context should not block the visual experience.
         }
 
-        setHeroMarks(randomizedMarks);
-        setHeroMarkIndex(0);
-        setSelectedHeroMark(randomizedMarks[0] ?? fallbackHeroMark);
+        const firstMark = randomizedMarks[0];
+        const firstAssetPath =
+          surface === "mobile"
+            ? firstMark?.mobileAssetPath ?? firstMark?.assetPath
+            : firstMark?.assetPath;
 
-        randomizedMarks.slice(1).forEach((mark) => {
-          const preload = new window.Image();
-          preload.src = mark.assetPath;
-          if (mark.mobileAssetPath) {
-            const mobilePreload = new window.Image();
-            mobilePreload.src = mark.mobileAssetPath;
-          }
-        });
+        if (!firstMark || !firstAssetPath) return;
+
+        const revealFirstMark = () => {
+          if (cancelled) return;
+          setHeroMarks(randomizedMarks);
+          setHeroMarkIndex(0);
+          setSelectedHeroMark(firstMark);
+        };
+        const firstImage = new window.Image();
+        firstImage.onload = revealFirstMark;
+        firstImage.onerror = () => {
+          if (cancelled) return;
+          const backupMark = randomizedMarks.find((mark) => mark !== firstMark);
+          setHeroMarks(randomizedMarks);
+          setHeroMarkIndex(backupMark ? randomizedMarks.indexOf(backupMark) : 0);
+          setSelectedHeroMark(backupMark ?? fallbackHeroMark);
+        };
+        firstImage.src = firstAssetPath;
       } catch {
         // The stable brand mark remains visible if the manifest request fails.
       }
@@ -1122,22 +1222,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (
-      heroMarks.length < 2 ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setHeroMarkIndex((currentIndex) => (currentIndex + 1) % heroMarks.length);
-    }, 8_000);
-
-    return () => window.clearInterval(timer);
-  }, [heroMarks.length]);
-
-  useEffect(() => {
-    setSelectedHeroMark(heroMarks[heroMarkIndex] ?? fallbackHeroMark);
+    const nextMark = heroMarks[heroMarkIndex];
+    if (nextMark) setSelectedHeroMark(nextMark);
   }, [heroMarkIndex, heroMarks]);
 
   function handleHeroMarkError() {
@@ -1201,14 +1287,42 @@ export default function Home() {
   }, [locale, t]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hasIntentRoute =
+      params.has("product") || params.has("resume") || params.has("acao") || params.has("corrente");
     const storedFocus = localStorage.getItem("pdu_focus") ?? "";
     if (storedFocus) setOnboardingFocusId(storedFocus);
     const seen = localStorage.getItem("pdu_onboarding_done");
-    if (!seen) {
-      // Small delay so the page renders first
-      const timer = setTimeout(() => setShowOnboarding(true), 1800);
-      return () => clearTimeout(timer);
-    }
+    if (seen || hasIntentRoute) return;
+
+    let cancelledByUserIntent = false;
+    const cancelOnboarding = () => {
+      cancelledByUserIntent = true;
+    };
+
+    window.addEventListener("scroll", cancelOnboarding, { passive: true, once: true });
+    window.addEventListener("pointerdown", cancelOnboarding, { passive: true, once: true });
+    window.addEventListener("keydown", cancelOnboarding, { once: true });
+    window.addEventListener("focusin", cancelOnboarding, { once: true });
+
+    const timer = setTimeout(() => {
+      const activeElement = document.activeElement;
+      const isEditing =
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement ||
+        activeElement instanceof HTMLSelectElement;
+
+      if (cancelledByUserIntent || isEditing || window.scrollY > 160) return;
+      setShowOnboarding(true);
+    }, 9000);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", cancelOnboarding);
+      window.removeEventListener("pointerdown", cancelOnboarding);
+      window.removeEventListener("keydown", cancelOnboarding);
+      window.removeEventListener("focusin", cancelOnboarding);
+    };
   }, []);
 
   useEffect(() => {
@@ -1281,6 +1395,13 @@ export default function Home() {
     () => themeOptions.find((option) => option.value === theme),
     [theme]
   );
+  const selectedSpreadConfig = useMemo(
+    () => getSpreadForProduct(readingProductKey),
+    [readingProductKey]
+  );
+  const selectedSpreadVisual =
+    readingExperienceVisuals[readingProductKey] ??
+    PDU_ASSETS.products.threeCardPathMobile;
   const SelectedThemeIcon = selectedTheme?.icon;
   const selectedPortalIntent = useMemo(
     () =>
@@ -1336,8 +1457,8 @@ export default function Home() {
   }, [loading, result]);
 
   const canRun = useMemo(
-    () => !loading,
-    [loading]
+    () => readingStateHydrated && !loading,
+    [loading, readingStateHydrated]
   );
 
   function restoreActiveReading(
@@ -1364,6 +1485,8 @@ export default function Home() {
         locale: storedReading.locale,
         theme: storedReading.theme,
         productKey: storedReading.product_key,
+        spreadType: storedReading.spread_type,
+        spreadLabel: storedReading.spread_label,
         question: storedReading.question,
         spreadLine: storedReading.spread_line,
         spreadCards: storedReading.spread_cards,
@@ -1433,6 +1556,7 @@ export default function Home() {
             theme,
             question: q,
             productKey: readingProductKey,
+            spreadType: selectedSpreadConfig.type,
             locale,
             onboardingFocus: onboardingFocusOption
               ? t(onboardingFocusOption.label)
@@ -1447,23 +1571,39 @@ export default function Home() {
       ]);
 
       if (res.status === 402 && isRecord(data)) {
+        const isFreeLimit =
+          data.code === "FREE_DAILY_LIMIT" || readingProductKey === "free_daily";
         setPaywall({
           error:
             typeof data.error === "string"
               ? data.error
               : "Free limit reached",
           paywall: true,
+          kind: isFreeLimit ? "free_limit" : "access",
+          productKey: readingProductKey,
         });
-        if (previousActiveReading) {
-          restoreActiveReading(
-            previousActiveReading,
-            t("Você já usou a leitura gratuita de hoje. Reabrimos sua última tirada para você rever as cartas, o conselho e o caminho indicado.")
-          );
-        } else {
-          setError(
-            t("Você já usou a leitura gratuita de hoje. Crie uma conta grátis para proteger e rever esta tirada no Meu Universo, sem precisar assinar um plano.")
-          );
+        if (isFreeLimit) {
+          if (previousActiveReading) {
+            restoreActiveReading(
+              previousActiveReading,
+              t("Você já usou a leitura gratuita de hoje. Reabrimos sua última tirada para você rever as cartas, o conselho e o caminho indicado.")
+            );
+          } else {
+            setError(
+              t("Você já usou a leitura gratuita de hoje. Crie uma conta grátis para proteger e rever esta tirada no Meu Universo, sem precisar assinar um plano.")
+            );
+          }
         }
+        return;
+      }
+
+      if (res.status === 401 && isRecord(data) && data.code === "AUTH_REQUIRED") {
+        setPaywall({
+          error: typeof data.error === "string" ? data.error : "Authentication required",
+          paywall: true,
+          kind: "auth",
+          productKey: readingProductKey,
+        });
         return;
       }
 
@@ -1520,6 +1660,8 @@ export default function Home() {
         theme,
         portalIntentId,
         productKey: readingProductKey,
+        spreadType: ok.spreadType,
+        spreadLabel: ok.spreadLabel,
         question: q,
         suggestedQuestionSource,
         spreadLine: line,
@@ -1534,6 +1676,8 @@ export default function Home() {
           locale,
           theme,
           productKey: readingProductKey,
+          spreadType: ok.spreadType,
+          spreadLabel: ok.spreadLabel,
           question: q,
           spreadLine: line,
           spreadCards: ok.spread,
@@ -1606,6 +1750,8 @@ export default function Home() {
       locale,
       theme,
       productKey: readingProductKey,
+      spreadType: selectedSpreadConfig.type,
+      spreadLabel: selectedSpreadConfig.label,
       question,
       spreadLine,
       spreadCards,
@@ -1889,8 +2035,12 @@ export default function Home() {
     [locale, spreadCards]
   );
   const shownSpread = spreadCards.length ? localizedSpreadCards : dailyOpening.spread;
+  const readingGridColumns =
+    shownSpread.length >= 8 ? 4 : Math.max(1, Math.min(shownSpread.length, 5));
+  const activeSpreadLabel = selectedSpreadConfig.shortLabel;
   const reversedSuffix = locale === "en" ? " (reversed)" : " reversa";
   const activeReading = Boolean(result);
+  const hasSelectedPremiumSpread = readingProductKey !== "free_daily";
   const readingQuestion = question.trim();
   const readingNeedsLocaleSurface =
     activeReading && resultLocale !== null && resultLocale !== locale;
@@ -1928,28 +2078,36 @@ export default function Home() {
     ? t("Lume está abrindo uma nova leitura.")
     : activeReading
       ? readingQuestion || "Sua leitura foi aberta."
-      : dailyOpening.message;
+      : hasSelectedPremiumSpread
+        ? selectedSpreadConfig.promise
+        : dailyOpening.message;
   const openingAdvice = loading
     ? t("Lume recolheu as cartas anteriores e está formando um caminho novo para esta pergunta.")
     : activeReading && readingNeedsLocaleSurface
       ? locale === "en"
-        ? "Choose one small action from the three cards and test it today."
-        : "Escolha uma ação pequena a partir das três cartas e teste hoje."
+        ? `Choose one small action from the ${shownSpread.length} cards and test it today.`
+        : `Escolha uma ação pequena a partir das ${shownSpread.length} cartas e teste hoje.`
       : activeReading
-        ? getReadingAction(result, "Leia primeiro o conjunto das três cartas; depois escolha uma ação pequena para hoje.")
-      : dailyOpening.advice;
+        ? getReadingAction(result, `Leia primeiro o conjunto das ${shownSpread.length} cartas; depois escolha uma ação pequena para hoje.`)
+      : hasSelectedPremiumSpread
+        ? `Prepare uma pergunta central. Esta experiência conecta ${selectedSpreadConfig.positions.length} posições para formar um único mapa.`
+        : dailyOpening.advice;
   const openingAffirmation = loading
     ? t("Eu deixo Lume abrir a leitura nova antes de concluir.")
     : activeReading && readingNeedsLocaleSurface
       ? dailyOpening.affirmation
       : activeReading
         ? getReadingMantra(result, dailyOpening.affirmation)
-      : dailyOpening.affirmation;
+      : hasSelectedPremiumSpread
+        ? "Eu posso olhar o mapa inteiro antes de transformar uma carta em conclusão."
+        : dailyOpening.affirmation;
   const openingEyebrow = loading
     ? t("Lume em movimento")
     : activeReading
       ? "Leitura desta pergunta"
-      : "Sua energia de hoje";
+      : hasSelectedPremiumSpread
+        ? "Tirada selecionada"
+        : "Sua energia de hoje";
   const cardMeanings = shownSpread.map((card, index) => {
     const dailyCard = dailyOpening.spread.find(
       (item) => item.position === card.position && item.name === card.name
@@ -2092,23 +2250,26 @@ export default function Home() {
         </div>
       ) : null}
 
-      <header className="pdu-site-header fixed left-0 right-0 top-0 border-b border-white/10 bg-[#09080d]/62 backdrop-blur-2xl">
+      <header
+        className="pdu-site-header fixed left-0 right-0 top-0 border-b border-white/10 bg-[#09080d]/62 backdrop-blur-2xl"
+        data-condensed={headerCondensed ? "true" : "false"}
+      >
         <div className="pdu-site-header__inner mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <a
             href="#topo"
             className="pdu-site-header__brand group flex min-w-0 items-center gap-3 sm:gap-4"
             aria-label="Palavras do Universo"
           >
-            <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[10px] border border-[#d7b66b]/24 bg-[#f4d58d]/8 shadow-[0_0_34px_rgba(215,182,107,0.14)] sm:h-16 sm:w-16">
+            <span className="pdu-site-header__brand-mark relative shrink-0 overflow-hidden border border-[#d7b66b]/24 bg-[#f4d58d]/8 shadow-[0_0_34px_rgba(215,182,107,0.14)]">
               <Image
                 src="/assets/palavras-symbol.webp"
                 alt=""
                 width={64}
                 height={64}
-                className="h-full w-full object-contain p-1.5 sm:p-2"
+                className="pdu-site-header__brand-mark-image h-full w-full object-contain"
               />
             </span>
-            <span className="relative block h-9 w-[min(12rem,41vw)] shrink sm:h-12 sm:w-72">
+            <span className="pdu-site-header__wordmark relative block shrink">
               <Image
                 src="/assets/pdu-new-wordmark-transparent-ofi.webp"
                 alt="Palavras do Universo"
@@ -2321,25 +2482,31 @@ export default function Home() {
             </div>
 
             <div className="pdu-reveal pdu-hero-side pdu-hero-side--logo">
-              <div className="pdu-hero-mark" aria-hidden="true">
-                <picture key={selectedHeroMark.assetPath}>
-                  {selectedHeroMark.mobileAssetPath ? (
-                    <source
-                      media="(max-width: 768px)"
-                      srcSet={selectedHeroMark.mobileAssetPath}
+              <div
+                className="pdu-hero-mark"
+                data-ready={selectedHeroMark ? "true" : "false"}
+                aria-hidden="true"
+              >
+                {selectedHeroMark ? (
+                  <picture key={selectedHeroMark.assetPath} className="pdu-hero-mark__picture">
+                    {selectedHeroMark.mobileAssetPath ? (
+                      <source
+                        media="(max-width: 768px)"
+                        srcSet={selectedHeroMark.mobileAssetPath}
+                      />
+                    ) : null}
+                    <img
+                      src={selectedHeroMark.assetPath}
+                      alt=""
+                      width={1600}
+                      height={1600}
+                      decoding="async"
+                      fetchPriority="high"
+                      className="pdu-hero-mark__image h-full w-full object-contain"
+                      onError={handleHeroMarkError}
                     />
-                  ) : null}
-                  <img
-                    src={selectedHeroMark.assetPath}
-                    alt=""
-                    width={1600}
-                    height={1600}
-                    decoding="async"
-                    fetchPriority="high"
-                    className="pdu-hero-mark__image h-full w-full object-contain"
-                    onError={handleHeroMarkError}
-                  />
-                </picture>
+                  </picture>
+                ) : null}
                 {marketplaceSignals.map((signal, index) => {
                   const Icon = signal.icon;
                   return (
@@ -2372,6 +2539,8 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          <PduAssetStory {...PDU_ASSET_STORIES.home} />
 
           <div
             id="ritual"
@@ -2550,17 +2719,18 @@ export default function Home() {
                       {openingEyebrow}
                     </p>
                     <h2 className="brand-serif mt-1 text-3xl font-semibold text-[#fff7e8]">
-                      {activeReading || loading
-                        ? "Caminho das 3 cartas"
+                      {activeReading || loading || hasSelectedPremiumSpread
+                        ? activeSpreadLabel
                         : dailyOpening.energy}
                     </h2>
                   </div>
-                  <span className="pdu-reading-header-art relative grid h-14 w-14 shrink-0 place-items-center rounded-full border border-[#f4d58d]/25 bg-[#f4d58d]/10 text-[#f5d896]">
+                  <span className="pdu-reading-header-art relative grid shrink-0 place-items-center rounded-full border border-[#f4d58d]/25 bg-[#f4d58d]/10 text-[#f5d896]">
                     <Image
-                      src={PDU_ASSETS.products.threeCardPathMobile}
+                      src={selectedSpreadVisual}
                       alt=""
                       fill
-                      sizes="3.5rem"
+                      sizes="8.75rem"
+                      quality={95}
                       className="object-contain"
                     />
                   </span>
@@ -2604,15 +2774,19 @@ export default function Home() {
                         </span>
                         <strong>Escreva sua pergunta para revelar as cartas.</strong>
                         <p>
-                          As três cartas aparecem aqui somente depois que a
-                          leitura começar, para não confundir mensagem diária
-                          com resposta da sua pergunta.
+                          {locale === "en"
+                            ? `The ${selectedSpreadConfig.positions.length} cards appear here only after the reading begins, so the daily message is not confused with the answer to your question.`
+                            : `As ${selectedSpreadConfig.positions.length} cartas aparecem aqui somente depois que a leitura começar, para não confundir mensagem diária com resposta da sua pergunta.`}
                         </p>
                       </div>
                     ) : (
                       <div
                         key={spreadCards.length ? spreadLine : dailyOpening.dateKey}
-                        className={`pdu-reading-card-grid grid grid-cols-3 gap-2 ${
+                        style={{
+                          "--pdu-reading-columns": readingGridColumns,
+                          "--pdu-reading-mobile-columns": Math.min(readingGridColumns, 3),
+                        } as CSSProperties}
+                        className={`pdu-reading-card-grid grid gap-2 ${
                           spreadCards.length ? "is-revealed" : ""
                         }`}
                       >
@@ -2653,12 +2827,12 @@ export default function Home() {
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
-                          Caminho das 3 Cartas
+                          {activeSpreadLabel}
                         </p>
                         <p className="mt-1 text-sm text-[#cfc4b9]">
                           {readingProductKey === "free_daily"
                             ? "Situação, sombra e direção."
-                            : "Leitura desbloqueada para este produto."}
+                            : `${selectedSpreadConfig.positions.length} posições conectadas à sua pergunta.`}
                         </p>
                       </div>
                       {SelectedThemeIcon ? (
@@ -2671,11 +2845,11 @@ export default function Home() {
 
                     {readingProductKey !== "free_daily" ? (
                       <div className="mb-4 rounded-[8px] border border-[#a7d7c5]/24 bg-[#a7d7c5]/10 p-3 text-sm leading-6 text-[#d8fff0]">
-                        Acesso ativo para{" "}
+                        Experiência selecionada:{" "}
                         <span className="font-semibold text-[#fff7e8]">
                           {getProductName(readingProductKey)}
                         </span>
-                        . Esta leitura vai usar o desbloqueio correspondente.
+                        . O acesso será confirmado ao abrir a leitura.
                       </div>
                     ) : null}
 
@@ -2748,16 +2922,53 @@ export default function Home() {
                       className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#a7d7c5] px-5 py-3 text-sm font-semibold text-[#07120e] shadow-[0_18px_46px_rgba(167,215,197,0.18)] hover:bg-[#c1ecdc] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Sparkles size={18} />
-                      {loading ? "Abrindo a leitura..." : "Fazer minha leitura"}
+                      {!readingStateHydrated
+                        ? "Preparando leitura..."
+                        : loading
+                          ? "Abrindo a leitura..."
+                          : "Fazer minha leitura"}
                     </button>
 
                     {paywall ? (
                       <StatusPanel
                         tone="gold"
-                        title={t("Sua tirada continua disponível")}
-                        message={t("A leitura gratuita de hoje já foi usada. Crie uma conta grátis para proteger e rever esta tirada no Meu Universo, sem precisar assinar um plano.")}
-                        actionLabel={t("Criar conta grátis")}
+                        title={
+                          paywall.kind === "auth"
+                            ? t("Entre para abrir esta experiência")
+                            : paywall.kind === "access"
+                              ? t("Esta tirada faz parte do seu acesso premium")
+                              : t("Sua tirada continua disponível")
+                        }
+                        message={
+                          paywall.kind === "auth"
+                            ? t("Sua pergunta ficou salva neste navegador. Entre ou crie sua conta e volte diretamente para esta tirada.")
+                            : paywall.kind === "access"
+                              ? t("Entre no Círculo do Universo para abrir esta experiência e guardar o mapa completo no Meu Universo.")
+                              : t("A leitura gratuita de hoje já foi usada. Crie uma conta grátis para proteger e rever esta tirada no Meu Universo, sem precisar assinar um plano.")
+                        }
+                        actionLabel={
+                          paywall.kind === "auth"
+                            ? t("Entrar ou criar conta")
+                            : paywall.kind === "access"
+                              ? t("Abrir meu acesso")
+                              : t("Criar conta grátis")
+                        }
                         onAction={() => {
+                          if (paywall.kind === "auth") {
+                            window.location.href = `/entrar?reason=reading-access&next=${encodeURIComponent(`/?product=${readingProductKey}#leitura`)}`;
+                            return;
+                          }
+                          if (paywall.kind === "access") {
+                            const selectedProduct = productCards.find(
+                              (product) => product.productKey === readingProductKey
+                            );
+                            void startCheckout(
+                              selectedProduct?.mode === "included"
+                                ? "circulo_do_universo"
+                                : readingProductKey
+                            );
+                            return;
+                          }
                           window.location.href = `/entrar?reason=reading-history&next=${encodeURIComponent("/meu-universo?from=reading")}`;
                         }}
                       />
@@ -3157,8 +3368,6 @@ export default function Home() {
         </div>
       </section>
       ) : null}
-
-      <PduAssetStory {...PDU_ASSET_STORIES.home} />
 
       <section
         id="produtos"

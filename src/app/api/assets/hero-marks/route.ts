@@ -58,6 +58,13 @@ export async function GET(request: NextRequest) {
       if (size > MOBILE_SAFE_MAX_BYTES) continue;
     }
 
+    if (isMobile) {
+      marks.push({
+        assetPath: mobileAssetPath ?? candidate.assetPath,
+      });
+      continue;
+    }
+
     marks.push({
       assetPath: candidate.assetPath,
       ...(mobileAssetPath ? { mobileAssetPath } : {}),

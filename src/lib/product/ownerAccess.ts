@@ -52,14 +52,19 @@ export function getOwnerEntitlements(user: User): OwnerEntitlement[] {
     const product = productCards.find((item) => item.productKey === productKey);
     const plan = pricingPlans.find((item) => item.productKey === productKey);
     const isCircle = productKey === "circulo_do_universo";
+    const isSubscriptionIncluded = product?.mode === "included";
 
     return {
       id: `owner-${productKey}`,
       user_id: user.id,
       product_key: productKey,
       title: product?.title ?? plan?.title ?? productKey,
-      product_type: isCircle ? "subscription" : "one_time",
-      access_model: isCircle ? "subscription" : "subscription_included",
+      product_type: isCircle || isSubscriptionIncluded ? "subscription" : "one_time",
+      access_model: isCircle
+        ? "subscription"
+        : isSubscriptionIncluded
+          ? "subscription_included"
+          : "one_time",
       source: "admin",
       status: "active",
       starts_at: startsAt,

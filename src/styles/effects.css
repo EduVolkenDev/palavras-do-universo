@@ -540,3 +540,76 @@
     transform: none;
   }
 }
+
+@media (max-width: 768px), (pointer: coarse) {
+  .pdu-home *,
+  .pdu-home *::before,
+  .pdu-home *::after,
+  .pdu-spread-experience *,
+  .pdu-spread-experience *::before,
+  .pdu-spread-experience *::after {
+    animation: none !important;
+    backdrop-filter: none !important;
+    filter: none !important;
+    transition-duration: 0ms !important;
+    will-change: auto !important;
+  }
+
+  .pdu-card-portal::before,
+  .pdu-card-portal::after,
+  .pdu-card-portal__gate,
+  .pdu-card-portal__deck span,
+  .pdu-reading-spread-portal__ring,
+  .pdu-reading-spread-portal__ring::before,
+  .pdu-reading-spread-portal__ring::after,
+  .pdu-reading-spread-portal__cards span,
+  .pdu-reading-ceremony__field,
+  .pdu-spread-experience__grain,
+  .pdu-spread-experience__halo,
+  .pdu-spread-experience__stage::before,
+  .pdu-spread-experience__position::after {
+    display: none !important;
+  }
+
+  .pdu-site-header,
+  .pdu-site-header__inner,
+  .pdu-site-header__brand,
+  .pdu-site-header__brand-mark,
+  .pdu-site-header__brand-mark-image,
+  .pdu-site-header__wordmark,
+  .pdu-site-header__cta,
+  .pdu-site-header__mobile-toggle {
+    transition-duration: 420ms !important;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+    will-change: transform, width, height, min-height !important;
+  }
+
+  .pdu-site-header {
+    transition-property: min-height, background-color, border-color, box-shadow !important;
+  }
+
+  .pdu-site-header__inner {
+    transition-property: min-height, padding-top, padding-bottom !important;
+  }
+
+  .pdu-site-header__brand {
+    transition-property: gap, transform, opacity !important;
+  }
+
+  .pdu-site-header__brand-mark {
+    transition-property: width, height, border-radius, box-shadow, background-color !important;
+  }
+
+  .pdu-site-header__brand-mark-image {
+    transition-property: padding, transform !important;
+  }
+
+  .pdu-site-header__wordmark {
+    transition-property: width, height, opacity, transform !important;
+  }
+
+  .pdu-site-header__cta,
+  .pdu-site-header__mobile-toggle {
+    transition-property: transform, background-color, border-color, box-shadow !important;
+  }
+}

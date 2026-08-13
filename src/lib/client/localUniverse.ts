@@ -47,6 +47,8 @@ export type LocalActiveReading = {
   theme: string;
   portal_intent_id: string;
   product_key: string;
+  spread_type?: string;
+  spread_label?: string;
   question: string;
   suggested_question_source: string;
   spread_line: string;
@@ -69,6 +71,8 @@ export type LocalReadingMessagePayload = {
   locale: string;
   theme: string;
   productKey: string;
+  spreadType?: string;
+  spreadLabel?: string;
   question: string;
   spreadLine: string;
   spreadCards: LocalActiveReading["spread_cards"];
@@ -264,6 +268,8 @@ export function saveLocalActiveReading(params: {
   theme: string;
   portalIntentId: string;
   productKey: string;
+  spreadType?: string;
+  spreadLabel?: string;
   question: string;
   suggestedQuestionSource: string;
   spreadLine: string;
@@ -276,6 +282,8 @@ export function saveLocalActiveReading(params: {
     theme: params.theme,
     portal_intent_id: params.portalIntentId,
     product_key: params.productKey,
+    spread_type: params.spreadType,
+    spread_label: params.spreadLabel,
     question: params.question,
     suggested_question_source: params.suggestedQuestionSource,
     spread_line: params.spreadLine,

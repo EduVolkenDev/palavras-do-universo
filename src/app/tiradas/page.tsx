@@ -29,15 +29,24 @@ type SpreadKind = {
 };
 
 const spreadKinds: SpreadKind[] = [
-  { productKey: "carta_do_dia", icon: Sparkles, visual: PDU_ASSETS.products.cardOfTheDayMobile, layer: "Grátis" },
-  { productKey: "caminho_3_cartas", icon: Layers3, visual: PDU_ASSETS.products.threeCardPathMobile, layer: "Avulsa" },
-  { productKey: "sinais_do_amor", icon: Heart, visual: PDU_ASSETS.products.loveSignalsMobile, layer: "Avulsa" },
-  { productKey: "clareza_urgente", icon: Compass, visual: PDU_ASSETS.products.urgentClarity, layer: "Avulsa" },
-  { productKey: "energia_da_semana", icon: CalendarDays, visual: PDU_ASSETS.products.weekEnergyMobile, layer: "Círculo" },
-  { productKey: "mapa_do_momento", icon: MoonStar, visual: PDU_ASSETS.products.momentMapMobile, layer: "Círculo" },
+  { productKey: "carta_do_dia", icon: Sparkles, visual: PDU_ASSETS.spreads.cardOfTheDayMobile, layer: "Grátis" },
+  { productKey: "caminho_3_cartas", icon: Layers3, visual: PDU_ASSETS.spreads.threeCardPathMobile, layer: "Avulsa" },
+  { productKey: "sinais_do_amor", icon: Heart, visual: PDU_ASSETS.spreads.loveSignalsMobile, layer: "Avulsa" },
+  { productKey: "clareza_urgente", icon: Compass, visual: PDU_ASSETS.spreads.urgentClarityMobile, layer: "Avulsa" },
+  { productKey: "tirada_diamante", icon: Sparkles, visual: PDU_ASSETS.spreads.diamondMobile, layer: "Círculo" },
+  { productKey: "passaro_voando", icon: Compass, visual: PDU_ASSETS.spreads.flyingBirdMobile, layer: "Círculo" },
+  { productKey: "a_chave", icon: LockKeyhole, visual: PDU_ASSETS.spreads.keyMobile, layer: "Círculo" },
+  { productKey: "o_espelho", icon: Heart, visual: PDU_ASSETS.spreads.mirrorMobile, layer: "Círculo" },
+  { productKey: "cruz_celta", icon: Layers3, visual: PDU_ASSETS.spreads.celticCrossMobile, layer: "Círculo" },
+  { productKey: "relacionar", icon: Heart, visual: PDU_ASSETS.spreads.relationshipMobile, layer: "Círculo" },
+  { productKey: "o_paradoxo", icon: MoonStar, visual: PDU_ASSETS.spreads.paradoxMobile, layer: "Círculo" },
+  { productKey: "energia_da_semana", icon: CalendarDays, visual: PDU_ASSETS.spreads.weekEnergyMobile, layer: "Círculo" },
+  { productKey: "mapa_do_momento", icon: MoonStar, visual: PDU_ASSETS.spreads.momentMapMobile, layer: "Círculo" },
 ];
 
 function productHref(productKey: string) {
+  const product = productCards.find((item) => item.productKey === productKey);
+  if (product?.href) return product.href;
   if (productKey === "carta_do_dia") return "/carta-do-dia";
   if (productKey === "energia_da_semana" || productKey === "mapa_do_momento") {
     return "/#circulo";
@@ -49,7 +58,7 @@ export default function TiradasPage() {
   const { t } = useI18n();
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#0b0a10] text-[#fff7e8]">
+    <main className="pdu-tiradas-page min-h-screen overflow-hidden bg-[#0b0a10] text-[#fff7e8]">
       <section className="relative px-4 pb-20 pt-28 sm:px-6 lg:px-8">
         <div className="absolute left-1/2 top-10 h-72 w-72 -translate-x-1/2 rounded-full bg-[#f4d58d]/12 blur-3xl" />
         <div className="absolute right-[-10rem] top-48 h-96 w-96 rounded-full bg-[#a7d7c5]/10 blur-3xl" />
@@ -79,7 +88,7 @@ export default function TiradasPage() {
                 {t("Escolha a porta certa antes de pedir resposta.")}
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-[#cfc4b9]">
-                {t("Cada tirada tem um papel diferente: uma pausa diária, uma pergunta objetiva, uma leitura afetiva, um eixo urgente ou um mapa de ciclo para quem está no Círculo.")}
+                {t("Cada tirada tem arquitetura, ritmo e profundidade próprios: da pausa diária aos mapas amplos e experiências especiais do Círculo.")}
               </p>
             </div>
 
@@ -100,7 +109,7 @@ export default function TiradasPage() {
             </div>
           </div>
 
-          <div className="mt-16 grid gap-5 lg:grid-cols-3">
+          <div className="pdu-tiradas-grid mt-16 grid gap-5">
             {spreadKinds.map((kind) => {
               const product = productCards.find(
                 (item) => item.productKey === kind.productKey
@@ -112,28 +121,28 @@ export default function TiradasPage() {
                 <Link
                   key={kind.productKey}
                   href={productHref(kind.productKey)}
-                  className="group relative min-h-[28rem] overflow-hidden rounded-[8px] border border-white/10 bg-[#15131d] p-6 transition duration-300 hover:-translate-y-1 hover:border-[#f4d58d]/55 hover:bg-[#191621]"
+                  className="group relative flex min-h-[28rem] flex-col overflow-hidden rounded-[8px] border border-white/10 bg-[#15131d] p-5 transition duration-300 hover:-translate-y-1 hover:border-[#f4d58d]/55 hover:bg-[#191621] sm:p-6"
                 >
                   <div className="absolute -right-10 -top-10 h-44 w-44 rounded-full bg-[#f4d58d]/10 blur-2xl transition group-hover:bg-[#f4d58d]/18" />
-                  <div className="absolute inset-x-6 top-20 h-44 overflow-hidden rounded-[8px] border border-white/10 bg-black/18">
+                  <div className="relative z-10 flex items-start justify-between gap-4">
+                    <span className="rounded-full border border-[#f4d58d]/24 bg-[#f4d58d]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
+                      {t(kind.layer)}
+                    </span>
+                    <span className="grid h-11 w-11 place-items-center rounded-full border border-[#f4d58d]/22 bg-black/24 text-[#f4d58d]">
+                      <Icon size={18} strokeWidth={1.6} />
+                    </span>
+                  </div>
+                  <div className="relative z-10 mt-6 h-44 overflow-hidden rounded-[8px] border border-white/10 bg-black/18 sm:h-48">
                     <Image
                       src={kind.visual}
                       alt=""
                       fill
                       sizes="(max-width: 768px) 260px, 360px"
-                      className="object-contain p-5 opacity-90 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-100"
+                      className="object-contain p-4 opacity-90 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-100 sm:p-5"
                     />
                   </div>
-                  <div className="relative z-10 flex h-full flex-col">
-                    <div className="flex items-start justify-between gap-4">
-                      <span className="rounded-full border border-[#f4d58d]/24 bg-[#f4d58d]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
-                        {t(kind.layer)}
-                      </span>
-                      <span className="grid h-11 w-11 place-items-center rounded-full border border-[#f4d58d]/22 bg-black/24 text-[#f4d58d]">
-                        <Icon size={18} strokeWidth={1.6} />
-                      </span>
-                    </div>
-                    <p className="mt-56 text-xs font-semibold uppercase tracking-[0.16em] text-[#a7d7c5]">
+                  <div className="relative z-10 mt-6 flex flex-1 flex-col">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a7d7c5]">
                       {t(product.archetype)}
                     </p>
                     <h2 className="brand-serif mt-3 text-3xl font-semibold leading-tight">

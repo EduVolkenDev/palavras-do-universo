@@ -27,6 +27,7 @@ Lume não se apresenta como uma consciência sobrenatural. Ela é a presença in
 export type LumeSurface =
   | "home"
   | "readings"
+  | "spread"
   | "daily"
   | "universe"
   | "deck"
@@ -59,6 +60,11 @@ const copy: Record<Locale, Record<LumeSurface, LocalizedReply>> = {
       text: "Cada experiência tem um propósito diferente. Se você ainda não sabe por onde começar, a leitura gratuita é uma entrada simples e sem compromisso.",
       action: { label: "Ver experiências", href: "/tiradas" },
       suggestions: ["Qual leitura é melhor para mim?", "Quero começar gratuitamente"],
+    },
+    spread: {
+      text: "Você está diante de uma tirada especial. Primeiro observe a arquitetura das posições; depois prepare uma pergunta central e deixe que o conjunto, não uma carta isolada, conduza a leitura.",
+      action: { label: "Preparar minha pergunta", href: "#preparar-pergunta" },
+      suggestions: ["Como preparar minha pergunta?", "Como esta tirada funciona?"],
     },
     daily: {
       text: "A Mensagem do Dia é uma pausa curta para perceber o clima do agora. A Carta do Dia ilumina um símbolo; uma leitura completa aprofunda uma pergunta.",
@@ -97,6 +103,11 @@ const copy: Record<Locale, Record<LumeSurface, LocalizedReply>> = {
       action: { label: "See experiences", href: "/tiradas" },
       suggestions: ["Which reading is right for me?", "I want to start for free"],
     },
+    spread: {
+      text: "You are inside a special spread. First observe the architecture of its positions; then prepare one central question and let the full map, rather than one isolated card, guide the reading.",
+      action: { label: "Prepare my question", href: "#preparar-pergunta" },
+      suggestions: ["How should I prepare my question?", "How does this spread work?"],
+    },
     daily: {
       text: "The Daily Message is a short pause to notice the tone of now. The Card of the Day illuminates a symbol; a full reading deepens a question.",
       action: { label: "Open a reading", href: "/#leitura" },
@@ -127,6 +138,7 @@ const copy: Record<Locale, Record<LumeSurface, LocalizedReply>> = {
 
 export function getLumeSurface(pathname: string): LumeSurface {
   if (pathname.startsWith("/meu-universo")) return "universe";
+  if (pathname.startsWith("/tiradas/")) return "spread";
   if (pathname.startsWith("/tiradas")) return "readings";
   if (pathname.startsWith("/carta-do-dia")) return "daily";
   if (pathname.startsWith("/baralho")) return "deck";

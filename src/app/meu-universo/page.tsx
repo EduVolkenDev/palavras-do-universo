@@ -276,6 +276,8 @@ function isSavedReadingPayload(value: unknown): value is {
   savedAt?: string;
   locale?: string;
   theme?: string;
+  spreadType?: string;
+  spreadLabel?: string;
   question?: string;
   spreadLine?: string;
   spreadCards?: {
@@ -329,6 +331,8 @@ function activeReadingAsSavedMessage(reading: LocalActiveReading | null) {
       locale: reading.locale,
       theme: reading.theme,
       productKey: reading.product_key,
+      spreadType: reading.spread_type,
+      spreadLabel: reading.spread_label,
       question: reading.question,
       spreadLine: reading.spread_line,
       spreadCards: reading.spread_cards,
@@ -426,6 +430,30 @@ const themeLabels: Record<string, Record<Locale, string>> = {
   spirit: { "pt-BR": "Espiritual", en: "Spiritual" },
 };
 
+const spreadLabels: Record<string, Record<Locale, string>> = {
+  one_card: { "pt-BR": "Mensagem de 1 Carta", en: "One-Card Message" },
+  three_card_timeline: { "pt-BR": "Caminho das 3 Cartas", en: "Three-Card Path" },
+  situation_obstacle_direction: {
+    "pt-BR": "Situação · Obstáculo · Direção",
+    en: "Situation · Obstacle · Direction",
+  },
+  relationship_intention_dynamic_boundary: {
+    "pt-BR": "Sinais do Amor",
+    en: "Signs of Love",
+  },
+  healing_wound_resource_next: {
+    "pt-BR": "Mapa do Momento",
+    en: "Map of the Moment",
+  },
+  diamond: { "pt-BR": "O Diamante", en: "The Diamond" },
+  flying_bird: { "pt-BR": "O Pássaro Voando", en: "The Flying Bird" },
+  the_key: { "pt-BR": "A Chave", en: "The Key" },
+  mirror: { "pt-BR": "O Espelho", en: "The Mirror" },
+  celtic_cross: { "pt-BR": "Cruz Celta", en: "Celtic Cross" },
+  relating: { "pt-BR": "Relacionar", en: "Relating" },
+  paradox: { "pt-BR": "O Paradoxo", en: "The Paradox" },
+};
+
 const ptPositionLabels: Record<string, string> = {
   SITUATION: "SITUAÇÃO",
   OBSTACLE: "OBSTÁCULO",
@@ -434,6 +462,24 @@ const ptPositionLabels: Record<string, string> = {
 
 function localizeTheme(theme: string, locale: Locale) {
   return themeLabels[theme]?.[locale] ?? theme;
+}
+
+function localizeSpreadLabel(
+  spreadType: string | undefined,
+  fallback: string | undefined,
+  locale: Locale
+) {
+  if (spreadType && spreadLabels[spreadType]) {
+    return spreadLabels[spreadType][locale];
+  }
+
+  return fallback || (locale === "en" ? "Reading" : "Leitura");
+}
+
+function getHistorySpreadGridClass(cardCount: number) {
+  if (cardCount <= 3) return "grid-cols-3";
+  if (cardCount <= 6) return "grid-cols-2 sm:grid-cols-3";
+  return "grid-cols-2 sm:grid-cols-4";
 }
 
 function localizePosition(position: string, locale: Locale) {
@@ -2201,6 +2247,7 @@ function ReadingArticle({ reading }: { reading: Reading }) {
       return `${card.position}: ${card.name}${reversed}`;
     })
     .join(" | ");
+  const spreadLabel = localizeSpreadLabel(reading.spread_type, undefined, locale);
 
   return (
     <article className="overflow-hidden rounded-lg border border-[#e4d3ba] bg-[#fbf6ee]">
@@ -2210,8 +2257,13 @@ function ReadingArticle({ reading }: { reading: Reading }) {
             {reading.theme ? localizeTheme(reading.theme, locale) : t("Leitura")}
           </span>
           <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
-            {reading.mode === "local" ? t("Neste dispositivo") : reading.mode || t("3 cartas")}
+            {spreadLabel}
           </span>
+          {reading.mode === "local" ? (
+            <span className="rounded-full bg-[#ead8d3] px-2 py-1">
+              {t("Neste dispositivo")}
+            </span>
+          ) : null}
           <span className="inline-flex items-center gap-1">
             <Clock size={13} />
             {formatDate(reading.created_at, locale)}
@@ -2224,7 +2276,7 @@ function ReadingArticle({ reading }: { reading: Reading }) {
 
         {spreadCards.length ? (
           <>
-            <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+            <div className={`mt-4 grid gap-2 sm:gap-3 ${getHistorySpreadGridClass(spreadCards.length)}`}>
               {spreadCards.map((card, index) => {
                 const label = card.position || `Carta ${index + 1}`;
 
@@ -2287,6 +2339,12 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
     const theme = asString(message.payload.theme);
     const question = asString(message.payload.question);
     const result = asString(message.payload.result);
+    const spreadType = asString(message.payload.spreadType);
+    const spreadLabel = localizeSpreadLabel(
+      spreadType,
+      asString(message.payload.spreadLabel),
+      locale
+    );
     const messageLocale = normalizeLocale(message.payload.locale);
     const spreadCards = localizeHistoryCards(
       normalizeSpreadCards(message.payload.spreadCards),
@@ -2302,7 +2360,7 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
         <div className="p-4">
           <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
             <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
-              {t("Leitura de 3 cartas")}
+              {spreadLabel}
             </span>
             {theme ? (
               <span className="rounded-full bg-[#e7dcc9] px-2 py-1">

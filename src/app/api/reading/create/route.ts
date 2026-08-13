@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { CARDS } from "@/lib/tarot/cards";
 import { getDailyMessage, getDailyVisitorKey } from "@/lib/daily/message";
 import { getZonedDay, normalizeTimeZone } from "@/lib/daily/time";
-import { drawThree } from "@/lib/tarot/draw3";
+import {
+  drawSpread,
+  getSpreadForProduct,
+  type SpreadType,
+} from "@/lib/tarot/spreads";
 import { generateReadingAI } from "@/lib/tarot/ai";
 import { generateFallbackReading } from "@/lib/tarot/fallback";
 import { sanitizeQuestion } from "@/lib/tarot/sanitizeQuestion";
@@ -47,6 +51,7 @@ type ReadingBody = {
   theme?: unknown;
   userId?: unknown;
   productKey?: unknown;
+  spreadType?: unknown;
   timeZone?: unknown;
 };
 
@@ -141,6 +146,55 @@ const EXPERIENCE_CONTRACTS: Record<
     emotion: "devolver maturidade emocional e sensação de companhia íntima",
     ritual: "fechar com prática, registro e retorno ao histórico",
   },
+  tirada_diamante: {
+    archetype: "clareza_prismática",
+    outcome: "organizar uma questão em camadas internas, externas e integradas",
+    decision: "revelar o ponto que merece escolha, não mais esforço",
+    emotion: "dar nitidez sem reduzir uma situação complexa a uma única resposta",
+    ritual: "fechar com uma pergunta de diário e uma decisão pequena",
+  },
+  passaro_voando: {
+    archetype: "movimento_com_altitude",
+    outcome: "equilibrar sensibilidade, ação e medo em uma travessia real",
+    decision: "mostrar o que é preparação e o que já pode ser movimento",
+    emotion: "acolher medo sem deixá-lo dirigir a experiência",
+    ritual: "fechar com um gesto corporal de expansão e um passo concreto",
+  },
+  a_chave: {
+    archetype: "abertura_interior",
+    outcome: "dar linguagem ao que estava oculto e abrir uma possibilidade de escolha",
+    decision: "identificar a chave prática que libera a próxima conversa ou ação",
+    emotion: "tratar conteúdos sensíveis com delicadeza e sem diagnóstico",
+    ritual: "fechar com escrita privada e um cuidado de integração",
+  },
+  o_espelho: {
+    archetype: "reflexo_relacional",
+    outcome: "distinguir vínculo, projeção, necessidade e limite com maturidade",
+    decision: "devolver para a pessoa o que está ao alcance dela em uma relação",
+    emotion: "reduzir ansiedade sobre o outro e fortalecer autoescuta",
+    ritual: "fechar com uma pergunta honesta antes de qualquer conversa",
+  },
+  cruz_celta: {
+    archetype: "mapa_amplo",
+    outcome: "organizar contexto, tensão, raízes, campo e direção de uma questão extensa",
+    decision: "mostrar qual camada pede prioridade e qual não precisa ser resolvida hoje",
+    emotion: "transformar complexidade em mapa legível e não em excesso de informação",
+    ritual: "fechar com síntese, escolha e sequência de três passos",
+  },
+  relacionar: {
+    archetype: "vínculo_consciente",
+    outcome: "dar clareza para a energia de um encontro sem invadir a autonomia de ninguém",
+    decision: "separar o que é comunicação, limite, tempo e escolha pessoal",
+    emotion: "acolher desejo e insegurança sem alimentar vigilância",
+    ritual: "fechar com uma frase de presença para o vínculo",
+  },
+  o_paradoxo: {
+    archetype: "integração_de_contrários",
+    outcome: "encontrar uma terceira leitura onde duas verdades parecem competir",
+    decision: "ajudar a pausar antes de escolher uma falsa simplicidade",
+    emotion: "normalizar ambivalência sem paralisar a pessoa",
+    ritual: "fechar com silêncio, registro e um próximo gesto sem pressa",
+  },
 };
 
 const EXPERIENCE_FORMATS: Record<string, string> = {
@@ -189,12 +243,20 @@ Formato de entrega para Círculo do Universo:
 - Valorize memória, padrões, retorno ao histórico e ritual pessoal.
 - Sugira o que registrar no Meu Universo.
   `.trim(),
+  tirada_diamante: "Leia camadas internas, externas e a integração final como partes de uma única questão; não reduza a experiência a cinco mensagens soltas.",
+  passaro_voando: "Crie uma leitura de movimento: acolha o medo, diferencie receptividade de ação e devolva uma forma concreta de ganhar altitude.",
+  a_chave: "Aprofunde com delicadeza. Não trate o oculto como verdade absoluta, trauma ou diagnóstico; apresente-o como hipótese simbólica a ser observada.",
+  o_espelho: "Em temas relacionais, não afirme o que a outra pessoa sente. Priorize projeção, necessidade, limite, conversa e escolha da pessoa que pergunta.",
+  cruz_celta: "Construa um mapa claro: agrupe contexto, tensão, raízes, campo e integração para que dez cartas não virem ruído.",
+  relacionar: "Use as quatro posições para devolver maturidade relacional, evitando previsões ou garantias sobre o outro.",
+  o_paradoxo: "Honre a ambivalência. A tirada precisa revelar um novo olhar, não forçar uma resposta binária.",
 };
 
 function normalizeSpreadAxis(position: string) {
   if (position === "SITUAÇÃO" || position === "SITUATION") return "situation";
   if (position === "OBSTÁCULO" || position === "OBSTACLE") return "obstacle";
-  return "direction";
+  if (position === "DIREÇÃO" || position === "DIRECTION") return "direction";
+  return "position";
 }
 
 function buildSpreadCardMeaning(params: {
@@ -208,6 +270,7 @@ function buildSpreadCardMeaning(params: {
   const axis = normalizeSpreadAxis(params.position);
   const cleanQuestion = params.question.replace(/\s+/g, " ").trim();
   const suffix = cleanQuestion ? ` "${cleanQuestion}"` : "";
+  const position = params.position.toLocaleLowerCase();
 
   if (params.locale === "en") {
     if (axis === "situation") {
@@ -216,7 +279,10 @@ function buildSpreadCardMeaning(params: {
     if (axis === "obstacle") {
       return `${params.cardName}${params.reversed ? " reversed" : ""} reveals where ${params.keyword} can distort your question${suffix} through defense, haste, or avoidance.`;
     }
-    return `${params.cardName}${params.reversed ? " reversed" : ""} points to the next clean movement: turn ${params.keyword} into one visible step for your question${suffix}.`;
+    if (axis === "direction") {
+      return `${params.cardName}${params.reversed ? " reversed" : ""} points to the cleanest next movement: turn ${params.keyword} into one visible step for your question${suffix}.`;
+    }
+    return `${params.cardName}${params.reversed ? " reversed" : ""} speaks through the position ${position}: notice how ${params.keyword} changes the way you are holding your question${suffix}.`;
   }
 
   if (axis === "situation") {
@@ -225,7 +291,10 @@ function buildSpreadCardMeaning(params: {
   if (axis === "obstacle") {
     return `${params.cardName}${params.reversed ? " reversa" : ""} revela onde ${params.keyword} pode distorcer sua pergunta${suffix} por defesa, pressa ou evitação.`;
   }
-  return `${params.cardName}${params.reversed ? " reversa" : ""} aponta o próximo movimento limpo: transforme ${params.keyword} em um passo visível para sua pergunta${suffix}.`;
+  if (axis === "direction") {
+    return `${params.cardName}${params.reversed ? " reversa" : ""} aponta o próximo movimento limpo: transforme ${params.keyword} em um passo visível para sua pergunta${suffix}.`;
+  }
+  return `${params.cardName}${params.reversed ? " reversa" : ""} fala a partir da posição ${position}: observe como ${params.keyword} muda a forma de sustentar sua pergunta${suffix}.`;
 }
 
 function todayISO() {
@@ -662,6 +731,7 @@ async function persistReading(params: {
   question: string;
   mode: string;
   productKey: string | null;
+  spreadType: SpreadType;
   spread: ReadingSpreadPayload[];
   interpretation: string;
   remoteEnabled: boolean;
@@ -681,7 +751,7 @@ async function persistReading(params: {
         mode: params.mode,
         intent_key: params.productKey,
         sanitized_question: params.question,
-        spread_type: "situation_obstacle_direction",
+        spread_type: params.spreadType,
         spread: params.spread,
         interpretation: params.interpretation,
       })
@@ -740,6 +810,12 @@ export async function POST(req: Request) {
   const rawQuestion = String(body?.question ?? "");
   const theme = String(body?.theme ?? "love").trim();
   const productKey = String(body?.productKey ?? "free_daily").trim();
+  const requestedSpreadType = String(body?.spreadType ?? "").trim() as SpreadType;
+  const productSpread = getSpreadForProduct(productKey);
+  const spreadType =
+    requestedSpreadType && productSpread.type === requestedSpreadType
+      ? requestedSpreadType
+      : productSpread.type;
   const onboardingFocus = cleanContextText(body?.onboardingFocus);
   const onboardingSignal = cleanContextText(body?.onboardingSignal, 80);
   const locale = String(body?.locale ?? "pt-BR").startsWith("en")
@@ -844,9 +920,10 @@ export async function POST(req: Request) {
     { fingerprint: makeFingerprint(question), ts: Date.now() },
   ].slice(-50);
 
-  // 1) Mode + 3 cartas
+  // 1) Mode + spread escolhido para esta experiência
   const mode = routeMode(question);
-  const spread = drawThree(CARDS);
+  const spreadConfig = productSpread;
+  const spread = drawSpread(CARDS, spreadType);
   const spreadPayload = spread.map((d) => ({
     position: translateOraclePosition(d.position, locale),
     cardKey: d.card.key,
@@ -878,19 +955,19 @@ export async function POST(req: Request) {
   const experienceFormat =
     EXPERIENCE_FORMATS[productKey] ?? EXPERIENCE_FORMATS.free_daily;
   const outputLimits = paidProduct
-    ? { maxTokens: 2_000, maxCharacters: 7_500 }
+    ? { maxTokens: spreadConfig.positions.length > 7 ? 3_200 : 2_400, maxCharacters: spreadConfig.positions.length > 7 ? 12_000 : 8_500 }
     : { maxTokens: 1_300, maxCharacters: 5_000 };
   const isEnglish = locale === "en";
   const outputFormat = paidProduct
     ? isEnglish
       ? `
 		Required format:
-		1) DIRECT ANSWER TO THE QUESTION (2 short sentences connecting the question to the three cards)
+		1) DIRECT ANSWER TO THE QUESTION (2–3 concise sentences connecting the question to the full spread)
 		2) INITIAL LISTENING (2 sentences)
 		3) MANTRA (1 sentence) + plain meaning (1 sentence)
-		4) THE THREE THREADS: Truth, Shadow, and Direction (1 short sentence each)
+		4) MAP OF THE SPREAD: name the movement that connects all ${spreadConfig.positions.length} positions (3 short sentences)
 		5) READING BY POSITION
-		   For each card: practical meaning (up to 2 sentences), emotional intelligence (1 sentence), and grounding (1 sentence).
+		   For every position, name the position, the card and one precise, contextual interpretation. Keep each entry concise so all positions receive real attention.
 		6) ACTIONS: 3 executable micro-steps of 10-20 min (1 line each)
 		7) INTEGRATION RITUAL: short practice + journal sentence starting with "I choose..."
 		8) DIRECT SUMMARY: 3 short bullets
@@ -898,12 +975,12 @@ export async function POST(req: Request) {
 		`.trim()
       : `
 		Formato obrigatório:
-		1) RESPOSTA DIRETA À PERGUNTA (2 frases curtas conectando pergunta e as três cartas)
+		1) RESPOSTA DIRETA À PERGUNTA (2–3 frases curtas conectando a pergunta à tirada inteira)
 		2) ESCUTA INICIAL (2 frases)
 		3) MANTRA (1 frase) + tradução simples (1 frase)
-	4) TRÍADE: Verdade, Sombra e Direção (1 frase curta para cada)
+	4) MAPA DA TIRADA: nomeie o movimento que conecta as ${spreadConfig.positions.length} posições (3 frases curtas)
 	5) LEITURA POR POSIÇÃO
-	   Para cada carta: significado prático (até 2 frases), inteligência emocional (1 frase) e firmeza (1 frase).
+	   Para cada posição, diga o nome da posição, a carta e uma interpretação precisa e contextual. Seja concisa para que todas as posições recebam atenção real.
 	6) AÇÕES: 3 micro-passos executáveis de 10–20 min (1 linha cada)
 	7) RITUAL DE INTEGRAÇÃO: prática curta + frase de diário começando com "Eu escolho..."
 		8) RESUMO DIRETO: 3 bullets curtos
@@ -973,7 +1050,7 @@ export async function POST(req: Request) {
       .join("; ")}.`,
   ].join("\n");
 
-	const prompt = `
+  const prompt = `
 	${LUME_AI_INSTRUCTIONS}
 
 	Você está dentro de "Palavras do Universo", um ritual digital premium de reflexão interna, inteligência emocional e clareza para decisões.
@@ -1009,7 +1086,7 @@ export async function POST(req: Request) {
 	Use a abertura diária como contexto de continuidade, não como repetição obrigatória. A leitura atual deve responder à pergunta, mas precisa conversar com a energia, o conselho e os símbolos já entregues para esta pessoa hoje.
 
 	Obrigatório:
-	- A primeira seção deve responder diretamente a pergunta feita, com base na combinação das três cartas.
+	- A primeira seção deve responder diretamente a pergunta feita, com base na combinação de todas as cartas.
 	- Cada carta precisa ser interpretada como parte da situação perguntada, não como significado genérico de baralho.
 	- Se existir perfil do usuário na memória, adapte tom, foco, limites e ação sem dizer que está usando dados de cadastro.
 	
@@ -1019,7 +1096,8 @@ export async function POST(req: Request) {
 	Pergunta: ${question}
 	Modo: ${mode}
 	
-	Jogo 3 Cartas:
+	Tirada escolhida: ${spreadConfig.label}
+	Esta tirada tem ${spreadConfig.positions.length} cartas e deve respeitar a função de cada posição.
 	${spreadText}
 	
 	Regras:
@@ -1074,6 +1152,7 @@ export async function POST(req: Request) {
     question,
     mode,
     productKey: paidProduct ? productKey : null,
+    spreadType,
     spread: spreadPayload,
     interpretation,
     remoteEnabled,
@@ -1091,6 +1170,8 @@ export async function POST(req: Request) {
       question,
       mode,
       productKey,
+      spreadType,
+      spreadLabel: spreadConfig.label,
       spread: spreadPayload,
       interpretation,
     }),
