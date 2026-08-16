@@ -57,8 +57,22 @@ export const PAID_READING_PRODUCTS = new Set([
 
 export const CIRCLE_PRODUCT_KEY = "circulo_do_universo";
 
+export const CIRCLE_INCLUDED_PRODUCTS = new Set([
+  "caminho_3_cartas",
+  "sinais_do_amor",
+  "energia_da_semana",
+  "mapa_do_momento",
+  "tirada_diamante",
+  "passaro_voando",
+  "a_chave",
+  "o_espelho",
+  "cruz_celta",
+  "relacionar",
+  "o_paradoxo",
+]);
+
 export function circleUnlocksProduct(productKey: string) {
-  return PAID_READING_PRODUCTS.has(productKey);
+  return CIRCLE_INCLUDED_PRODUCTS.has(productKey);
 }
 
 export function entitlementUnlocksProduct(entitlementProductKey: string, productKey: string) {

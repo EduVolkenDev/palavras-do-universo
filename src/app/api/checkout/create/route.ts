@@ -10,10 +10,8 @@ import { getSiteUrl, getStripe, hasStripeConfig } from "@/lib/stripe/server";
 import { checkRateLimit } from "@/lib/security/rateLimit";
 import { readJsonBody } from "@/lib/http/request";
 import { isOwnerAccessUser } from "@/lib/product/ownerAccess";
-import {
-  CIRCLE_PRODUCT_KEY,
-  circleUnlocksProduct,
-} from "@/lib/product/access";
+import { CIRCLE_PRODUCT_KEY } from "@/lib/product/access";
+import { hasAvailableEntitlementForProduct } from "@/lib/product/entitlements";
 import {
   applyDiscountVoucherToCheckout,
   readVoucherCodeFromRequest,
@@ -135,32 +133,6 @@ function buildLineItem(
   };
 }
 
-async function hasAvailableEntitlementForProduct(userId: string, productKey: string) {
-  const supabase = getSupabaseAdmin();
-  const { data: exactEntitlement, error } = await supabase
-    .from("available_entitlements")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("product_key", productKey)
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (exactEntitlement || productKey === CIRCLE_PRODUCT_KEY) return Boolean(exactEntitlement);
-  if (!circleUnlocksProduct(productKey)) return false;
-
-  const { data: circleEntitlement, error: circleError } = await supabase
-    .from("available_entitlements")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("product_key", CIRCLE_PRODUCT_KEY)
-    .limit(1)
-    .maybeSingle();
-
-  if (circleError) throw circleError;
-  return Boolean(circleEntitlement);
-}
-
 function getUnlockedRedirectPath(productKey: string) {
   if (productKey === CIRCLE_PRODUCT_KEY) return "/meu-universo?access=active";
   return `/?product=${encodeURIComponent(productKey)}`;
@@ -220,7 +192,12 @@ export async function POST(req: Request) {
   if (error || !product) return jsonError("Product not found", 404);
   if (product.status !== "active") return jsonError("Product is not active", 409);
 
-  if (await hasAvailableEntitlementForProduct(userId, product.product_key)) {
+  if (
+    await hasAvailableEntitlementForProduct({
+      userId,
+      productKey: product.product_key,
+    })
+  ) {
     return NextResponse.json({
       ok: true,
       alreadyUnlocked: true,

@@ -20,11 +20,8 @@ import {
   checkRepeatedQuestion,
   makeFingerprint,
 } from "@/lib/tarot/repeatLimiter";
-import {
-  CIRCLE_PRODUCT_KEY,
-  circleUnlocksProduct,
-  isPaidReadingProduct,
-} from "@/lib/product/access";
+import { isPaidReadingProduct } from "@/lib/product/access";
+import { getAvailableEntitlementForProduct } from "@/lib/product/entitlements";
 import { getOwnerEntitlementForProduct } from "@/lib/product/ownerAccess";
 import {
   localizeTarotCard,
@@ -779,35 +776,10 @@ async function getAvailableEntitlement(params: {
   if (ownerEntitlement) return ownerEntitlement;
 
   if (!hasSupabaseConfig()) return null;
-
-  const supabase = getSupabaseAdmin();
-  const { data: exactEntitlement, error } = await supabase
-    .from("available_entitlements")
-    .select("id, product_key, source, usage_limit, usage_count")
-    .eq("user_id", params.userId)
-    .eq("product_key", params.productKey)
-    .order("starts_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (exactEntitlement || params.productKey === CIRCLE_PRODUCT_KEY) {
-    return exactEntitlement;
-  }
-
-  if (!circleUnlocksProduct(params.productKey)) return null;
-
-  const { data: circleEntitlement, error: circleError } = await supabase
-    .from("available_entitlements")
-    .select("id, product_key, source, usage_limit, usage_count")
-    .eq("user_id", params.userId)
-    .eq("product_key", CIRCLE_PRODUCT_KEY)
-    .order("starts_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (circleError) throw circleError;
-  return circleEntitlement;
+  return getAvailableEntitlementForProduct({
+    userId: params.userId,
+    productKey: params.productKey,
+  });
 }
 
 async function consumeEntitlement(entitlementId: string, userId: string) {
