@@ -36,6 +36,10 @@ import {
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { IMPACT_AREA_LABELS, type ImpactArea } from "@/lib/impact/actions";
 import { productCards } from "@/lib/product/catalog";
+import {
+  CIRCLE_PRODUCT_KEY,
+  entitlementUnlocksProduct,
+} from "@/lib/product/access";
 import { useI18n } from "@/components/I18nProvider";
 import { normalizeLocale, type Locale } from "@/lib/i18n/config";
 import { localizeTarotCard, translateOraclePosition } from "@/lib/i18n/oracle";
@@ -829,7 +833,7 @@ export default function MeuUniversoPage() {
   const activeSubscription = entitlements.some(
     (item) =>
       item.source === "subscription" ||
-      item.product_key === "circulo_do_universo"
+      item.product_key === CIRCLE_PRODUCT_KEY
   );
   const hasOwnerAdminAccess = entitlements.some((item) => item.id.startsWith("owner-"));
   const recommendedProduct = useMemo(() => {
@@ -844,6 +848,24 @@ export default function MeuUniversoPage() {
     ? t(recommendedProduct.promise)
     : "";
   const recommendedPrice = recommendedProduct?.price ?? "R$9,90";
+  const recommendedEntitlement = recommendedProduct
+    ? entitlements.find((item) =>
+        entitlementUnlocksProduct(item.product_key, recommendedProduct.productKey)
+      )
+    : null;
+  const recommendedProductUnlocked = Boolean(recommendedEntitlement);
+  const recommendedAccessLabel =
+    recommendedEntitlement?.product_key === CIRCLE_PRODUCT_KEY
+      ? t("Incluído no Círculo")
+      : recommendedEntitlement
+        ? t("Liberado")
+        : recommendedPrice;
+
+  function openReadingProduct(productKey: string) {
+    const product = productCards.find((item) => item.productKey === productKey);
+    window.location.href =
+      product?.href ?? `/?product=${encodeURIComponent(productKey)}`;
+  }
 
   function toggleProfileList(key: "focusAreas" | "boundaries", value: string) {
     setProfileDraft((current) => {
@@ -1421,10 +1443,14 @@ export default function MeuUniversoPage() {
                 <div className="absolute right-8 top-8 hidden h-24 w-24 rounded-full border border-[#d8c3a6] bg-[radial-gradient(circle,rgba(244,213,141,0.34),transparent_62%)] lg:block" />
                 <p className="inline-flex items-center gap-2 rounded-full bg-[#241b18] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
                   <CreditCard size={13} />
-                  Próximo desbloqueio
+                  {recommendedProductUnlocked ? t("Leitura liberada") : t("Próximo desbloqueio")}
                 </p>
                 <h2 className="brand-serif mt-4 max-w-2xl text-4xl font-semibold leading-tight text-[#241b18]">
-                  {profileComplete ? (
+                  {recommendedProductUnlocked ? (
+                    <>
+                      {recommendedTitle} {t("já está no seu Universo.")}
+                    </>
+                  ) : profileComplete ? (
                     <>
                       {t("Seu mapa pede")} {recommendedTitle}.
                     </>
@@ -1433,7 +1459,11 @@ export default function MeuUniversoPage() {
                   )}
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-7 text-[#6f615a]">
-                  {profileComplete
+                  {recommendedProductUnlocked
+                    ? t(
+                        "Seu acesso foi reconhecido. Você pode abrir essa leitura sem checkout e continuar a jornada a partir do contexto salvo."
+                      )
+                    : profileComplete
                     ? `${recommendedPromise} ${t(
                         "A leitura usa sua pergunta, suas cartas e o Mapa Inicial para entregar uma resposta menos genérica."
                       )}`
@@ -1445,7 +1475,10 @@ export default function MeuUniversoPage() {
                 <div className="mt-6 grid gap-3 sm:grid-cols-3">
                   {[
                     [t("Recomendação"), recommendedTitle],
-                    [t("Preço"), recommendedPrice],
+                    [
+                      recommendedProductUnlocked ? t("Acesso") : t("Preço"),
+                      recommendedAccessLabel,
+                    ],
                     [
                       t("Perfil"),
                       profileComplete
@@ -1470,33 +1503,51 @@ export default function MeuUniversoPage() {
 
               <div className="bg-[#111019] p-6 text-[#fff7e8] sm:p-7 lg:p-8">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
-                  Oferta natural
+                  {recommendedProductUnlocked ? t("Acesso reconhecido") : t("Oferta natural")}
                 </p>
                 <h3 className="brand-serif mt-3 text-3xl font-semibold">
-                  Uma pergunta real. Três cartas. Resposta contextual.
+                  {recommendedProductUnlocked
+                    ? t("Sem preço no caminho. Só abrir e continuar.")
+                    : t("Uma pergunta real. Três cartas. Resposta contextual.")}
                 </h3>
                 <ul className="mt-5 grid gap-3 text-sm leading-6 text-[#d8ccc0]">
-                  <li className="border-t border-white/10 pt-3">
-                    Compra avulsa para uma decisão específica, sem assinatura.
-                  </li>
-                  <li className="border-t border-white/10 pt-3">
-                    Resultado salvo no Meu Universo para acompanhar padrões.
-                  </li>
-                  <li className="border-t border-white/10 pt-3">
-                    Caminho claro para entrar no Círculo quando quiser continuidade.
-                  </li>
+                  {(recommendedProductUnlocked
+                    ? [
+                        t("O voucher ou plano ativo já removeu o checkout desta leitura."),
+                        t("A resposta fica salva no Meu Universo para acompanhar padrões."),
+                        t("O acesso continua respeitando o produto liberado na sua conta."),
+                      ]
+                    : [
+                        t("Compra avulsa para uma decisão específica, sem assinatura."),
+                        t("Resultado salvo no Meu Universo para acompanhar padrões."),
+                        t("Caminho claro para entrar no Círculo quando quiser continuidade."),
+                      ]
+                  ).map((line) => (
+                    <li key={line} className="border-t border-white/10 pt-3">
+                      {line}
+                    </li>
+                  ))}
                 </ul>
                 <div className="mt-6 flex flex-col gap-3">
                   <button
                     type="button"
-                    onClick={() => startUniverseCheckout(recommendedProduct.productKey)}
-                    disabled={!profileComplete || !!purchaseLoading}
+                    onClick={() =>
+                      recommendedProductUnlocked
+                        ? openReadingProduct(recommendedProduct.productKey)
+                        : startUniverseCheckout(recommendedProduct.productKey)
+                    }
+                    disabled={
+                      (!recommendedProductUnlocked && !profileComplete) ||
+                      !!purchaseLoading
+                    }
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#241b18] disabled:cursor-not-allowed disabled:opacity-55"
                   >
-                    <CreditCard size={16} />
+                    {recommendedProductUnlocked ? <BookOpen size={16} /> : <CreditCard size={16} />}
                     {purchaseLoading === recommendedProduct.productKey
                       ? t("Abrindo checkout...")
-                      : profileComplete
+                      : recommendedProductUnlocked
+                        ? t("Abrir leitura liberada")
+                        : profileComplete
                         ? `${t("Desbloquear por")} ${recommendedPrice}`
                         : t("Complete o mapa primeiro")}
                   </button>
@@ -1654,8 +1705,10 @@ export default function MeuUniversoPage() {
                   className="rounded-lg border border-[#e4d3ba] bg-[#fbf6ee] p-4"
                 >
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">
-                    {entitlement.source === "admin"
+                    {entitlement.id.startsWith("owner-")
                       ? "Dono"
+                      : entitlement.source === "admin"
+                        ? "Voucher"
                       : entitlement.source === "subscription"
                       ? "Círculo"
                       : "Avulso"}
@@ -1669,7 +1722,10 @@ export default function MeuUniversoPage() {
                           entitlement.usage_limit - entitlement.usage_count,
                           0
                         )} uso disponível.`
-                      : "Acesso ativo enquanto a assinatura estiver válida."}
+                      : entitlement.source === "subscription" ||
+                          entitlement.product_key === CIRCLE_PRODUCT_KEY
+                        ? "Acesso ativo enquanto a assinatura estiver válida."
+                        : "Acesso liberado no seu universo."}
                   </p>
                   <Link
                     href={`/?product=${encodeURIComponent(

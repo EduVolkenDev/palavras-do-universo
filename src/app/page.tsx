@@ -123,16 +123,6 @@ type HeroMarkCandidate = {
 const READING_PORTAL_MINIMUM_MS = 1200;
 const READING_REQUEST_TIMEOUT_MS = 45_000;
 
-const glossyIcons = {
-  book: PDU_ASSETS.icons.book,
-  bookmark: PDU_ASSETS.icons.bookmark,
-  heart: PDU_ASSETS.icons.heart,
-  meditation: PDU_ASSETS.icons.meditation,
-  moon: PDU_ASSETS.icons.moon,
-  shield: PDU_ASSETS.icons.shield,
-  sprout: PDU_ASSETS.icons.sprout,
-} as const;
-
 const themeOptions = [
   { value: "love", label: "Amor", icon: Heart },
   { value: "career", label: "Carreira", icon: Compass },
@@ -154,46 +144,46 @@ const journeySteps: JourneyStep[] = [
     label: "1. Mensagem do dia",
     text: "Abre o clima emocional do dia. É uma orientação curta, não uma resposta para uma pergunta.",
     icon: Sparkles,
-    assetPath: PDU_ASSETS.icons.moon,
+    assetPath: PDU_ASSETS.homepage.dailyReadingBookCards,
   },
   {
     label: "2. Carta do dia",
     text: "Mostra um símbolo para contemplar. A carta ilumina um tema; a leitura aprofunda uma escolha.",
     icon: Star,
-    assetPath: PDU_ASSETS.icons.sprout,
+    assetPath: PDU_ASSETS.productIcons.cardOfTheDay,
   },
   {
     label: "3. Leitura",
     text: "Você faz uma pergunta e recebe 3 cartas com direção prática, conselho e próximos passos.",
     icon: Compass,
-    assetPath: PDU_ASSETS.icons.book,
+    assetPath: PDU_ASSETS.productIcons.threeCardPath,
   },
   {
     label: "4. Ritual",
     text: "Transforma a leitura em uma ação simples para levar a clareza para o corpo e para a rotina.",
     icon: Sun,
-    assetPath: PDU_ASSETS.icons.meditation,
+    assetPath: PDU_ASSETS.homepage.completedActionsChecklist,
   },
   {
     label: "5. Meu Universo",
     text: "Guarda mensagens, leituras e padrões para você rever sua jornada com contexto.",
     icon: Bookmark,
-    assetPath: PDU_ASSETS.icons.bookmark,
+    assetPath: PDU_ASSETS.homepage.savedMessagesBookmark,
   },
 ];
 
 const heroArtifacts = [
   {
     label: "1. Mensagem do dia",
-    assetPath: PDU_ASSETS.icons.book,
+    assetPath: PDU_ASSETS.homepage.dailyReadingBookCards,
   },
   {
     label: "2. Carta do dia",
-    assetPath: PDU_ASSETS.icons.bookmark,
+    assetPath: PDU_ASSETS.productIcons.cardOfTheDay,
   },
   {
     label: "4. Ritual",
-    assetPath: PDU_ASSETS.icons.meditation,
+    assetPath: PDU_ASSETS.homepage.completedActionsChecklist,
   },
 ] as const;
 
@@ -335,19 +325,19 @@ const experienceAccessPaths = [
     label: "Comece grátis",
     text: "Mensagem e Carta do Dia para criar o hábito sem compromisso.",
     icon: Sparkles,
-    assetPath: PDU_ASSETS.products.messageOfTheDay,
+    assetPath: PDU_ASSETS.products.startFreeSpreadIcon,
   },
   {
     label: "Resolva uma questão",
     text: "Leituras avulsas para amor, decisões ou clareza urgente.",
     icon: Compass,
-    assetPath: PDU_ASSETS.products.urgentClarity,
+    assetPath: PDU_ASSETS.products.oneQuestionSpreadIcon,
   },
   {
     label: "Acompanhe sua jornada",
     text: "Círculo para histórico, padrões e experiências contínuas.",
     icon: History,
-    assetPath: PDU_ASSETS.ambient.allConnected,
+    assetPath: PDU_ASSETS.products.journeyCircleSpreadIcon,
   },
 ];
 
@@ -363,10 +353,10 @@ const atmosphereWords = [
 ];
 
 const floatingSymbols = [
-  { label: "Mensagens salvas", assetPath: PDU_ASSETS.icons.bookmark },
-  { label: "Ciclos", assetPath: PDU_ASSETS.icons.moon },
-  { label: "Vínculos", assetPath: PDU_ASSETS.icons.heart },
-  { label: "Ritual", assetPath: PDU_ASSETS.icons.meditation },
+  { label: "Mensagens salvas", assetPath: PDU_ASSETS.homepage.savedMessagesBookmark },
+  { label: "Ciclos", assetPath: PDU_ASSETS.productIcons.weekEnergy },
+  { label: "Vínculos", assetPath: PDU_ASSETS.productIcons.loveSignals },
+  { label: "Ritual", assetPath: PDU_ASSETS.homepage.completedActionsChecklist },
 ];
 
 const universeFeatureTokens = [
@@ -415,7 +405,7 @@ const onboardingOptions: {
     label: "Atravessando uma transição",
     description: "Algo mudou por dentro ou por fora e pede uma direção mais limpa.",
     signal: "mudança",
-    assetPath: glossyIcons.moon,
+    assetPath: PDU_ASSETS.homepage.portalAccessKey,
     icon: Compass,
   },
   {
@@ -423,7 +413,7 @@ const onboardingOptions: {
     label: "No meio de uma decisão difícil",
     description: "Existe um caminho pedindo escolha, limite ou coragem prática.",
     signal: "decisão",
-    assetPath: glossyIcons.shield,
+    assetPath: PDU_ASSETS.productIcons.urgentClarity,
     icon: ShieldCheck,
   },
   {
@@ -431,7 +421,7 @@ const onboardingOptions: {
     label: "Vivendo uma questão afetiva",
     description: "Um vínculo, desejo ou expectativa precisa ser olhado com presença.",
     signal: "vínculo",
-    assetPath: glossyIcons.heart,
+    assetPath: PDU_ASSETS.productIcons.loveSignals,
     icon: Heart,
   },
   {
@@ -439,7 +429,7 @@ const onboardingOptions: {
     label: "Criando algo novo",
     description: "Uma ideia, fase ou projeto quer ganhar forma sem perder alma.",
     signal: "criação",
-    assetPath: glossyIcons.sprout,
+    assetPath: PDU_ASSETS.homepage.growthPath,
     icon: Sparkles,
   },
   {
@@ -447,7 +437,7 @@ const onboardingOptions: {
     label: "Buscando paz interior",
     description: "O corpo e a mente pedem silêncio, integração e menos ruído.",
     signal: "recolhimento",
-    assetPath: glossyIcons.meditation,
+    assetPath: PDU_ASSETS.symbolic.meditation,
     icon: MoonStar,
   },
 ];
@@ -479,17 +469,17 @@ const marketplaceFlow = [
   {
     title: "Quando procurar",
     text: "Use depois de uma leitura quando o tema pedir escuta humana, acompanhamento ou presença profissional.",
-    assetPath: PDU_ASSETS.icons.moon,
+    assetPath: PDU_ASSETS.symbolic.consultation,
   },
   {
     title: "Como escolher",
     text: "Compare especialidade, idioma, estilo de cuidado e faixa de acesso antes de iniciar contato.",
-    assetPath: PDU_ASSETS.icons.shield,
+    assetPath: PDU_ASSETS.homepage.portalAccessKey,
   },
   {
     title: "Como conectar",
     text: "Envie um briefing privado apenas quando fizer sentido continuar a conversa com alguém qualificado.",
-    assetPath: PDU_ASSETS.icons.heart,
+    assetPath: PDU_ASSETS.symbolic.hand,
   },
 ] as const;
 
@@ -557,78 +547,72 @@ const productIconVisuals: Record<
   }
 > = {
   "Mensagem do Dia": {
-    assetPath: PDU_ASSETS.products.messageOfTheDay,
+    assetPath: PDU_ASSETS.products.startFreeSpreadIcon,
     fallbackIcon: Sparkles,
     tone: "gold",
   },
   "Carta do Dia": {
-    assetPath: PDU_ASSETS.products.cardOfTheDayDisplay,
-    mobileAssetPath: PDU_ASSETS.products.cardOfTheDayMobile,
+    assetPath: PDU_ASSETS.productIcons.cardOfTheDay,
     fallbackIcon: MoonStar,
     tone: "blue",
   },
   "Clareza Urgente": {
-    assetPath: PDU_ASSETS.products.urgentClarity,
+    assetPath: PDU_ASSETS.productIcons.urgentClarity,
     fallbackIcon: LifeBuoy,
     tone: "rose",
   },
   "Caminho das 3 Cartas": {
-    assetPath: PDU_ASSETS.products.threeCardPath,
-    mobileAssetPath: PDU_ASSETS.products.threeCardPathMobile,
+    assetPath: PDU_ASSETS.productIcons.threeCardPath,
     fallbackIcon: Compass,
     tone: "mint",
-    variant: "three-card-path",
   },
   "Sinais do Amor": {
-    assetPath: PDU_ASSETS.products.loveSignalsDisplay,
-    mobileAssetPath: PDU_ASSETS.products.loveSignalsMobile,
+    assetPath: PDU_ASSETS.productIcons.loveSignals,
     fallbackIcon: Heart,
     tone: "rose",
   },
   "O Diamante": {
-    assetPath: PDU_ASSETS.spreads.diamondMobile,
+    assetPath: PDU_ASSETS.productIcons.diamond,
     fallbackIcon: Sparkles,
     tone: "blue",
   },
   "O Pássaro Voando": {
-    assetPath: PDU_ASSETS.spreads.flyingBirdMobile,
+    assetPath: PDU_ASSETS.productIcons.flyingBird,
     fallbackIcon: Compass,
     tone: "mint",
   },
   "A Chave": {
-    assetPath: PDU_ASSETS.spreads.keyMobile,
+    assetPath: PDU_ASSETS.productIcons.key,
     fallbackIcon: LockKeyhole,
     tone: "gold",
   },
   "O Espelho": {
-    assetPath: PDU_ASSETS.spreads.mirrorMobile,
+    assetPath: PDU_ASSETS.productIcons.mirror,
     fallbackIcon: Heart,
     tone: "blue",
   },
   "Cruz Celta": {
-    assetPath: PDU_ASSETS.spreads.celticCrossMobile,
+    assetPath: PDU_ASSETS.productIcons.celticCross,
     fallbackIcon: Layers3,
     tone: "blue",
   },
   "Relacionar": {
-    assetPath: PDU_ASSETS.spreads.relationshipMobile,
+    assetPath: PDU_ASSETS.productIcons.relationship,
     fallbackIcon: Heart,
     tone: "rose",
   },
   "O Paradoxo": {
-    assetPath: PDU_ASSETS.spreads.paradoxMobile,
+    assetPath: PDU_ASSETS.productIcons.paradox,
     fallbackIcon: MoonStar,
     tone: "gold",
   },
   "Energia da Semana": {
-    assetPath: PDU_ASSETS.products.weekEnergyDisplay,
-    mobileAssetPath: PDU_ASSETS.products.weekEnergyMobile,
+    assetPath: PDU_ASSETS.productIcons.weekEnergy,
     fallbackIcon: Sun,
     tone: "gold",
   },
   "Mapa do Momento": {
-    assetPath: PDU_ASSETS.products.momentMapDisplay,
-    mobileAssetPath: PDU_ASSETS.products.momentMapMobile,
+    assetPath: PDU_ASSETS.productIcons.momentMap,
     fallbackIcon: UserRound,
     tone: "blue",
   },
@@ -1087,10 +1071,12 @@ export default function Home() {
   const [readingStateHydrated, setReadingStateHydrated] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [headerCondensed, setHeaderCondensed] = useState(false);
-  const [heroMarks, setHeroMarks] = useState<HeroMarkCandidate[]>([]);
+  const [heroMarks, setHeroMarks] = useState<HeroMarkCandidate[]>([
+    fallbackHeroMark,
+  ]);
   const [heroMarkIndex, setHeroMarkIndex] = useState(0);
   const [selectedHeroMark, setSelectedHeroMark] =
-    useState<HeroMarkCandidate | null>(null);
+    useState<HeroMarkCandidate>(fallbackHeroMark);
   const hasRestoredReadingStateRef = useRef(false);
   const shouldScrollToOpenedReadingRef = useRef(false);
   const startCheckoutRef = useRef<(productKey: string) => Promise<void>>(
@@ -1147,13 +1133,24 @@ export default function Home() {
         const surface = window.matchMedia("(max-width: 768px)").matches
           ? "mobile"
           : "desktop";
-        const response = await fetch(`/api/assets/hero-marks?surface=${surface}`, {
-          cache: "no-store",
-        });
-        const data = (await response.json()) as { marks?: HeroMarkCandidate[] };
-        const marks = Array.isArray(data.marks) ? data.marks : [];
+        const marks: HeroMarkCandidate[] = PDU_ASSETS.brand.heroMarkRotation.map(
+          (candidate) =>
+            surface === "mobile"
+              ? { assetPath: candidate.mobileAssetPath }
+              : {
+                  assetPath: candidate.assetPath,
+                  mobileAssetPath: candidate.mobileAssetPath,
+                }
+        );
 
-        if (cancelled || marks.length === 0) return;
+        if (cancelled) return;
+
+        if (marks.length === 0) {
+          setHeroMarks([fallbackHeroMark]);
+          setHeroMarkIndex(0);
+          setSelectedHeroMark(fallbackHeroMark);
+          return;
+        }
 
         const randomizedMarks = [...marks];
         const randomValues =
@@ -1191,26 +1188,29 @@ export default function Home() {
             ? firstMark?.mobileAssetPath ?? firstMark?.assetPath
             : firstMark?.assetPath;
 
-        if (!firstMark || !firstAssetPath) return;
-
-        const revealFirstMark = () => {
-          if (cancelled) return;
-          setHeroMarks(randomizedMarks);
+        if (!firstMark || !firstAssetPath) {
+          setHeroMarks([fallbackHeroMark]);
           setHeroMarkIndex(0);
-          setSelectedHeroMark(firstMark);
-        };
-        const firstImage = new window.Image();
-        firstImage.onload = revealFirstMark;
-        firstImage.onerror = () => {
-          if (cancelled) return;
-          const backupMark = randomizedMarks.find((mark) => mark !== firstMark);
-          setHeroMarks(randomizedMarks);
-          setHeroMarkIndex(backupMark ? randomizedMarks.indexOf(backupMark) : 0);
-          setSelectedHeroMark(backupMark ?? fallbackHeroMark);
-        };
-        firstImage.src = firstAssetPath;
+          setSelectedHeroMark(fallbackHeroMark);
+          return;
+        }
+
+        setHeroMarks(randomizedMarks);
+        setHeroMarkIndex(0);
+        setSelectedHeroMark(firstMark);
+
+        randomizedMarks.slice(1).forEach((mark) => {
+          const preloadPath =
+            surface === "mobile" ? mark.mobileAssetPath ?? mark.assetPath : mark.assetPath;
+          if (!preloadPath) return;
+          const preload = new window.Image();
+          preload.src = preloadPath;
+        });
       } catch {
-        // The stable brand mark remains visible if the manifest request fails.
+        if (cancelled) return;
+        setHeroMarks([fallbackHeroMark]);
+        setHeroMarkIndex(0);
+        setSelectedHeroMark(fallbackHeroMark);
       }
     }
 
@@ -2283,31 +2283,31 @@ export default function Home() {
 
           <nav className="pdu-site-header__nav hidden items-center text-sm text-[#cfc4b9] md:flex">
             <a href="#leitura" className="hover:text-white">
-              Leitura
+              {t("Leitura")}
             </a>
             <Link href="/carta-do-dia" className="hover:text-white">
-              Carta do Dia
+              {t("Carta do Dia")}
             </Link>
             <a href="#ritual" className="hover:text-white">
-              Ritual
+              {t("Ritual")}
             </a>
             <a href="#produtos" className="hover:text-white">
-              Leituras
+              {t("Leituras")}
             </a>
             <Link href="/tiradas" className="hover:text-white">
               {t("Tiradas")}
             </Link>
             <Link href="/baralho" className="hover:text-white">
-              Baralho
+              {t("Baralho")}
             </Link>
             <Link href="/profissionais" className="hover:text-white">
-              Profissionais
+              {t("Profissionais")}
             </Link>
             <Link href="/profissionais/me" className="hover:text-white">
-              Sou profissional
+              {t("Sou profissional")}
             </Link>
             <Link href="/meu-universo" className="hover:text-white">
-              Meu Universo
+              {t("Meu Universo")}
             </Link>
           </nav>
 
@@ -2317,7 +2317,7 @@ export default function Home() {
             className="pdu-site-header__cta hidden items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1c1308] shadow-[0_14px_38px_rgba(244,213,141,0.22)] hover:bg-[#ffe3a3] sm:inline-flex"
           >
             <Sun size={16} />
-            Mensagem de hoje
+            {t("Mensagem de hoje")}
           </button>
 
           <button
@@ -2397,17 +2397,15 @@ export default function Home() {
             <div className="pdu-reveal pdu-hero-copy relative z-10">
               <p className="pdu-hero-kicker">
                 <MoonStar size={14} />
-                Ritual diário de clareza
+                {t("Ritual diário de clareza")}
               </p>
 
               <h1 className="brand-serif pdu-hero-title">
-                A magia ainda existe. Às vezes, ela fala baixo.
+                {t("A magia ainda existe. Às vezes, ela fala baixo.")}
               </h1>
 
               <p className="pdu-hero-body">
-                Palavras do Universo é um ritual diário para escutar os sinais
-                da vida com tarot, mensagens e ciclos. Uma pausa bonita para
-                lembrar que o invisível também acompanha o seu caminho.
+                {t("Palavras do Universo é um ritual diário para escutar os sinais da vida com tarot, mensagens e ciclos. Uma pausa bonita para lembrar que o invisível também acompanha o seu caminho.")}
               </p>
 
               <LumePresence />
@@ -2419,13 +2417,13 @@ export default function Home() {
                   className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#1c1308] shadow-[0_18px_50px_rgba(244,213,141,0.24)] hover:bg-[#ffe3a3] sm:w-auto"
                 >
                   <Sparkles size={18} />
-                  Receber minha mensagem de hoje
+                  {t("Receber minha mensagem de hoje")}
                 </button>
                 <a
                   href="#produtos"
                   className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/14 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-[#f8efe2] backdrop-blur hover:border-[#f4d58d]/45 hover:bg-white/[0.1] sm:w-auto"
                 >
-                  Conhecer as leituras
+                  {t("Conhecer as leituras")}
                   <ArrowRight size={17} />
                 </a>
               </div>
@@ -2435,23 +2433,23 @@ export default function Home() {
                   <span className="pdu-mini-sigil">
                     <Image src={PDU_ASSETS.icons.shield} alt="" fill sizes="1.6rem" className="object-contain" />
                   </span>
-                  Sem fatalismo
+                  {t("Sem fatalismo")}
                 </div>
                 <div className="pdu-proof-chip">
                   <span className="pdu-mini-sigil">
                     <Image src={PDU_ASSETS.icons.sprout} alt="" fill sizes="1.6rem" className="object-contain" />
                   </span>
-                  Clareza prática
+                  {t("Clareza prática")}
                 </div>
                 <div className="pdu-proof-chip">
                   <span className="pdu-mini-sigil">
                     <Image src={PDU_ASSETS.icons.bookmark} alt="" fill sizes="1.6rem" className="object-contain" />
                   </span>
-                  Jornada privada
+                  {t("Jornada privada")}
                 </div>
                 <div className="pdu-proof-chip pdu-proof-chip--gold">
                   <span className="pdu-mini-sigil">
-                    <Image src={PDU_ASSETS.icons.moon} alt="" fill sizes="1.6rem" className="object-contain" />
+                    <Image src={PDU_ASSETS.icons.book} alt="" fill sizes="1.6rem" className="object-contain" />
                   </span>
                   {(1240 + (new Date().getDate() * 37 + new Date().getMonth() * 113) % 380).toLocaleString(locale)}
                   {" "}
@@ -2466,7 +2464,7 @@ export default function Home() {
                   className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/[0.06] px-4 py-2 text-xs font-semibold text-[#d8ccc0] backdrop-blur hover:border-[#f4d58d]/40 hover:text-[#f4d58d]"
                 >
                   <MoonStar size={14} />
-                  Receber mensagem diária por notificação
+                  {t("Receber mensagem diária por notificação")}
                 </button>
               ) : push.state === "granted" ? (
                 <button
@@ -2475,7 +2473,7 @@ export default function Home() {
                   className="mt-5 inline-flex items-center gap-2 text-xs text-[#8d837b] hover:text-[#d8ccc0]"
                 >
                   <BadgeCheck size={14} className="text-[#a7d7c5]" />
-                  Notificações ativas — clique para desativar
+                  {t("Notificações ativas — clique para desativar")}
                 </button>
               ) : null}
 
@@ -3531,19 +3529,19 @@ export default function Home() {
           <div className="pdu-trust-ribbon">
             <span className="pdu-trust-ribbon__item">
               <span className="pdu-mini-sigil pdu-mini-sigil--light">
-                <Image src={PDU_ASSETS.icons.shield} alt="" fill sizes="1.35rem" className="object-contain" />
+                <Image src={PDU_ASSETS.homepage.securePaymentValue} alt="" fill sizes="1.35rem" className="object-contain" />
               </span>
               Pagamento seguro via Stripe
             </span>
             <span className="pdu-trust-ribbon__item">
               <span className="pdu-mini-sigil pdu-mini-sigil--light">
-                <Image src={PDU_ASSETS.icons.heart} alt="" fill sizes="1.35rem" className="object-contain" />
+                <Image src={PDU_ASSETS.homepage.completedActionsChecklist} alt="" fill sizes="1.35rem" className="object-contain" />
               </span>
               Satisfação garantida — refazemos a leitura se não trouxer clareza
             </span>
             <span className="pdu-trust-ribbon__item">
               <span className="pdu-mini-sigil pdu-mini-sigil--light">
-                <Image src={PDU_ASSETS.icons.bookmark} alt="" fill sizes="1.35rem" className="object-contain" />
+                <Image src={PDU_ASSETS.icons.shield} alt="" fill sizes="1.35rem" className="object-contain" />
               </span>
               Suas perguntas são privadas e nunca compartilhadas
             </span>
@@ -3797,19 +3795,19 @@ export default function Home() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-[#8d837b]">
             <span className="pdu-proof-chip pdu-proof-chip--quiet">
               <span className="pdu-mini-sigil">
-                <Image src={PDU_ASSETS.icons.shield} alt="" fill sizes="1.35rem" className="object-contain" />
+                <Image src={PDU_ASSETS.homepage.securePaymentValue} alt="" fill sizes="1.35rem" className="object-contain" />
               </span>
               Pagamento seguro via Stripe
             </span>
             <span className="pdu-proof-chip pdu-proof-chip--quiet">
               <span className="pdu-mini-sigil">
-                <Image src={PDU_ASSETS.icons.heart} alt="" fill sizes="1.35rem" className="object-contain" />
+                <Image src={PDU_ASSETS.homepage.completedActionsChecklist} alt="" fill sizes="1.35rem" className="object-contain" />
               </span>
               Satisfação garantida — refazemos a leitura se não trouxer clareza
             </span>
             <span className="pdu-proof-chip pdu-proof-chip--quiet">
               <span className="pdu-mini-sigil">
-                <Image src={PDU_ASSETS.icons.bookmark} alt="" fill sizes="1.35rem" className="object-contain" />
+                <Image src={PDU_ASSETS.icons.shield} alt="" fill sizes="1.35rem" className="object-contain" />
               </span>
               Suas perguntas são privadas e nunca compartilhadas
             </span>
@@ -3983,7 +3981,7 @@ function ReadingSpreadPortal(props: { immersive?: boolean; locale?: "pt-BR" | "e
 function ProductIconVisual(props: { title: string }) {
   const [failed, setFailed] = useState(false);
   const visual = productIconVisuals[props.title] ?? {
-    assetPath: PDU_ASSETS.products.messageOfTheDay,
+    assetPath: PDU_ASSETS.products.startFreeSpreadIcon,
     fallbackIcon: Sparkles,
     tone: "gold" as const,
   };
@@ -4027,9 +4025,8 @@ function ProductIconVisual(props: { title: string }) {
               alt=""
               width={420}
               height={420}
-              sizes="(max-width: 768px) 180px, 320px"
+              unoptimized
               loading="lazy"
-              quality={72}
               className="h-full w-full object-contain"
               onError={() => setFailed(true)}
             />

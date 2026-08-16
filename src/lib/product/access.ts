@@ -55,6 +55,19 @@ export const PAID_READING_PRODUCTS = new Set([
   "o_paradoxo",
 ]);
 
+export const CIRCLE_PRODUCT_KEY = "circulo_do_universo";
+
+export function circleUnlocksProduct(productKey: string) {
+  return PAID_READING_PRODUCTS.has(productKey);
+}
+
+export function entitlementUnlocksProduct(entitlementProductKey: string, productKey: string) {
+  return (
+    entitlementProductKey === productKey ||
+    (entitlementProductKey === CIRCLE_PRODUCT_KEY && circleUnlocksProduct(productKey))
+  );
+}
+
 export function isPaidReadingProduct(productKey: string) {
   return PAID_READING_PRODUCTS.has(productKey);
 }

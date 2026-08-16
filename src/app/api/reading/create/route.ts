@@ -20,7 +20,11 @@ import {
   checkRepeatedQuestion,
   makeFingerprint,
 } from "@/lib/tarot/repeatLimiter";
-import { isPaidReadingProduct } from "@/lib/product/access";
+import {
+  CIRCLE_PRODUCT_KEY,
+  circleUnlocksProduct,
+  isPaidReadingProduct,
+} from "@/lib/product/access";
 import { getOwnerEntitlementForProduct } from "@/lib/product/ownerAccess";
 import {
   localizeTarotCard,
@@ -777,9 +781,9 @@ async function getAvailableEntitlement(params: {
   if (!hasSupabaseConfig()) return null;
 
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  const { data: exactEntitlement, error } = await supabase
     .from("available_entitlements")
-    .select("id, source, usage_limit, usage_count")
+    .select("id, product_key, source, usage_limit, usage_count")
     .eq("user_id", params.userId)
     .eq("product_key", params.productKey)
     .order("starts_at", { ascending: false })
@@ -787,7 +791,23 @@ async function getAvailableEntitlement(params: {
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  if (exactEntitlement || params.productKey === CIRCLE_PRODUCT_KEY) {
+    return exactEntitlement;
+  }
+
+  if (!circleUnlocksProduct(params.productKey)) return null;
+
+  const { data: circleEntitlement, error: circleError } = await supabase
+    .from("available_entitlements")
+    .select("id, product_key, source, usage_limit, usage_count")
+    .eq("user_id", params.userId)
+    .eq("product_key", CIRCLE_PRODUCT_KEY)
+    .order("starts_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (circleError) throw circleError;
+  return circleEntitlement;
 }
 
 async function consumeEntitlement(entitlementId: string, userId: string) {
@@ -1157,7 +1177,7 @@ export async function POST(req: Request) {
     interpretation,
     remoteEnabled,
   });
-  if (paidProduct && entitlement?.id && entitlement.source !== "admin") {
+  if (paidProduct && entitlement?.id && entitlement.source === "purchase") {
     await consumeEntitlement(entitlement.id, userId);
   }
 

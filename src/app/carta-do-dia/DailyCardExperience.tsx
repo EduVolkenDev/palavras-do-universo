@@ -60,7 +60,7 @@ function isDailyCardResponse(value: unknown): value is DailyCardResponse {
 const CARD_PORTAL_MINIMUM_MS = 1100;
 
 export function DailyCardExperience() {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const [dailyResult, setDailyResult] = useState<{
     locale: string;
     daily: DailyCard;
@@ -136,14 +136,14 @@ export function DailyCardExperience() {
             className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.05] px-3 py-2 text-sm font-semibold text-[#efe2d2] hover:border-[#f4d58d]/45"
           >
             <ArrowLeft size={16} />
-            Voltar
+            {t("Voltar")}
           </Link>
 
           <Link
             href="/baralho"
             className="hidden items-center gap-2 text-sm font-semibold text-[#cfc4b9] hover:text-white sm:inline-flex"
           >
-            Ver baralho
+            {t("Ver baralho")}
             <ArrowRight size={15} />
           </Link>
         </div>
@@ -155,22 +155,20 @@ export function DailyCardExperience() {
           <div>
             <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/25 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold uppercase tracking-normal text-[#f5d896]">
               <MoonStar size={14} />
-              Carta do Dia
+              {t("Carta do Dia")}
             </p>
 
             <h1 className="brand-serif max-w-4xl text-4xl font-semibold leading-[0.98] text-[#fff7e8] sm:text-6xl lg:text-7xl">
-              Uma imagem para escutar melhor o seu momento.
+              {t("Uma imagem para escutar melhor o seu momento.")}
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-[#d8ccc0]">
-              A carta de hoje não decide por você. Ela abre uma pausa simbólica
-              para observar energia, direção e cuidado possível nas próximas
-              horas.
+              {t("A carta de hoje não decide por você. Ela abre uma pausa simbólica para observar energia, direção e cuidado possível nas próximas horas.")}
             </p>
 
             {error ? (
               <p className="mt-6 rounded-[8px] border border-[#d9aaa8]/40 bg-[#4b1717]/36 p-4 text-sm leading-6 text-[#ffd8d5]">
-                {error}
+                {t(error)}
               </p>
             ) : null}
 
@@ -199,10 +197,10 @@ export function DailyCardExperience() {
                 <div key={item.label} className="pdu-micro-field">
                   <item.icon size={18} className="text-[#f5d896]" />
                   <p className="mt-4 text-xs font-semibold uppercase tracking-normal text-[#9f958d]">
-                    {item.label}
+                    {t(item.label)}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-[#fff7e8]">
-                    {item.value}
+                    {t(item.value)}
                   </p>
                 </div>
               ))}
@@ -251,14 +249,14 @@ export function DailyCardExperience() {
                     <span />
                     <span />
                   </div>
-                  <p>Abrindo o portal da carta de hoje</p>
+                  <p>{t("Abrindo o portal da carta de hoje")}</p>
                 </div>
               )}
             </div>
 
             <article className="pdu-message-field">
               <p className="text-xs font-semibold uppercase tracking-normal text-[#f5d896]">
-                Mensagem de orientação
+                {t("Mensagem de orientação")}
               </p>
               <h2 className="brand-serif mt-2 text-4xl font-semibold text-[#fff7e8]">
                 {daily
@@ -269,7 +267,7 @@ export function DailyCardExperience() {
                           : " reversa"
                         : ""
                     }`
-                  : "O portal está abrindo"}
+                  : t("O portal está abrindo")}
               </h2>
 
               <div className="mt-4 flex flex-wrap gap-2">
@@ -279,7 +277,7 @@ export function DailyCardExperience() {
                       key={keyword}
                       className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs text-[#d8ccc0]"
                     >
-                      {keyword}
+                      {t(keyword)}
                     </span>
                   )
                 )}
@@ -287,26 +285,26 @@ export function DailyCardExperience() {
 
               <p className="brand-serif mt-6 text-2xl leading-9 text-[#fff3df]">
                 {daily?.reading.meaning ??
-                  "Respire por um instante. A carta do dia fica guardada para você até a meia-noite."}
+                  t("Respire por um instante. A carta do dia fica guardada para você até a meia-noite.")}
               </p>
 
               {daily ? (
                 <div className="mt-6 space-y-4 text-sm leading-7 text-[#d8ccc0]">
                   <p>
                     <span className="font-semibold text-[#f5d896]">
-                      Conselho:
+                      {t("Conselho:")}
                     </span>{" "}
                     {daily.reading.counsel}
                   </p>
                   <p>
                     <span className="font-semibold text-[#f5d896]">
-                      Pergunta:
+                      {t("Pergunta:")}
                     </span>{" "}
                     {daily.reading.reflection_prompt}
                   </p>
                   <p>
                     <span className="font-semibold text-[#f5d896]">
-                      Ritual:
+                      {t("Ritual:")}
                     </span>{" "}
                     {daily.reading.ritual}
                   </p>
@@ -318,7 +316,7 @@ export function DailyCardExperience() {
                   href="/#leitura"
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-white/14 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-[#f8efe2] hover:border-[#f4d58d]/45 hover:bg-white/[0.1]"
                 >
-                  Fazer leitura de 3 cartas
+                  {t("Fazer leitura de 3 cartas")}
                   <ArrowRight size={17} />
                 </Link>
               </div>

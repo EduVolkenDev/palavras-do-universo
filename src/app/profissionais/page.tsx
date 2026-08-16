@@ -439,11 +439,11 @@ export default function ProfessionalsMarketplacePage() {
                             </span>
                           ) : null}
                         </div>
-                        <p className="mt-1 text-sm leading-6 text-[#d6c9be]">{profile.headline}</p>
+                        <p className="mt-1 text-sm leading-6 text-[#d6c9be]">{t(profile.headline)}</p>
                         <div className="mt-3 flex flex-wrap gap-2 text-xs text-[#cfc4b9]">
                           <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/20 px-2.5 py-1">
                             <ShieldCheck size={12} className="text-[#a7d7c5]" />
-                            {profile.priceSummary}
+                            {t(profile.priceSummary)}
                           </span>
                           <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/20 px-2.5 py-1">
                             <UserRound size={12} className="text-[#a7d7c5]" />
@@ -451,13 +451,13 @@ export default function ProfessionalsMarketplacePage() {
                           </span>
                           <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/20 px-2.5 py-1">
                             <CalendarRange size={12} className="text-[#a7d7c5]" />
-                            {profile.responseTime || t("Resposta em breve")}
+                            {profile.responseTime ? t(profile.responseTime) : t("Resposta em breve")}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <p className="mt-4 text-sm leading-7 text-[#cfc4b9]">{profile.bio}</p>
+                    <p className="mt-4 text-sm leading-7 text-[#cfc4b9]">{t(profile.bio)}</p>
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       {profile.specialties.map((item) => (
@@ -465,7 +465,7 @@ export default function ProfessionalsMarketplacePage() {
                           key={item}
                           className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-[#fff7e8]"
                         >
-                          {item}
+                          {t(item)}
                         </span>
                       ))}
                     </div>
@@ -479,15 +479,15 @@ export default function ProfessionalsMarketplacePage() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
-                                {offer.category}
+                                {t(offer.category)}
                               </p>
                               <h4 className="mt-1 font-semibold text-[#fff7e8]">
-                                {offer.title}
+                                {t(offer.title)}
                               </h4>
                             </div>
-                            <strong className="text-sm text-[#fff7e8]">{getOfferPriceLabel(offer)}</strong>
+                            <strong className="text-sm text-[#fff7e8]">{t(getOfferPriceLabel(offer))}</strong>
                           </div>
-                          <p className="mt-3 text-sm leading-6 text-[#cfc4b9]">{offer.description}</p>
+                          <p className="mt-3 text-sm leading-6 text-[#cfc4b9]">{t(offer.description)}</p>
                         </article>
                       ))}
                     </div>

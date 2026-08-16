@@ -410,13 +410,12 @@ function voucherAudienceMatches(voucher: VoucherRow, user: User | null) {
   return true;
 }
 
-export async function validateVoucher(
-  code: string,
-  user: User | null = null
-): Promise<VoucherValidation> {
-  const voucher = await getVoucherByCode(code);
-  const normalized = normalizeVoucherCode(code);
-
+function validateVoucherRow(
+  voucher: VoucherRow | null,
+  normalized: string,
+  user: User | null,
+  options: { allowExhausted?: boolean } = {}
+): VoucherValidation {
   if (!voucher || !normalized) {
     return { ok: false, code: "NOT_FOUND", message: "Voucher not found" };
   }
@@ -429,7 +428,7 @@ export async function validateVoucher(
   if (voucher.expires_at && new Date(voucher.expires_at).getTime() <= Date.now()) {
     return { ok: false, code: "EXPIRED", message: "Voucher expired" };
   }
-  if (voucher.times_used >= voucher.max_uses) {
+  if (!options.allowExhausted && voucher.times_used >= voucher.max_uses) {
     return { ok: false, code: "EXHAUSTED", message: "Voucher usage limit reached" };
   }
   if (!voucherAudienceMatches(voucher, user)) {
@@ -437,6 +436,15 @@ export async function validateVoucher(
   }
 
   return { ok: true, voucher };
+}
+
+export async function validateVoucher(
+  code: string,
+  user: User | null = null
+): Promise<VoucherValidation> {
+  const voucher = await getVoucherByCode(code);
+  const normalized = normalizeVoucherCode(code);
+  return validateVoucherRow(voucher, normalized, user);
 }
 
 async function grantVoucherEntitlements(params: {
@@ -462,12 +470,15 @@ async function grantVoucherEntitlements(params: {
       : null;
 
   for (const productKey of productKeys) {
-    const { data: current } = await supabase
+    const { data: current, error: currentError } = await supabase
       .from("user_entitlements")
       .select("id,metadata")
       .eq("user_id", params.userId)
       .eq("product_key", productKey)
       .eq("source", "admin");
+    if (currentError) {
+      throw new Error(`Could not read voucher entitlement: ${currentError.message}`);
+    }
 
     const matching = (current ?? []).find((item) => {
       const metadata =
@@ -498,9 +509,14 @@ async function grantVoucherEntitlements(params: {
     };
 
     if (matching?.id) {
-      await supabase.from("user_entitlements").update(payload).eq("id", matching.id);
+      const { error } = await supabase
+        .from("user_entitlements")
+        .update(payload)
+        .eq("id", matching.id);
+      if (error) throw new Error(`Could not update voucher entitlement: ${error.message}`);
     } else {
-      await supabase.from("user_entitlements").insert(payload);
+      const { error } = await supabase.from("user_entitlements").insert(payload);
+      if (error) throw new Error(`Could not create voucher entitlement: ${error.message}`);
     }
   }
 }
@@ -516,25 +532,45 @@ async function incrementVoucherUsage(voucherId: string) {
 }
 
 export async function redeemVoucherForUser(user: User, code: string) {
-  const validation = await validateVoucher(code, user);
-  if (!validation.ok) return validation;
+  const existingVoucher = await getVoucherByCode(code);
+  const normalized = normalizeVoucherCode(code);
+  const initialValidation = validateVoucherRow(existingVoucher, normalized, user, {
+    allowExhausted: true,
+  });
+  if (!initialValidation.ok) return initialValidation;
 
-  const voucher = validation.voucher;
+  const validation = validateVoucherRow(existingVoucher, normalized, user);
+  const resolvedVoucher = initialValidation.voucher;
   await ensureSupabaseProfile(user.id);
 
   const existingRedemption = await getSupabaseAdmin()
     .from("voucher_redemptions")
     .select("*")
-    .eq("voucher_id", voucher.id)
+    .eq("voucher_id", resolvedVoucher.id)
     .eq("user_id", user.id)
     .in("status", ["redeemed", "pending_checkout"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (existingRedemption.error) throw existingRedemption.error;
 
-  if (voucher.kind !== "discount" && existingRedemption.data?.status === "redeemed") {
-    return { ok: true as const, voucher, alreadyRedeemed: true };
+  if (resolvedVoucher.kind !== "discount" && existingRedemption.data?.status === "redeemed") {
+    await grantVoucherEntitlements({
+      voucher: resolvedVoucher,
+      redemptionId: existingRedemption.data.id,
+      userId: user.id,
+    });
+    return {
+      ok: true as const,
+      voucher: resolvedVoucher,
+      redemption: existingRedemption.data as VoucherRedemptionRow,
+      alreadyRedeemed: true,
+    };
   }
+
+  if (!validation.ok) return validation;
+
+  const voucher = validation.voucher;
 
   const { data: redemption, error } = await getSupabaseAdmin()
     .from("voucher_redemptions")

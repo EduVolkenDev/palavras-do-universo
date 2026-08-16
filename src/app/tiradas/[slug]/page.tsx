@@ -4,6 +4,8 @@ import { ArrowLeft, ArrowRight, CircleCheck, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { normalizeLocale } from "@/lib/i18n/config";
+import { translations } from "@/lib/i18n/translations";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { productCards } from "@/lib/product/catalog";
 import { SPREADS, type SpreadType } from "@/lib/tarot/spreads";
@@ -35,7 +37,7 @@ const PAGE_DETAILS: Record<PremiumSpreadType, PageDetail> = {
   diamond: {
     accent: "#bde8ff",
     glow: "rgba(123, 102, 255, 0.34)",
-    asset: PDU_ASSETS.spreads.diamondMobile,
+    asset: PDU_ASSETS.spreads.diamond,
     eyebrow: "Clareza prismática",
     opening: "Uma pergunta, observada por cinco ângulos até que o excesso perca força.",
     passage: "O Diamante não corre para responder. Ele separa o que nasce dentro, o que chega de fora e o ponto em que a questão pode finalmente ser integrada.",
@@ -45,7 +47,7 @@ const PAGE_DETAILS: Record<PremiumSpreadType, PageDetail> = {
   flying_bird: {
     accent: "#8ff7e8",
     glow: "rgba(65, 216, 207, 0.31)",
-    asset: PDU_ASSETS.spreads.flyingBirdMobile,
+    asset: PDU_ASSETS.spreads.flyingBird,
     eyebrow: "Movimento com altitude",
     opening: "Sete posições para reconhecer o medo sem entregar a ele o comando do voo.",
     passage: "O Pássaro Voando diferencia impulso, receptividade e ação. A leitura cresce como duas asas: uma escuta o campo; a outra sustenta o movimento.",
@@ -55,7 +57,7 @@ const PAGE_DETAILS: Record<PremiumSpreadType, PageDetail> = {
   the_key: {
     accent: "#f8d878",
     glow: "rgba(255, 188, 79, 0.3)",
-    asset: PDU_ASSETS.spreads.keyMobile,
+    asset: PDU_ASSETS.spreads.key,
     eyebrow: "Abertura interior",
     opening: "Oito camadas para dar linguagem ao que atua em silêncio e encontrar uma abertura real.",
     passage: "A Chave percorre superfície, raiz, consciência e recurso sem transformar hipótese simbólica em diagnóstico. O objetivo é destrancar escolha.",
@@ -65,7 +67,7 @@ const PAGE_DETAILS: Record<PremiumSpreadType, PageDetail> = {
   mirror: {
     accent: "#e8d9ff",
     glow: "rgba(190, 142, 255, 0.31)",
-    asset: PDU_ASSETS.spreads.mirrorMobile,
+    asset: PDU_ASSETS.spreads.mirror,
     eyebrow: "Reflexo relacional",
     opening: "Doze cartas diante de um vínculo: o que é encontro, o que é projeção e o que é escolha sua.",
     passage: "O Espelho preserva a complexidade das relações sem alegar saber o que o outro pensa. Ele devolve necessidade, limite, conversa e responsabilidade ao centro.",
@@ -75,7 +77,7 @@ const PAGE_DETAILS: Record<PremiumSpreadType, PageDetail> = {
   celtic_cross: {
     accent: "#c9d5ff",
     glow: "rgba(85, 116, 224, 0.3)",
-    asset: PDU_ASSETS.spreads.celticCrossMobile,
+    asset: PDU_ASSETS.spreads.celticCross,
     eyebrow: "Mapa de grande amplitude",
     opening: "Dez cartas para uma questão que não cabe em uma resposta curta.",
     passage: "A Cruz Celta organiza presente, tensão, raízes, campo e horizonte. A leitura agrupa as forças do mapa para que profundidade não vire ruído.",
@@ -85,7 +87,7 @@ const PAGE_DETAILS: Record<PremiumSpreadType, PageDetail> = {
   relating: {
     accent: "#ffbad9",
     glow: "rgba(255, 102, 170, 0.27)",
-    asset: PDU_ASSETS.spreads.relationshipMobile,
+    asset: PDU_ASSETS.spreads.relationship,
     eyebrow: "Vínculo consciente",
     opening: "Quatro posições para olhar duas presenças e o campo que nasce entre elas.",
     passage: "Relacionar é uma experiência de reciprocidade e limite. Ela observa como você participa do vínculo e qual consciência pode tornar o encontro mais íntegro.",
@@ -95,7 +97,7 @@ const PAGE_DETAILS: Record<PremiumSpreadType, PageDetail> = {
   paradox: {
     accent: "#ffcb91",
     glow: "rgba(205, 85, 255, 0.3)",
-    asset: PDU_ASSETS.spreads.paradoxMobile,
+    asset: PDU_ASSETS.spreads.paradox,
     eyebrow: "Integração de contrários",
     opening: "Cinco cartas para quando duas verdades parecem incompatíveis, mas ambas pedem escuta.",
     passage: "O Paradoxo não decide qual lado merece existir. Ele encontra a tensão, cria um ponto de silêncio e abre um terceiro olhar que antes não estava disponível.",
@@ -108,27 +110,37 @@ function isPremiumSpreadType(value: SpreadType): value is PremiumSpreadType {
   return PREMIUM_SPREAD_TYPES.includes(value as PremiumSpreadType);
 }
 
+function translateMetadataText(value: string, localeInput: string) {
+  return normalizeLocale(localeInput) === "en" ? translations.en[value] ?? value : value;
+}
+
 export function generateStaticParams() {
   return PREMIUM_SPREAD_TYPES.map((type) => ({ slug: SPREADS[type].slug }));
 }
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ lang?: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const locale = normalizeLocale((await searchParams)?.lang);
   const spread = Object.values(SPREADS).find((item) => item.slug === slug);
 
   if (!spread || !isPremiumSpreadType(spread.type)) return {};
 
+  const title = `${translateMetadataText(spread.label, locale)} | Palavras do Universo`;
+  const description = translateMetadataText(spread.promise, locale);
+
   return {
-    title: `${spread.label} | Palavras do Universo`,
-    description: spread.promise,
+    title,
+    description,
     alternates: { canonical: `/tiradas/${spread.slug}` },
     openGraph: {
-      title: `${spread.label} | Palavras do Universo`,
-      description: spread.promise,
+      title,
+      description,
       type: "website",
     },
   };

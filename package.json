@@ -7,6 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "audit:i18n": "node scripts/audit-i18n.mjs",
     "convert:webp": "node scripts/convert-images-to-webp.mjs",
     "validate:fallback": "node scripts/validate-fallback.mjs",
     "validate:tarot-assets": "node scripts/validate-tarot-assets.mjs",

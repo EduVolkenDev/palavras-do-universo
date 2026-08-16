@@ -11,6 +11,10 @@ import { checkRateLimit } from "@/lib/security/rateLimit";
 import { readJsonBody } from "@/lib/http/request";
 import { isOwnerAccessUser } from "@/lib/product/ownerAccess";
 import {
+  CIRCLE_PRODUCT_KEY,
+  circleUnlocksProduct,
+} from "@/lib/product/access";
+import {
   applyDiscountVoucherToCheckout,
   readVoucherCodeFromRequest,
   recordPendingVoucherCheckout,
@@ -131,6 +135,37 @@ function buildLineItem(
   };
 }
 
+async function hasAvailableEntitlementForProduct(userId: string, productKey: string) {
+  const supabase = getSupabaseAdmin();
+  const { data: exactEntitlement, error } = await supabase
+    .from("available_entitlements")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("product_key", productKey)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (exactEntitlement || productKey === CIRCLE_PRODUCT_KEY) return Boolean(exactEntitlement);
+  if (!circleUnlocksProduct(productKey)) return false;
+
+  const { data: circleEntitlement, error: circleError } = await supabase
+    .from("available_entitlements")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("product_key", CIRCLE_PRODUCT_KEY)
+    .limit(1)
+    .maybeSingle();
+
+  if (circleError) throw circleError;
+  return Boolean(circleEntitlement);
+}
+
+function getUnlockedRedirectPath(productKey: string) {
+  if (productKey === CIRCLE_PRODUCT_KEY) return "/meu-universo?access=active";
+  return `/?product=${encodeURIComponent(productKey)}`;
+}
+
 export async function POST(req: Request) {
   if (
     !(await checkRateLimit({
@@ -171,10 +206,6 @@ export async function POST(req: Request) {
     return jsonError("Supabase is not configured", 503);
   }
 
-  if (!hasStripeConfig()) {
-    return jsonError("Stripe is not configured", 503);
-  }
-
   const supabase = getSupabaseAdmin();
   await ensureSupabaseProfile(userId);
 
@@ -188,11 +219,25 @@ export async function POST(req: Request) {
 
   if (error || !product) return jsonError("Product not found", 404);
   if (product.status !== "active") return jsonError("Product is not active", 409);
+
+  if (await hasAvailableEntitlementForProduct(userId, product.product_key)) {
+    return NextResponse.json({
+      ok: true,
+      alreadyUnlocked: true,
+      checkoutUrl: getUnlockedRedirectPath(product.product_key),
+      sessionId: null,
+    });
+  }
+
   if (product.access_model === "free" || product.price_cents === 0) {
     return jsonError("Product does not require checkout", 409);
   }
   if (product.access_model === "subscription_included") {
     return jsonError("Product is included in the Círculo do Universo", 409);
+  }
+
+  if (!hasStripeConfig()) {
+    return jsonError("Stripe is not configured", 503);
   }
 
   const voucherCode = await readVoucherCodeFromRequest(

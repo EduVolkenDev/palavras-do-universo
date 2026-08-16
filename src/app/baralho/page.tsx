@@ -98,7 +98,7 @@ function getCardTone(card: DeckCard) {
 }
 
 export default function BaralhoPage() {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
   const [query, setQuery] = useState("");
   const [selectedCard, setSelectedCard] = useState<DeckCard | null>(null);
@@ -180,12 +180,12 @@ export default function BaralhoPage() {
             className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.05] px-3 py-2 text-sm font-semibold text-[#efe2d2] hover:border-[#f4d58d]/45"
           >
             <ArrowLeft size={16} />
-            Voltar
+            {t("Voltar")}
           </Link>
 
           <div className="hidden items-center gap-2 text-sm text-[#cfc4b9] sm:flex">
             <Sparkles size={16} className="text-[#f5d896]" />
-            Biblioteca do Baralho
+            {t("Biblioteca do Baralho")}
           </div>
         </div>
       </header>
@@ -197,15 +197,13 @@ export default function BaralhoPage() {
             <div>
               <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/25 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold uppercase tracking-normal text-[#f5d896] backdrop-blur">
                 <MoonStar size={14} />
-                biblioteca simbólica
+                {t("biblioteca simbólica")}
               </p>
               <h1 className="brand-serif max-w-3xl text-5xl font-semibold leading-none text-[#fff7e8] sm:text-6xl">
-                Baralho completo para consultar com calma.
+                {t("Baralho completo para consultar com calma.")}
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-[#d8ccc0]">
-                Explore as 78 cartas, seus símbolos, palavras-chave e leituras
-                direta e reversa. Use esta biblioteca como um espelho antes ou
-                depois de abrir uma leitura.
+                {t("Explore as 78 cartas, seus símbolos, palavras-chave e leituras direta e reversa. Use esta biblioteca como um espelho antes ou depois de abrir uma leitura.")}
               </p>
             </div>
 
@@ -218,7 +216,7 @@ export default function BaralhoPage() {
                   <p className="text-3xl font-semibold text-[#fff7e8]">
                     {stat.value}
                   </p>
-                  <p className="mt-1 text-sm text-[#cfc4b9]">{stat.label}</p>
+                  <p className="mt-1 text-sm text-[#cfc4b9]">{t(stat.label)}</p>
                 </div>
               ))}
             </div>
@@ -228,7 +226,7 @@ export default function BaralhoPage() {
             <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
               <label className="relative block">
                 <span className="sr-only">
-                  Buscar por carta, naipe ou palavra-chave
+                  {t("Buscar por carta, naipe ou palavra-chave")}
                 </span>
                 <Search
                   size={18}
@@ -238,7 +236,7 @@ export default function BaralhoPage() {
                   type="search"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Buscar por carta, naipe, palavra-chave..."
+                  placeholder={t("Buscar por carta, naipe, palavra-chave...")}
                   enterKeyHint="search"
                   className="h-12 w-full rounded-full border border-white/12 bg-black/24 py-3 pl-11 pr-4 text-sm text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/70 focus:ring-2 focus:ring-[#f4d58d]/10"
                 />
@@ -254,7 +252,7 @@ export default function BaralhoPage() {
                       key={filter.id}
                       type="button"
                       onClick={() => setActiveFilter(filter.id)}
-                      aria-label={`Filtrar por ${filter.label}`}
+                      aria-label={`${t("Filtrar por")} ${t(filter.label)}`}
                       className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold ${
                         active
                           ? "border-[#f4d58d] bg-[#f4d58d] text-[#1c1308]"
@@ -262,7 +260,7 @@ export default function BaralhoPage() {
                       }`}
                     >
                       <Icon size={15} />
-                      {filter.label}
+                      {t(filter.label)}
                       <span
                         className={`rounded-full px-1.5 py-0.5 text-[11px] ${
                           active ? "bg-black/12" : "bg-white/10"
@@ -283,15 +281,15 @@ export default function BaralhoPage() {
         <div className="mx-auto max-w-7xl">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 text-sm text-[#cfc4b9]">
             <p>
-              Mostrando{" "}
+              {t("Mostrando")}{" "}
               <span className="font-semibold text-[#fff7e8]">
                 {filteredDeck.length}
               </span>{" "}
-              cartas
+              {t("cartas")}
             </p>
             <p className="inline-flex items-center gap-2">
               <CheckCircle2 size={16} className="text-[#a7d7c5]" />
-              Artes e significados em harmonia
+              {t("Artes e significados em harmonia")}
             </p>
           </div>
 
@@ -301,7 +299,7 @@ export default function BaralhoPage() {
                 key={card.key}
                 role="button"
                 tabIndex={0}
-                aria-label={`Ver detalhes de ${card.name}`}
+                aria-label={`${t("Ver detalhes de")} ${card.name}`}
                 onClick={() => openCard(card)}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") openCard(card); }}
                 className="group cursor-pointer overflow-hidden rounded-[8px] border border-white/12 bg-white/[0.055] shadow-[0_24px_70px_rgba(0,0,0,0.2)] backdrop-blur transition hover:border-[#f4d58d]/40 hover:shadow-[0_24px_80px_rgba(0,0,0,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4d58d]/60"
@@ -325,7 +323,7 @@ export default function BaralhoPage() {
                         card
                       )}`}
                     >
-                      {getCardGroup(card)}
+                      {t(getCardGroup(card))}
                     </span>
                     <span className="font-mono text-xs text-[#8d837b]">
                       {String(card.detail.id).padStart(2, "0")}
@@ -350,13 +348,13 @@ export default function BaralhoPage() {
                   <div className="mt-4 space-y-3 text-sm leading-6 text-[#d8ccc0]">
                     <p>
                       <span className="font-semibold text-[#f5d896]">
-                        Direta:
+                        {t("Direta:")}
                       </span>{" "}
                       {card.detail.upright}
                     </p>
                     <p>
                       <span className="font-semibold text-[#f1b8bd]">
-                        Reversa:
+                        {t("Reversa:")}
                       </span>{" "}
                       {card.detail.reversed}
                     </p>
@@ -368,7 +366,7 @@ export default function BaralhoPage() {
 
           {filteredDeck.length === 0 ? (
             <div className="rounded-[8px] border border-white/12 bg-white/[0.055] p-8 text-center text-[#d8ccc0]">
-              <p>Nenhuma carta encontrada para essa busca.</p>
+              <p>{t("Nenhuma carta encontrada para essa busca.")}</p>
               <button
                 type="button"
                 onClick={() => {
@@ -377,7 +375,7 @@ export default function BaralhoPage() {
                 }}
                 className="mt-4 inline-flex items-center justify-center rounded-full border border-[#f4d58d]/35 px-4 py-2 text-sm font-semibold text-[#fff3df] hover:border-[#f4d58d]/70"
               >
-                Limpar filtros
+                {t("Limpar filtros")}
               </button>
             </div>
           ) : null}
@@ -405,7 +403,7 @@ export default function BaralhoPage() {
               <button
                 type="button"
                 onClick={closeCard}
-                aria-label="Fechar"
+                aria-label={t("Fechar")}
                 className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full border border-white/12 bg-black/50 text-[#d8ccc0] hover:border-[#f4d58d]/50 hover:text-[#f4d58d]"
               >
                 <X size={16} />
@@ -415,7 +413,7 @@ export default function BaralhoPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getCardTone(selectedCard)}`}>
-                    {getCardGroup(selectedCard)}
+                    {t(getCardGroup(selectedCard))}
                   </span>
                   <h2 className="brand-serif mt-3 text-3xl font-semibold text-[#fff7e8]">
                     {selectedCard.name}
@@ -437,11 +435,11 @@ export default function BaralhoPage() {
               </div>
               <div className="mt-5 space-y-4 text-sm leading-7 text-[#d8ccc0]">
                 <div className="rounded-[8px] border border-[#f4d58d]/20 bg-[#f4d58d]/[0.06] p-4">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#f5d896]">Direta</p>
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#f5d896]">{t("Direta")}</p>
                   <p>{selectedCard.detail.upright}</p>
                 </div>
                 <div className="rounded-[8px] border border-[#d2818b]/20 bg-[#d2818b]/[0.06] p-4">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#f1b8bd]">Reversa</p>
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#f1b8bd]">{t("Reversa")}</p>
                   <p>{selectedCard.detail.reversed}</p>
                 </div>
               </div>

@@ -29,7 +29,8 @@ const reverseEn = Object.fromEntries(
 );
 
 function translateText(value: string, locale: Locale) {
-  const source = reverseEn[value] ?? value;
+  const normalized = value.replace(/\s+/g, " ").trim();
+  const source = reverseEn[normalized] ?? normalized;
   return locale === "en" ? translations.en[source] ?? source : source;
 }
 
