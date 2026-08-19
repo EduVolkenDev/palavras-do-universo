@@ -159,6 +159,9 @@ export default async function SpreadExperiencePage({
   const detail = PAGE_DETAILS[spread.type];
   const product = productCards.find((item) => item.productKey === spread.productKey);
   if (!product) notFound();
+  const accessLabel = ["Avulsa", product.price, "Círculo"]
+    .filter(Boolean)
+    .join(" · ");
 
   const visualStyle = {
     "--pdu-spread-accent": detail.accent,
@@ -180,7 +183,7 @@ export default async function SpreadExperiencePage({
           <Image src={PDU_ASSETS.brand.symbol} alt="" width={36} height={36} />
           <span>Palavras do Universo</span>
         </Link>
-        <span className="pdu-spread-experience__access">Incluída no Círculo</span>
+        <span className="pdu-spread-experience__access">{accessLabel}</span>
       </header>
 
       <section className="pdu-spread-experience__hero">
@@ -198,18 +201,19 @@ export default async function SpreadExperiencePage({
               href={`/?product=${encodeURIComponent(spread.productKey)}#leitura`}
               className="pdu-spread-experience__primary"
             >
-              Abrir esta tirada
+              Fazer esta tirada
               <ArrowRight size={17} />
             </Link>
             <Link href="/#circulo" className="pdu-spread-experience__secondary">
-              Conhecer o Círculo
+              Ver assinatura
             </Link>
           </div>
 
           <div className="pdu-spread-experience__facts">
             <span><strong>{spread.positions.length}</strong> posições</span>
+            {product.price ? <span><strong>{product.price}</strong> avulsa</span> : null}
             <span><strong>1</strong> pergunta central</span>
-            <span><strong>∞</strong> nuances possíveis</span>
+            <span><strong>Círculo</strong> inclui</span>
           </div>
         </div>
 
@@ -268,7 +272,7 @@ export default async function SpreadExperiencePage({
         </div>
         <p>{detail.ritual}</p>
         <Link href={`/?product=${encodeURIComponent(spread.productKey)}#leitura`}>
-          Entrar na experiência
+          Fazer esta tirada
           <ArrowRight size={17} />
         </Link>
       </section>

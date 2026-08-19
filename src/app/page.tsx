@@ -31,6 +31,7 @@ import Image from "next/image";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  type ProductCard,
   pricingPlans,
   productCards,
 } from "@/lib/product/catalog";
@@ -2934,21 +2935,21 @@ export default function Home() {
                           paywall.kind === "auth"
                             ? t("Entre para abrir esta experiência")
                             : paywall.kind === "access"
-                              ? t("Esta tirada faz parte do seu acesso premium")
+                              ? t("Esta tirada precisa de acesso")
                               : t("Sua tirada continua disponível")
                         }
                         message={
                           paywall.kind === "auth"
                             ? t("Sua pergunta ficou salva neste navegador. Entre ou crie sua conta e volte diretamente para esta tirada.")
                             : paywall.kind === "access"
-                              ? t("Entre no Círculo do Universo para abrir esta experiência e guardar o mapa completo no Meu Universo.")
+                              ? t("Compre esta tirada avulsa ou entre no Círculo para abrir todas as experiências premium.")
                               : t("A leitura gratuita de hoje já foi usada. Crie uma conta grátis para proteger e rever esta tirada no Meu Universo, sem precisar assinar um plano.")
                         }
                         actionLabel={
                           paywall.kind === "auth"
                             ? t("Entrar ou criar conta")
                             : paywall.kind === "access"
-                              ? t("Abrir meu acesso")
+                              ? t("Comprar esta tirada")
                               : t("Criar conta grátis")
                         }
                         onAction={() => {
@@ -2957,14 +2958,7 @@ export default function Home() {
                             return;
                           }
                           if (paywall.kind === "access") {
-                            const selectedProduct = productCards.find(
-                              (product) => product.productKey === readingProductKey
-                            );
-                            void startCheckout(
-                              selectedProduct?.mode === "included"
-                                ? "circulo_do_universo"
-                                : readingProductKey
-                            );
+                            void startCheckout(readingProductKey);
                             return;
                           }
                           window.location.href = `/entrar?reason=reading-history&next=${encodeURIComponent("/meu-universo?from=reading")}`;
@@ -3453,7 +3447,7 @@ export default function Home() {
                       product.mode
                     )}`}
                   >
-                    {getProductModeLabel(product.mode)}
+                    {t(getProductModeLabel(product))}
                   </span>
                 </div>
                 <ProductIconVisual title={product.title} />
@@ -4073,9 +4067,10 @@ function StatusPanel(props: {
   );
 }
 
-function getProductModeLabel(mode: string) {
-  if (mode === "paid") return "Pago avulso";
-  if (mode === "included") return "No Círculo";
+function getProductModeLabel(product: ProductCard) {
+  if (product.mode === "paid" && product.includedInCircle) return "Avulsa + Círculo";
+  if (product.mode === "paid") return "Pago avulso";
+  if (product.mode === "included") return "No Círculo";
   return "Gratuito";
 }
 

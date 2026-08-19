@@ -65,7 +65,13 @@ export async function GET(request: Request) {
       const [prices, portalConfigurations] = await Promise.all([
         Promise.all(
           paidProducts.map(async (product) => {
-            if (!product.provider_price_id) return false;
+            if (!product.provider_price_id) {
+              return (
+                product.product_type === "one_time" &&
+                product.price_cents >= 50 &&
+                product.currency.toUpperCase() === "BRL"
+              );
+            }
             const price = await stripe.prices.retrieve(product.provider_price_id);
             const expectsRecurring = product.product_type === "subscription";
             return (

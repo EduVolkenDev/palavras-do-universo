@@ -33,25 +33,22 @@ const spreadKinds: SpreadKind[] = [
   { productKey: "caminho_3_cartas", icon: Layers3, visual: PDU_ASSETS.spreads.threeCardPathMobile, layer: "Avulsa" },
   { productKey: "sinais_do_amor", icon: Heart, visual: PDU_ASSETS.spreads.loveSignalsMobile, layer: "Avulsa" },
   { productKey: "clareza_urgente", icon: Compass, visual: PDU_ASSETS.spreads.urgentClarityMobile, layer: "Avulsa" },
-  { productKey: "tirada_diamante", icon: Sparkles, visual: PDU_ASSETS.spreads.diamondMobile, layer: "Círculo" },
-  { productKey: "passaro_voando", icon: Compass, visual: PDU_ASSETS.spreads.flyingBirdMobile, layer: "Círculo" },
-  { productKey: "a_chave", icon: LockKeyhole, visual: PDU_ASSETS.spreads.keyMobile, layer: "Círculo" },
-  { productKey: "o_espelho", icon: Heart, visual: PDU_ASSETS.spreads.mirrorMobile, layer: "Círculo" },
-  { productKey: "cruz_celta", icon: Layers3, visual: PDU_ASSETS.spreads.celticCrossMobile, layer: "Círculo" },
-  { productKey: "relacionar", icon: Heart, visual: PDU_ASSETS.spreads.relationshipMobile, layer: "Círculo" },
-  { productKey: "o_paradoxo", icon: MoonStar, visual: PDU_ASSETS.spreads.paradoxMobile, layer: "Círculo" },
-  { productKey: "energia_da_semana", icon: CalendarDays, visual: PDU_ASSETS.spreads.weekEnergyMobile, layer: "Círculo" },
-  { productKey: "mapa_do_momento", icon: MoonStar, visual: PDU_ASSETS.spreads.momentMapMobile, layer: "Círculo" },
+  { productKey: "tirada_diamante", icon: Sparkles, visual: PDU_ASSETS.spreads.diamondMobile, layer: "Avulsa + Círculo" },
+  { productKey: "passaro_voando", icon: Compass, visual: PDU_ASSETS.spreads.flyingBirdMobile, layer: "Avulsa + Círculo" },
+  { productKey: "a_chave", icon: LockKeyhole, visual: PDU_ASSETS.spreads.keyMobile, layer: "Avulsa + Círculo" },
+  { productKey: "o_espelho", icon: Heart, visual: PDU_ASSETS.spreads.mirrorMobile, layer: "Avulsa + Círculo" },
+  { productKey: "cruz_celta", icon: Layers3, visual: PDU_ASSETS.spreads.celticCrossMobile, layer: "Avulsa + Círculo" },
+  { productKey: "relacionar", icon: Heart, visual: PDU_ASSETS.spreads.relationshipMobile, layer: "Avulsa + Círculo" },
+  { productKey: "o_paradoxo", icon: MoonStar, visual: PDU_ASSETS.spreads.paradoxMobile, layer: "Avulsa + Círculo" },
+  { productKey: "energia_da_semana", icon: CalendarDays, visual: PDU_ASSETS.spreads.weekEnergyMobile, layer: "Avulsa + Círculo" },
+  { productKey: "mapa_do_momento", icon: MoonStar, visual: PDU_ASSETS.spreads.momentMapMobile, layer: "Avulsa + Círculo" },
 ];
 
 function productHref(productKey: string) {
   const product = productCards.find((item) => item.productKey === productKey);
   if (product?.href) return product.href;
   if (productKey === "carta_do_dia") return "/carta-do-dia";
-  if (productKey === "energia_da_semana" || productKey === "mapa_do_momento") {
-    return "/#circulo";
-  }
-  return `/?product=${encodeURIComponent(productKey)}#produtos`;
+  return `/?product=${encodeURIComponent(productKey)}#leitura`;
 }
 
 export default function TiradasPage() {
@@ -152,10 +149,17 @@ export default function TiradasPage() {
                       {t(product.promise)}
                     </p>
                     <div className="mt-6 rounded-[8px] border border-white/10 bg-black/18 p-4 text-sm leading-6 text-[#cfc4b9]">
-                      <strong className="block text-[#fff7e8]">
-                        {t("Entrega")}
-                      </strong>
-                      <span>{t(product.bestFor)}</span>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <strong className="block text-[#fff7e8]">
+                          {t("Entrega")}
+                        </strong>
+                        {product.price ? (
+                          <span className="rounded-full bg-[#f4d58d]/12 px-3 py-1 text-xs font-semibold text-[#f5d896]">
+                            {product.price}
+                          </span>
+                        ) : null}
+                      </div>
+                      <span className="mt-2 block">{t(product.bestFor)}</span>
                     </div>
                     <span className="mt-auto inline-flex items-center gap-2 pt-8 text-sm font-semibold text-[#f5d896]">
                       {t(product.cta)}

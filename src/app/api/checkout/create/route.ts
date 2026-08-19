@@ -64,6 +64,51 @@ const checkoutCopyByLocale: Record<
       description:
         "Clarity for feelings, bonds, emotional patterns, and relationship choices.",
     },
+    energia_da_semana: {
+      title: "Weekly Energy",
+      description:
+        "A symbolic guide for the next seven days, with focus, care, and integration.",
+    },
+    mapa_do_momento: {
+      title: "Moment Map",
+      description:
+        "A symbolic portrait of your current phase, recurring patterns, and next direction.",
+    },
+    tirada_diamante: {
+      title: "The Diamond",
+      description:
+        "A five-card premium spread to see one question from inner, outer, and integrated angles.",
+    },
+    passaro_voando: {
+      title: "The Flying Bird",
+      description:
+        "A seven-card premium spread for movement, fear, receptivity, action, and horizon.",
+    },
+    a_chave: {
+      title: "The Key",
+      description:
+        "An eight-card premium spread to name hidden patterns and open a real choice.",
+    },
+    o_espelho: {
+      title: "The Mirror",
+      description:
+        "A twelve-card premium spread for relationships, projection, needs, boundaries, and choice.",
+    },
+    cruz_celta: {
+      title: "Celtic Cross",
+      description:
+        "A ten-card premium spread for broad context, tension, roots, field, and integration.",
+    },
+    relacionar: {
+      title: "Relating",
+      description:
+        "A four-card premium spread for presence, connection, boundaries, and relational clarity.",
+    },
+    o_paradoxo: {
+      title: "The Paradox",
+      description:
+        "A five-card premium spread to hold contradiction and find a third perspective.",
+    },
     circulo_do_universo: {
       title: "Circle of the Universe",
       description:
