@@ -110,8 +110,20 @@ function isPremiumSpreadType(value: SpreadType): value is PremiumSpreadType {
   return PREMIUM_SPREAD_TYPES.includes(value as PremiumSpreadType);
 }
 
-function translateMetadataText(value: string, localeInput: string) {
+function translateText(value: string, localeInput: string) {
   return normalizeLocale(localeInput) === "en" ? translations.en[value] ?? value : value;
+}
+
+function localizedHref(href: string, localeInput: string) {
+  const locale = normalizeLocale(localeInput);
+
+  if (locale !== "en") return href;
+
+  const [base, hash] = href.split("#");
+  const separator = base.includes("?") ? "&" : "?";
+  const localizedBase = base.includes("lang=") ? base : `${base}${separator}lang=en`;
+
+  return hash ? `${localizedBase}#${hash}` : localizedBase;
 }
 
 export function generateStaticParams() {
@@ -131,8 +143,8 @@ export async function generateMetadata({
 
   if (!spread || !isPremiumSpreadType(spread.type)) return {};
 
-  const title = `${translateMetadataText(spread.label, locale)} | Palavras do Universo`;
-  const description = translateMetadataText(spread.promise, locale);
+  const title = `${translateText(spread.label, locale)} | Palavras do Universo`;
+  const description = translateText(spread.promise, locale);
 
   return {
     title,
@@ -148,10 +160,14 @@ export async function generateMetadata({
 
 export default async function SpreadExperiencePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ lang?: string }>;
 }) {
   const { slug } = await params;
+  const locale = normalizeLocale((await searchParams)?.lang);
+  const t = (value: string) => translateText(value, locale);
   const spread = Object.values(SPREADS).find((item) => item.slug === slug);
 
   if (!spread || !isPremiumSpreadType(spread.type)) notFound();
@@ -159,9 +175,24 @@ export default async function SpreadExperiencePage({
   const detail = PAGE_DETAILS[spread.type];
   const product = productCards.find((item) => item.productKey === spread.productKey);
   if (!product) notFound();
-  const accessLabel = ["Avulsa", product.price, "Círculo"]
+  const accessLabel = [t("Avulsa"), product.price, t("Círculo")]
     .filter(Boolean)
     .join(" · ");
+  const translatedLabel = t(spread.label);
+  const translatedDetail = {
+    eyebrow: t(detail.eyebrow),
+    opening: t(detail.opening),
+    passage: t(detail.passage),
+    ritual: t(detail.ritual),
+    signature: t(detail.signature),
+  };
+  const productHref = localizedHref(
+    `/?product=${encodeURIComponent(spread.productKey)}#leitura`,
+    locale,
+  );
+  const circleHref = localizedHref("/#circulo", locale);
+  const spreadsHref = localizedHref("/tiradas", locale);
+  const homeHref = localizedHref("/", locale);
 
   const visualStyle = {
     "--pdu-spread-accent": detail.accent,
@@ -175,13 +206,29 @@ export default async function SpreadExperiencePage({
     >
       <div className="pdu-spread-experience__grain" aria-hidden="true" />
       <header className="pdu-spread-experience__nav">
-        <Link href="/tiradas" className="pdu-spread-experience__back">
+        <Link href={spreadsHref} className="pdu-spread-experience__back">
           <ArrowLeft size={16} />
-          Todas as tiradas
+          {t("Todas as tiradas")}
         </Link>
-        <Link href="/" className="pdu-spread-experience__brand">
-          <Image src={PDU_ASSETS.brand.symbol} alt="" width={36} height={36} />
-          <span>Palavras do Universo</span>
+        <Link
+          href={homeHref}
+          className="pdu-spread-experience__brand"
+          aria-label="Palavras do Universo"
+        >
+          <Image
+            src={PDU_ASSETS.brand.symbol}
+            alt=""
+            width={40}
+            height={40}
+            className="pdu-spread-experience__brand-mark"
+          />
+          <Image
+            src={PDU_ASSETS.brand.newWordmark}
+            alt="Palavras do Universo"
+            width={224}
+            height={70}
+            className="pdu-spread-experience__brand-wordmark"
+          />
         </Link>
         <span className="pdu-spread-experience__access">{accessLabel}</span>
       </header>
@@ -190,34 +237,37 @@ export default async function SpreadExperiencePage({
         <div className="pdu-spread-experience__copy">
           <p className="pdu-spread-experience__eyebrow">
             <Sparkles size={14} />
-            {detail.eyebrow}
+            {translatedDetail.eyebrow}
           </p>
-          <h1>{spread.label}</h1>
-          <p className="pdu-spread-experience__opening">{detail.opening}</p>
-          <p className="pdu-spread-experience__passage">{detail.passage}</p>
+          <h1>{translatedLabel}</h1>
+          <p className="pdu-spread-experience__opening">{translatedDetail.opening}</p>
+          <p className="pdu-spread-experience__passage">{translatedDetail.passage}</p>
 
           <div className="pdu-spread-experience__actions">
             <Link
-              href={`/?product=${encodeURIComponent(spread.productKey)}#leitura`}
+              href={productHref}
               className="pdu-spread-experience__primary"
             >
-              Fazer esta tirada
+              {t("Fazer esta tirada")}
               <ArrowRight size={17} />
             </Link>
-            <Link href="/#circulo" className="pdu-spread-experience__secondary">
-              Ver assinatura
+            <Link href={circleHref} className="pdu-spread-experience__secondary">
+              {t("Ver assinatura")}
             </Link>
           </div>
 
           <div className="pdu-spread-experience__facts">
-            <span><strong>{spread.positions.length}</strong> posições</span>
-            {product.price ? <span><strong>{product.price}</strong> avulsa</span> : null}
-            <span><strong>1</strong> pergunta central</span>
-            <span><strong>Círculo</strong> inclui</span>
+            <span><strong>{spread.positions.length}</strong> {t("posições")}</span>
+            {product.price ? <span><strong>{product.price}</strong> {t("avulsa")}</span> : null}
+            <span><strong>1</strong> {t("pergunta central")}</span>
+            <span><strong>{t("Círculo")}</strong> {t("inclui")}</span>
           </div>
         </div>
 
-        <div className="pdu-spread-experience__stage" aria-label={`Mapa visual de ${spread.label}`}>
+        <div
+          className="pdu-spread-experience__stage"
+          aria-label={t(`Mapa visual de ${spread.label}`)}
+        >
           <div className="pdu-spread-experience__halo" aria-hidden="true" />
           <Image
             src={detail.asset}
@@ -238,7 +288,7 @@ export default async function SpreadExperiencePage({
                 } as CSSProperties}
               >
                 <span>{String(index + 1).padStart(2, "0")}</span>
-                <strong>{position.label}</strong>
+                <strong>{t(position.label)}</strong>
               </li>
             ))}
           </ol>
@@ -247,17 +297,17 @@ export default async function SpreadExperiencePage({
 
       <section className="pdu-spread-experience__positions-section">
         <div className="pdu-spread-experience__section-copy">
-          <p>Arquitetura da leitura</p>
-          <h2>Cada posição existe por uma razão.</h2>
-          <blockquote>{detail.signature}</blockquote>
+          <p>{t("Arquitetura da leitura")}</p>
+          <h2>{t("Cada posição existe por uma razão.")}</h2>
+          <blockquote>{translatedDetail.signature}</blockquote>
         </div>
         <ol className="pdu-spread-experience__position-list">
           {spread.positions.map((position, index) => (
             <li key={position.key}>
               <span>{String(index + 1).padStart(2, "0")}</span>
               <div>
-                <strong>{position.label}</strong>
-                <p>{position.hint}</p>
+                <strong>{t(position.label)}</strong>
+                <p>{t(position.hint)}</p>
               </div>
               <CircleCheck size={17} aria-hidden="true" />
             </li>
@@ -267,19 +317,19 @@ export default async function SpreadExperiencePage({
 
       <section id="preparar-pergunta" className="pdu-spread-experience__ritual">
         <div>
-          <p>Antes de abrir</p>
-          <h2>Prepare a pergunta, não a resposta.</h2>
+          <p>{t("Antes de abrir")}</p>
+          <h2>{t("Prepare a pergunta, não a resposta.")}</h2>
         </div>
-        <p>{detail.ritual}</p>
-        <Link href={`/?product=${encodeURIComponent(spread.productKey)}#leitura`}>
-          Fazer esta tirada
+        <p>{translatedDetail.ritual}</p>
+        <Link href={productHref}>
+          {t("Fazer esta tirada")}
           <ArrowRight size={17} />
         </Link>
       </section>
 
       <footer className="pdu-spread-experience__footer">
-        <span>Palavras do Universo · leitura simbólica sem fatalismo</span>
-        <Link href="/tiradas">Explorar outras tiradas</Link>
+        <span>{t("Palavras do Universo · leitura simbólica sem fatalismo")}</span>
+        <Link href={spreadsHref}>{t("Explorar outras tiradas")}</Link>
       </footer>
     </main>
   );
