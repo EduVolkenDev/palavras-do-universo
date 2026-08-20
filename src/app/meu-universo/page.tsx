@@ -860,6 +860,14 @@ export default function MeuUniversoPage() {
       : recommendedEntitlement
         ? t("Liberado")
         : recommendedPrice;
+  const accountDisplayName =
+    readingProfile.displayName.trim() || profileDraft.displayName.trim();
+  const accountIdentityTitle = accountDisplayName || t("Conta conectada");
+  const accountInitialSource = accountDisplayName || accountEmail || "P";
+  const accountInitial = accountInitialSource
+    .trim()
+    .charAt(0)
+    .toLocaleUpperCase(locale);
 
   function openReadingProduct(productKey: string) {
     const product = productCards.find((item) => item.productKey === productKey);
@@ -979,6 +987,17 @@ export default function MeuUniversoPage() {
           <div className="flex items-center gap-2 text-sm text-[#6f615a]">
             <Sparkles size={16} />
             Meu Universo
+            {accountEmail ? (
+              <span
+                title={accountEmail}
+                className="ml-2 hidden max-w-[220px] items-center gap-2 rounded-lg border border-[#d8c3a6] bg-white/70 px-3 py-1.5 font-semibold text-[#4d3c31] lg:inline-flex"
+              >
+                <UserRound size={14} />
+                <span className="truncate">
+                  {t("Conectado como")} {accountDisplayName || accountEmail}
+                </span>
+              </span>
+            ) : null}
             {hasOwnerAdminAccess ? (
               <Link
                 href="/admin/codigos"
@@ -1067,6 +1086,70 @@ export default function MeuUniversoPage() {
                     ? "Seu universo combina histórico, preferências e sinais recorrentes para respostas menos genéricas."
                     : t("A conta dá a Lume um lugar para guardar somente o contexto que você escolheu compartilhar, proteger seu histórico e continuar sua jornada.")}
               </p>
+
+              {accountEmail ? (
+                <div className="mt-6 rounded-[24px] border border-[#f4d58d]/24 bg-white/[0.065] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <span className="relative grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl border border-[#f4d58d]/30 bg-[#241b18] text-xl font-semibold text-[#f5d896] shadow-[0_0_30px_rgba(244,213,141,0.13)]">
+                        <Image
+                          src={PDU_ASSETS.surfaces.profile}
+                          alt=""
+                          width={64}
+                          height={64}
+                          quality={95}
+                          sizes="64px"
+                          className="absolute inset-0 h-full w-full object-contain opacity-40"
+                        />
+                        <span className="relative">{accountInitial}</span>
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+                          {t("Você está no seu Universo")}
+                        </p>
+                        <h3 className="mt-1 truncate text-xl font-semibold text-[#fff7e8]">
+                          {accountIdentityTitle}
+                        </h3>
+                        <p className="mt-1 truncate text-sm text-[#d8ccc0]">
+                          {accountEmail}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#a7d7c5]/28 bg-[#a7d7c5]/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.13em] text-[#a7d7c5]">
+                      <CheckCircle2 size={14} />
+                      {t("Este é o seu perfil")}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+                    {[
+                      [t("Nome no Mapa"), accountDisplayName || t("Ainda não definido")],
+                      [t("E-mail de acesso"), accountEmail],
+                      [t("Sessão"), t("Autenticada")],
+                    ].map(([label, value]) => (
+                      <div
+                        key={label}
+                        className="min-w-0 rounded-2xl border border-white/10 bg-black/[0.14] p-3"
+                      >
+                        <span className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
+                          {label}
+                        </span>
+                        <strong className="mt-2 block truncate text-sm text-[#fff7e8]">
+                          {value}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+
+                  <a
+                    href="#mapa-inicial"
+                    className="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.13em] text-[#f5d896]"
+                  >
+                    {t("Editar nome no Mapa Inicial")}
+                    <ArrowRight size={13} />
+                  </a>
+                </div>
+              ) : null}
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 {[
