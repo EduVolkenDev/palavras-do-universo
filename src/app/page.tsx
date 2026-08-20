@@ -2263,19 +2263,21 @@ export default function Home() {
           >
             <span className="pdu-site-header__brand-mark relative shrink-0 overflow-hidden border border-[#d7b66b]/24 bg-[#f4d58d]/8 shadow-[0_0_34px_rgba(215,182,107,0.14)]">
               <Image
-                src="/assets/palavras-symbol.webp"
+                src={PDU_ASSETS.brand.symbol}
                 alt=""
                 width={64}
                 height={64}
+                unoptimized
                 className="pdu-site-header__brand-mark-image h-full w-full object-contain"
               />
             </span>
             <span className="pdu-site-header__wordmark relative block shrink">
               <Image
-                src="/assets/pdu-new-wordmark-transparent-ofi.webp"
-                alt="Palavras do Universo"
+                src={PDU_ASSETS.brand.headerWordmark}
+                alt=""
                 fill
                 priority
+                unoptimized
                 sizes="(max-width: 640px) 41vw, 288px"
                 className="object-contain object-left"
               />

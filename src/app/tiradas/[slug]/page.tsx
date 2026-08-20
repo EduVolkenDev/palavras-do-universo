@@ -220,13 +220,17 @@ export default async function SpreadExperiencePage({
             alt=""
             width={40}
             height={40}
+            priority
+            unoptimized
             className="pdu-spread-experience__brand-mark"
           />
           <Image
-            src={PDU_ASSETS.brand.newWordmark}
-            alt="Palavras do Universo"
+            src={PDU_ASSETS.brand.headerWordmark}
+            alt=""
             width={224}
             height={70}
+            priority
+            unoptimized
             className="pdu-spread-experience__brand-wordmark"
           />
         </Link>
