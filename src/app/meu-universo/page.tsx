@@ -21,16 +21,18 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { buildLoginPath } from "@/lib/auth/redirect";
 import {
+  clearLocalActiveReading,
   completeLocalImpactCommitment,
   getLocalActiveReading,
   getLocalImpactCommitments,
   getLocalSavedMessages,
   getOrCreateLocalUserId,
+  localActiveReadingAsSavedMessage,
   removeLocalImpactCommitments,
   removeLocalSavedMessages,
   type LocalImpactCommitment,
-  type LocalActiveReading,
   updateLocalImpactCommitment,
 } from "@/lib/client/localUniverse";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -38,7 +40,8 @@ import { IMPACT_AREA_LABELS, type ImpactArea } from "@/lib/impact/actions";
 import { productCards } from "@/lib/product/catalog";
 import {
   CIRCLE_PRODUCT_KEY,
-  entitlementUnlocksProduct,
+  findEntitlementForProduct,
+  isCircleEntitlement,
 } from "@/lib/product/access";
 import { useI18n } from "@/components/I18nProvider";
 import { normalizeLocale, type Locale } from "@/lib/i18n/config";
@@ -47,6 +50,13 @@ import { CARDS } from "@/lib/tarot/cards";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { PduAssetStory } from "@/components/PduAssetStory";
 import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
+import {
+  EMPTY_READING_PROFILE,
+  getProfileCompletion,
+  hasProfileSignal,
+  normalizeReadingProfile,
+  type ReadingProfile,
+} from "@/lib/personalization/reading-context";
 
 type Reading = {
   id: string;
@@ -63,6 +73,7 @@ type Reading = {
 type SavedMessage = {
   id: string;
   reading_id: string | null;
+  client_key?: string | null;
   message_type: string;
   payload: unknown;
   created_at: string;
@@ -80,16 +91,6 @@ type Entitlement = {
   expires_at: string | null;
   usage_limit: number | null;
   usage_count: number;
-};
-
-type ReadingProfile = {
-  displayName: string;
-  focusAreas: string[];
-  currentPhase: string;
-  guidanceTone: string;
-  desiredShift: string;
-  boundaries: string[];
-  contextNote: string;
 };
 
 type ImpactCommitment = Omit<LocalImpactCommitment, "local_only"> & {
@@ -111,16 +112,6 @@ type UniverseStat = {
   label: string;
   value: string | number;
   visual: string;
-};
-
-const EMPTY_READING_PROFILE: ReadingProfile = {
-  displayName: "",
-  focusAreas: [],
-  currentPhase: "",
-  guidanceTone: "",
-  desiredShift: "",
-  boundaries: [],
-  contextNote: "",
 };
 
 const focusAreaOptions = [
@@ -178,8 +169,17 @@ function asString(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
-function asStringList(value: unknown) {
-  return Array.isArray(value) ? value.map(asString).filter(Boolean) : [];
+function normalizeAssetPath(value: unknown) {
+  const assetPath = asString(value);
+  if (!assetPath) return "";
+
+  const legacyTarotPath = "/tarot/cards/";
+  if (assetPath.includes(legacyTarotPath)) {
+    const fileName = assetPath.split(legacyTarotPath).pop();
+    return fileName ? `/assets/${fileName}` : "";
+  }
+
+  return assetPath;
 }
 
 function normalizeSpreadCards(value: unknown): ReadingSpreadCard[] {
@@ -199,34 +199,24 @@ function normalizeSpreadCards(value: unknown): ReadingSpreadCard[] {
         name,
         reversed: item.reversed === true,
         meaning: asString(item.meaning),
-        assetPath: asString(item.assetPath || item.asset_path),
+        assetPath: normalizeAssetPath(item.assetPath || item.asset_path),
       };
     })
     .filter((card): card is ReadingSpreadCard => card !== null);
 }
 
-function readingProfileFromRemote(value: unknown): ReadingProfile {
-  if (!isRecord(value)) return EMPTY_READING_PROFILE;
-  const raw = isRecord(value.reading_profile) ? value.reading_profile : value;
-  return {
-    displayName: asString(raw.displayName || value.display_name),
-    focusAreas: asStringList(raw.focusAreas || value.favorite_themes),
-    currentPhase: asString(raw.currentPhase || value.emotional_phase),
-    guidanceTone: asString(raw.guidanceTone),
-    desiredShift: asString(raw.desiredShift),
-    boundaries: asStringList(raw.boundaries),
-    contextNote: asString(raw.contextNote),
-  };
-}
+function getStoredReadingProfile() {
+  if (typeof window === "undefined") return { ...EMPTY_READING_PROFILE };
 
-function profileProgress(profile: ReadingProfile) {
-  return [
-    profile.displayName,
-    profile.focusAreas.length ? "focus" : "",
-    profile.currentPhase,
-    profile.guidanceTone,
-    profile.desiredShift,
-  ].filter(Boolean).length;
+  try {
+    const stored = window.localStorage.getItem("pdu_onboarding_profile");
+    return stored
+      ? normalizeReadingProfile(JSON.parse(stored))
+      : { ...EMPTY_READING_PROFILE };
+  } catch {
+    window.localStorage.removeItem("pdu_onboarding_profile");
+    return { ...EMPTY_READING_PROFILE };
+  }
 }
 
 function recommendedProductKey(profile: ReadingProfile) {
@@ -296,6 +286,9 @@ function isSavedReadingPayload(value: unknown): value is {
 }
 
 function getMessageDedupeKey(message: SavedMessage) {
+  if (message.client_key) return `client:${message.client_key}`;
+  if (message.id.startsWith("local_")) return `client:${message.id}`;
+
   if (
     message.message_type === "daily_card" &&
     isDailyCardPayload(message.payload) &&
@@ -321,30 +314,6 @@ function getSavedTitle(message: SavedMessage) {
   if (!isRecord(message.payload)) return "Mensagem salva";
   const question = message.payload.question;
   return typeof question === "string" && question ? question : "Mensagem salva";
-}
-
-function activeReadingAsSavedMessage(reading: LocalActiveReading | null) {
-  if (!reading?.result) return null;
-
-  return {
-    id: `active-${reading.reading_id ?? reading.updated_at}`,
-    reading_id: reading.reading_id,
-    message_type: "reading",
-    payload: {
-      savedAt: reading.updated_at,
-      locale: reading.locale,
-      theme: reading.theme,
-      productKey: reading.product_key,
-      spreadType: reading.spread_type,
-      spreadLabel: reading.spread_label,
-      question: reading.question,
-      spreadLine: reading.spread_line,
-      spreadCards: reading.spread_cards,
-      result: reading.result,
-    },
-    created_at: reading.updated_at,
-    local_only: true,
-  } satisfies SavedMessage;
 }
 
 function getSavedPreview(message: SavedMessage) {
@@ -498,6 +467,7 @@ function localizeHistoryCards(cards: ReadingSpreadCard[], locale: Locale) {
 
     return {
       ...card,
+      assetPath: sourceCard?.assetPath ?? normalizeAssetPath(card.assetPath),
       position: localizePosition(card.position, locale),
       name: localizedCard?.name ?? card.name,
       keyword: localizedCard?.keywords[0] ?? card.keyword,
@@ -556,6 +526,11 @@ export default function MeuUniversoPage() {
   useEffect(() => {
     const nextUserId = getOrCreateLocalUserId();
     setUserId(nextUserId);
+    const localProfile = getStoredReadingProfile();
+    if (hasProfileSignal(localProfile)) {
+      setReadingProfile(localProfile);
+      setProfileDraft(localProfile);
+    }
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
       setAuthChecked(true);
@@ -580,12 +555,13 @@ export default function MeuUniversoPage() {
     async function load() {
       setLoading(true);
       setError("");
-      const activeReadingMessage = activeReadingAsSavedMessage(getLocalActiveReading());
+      const activeReadingMessage = localActiveReadingAsSavedMessage(getLocalActiveReading());
       const initialLocalMessages = [
         ...(activeReadingMessage ? [activeReadingMessage] : []),
         ...getLocalSavedMessages(),
       ];
       const initialLocalCommitments = getLocalImpactCommitments();
+      const localProfile = getStoredReadingProfile();
       if (initialLocalMessages.length) {
         setMessages(initialLocalMessages);
       }
@@ -620,8 +596,8 @@ export default function MeuUniversoPage() {
         if (!accountEmail) {
           setReadings([]);
           setEntitlements([]);
-          setReadingProfile(EMPTY_READING_PROFILE);
-          setProfileDraft(EMPTY_READING_PROFILE);
+          setReadingProfile(localProfile);
+          setProfileDraft(localProfile);
           return;
         }
 
@@ -642,6 +618,9 @@ export default function MeuUniversoPage() {
               (key): key is string => typeof key === "string"
             );
             removeLocalSavedMessages(syncedKeys);
+            if (activeReadingMessage && syncedKeys.includes(activeReadingMessage.id)) {
+              clearLocalActiveReading();
+            }
             if (syncedKeys.length) {
               setSyncNotice(
                 `${syncedKeys.length} ${
@@ -715,7 +694,7 @@ export default function MeuUniversoPage() {
         const remoteMessages = isRecord(messagesData)
           ? (asArray(messagesData.messages) as SavedMessage[])
           : [];
-        const currentActiveReadingMessage = activeReadingAsSavedMessage(getLocalActiveReading());
+        const currentActiveReadingMessage = localActiveReadingAsSavedMessage(getLocalActiveReading());
         const localMessages = [
           ...(currentActiveReadingMessage ? [currentActiveReadingMessage] : []),
           ...getLocalSavedMessages(),
@@ -747,9 +726,26 @@ export default function MeuUniversoPage() {
             ? (asArray(actionsData.commitments) as ImpactCommitment[])
             : []
         );
-        const nextProfile = isRecord(profileData)
-          ? readingProfileFromRemote(profileData.profile)
+        const remoteProfile = isRecord(profileData)
+          ? normalizeReadingProfile(profileData.profile)
           : EMPTY_READING_PROFILE;
+        let nextProfile = remoteProfile;
+
+        if (!hasProfileSignal(remoteProfile) && hasProfileSignal(localProfile)) {
+          try {
+            const profileSyncRes = await fetch("/api/profile", {
+              method: "PUT",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify(localProfile),
+            });
+            const profileSyncData = (await profileSyncRes.json()) as unknown;
+            if (profileSyncRes.ok && isRecord(profileSyncData)) {
+              nextProfile = normalizeReadingProfile(profileSyncData.profile);
+            }
+          } catch {
+            // The local profile remains available even if its first remote sync fails.
+          }
+        }
         setReadingProfile(nextProfile);
         setProfileDraft(nextProfile);
       } catch (caught) {
@@ -780,8 +776,9 @@ export default function MeuUniversoPage() {
     [messages]
   );
   const readingHistoryCount = readings.length + savedReadingMessages.length;
-  const profileCompletion = profileProgress(profileDraft);
-  const profileComplete = profileProgress(readingProfile) >= 4;
+  const profileCompletion = getProfileCompletion(profileDraft);
+  const profileComplete = getProfileCompletion(readingProfile) >= 4;
+  const profileCanSave = hasProfileSignal(profileDraft);
   const hasAnyJourneySignal =
     readingHistoryCount > 0 ||
     otherSavedMessages.length > 0 ||
@@ -830,10 +827,9 @@ export default function MeuUniversoPage() {
     () => getInitialMapNextSteps(readingProfile, symbolicPatterns.totalSignals > 0),
     [readingProfile, symbolicPatterns.totalSignals]
   );
-  const activeSubscription = entitlements.some(
-    (item) =>
-      item.source === "subscription" ||
-      item.product_key === CIRCLE_PRODUCT_KEY
+  const activeCircleAccess = entitlements.some((item) => isCircleEntitlement(item));
+  const activeBillingSubscription = entitlements.some(
+    (item) => item.source === "subscription"
   );
   const hasOwnerAdminAccess = entitlements.some((item) => item.id.startsWith("owner-"));
   const recommendedProduct = useMemo(() => {
@@ -849,13 +845,11 @@ export default function MeuUniversoPage() {
     : "";
   const recommendedPrice = recommendedProduct?.price ?? "R$9,90";
   const recommendedEntitlement = recommendedProduct
-    ? entitlements.find((item) =>
-        entitlementUnlocksProduct(item.product_key, recommendedProduct.productKey)
-      )
+    ? findEntitlementForProduct(entitlements, recommendedProduct.productKey)
     : null;
   const recommendedProductUnlocked = Boolean(recommendedEntitlement);
   const recommendedAccessLabel =
-    recommendedEntitlement?.product_key === CIRCLE_PRODUCT_KEY
+    recommendedEntitlement && isCircleEntitlement(recommendedEntitlement)
       ? t("Incluído no Círculo")
       : recommendedEntitlement
         ? t("Liberado")
@@ -889,12 +883,30 @@ export default function MeuUniversoPage() {
     setProfileSaving(true);
     setProfileNotice("");
     try {
+      const normalizedDraft = normalizeReadingProfile(profileDraft);
+      if (!accountEmail) {
+        window.localStorage.setItem(
+          "pdu_onboarding_profile",
+          JSON.stringify(normalizedDraft)
+        );
+        setReadingProfile(normalizedDraft);
+        setProfileDraft(normalizedDraft);
+        setProfileNotice(
+          "Mapa guardado neste dispositivo. Entre para proteger o histórico e continuar em outros acessos."
+        );
+        return;
+      }
+
       const res = await fetch("/api/profile", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(profileDraft),
+        body: JSON.stringify(normalizedDraft),
       });
       const data = (await res.json()) as unknown;
+      if (res.status === 401) {
+        window.location.href = buildLoginPath("/meu-universo#mapa-inicial");
+        return;
+      }
       if (!res.ok || !isRecord(data)) {
         throw new Error(
           isRecord(data) && typeof data.error === "string"
@@ -902,7 +914,7 @@ export default function MeuUniversoPage() {
             : "Não foi possível salvar seu Mapa Inicial."
         );
       }
-      const nextProfile = readingProfileFromRemote(data.profile);
+      const nextProfile = normalizeReadingProfile(data.profile);
       setReadingProfile(nextProfile);
       setProfileDraft(nextProfile);
       setProfileNotice(
@@ -932,9 +944,7 @@ export default function MeuUniversoPage() {
       const data = (await res.json()) as unknown;
 
       if (res.status === 401) {
-        window.location.href = `/entrar?next=${encodeURIComponent(
-          `/meu-universo?comprar=${productKey}`
-        )}`;
+        window.location.href = buildLoginPath(`/meu-universo?comprar=${productKey}`);
         return;
       }
 
@@ -1008,7 +1018,7 @@ export default function MeuUniversoPage() {
               </Link>
             ) : null}
             {accountEmail ? (
-              <form action="/auth/signout" method="post">
+              <form action="/auth/signout?next=/entrar" method="post">
                 <button
                   type="submit"
                   className="ml-2 rounded-lg border border-[#d8c3a6] px-3 py-1.5 font-semibold text-[#4d3c31]"
@@ -1018,7 +1028,7 @@ export default function MeuUniversoPage() {
               </form>
             ) : (
               <Link
-                href="/entrar"
+                href={buildLoginPath("/meu-universo")}
                 className="ml-2 inline-flex items-center gap-1.5 rounded-lg bg-[#241b18] px-3 py-1.5 font-semibold text-[#fff7e8]"
               >
                 <LogIn size={14} />
@@ -1046,7 +1056,7 @@ export default function MeuUniversoPage() {
             {!accountEmail ? (
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  href="/entrar"
+                  href={buildLoginPath("/meu-universo")}
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-[#241b18] px-5 py-3 text-sm font-semibold text-[#fff7e8] shadow-[0_18px_50px_rgba(36,27,24,0.18)]"
                 >
                   <LogIn size={16} />
@@ -1153,9 +1163,9 @@ export default function MeuUniversoPage() {
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 {[
-                  ["Fase", accountEmail ? readingProfile.currentPhase || "A calibrar" : "Transição"],
-                  ["Tom", accountEmail ? readingProfile.guidanceTone || "A escolher" : "Prático"],
-                  ["Limites", accountEmail ? `${readingProfile.boundaries.length}` : "Sem fatalismo"],
+                  ["Fase", readingProfile.currentPhase || "A calibrar"],
+                  ["Tom", readingProfile.guidanceTone || "A escolher"],
+                  ["Limites", readingProfile.boundaries.length ? `${readingProfile.boundaries.length}` : "Sem fatalismo"],
                 ].map(([label, value]) => (
                   <div
                     key={label}
@@ -1237,7 +1247,7 @@ export default function MeuUniversoPage() {
               </div>
               <div className="flex h-full flex-col justify-center gap-3 border-t border-[#e6d8c3] bg-[#f8efe2] p-5 md:border-l md:border-t-0">
                 <Link
-                  href="/entrar"
+                  href={buildLoginPath("/meu-universo")}
                   className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#241b18] px-5 py-3 text-sm font-semibold text-[#fff7e8]"
                 >
                   <LogIn size={16} />
@@ -1251,7 +1261,7 @@ export default function MeuUniversoPage() {
           </section>
         ) : null}
 
-        {authChecked && accountEmail ? (
+        {authChecked ? (
           <>
           {!loading && !hasAnyJourneySignal ? (
             <section className="mt-8 overflow-hidden rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] shadow-[0_30px_90px_rgba(80,57,34,0.1)]">
@@ -1349,9 +1359,9 @@ export default function MeuUniversoPage() {
                     Calibre o jeito que o Universo fala com você.
                   </h2>
                   <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
-                    Depois de criar conta, esse mapa vira contexto real para as
-                    leituras. Lume entende fase, tom, limites e foco sem você
-                    repetir tudo a cada pergunta.
+                    {accountEmail
+                      ? "Este mapa virou contexto real para as leituras. Lume entende fase, tom, limites e foco sem você repetir tudo a cada pergunta."
+                      : "Este mapa já personaliza a prévia neste dispositivo. Ao criar sua conta, você protege o contexto e transforma leituras soltas em continuidade."}
                   </p>
 
                   <div className="mt-6 grid gap-3 text-sm">
@@ -1501,16 +1511,26 @@ export default function MeuUniversoPage() {
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm leading-6 text-[#6f615a]">
                     {profileNotice ||
-                      "Complete pelo menos 4 sinais para calibrar suas leituras."}
+                      (profileCanSave
+                        ? profileCompletion >= 4
+                          ? "Seu Mapa Inicial já pode ser calibrado e salvo."
+                          : "Você já pode salvar este perfil. Com 4 sinais, Lume calibra melhor as próximas leituras."
+                        : "Preencha pelo menos um sinal para criar seu perfil de leitura.")}
                   </p>
                   <button
                     type="button"
                     onClick={saveReadingProfile}
-                    disabled={profileSaving || profileCompletion < 4}
+                    disabled={profileSaving || !profileCanSave}
                     className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#241b18] px-5 py-3 text-sm font-semibold text-[#fff7e8] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <UserRound size={16} />
-                    {profileSaving ? "Calibrando..." : "Salvar Mapa Inicial"}
+                    {profileSaving
+                      ? "Salvando..."
+                      : !accountEmail
+                        ? "Guardar neste dispositivo"
+                      : profileCompletion >= 4
+                        ? "Salvar Mapa Inicial"
+                        : "Salvar perfil de leitura"}
                   </button>
                 </div>
               </div>
@@ -1637,13 +1657,13 @@ export default function MeuUniversoPage() {
                   <button
                     type="button"
                     onClick={() => startUniverseCheckout("circulo_do_universo")}
-                    disabled={activeSubscription || !!purchaseLoading}
+                    disabled={activeCircleAccess || !!purchaseLoading}
                     className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-[#fff7e8] disabled:cursor-not-allowed disabled:opacity-55"
                   >
                     <Sparkles size={16} />
                     {purchaseLoading === "circulo_do_universo"
                       ? t("Abrindo assinatura...")
-                      : activeSubscription
+                      : activeCircleAccess
                         ? t("Círculo ativo")
                         : t("Entrar no Círculo mensal")}
                   </button>
@@ -1653,7 +1673,7 @@ export default function MeuUniversoPage() {
           </section>
         ) : null}
 
-        {authChecked && accountEmail ? (
+        {authChecked ? (
           <section className="mt-8 overflow-hidden rounded-[28px] border border-[#d8c3a6] bg-[#fffaf2] shadow-[0_28px_90px_rgba(80,57,34,0.09)]">
             <div className="grid gap-0 lg:grid-cols-[0.86fr_1.14fr]">
               <div className="bg-[#241b18] p-6 text-[#fff7e8] sm:p-7">
@@ -1768,7 +1788,7 @@ export default function MeuUniversoPage() {
             </div>
             <CheckCircle2 size={22} className="text-[#607464]" />
           </div>
-          {entitlements.some((item) => item.source === "subscription") ? (
+          {activeBillingSubscription ? (
             <button
               type="button"
               onClick={openBillingPortal}
@@ -2524,7 +2544,7 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
             <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
               {spreadCards.map((card, index) => {
                 const name = asString(card.name);
-                const assetPath = asString(card.assetPath);
+                const assetPath = normalizeAssetPath(card.assetPath);
 
                 return (
                   <div
@@ -2566,7 +2586,7 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
     isDailyCardPayload(message.payload)
   ) {
     const cardName = asString(message.payload.card?.name);
-    const assetPath = asString(message.payload.card?.asset_path);
+    const assetPath = normalizeAssetPath(message.payload.card?.asset_path);
     const keyword = asString(message.payload.reading?.keyword);
     const meaning = asString(message.payload.reading?.meaning);
     const counsel = asString(message.payload.reading?.counsel);

@@ -16,6 +16,10 @@ import {
   type LumeAction,
   type LumeSurface,
 } from "@/lib/lume/persona";
+import {
+  createUserContext,
+  type UserContext,
+} from "@/lib/personalization/reading-context";
 
 type LumeMessage = {
   id: number;
@@ -33,8 +37,12 @@ export function requestLumeOpen() {
   }
 }
 
-function initialMessage(surface: LumeSurface, locale: "pt-BR" | "en"): LumeMessage {
-  const welcome = getLumeWelcome(surface, locale);
+function initialMessage(
+  surface: LumeSurface,
+  locale: "pt-BR" | "en",
+  userContext?: UserContext | null
+): LumeMessage {
+  const welcome = getLumeWelcome(surface, locale, userContext);
   return { id: 0, role: "lume", ...welcome };
 }
 
@@ -43,12 +51,37 @@ export default function LumeGuide() {
   const { locale } = useI18n();
   const surface = getLumeSurface(pathname);
   const scope = `${locale}:${surface}`;
+  const [userContext, setUserContext] = useState<UserContext | null>(null);
+  const [contextLoaded, setContextLoaded] = useState(false);
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [conversation, setConversation] = useState<{
     scope: string;
     messages: LumeMessage[];
   }>(() => ({ scope, messages: [initialMessage(surface, locale)] }));
+
+  useEffect(() => {
+    if (!open || contextLoaded) return;
+
+    let cancelled = false;
+    fetch("/api/profile", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const data = (await response.json()) as { profile?: unknown };
+        return data.profile ?? null;
+      })
+      .then((profile) => {
+        if (!cancelled && profile) setUserContext(createUserContext(profile, "remote"));
+      })
+      .catch(() => null)
+      .finally(() => {
+        if (!cancelled) setContextLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [contextLoaded, open]);
 
   useEffect(() => {
     function handleOpen() {
@@ -61,25 +94,29 @@ export default function LumeGuide() {
 
   if (pathname.startsWith("/admin")) return null;
 
-  const welcome = getLumeWelcome(surface, locale);
+  const welcome = getLumeWelcome(surface, locale, userContext);
   const messages = conversation.scope === scope
     ? conversation.messages
-    : [initialMessage(surface, locale)];
-  const latestSuggestions = messages.length === 1
+    : [initialMessage(surface, locale, userContext)];
+  const visibleMessages =
+    messages.length === 1 && messages[0]?.role === "lume"
+      ? [initialMessage(surface, locale, userContext)]
+      : messages;
+  const latestSuggestions = visibleMessages.length === 1
     ? welcome.suggestions ?? []
-    : messages[messages.length - 1]?.suggestions ?? [];
+    : visibleMessages[visibleMessages.length - 1]?.suggestions ?? [];
 
   function submit(event?: FormEvent) {
     event?.preventDefault();
     const question = input.trim();
     if (!question) return;
 
-    const reply = replyToLume(question, surface, locale);
-    const nextId = messages.length + 1;
+    const reply = replyToLume(question, surface, locale, userContext);
+    const nextId = visibleMessages.length + 1;
     setConversation({
       scope,
       messages: [
-        ...messages,
+        ...visibleMessages,
         { id: nextId, role: "user", text: question },
         { id: nextId + 1, role: "lume", ...reply },
       ],
@@ -88,12 +125,12 @@ export default function LumeGuide() {
   }
 
   function askSuggestion(question: string) {
-    const reply = replyToLume(question, surface, locale);
-    const nextId = messages.length + 1;
+    const reply = replyToLume(question, surface, locale, userContext);
+    const nextId = visibleMessages.length + 1;
     setConversation({
       scope,
       messages: [
-        ...messages,
+        ...visibleMessages,
         { id: nextId, role: "user", text: question },
         { id: nextId + 1, role: "lume", ...reply },
       ],
@@ -104,13 +141,15 @@ export default function LumeGuide() {
   return (
     <div className="pdu-lume-ambient">
       {open ? (
-        <section
-          id="lume-guide-panel"
-          className="pdu-lume-guide-panel fixed right-[5.5rem] top-1/2 z-[91] flex max-h-[min(75vh,38rem)] w-[min(23rem,calc(100vw-1.5rem))] -translate-y-1/2 flex-col overflow-hidden rounded-[26px] border border-[#f4d58d]/30 bg-[#111019] text-[#fff7e8] shadow-[0_28px_90px_rgba(0,0,0,0.46)]"
-          aria-label={`${LUME_NAME} — ${locale === "en" ? "guidance" : "orientação"}`}
-          role="dialog"
-        >
-          <header className="flex items-center gap-3 border-b border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(244,213,141,0.2),transparent_44%),#16131d] p-4">
+        <>
+          <div className="pdu-lume-presence-field" aria-hidden="true" />
+          <section
+            id="lume-guide-panel"
+            className="pdu-lume-guide-panel fixed right-[5.5rem] top-1/2 z-[111] flex max-h-[min(75vh,38rem)] w-[min(23rem,calc(100vw-1.5rem))] -translate-y-1/2 flex-col overflow-hidden rounded-[26px] border border-[#f4d58d]/30 bg-[#111019] text-[#fff7e8] shadow-[0_28px_90px_rgba(0,0,0,0.46)]"
+            aria-label={`${LUME_NAME} — ${locale === "en" ? "guidance" : "orientação"}`}
+            role="dialog"
+          >
+          <header className="pdu-lume-guide-panel__header flex items-center gap-3 border-b border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(244,213,141,0.2),transparent_44%),#16131d] p-4">
             <span className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl border border-[#f4d58d]/35 bg-[#090811]">
               <Image
                 src={PDU_ASSETS.symbolic.wingOracle}
@@ -122,9 +161,14 @@ export default function LumeGuide() {
               />
             </span>
             <div className="min-w-0 flex-1">
+              <p className="pdu-lume-guide-panel__status">
+                {locale === "en" ? "Presence active" : "Presença ativa"}
+              </p>
               <p className="text-sm font-semibold text-[#fff7e8]">{LUME_NAME}</p>
               <p className="mt-0.5 text-xs leading-5 text-[#cfc4b9]">
-                {locale === "en" ? "Your guide inside Palavras do Universo" : "Sua guia dentro do Palavras do Universo"}
+                {locale === "en"
+                  ? "She follows this point of the portal with you."
+                  : "Ela acompanha este ponto do portal com você."}
               </p>
             </div>
             <button
@@ -137,8 +181,8 @@ export default function LumeGuide() {
             </button>
           </header>
 
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
-            {messages.map((message) => (
+          <div className="pdu-lume-guide-panel__body min-h-0 flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
+            {visibleMessages.map((message) => (
               <div key={message.id} className={message.role === "user" ? "ml-8" : "mr-4"}>
                 <div
                   className={`rounded-2xl px-3.5 py-3 text-sm leading-6 ${
@@ -177,7 +221,7 @@ export default function LumeGuide() {
             ) : null}
           </div>
 
-          <form onSubmit={submit} className="flex gap-2 border-t border-white/10 bg-[#0b0a10] p-3">
+          <form onSubmit={submit} className="pdu-lume-guide-panel__form flex gap-2 border-t border-white/10 bg-[#0b0a10] p-3">
             <input
               value={input}
               onChange={(event) => setInput(event.target.value)}
@@ -194,13 +238,16 @@ export default function LumeGuide() {
               <Send size={16} />
             </button>
           </form>
-        </section>
+          </section>
+        </>
       ) : null}
 
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="pdu-lume-ambient__button group inline-flex max-w-[calc(100vw-1.5rem)] items-center gap-2 text-left text-[#fff7e8] transition"
+        className={`pdu-lume-ambient__button group inline-flex max-w-[calc(100vw-1.5rem)] items-center gap-2 text-left text-[#fff7e8] transition ${
+          open ? "pdu-lume-ambient__button--open" : ""
+        }`}
         aria-expanded={open}
         aria-controls="lume-guide-panel"
         aria-label={open ? (locale === "en" ? "Close Lume" : "Fechar Lume") : (locale === "en" ? "Open Lume" : "Abrir Lume")}

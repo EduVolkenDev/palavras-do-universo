@@ -6,53 +6,23 @@ import {
   hasSupabaseConfig,
 } from "@/lib/supabase/server";
 import { readJsonBody } from "@/lib/http/request";
+import {
+  createUserContext,
+  getProfileCompletion,
+  normalizeReadingProfile,
+  toPersistedReadingProfile,
+  type ReadingProfile,
+} from "@/lib/personalization/reading-context";
 
-const MAX_ITEMS = 6;
-const MAX_TEXT = 280;
+type ProfileBody = Partial<ReadingProfile>;
 
-type ProfileBody = {
-  displayName?: unknown;
-  focusAreas?: unknown;
-  currentPhase?: unknown;
-  guidanceTone?: unknown;
-  desiredShift?: unknown;
-  boundaries?: unknown;
-  contextNote?: unknown;
-};
-
-function trimText(value: unknown, max = MAX_TEXT) {
-  return typeof value === "string" ? value.trim().slice(0, max) : "";
-}
-
-function stringList(value: unknown) {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => trimText(item, 64))
-    .filter(Boolean)
-    .slice(0, MAX_ITEMS);
-}
-
-function normalizeProfile(body: ProfileBody) {
-  const profile = {
-    displayName: trimText(body.displayName, 80),
-    focusAreas: stringList(body.focusAreas),
-    currentPhase: trimText(body.currentPhase, 120),
-    guidanceTone: trimText(body.guidanceTone, 120),
-    desiredShift: trimText(body.desiredShift, 140),
-    boundaries: stringList(body.boundaries),
-    contextNote: trimText(body.contextNote, 500),
-    completedAt: new Date().toISOString(),
-    version: "pdu-reading-profile-v1",
+function profileResponse(profile: unknown) {
+  const userContext = createUserContext(profile, "remote");
+  return {
+    profile,
+    userContext,
+    personalizationSignals: userContext.personalizationSignals,
   };
-
-  const score =
-    (profile.displayName ? 1 : 0) +
-    profile.focusAreas.length +
-    (profile.currentPhase ? 1 : 0) +
-    (profile.guidanceTone ? 1 : 0) +
-    (profile.desiredShift ? 1 : 0);
-
-  return { profile, complete: score >= 4 };
 }
 
 export async function GET() {
@@ -60,7 +30,7 @@ export async function GET() {
   if (auth.response) return auth.response;
 
   if (!hasSupabaseConfig()) {
-    return NextResponse.json({ ok: true, profile: null });
+    return NextResponse.json({ ok: true, ...profileResponse(null) });
   }
 
   await ensureSupabaseProfile(auth.user.id);
@@ -77,7 +47,7 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, profile: data ?? null });
+  return NextResponse.json({ ok: true, ...profileResponse(data ?? null) });
 }
 
 export async function PUT(request: Request) {
@@ -91,7 +61,9 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Supabase is not configured" }, { status: 503 });
   }
 
-  const { profile, complete } = normalizeProfile(parsed.body ?? {});
+  const profile = normalizeReadingProfile(parsed.body ?? {});
+  const complete = getProfileCompletion(profile) >= 4;
+  const persistedProfile = toPersistedReadingProfile(profile);
   await ensureSupabaseProfile(auth.user.id);
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -101,8 +73,8 @@ export async function PUT(request: Request) {
       favorite_themes: profile.focusAreas,
       emotional_phase: profile.currentPhase || null,
       onboarding_status: complete ? "complete" : "started",
-      reading_profile: profile,
-      profile_completed_at: complete ? profile.completedAt : null,
+      reading_profile: persistedProfile,
+      profile_completed_at: complete ? persistedProfile.completedAt : null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", auth.user.id)
@@ -115,5 +87,5 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, profile: data });
+  return NextResponse.json({ ok: true, ...profileResponse(data) });
 }

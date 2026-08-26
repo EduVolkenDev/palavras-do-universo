@@ -42,7 +42,7 @@ export async function GET(req: Request) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("saved_messages")
-    .select("id, reading_id, message_type, payload, created_at")
+    .select("id, reading_id, message_type, payload, created_at, client_key")
     .eq("user_id", auth.user.id)
     .order("created_at", { ascending: false })
     .limit(limit);

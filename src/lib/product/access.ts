@@ -82,6 +82,46 @@ export function entitlementUnlocksProduct(entitlementProductKey: string, product
   );
 }
 
+export type ProductEntitlementLike = {
+  id?: string;
+  product_key: string;
+  source?: string;
+  usage_limit?: number | null;
+  usage_count?: number | null;
+};
+
+export function findEntitlementForProduct<T extends ProductEntitlementLike>(
+  entitlements: T[],
+  productKey: string
+) {
+  return (
+    entitlements.find((entitlement) => entitlement.product_key === productKey) ??
+    entitlements.find((entitlement) =>
+      entitlementUnlocksProduct(entitlement.product_key, productKey)
+    ) ??
+    null
+  );
+}
+
+export function hasEntitlementForProduct(
+  entitlements: ProductEntitlementLike[],
+  productKey: string
+) {
+  return Boolean(findEntitlementForProduct(entitlements, productKey));
+}
+
+export function isCircleEntitlement(entitlement: ProductEntitlementLike) {
+  return entitlement.product_key === CIRCLE_PRODUCT_KEY;
+}
+
+export function shouldConsumeEntitlement(entitlement: ProductEntitlementLike) {
+  return (
+    typeof entitlement.usage_limit === "number" &&
+    entitlement.usage_limit > 0 &&
+    (entitlement.usage_count ?? 0) < entitlement.usage_limit
+  );
+}
+
 export function isPaidReadingProduct(productKey: string) {
   return PAID_READING_PRODUCTS.has(productKey);
 }

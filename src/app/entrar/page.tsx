@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useI18n } from "@/components/I18nProvider";
+import { buildAuthCallbackUrl, sanitizeAuthRedirect } from "@/lib/auth/redirect";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { productCards, pricingPlans } from "@/lib/product/catalog";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
@@ -83,6 +84,32 @@ export default function EntrarPage() {
   }, []);
 
   useEffect(() => {
+    if (state !== "idle") return;
+
+    const timer = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const error = params.get("error");
+      const signedOut = params.get("signed_out") === "1";
+
+      if (error === "link-invalido" || error === "missing-code") {
+        setState("error");
+        setMessage(
+          locale === "en"
+            ? "This access link expired or was already used. Request a new link to continue."
+            : "Este link expirou ou já foi usado. Peça um novo link para continuar."
+        );
+        return;
+      }
+
+      if (signedOut) {
+        setMessage(locale === "en" ? "You signed out safely." : "Você saiu da conta com segurança.");
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [locale, state]);
+
+  useEffect(() => {
     if (!resendAvailableAt) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
@@ -106,19 +133,18 @@ export default function EntrarPage() {
     setMessage("");
 
     const requested = new URLSearchParams(window.location.search).get("next");
-    const nextPath =
-      requested?.startsWith("/") && !requested.startsWith("//")
-        ? requested
-        : "/meu-universo";
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(
-      nextPath
-    )}`;
+    const nextPath = sanitizeAuthRedirect(requested);
+    const redirectTo = buildAuthCallbackUrl(window.location.origin, nextPath);
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { emailRedirectTo: redirectTo },
     });
 
     if (error) {
+      console.error("[auth] signInWithOtp failed", {
+        message: error.message,
+        status: error.status,
+      });
       setState("error");
       setMessage(
         locale === "en"
@@ -131,9 +157,13 @@ export default function EntrarPage() {
     setState("sent");
     setResendAvailableAt(Date.now() + RESEND_WAIT_SECONDS * 1000);
     setMessage(
-      locale === "en"
-        ? "We sent a secure link. If it does not arrive, check spam or promotions before requesting a new one."
-        : "Enviamos um link seguro. Se ele não chegar, confira spam ou promoções antes de pedir outro."
+      readingHistoryReason
+        ? locale === "en"
+          ? "We sent a secure link. Open it on this same device and browser to protect the reading saved here."
+          : "Enviamos um link seguro. Abra neste mesmo aparelho e navegador para proteger a tirada salva aqui."
+        : locale === "en"
+          ? "We sent a secure link. If it does not arrive, check spam or promotions before requesting a new one."
+          : "Enviamos um link seguro. Se ele não chegar, confira spam ou promoções antes de pedir outro."
     );
   }
 

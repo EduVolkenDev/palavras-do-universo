@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 const sourceDir = "/Users/eduardovolken_1/Downloads/lynxes-webp";
 const organizedDir = join(sourceDir, "_organized");
-const appTargetDir = join(process.cwd(), "public", "tarot", "cards");
+const appTargetDir = join(process.cwd(), "public", "assets");
 
 const selected = [
   ["olouco2.webp", "major-00-the-fool.webp", "dark ornate version; stronger brand fit than the pale variant"],
@@ -137,7 +137,7 @@ writeFileSync(
     `Alternates: ${alternateManifest.length}`,
     `Custom/off-system: ${customManifest.length}`,
     "",
-    "The selected files were also copied into `public/tarot/cards`.",
+    "The selected files were also copied into `public/assets`.",
   ].join("\n")
 );
 

@@ -472,7 +472,7 @@ async function grantVoucherEntitlements(params: {
   for (const productKey of productKeys) {
     const { data: current, error: currentError } = await supabase
       .from("user_entitlements")
-      .select("id,metadata")
+      .select("id,metadata,usage_limit,usage_count,consumed_at")
       .eq("user_id", params.userId)
       .eq("product_key", productKey)
       .eq("source", "admin");
@@ -488,14 +488,16 @@ async function grantVoucherEntitlements(params: {
       return metadata.voucher_id === params.voucher.id;
     });
 
-    const payload = {
+    const usageLimit = params.voucher.grant_usage_limit;
+    const now = new Date().toISOString();
+    const insertPayload = {
       user_id: params.userId,
       product_key: productKey,
       source: "admin" as const,
       status: "active",
-      starts_at: new Date().toISOString(),
+      starts_at: now,
       expires_at: expiresAt,
-      usage_limit: params.voucher.grant_usage_limit,
+      usage_limit: usageLimit,
       usage_count: 0,
       consumed_at: null,
       metadata: {
@@ -505,17 +507,28 @@ async function grantVoucherEntitlements(params: {
         voucher_redemption_id: params.redemptionId,
         voucher_label: params.voucher.label,
       },
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     };
 
     if (matching?.id) {
+      const currentUsageCount =
+        typeof matching.usage_count === "number" ? matching.usage_count : 0;
+      const consumedAt =
+        typeof usageLimit === "number" && currentUsageCount >= usageLimit
+          ? matching.consumed_at ?? now
+          : null;
+      const updatePayload = {
+        ...insertPayload,
+        usage_count: currentUsageCount,
+        consumed_at: consumedAt,
+      };
       const { error } = await supabase
         .from("user_entitlements")
-        .update(payload)
+        .update(updatePayload)
         .eq("id", matching.id);
       if (error) throw new Error(`Could not update voucher entitlement: ${error.message}`);
     } else {
-      const { error } = await supabase.from("user_entitlements").insert(payload);
+      const { error } = await supabase.from("user_entitlements").insert(insertPayload);
       if (error) throw new Error(`Could not create voucher entitlement: ${error.message}`);
     }
   }

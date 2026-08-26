@@ -4,9 +4,13 @@ import { cookies } from "next/headers";
 
 let adminClient: SupabaseClient | null = null;
 
+function getSupabaseServerUrl() {
+  return process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+}
+
 export function hasSupabaseConfig() {
   return Boolean(
-    process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+    getSupabaseServerUrl() && process.env.SUPABASE_SERVICE_ROLE_KEY
   );
 }
 
@@ -59,11 +63,11 @@ export async function getAuthenticatedUser() {
 }
 
 export function getSupabaseAdmin() {
-  const url = process.env.SUPABASE_URL;
+  const url = getSupabaseServerUrl();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceRoleKey) {
-    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+    throw new Error("Missing Supabase URL or SUPABASE_SERVICE_ROLE_KEY");
   }
 
   if (!adminClient) {

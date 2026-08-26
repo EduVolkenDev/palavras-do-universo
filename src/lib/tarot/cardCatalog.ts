@@ -121,7 +121,7 @@ export const TAROT_CARD_CATALOG: TarotCardShell[] = [
     name,
     arcana: "major" as const,
     number: index,
-    assetPath: `/tarot/cards/${key}.webp`,
+    assetPath: `/assets/${key}.webp`,
   })),
   ...Object.entries(suits).flatMap(([suit, config]) =>
     config.ranks.map(([rank, rankLabel]) => ({
@@ -130,7 +130,7 @@ export const TAROT_CARD_CATALOG: TarotCardShell[] = [
       arcana: "minor" as const,
       suit: suit as TarotSuit,
       rank,
-      assetPath: `/tarot/cards/${suit}-${rank}.webp`,
+      assetPath: `/assets/${suit}-${rank}.webp`,
     }))
   ),
 ];

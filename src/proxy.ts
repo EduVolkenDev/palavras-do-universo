@@ -1,3 +1,4 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
 const MAX_MUTATION_BODY_BYTES = 128 * 1024;
@@ -36,9 +37,42 @@ function allowedOrigins(request: NextRequest) {
   return origins;
 }
 
-export function proxy(request: NextRequest) {
-  if (SAFE_METHODS.has(request.method) || request.nextUrl.pathname === "/api/stripe/webhook") {
-    return NextResponse.next();
+async function refreshSupabaseSession(request: NextRequest) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  let response = NextResponse.next({ request });
+
+  if (!url || !anonKey) return response;
+
+  const supabase = createServerClient(url, anonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value)
+        );
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
+        );
+      },
+    },
+  });
+
+  await supabase.auth.getUser();
+
+  return response;
+}
+
+export async function proxy(request: NextRequest) {
+  const isApiRequest = request.nextUrl.pathname.startsWith("/api/");
+  const isWebhook = request.nextUrl.pathname === "/api/stripe/webhook";
+
+  if (!isApiRequest || SAFE_METHODS.has(request.method) || isWebhook) {
+    return refreshSupabaseSession(request);
   }
 
   const origin = request.headers.get("origin");
@@ -60,9 +94,11 @@ export function proxy(request: NextRequest) {
     );
   }
 
-  return NextResponse.next();
+  return refreshSupabaseSession(request);
 }
 
 export const config = {
-  matcher: "/api/:path*",
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|assets/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|css|js|map|txt|xml)$).*)",
+  ],
 };

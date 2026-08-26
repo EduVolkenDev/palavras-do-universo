@@ -1,0 +1,149 @@
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import ts from "typescript";
+
+const root = process.cwd();
+const temp = await mkdtemp(join(tmpdir(), "pdu-commerce-access-"));
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+async function compile(source, target) {
+  const code = await readFile(join(root, source), "utf8");
+  const result = ts.transpileModule(code, {
+    compilerOptions: {
+      esModuleInterop: true,
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: source,
+  });
+  const destination = join(temp, target);
+  await mkdir(join(destination, ".."), { recursive: true });
+  await writeFile(destination, result.outputText);
+}
+
+async function readSource(source) {
+  return readFile(join(root, source), "utf8");
+}
+
+try {
+  await compile("src/lib/product/access.ts", "src/lib/product/access.js");
+  const access = await import(join(temp, "src/lib/product/access.js"));
+
+  const circle = {
+    id: "circle",
+    product_key: "circulo_do_universo",
+    source: "subscription",
+    usage_limit: null,
+    usage_count: 0,
+  };
+  const exactPurchase = {
+    id: "purchase",
+    product_key: "sinais_do_amor",
+    source: "purchase",
+    usage_limit: 1,
+    usage_count: 0,
+  };
+  const usedVoucher = {
+    id: "voucher-used",
+    product_key: "caminho_3_cartas",
+    source: "admin",
+    usage_limit: 1,
+    usage_count: 1,
+  };
+  const activeVoucher = {
+    id: "voucher-active",
+    product_key: "caminho_3_cartas",
+    source: "admin",
+    usage_limit: 2,
+    usage_count: 1,
+  };
+
+  assert(
+    access.entitlementUnlocksProduct("circulo_do_universo", "caminho_3_cartas"),
+    "Circle entitlement must unlock included products"
+  );
+  assert(
+    !access.entitlementUnlocksProduct("circulo_do_universo", "clareza_urgente"),
+    "Circle entitlement must not unlock products outside the Circle contract"
+  );
+  assert(
+    access.findEntitlementForProduct([circle], "o_espelho")?.id === "circle",
+    "Circle entitlement must be found for included product UI"
+  );
+  assert(
+    access.findEntitlementForProduct([circle, exactPurchase], "sinais_do_amor")?.id ===
+      "purchase",
+    "Exact one-time entitlement must be preferred over Circle fallback"
+  );
+  assert(
+    access.shouldConsumeEntitlement(exactPurchase),
+    "One-time purchase entitlement must be consumable"
+  );
+  assert(
+    access.shouldConsumeEntitlement(activeVoucher),
+    "Limited voucher entitlement must be consumable"
+  );
+  assert(
+    !access.shouldConsumeEntitlement(usedVoucher),
+    "Fully used voucher entitlement must not be consumed again"
+  );
+  assert(
+    !access.shouldConsumeEntitlement(circle),
+    "Subscription/Circle entitlement must not be consumed per reading"
+  );
+
+  const readingRoute = await readSource("src/app/api/reading/create/route.ts");
+  assert(
+    readingRoute.includes("shouldConsumeEntitlement(entitlement)"),
+    "Reading creation must consume every limited entitlement, including vouchers"
+  );
+
+  const vouchersService = await readSource("src/lib/vouchers/service.ts");
+  assert(
+    vouchersService.includes("currentUsageCount") &&
+      vouchersService.includes("usage_count: currentUsageCount"),
+    "Voucher re-redemption must preserve usage_count instead of resetting it"
+  );
+  assert(
+    vouchersService.includes("matching.consumed_at ?? now"),
+    "Voucher re-redemption must preserve consumed_at for exhausted grants"
+  );
+
+  const universePage = await readSource("src/app/meu-universo/page.tsx");
+  assert(
+    universePage.includes("findEntitlementForProduct(entitlements, recommendedProduct.productKey)"),
+    "Meu Universo must use shared unlock resolution for recommended paid readings"
+  );
+  assert(
+    universePage.includes("activeCircleAccess") &&
+      universePage.includes("activeBillingSubscription"),
+    "Meu Universo must separate Circle access from Stripe billing management"
+  );
+
+  const voucherAdmin = await readSource("src/components/admin/VoucherAdminPage.tsx");
+  assert(
+    voucherAdmin.includes("grantProductKeys") &&
+      voucherAdmin.includes("eligibleProductKeys") &&
+      voucherAdmin.includes("productKey,"),
+    "Voucher admin must keep the primary product aligned with grant/discount products"
+  );
+
+  const activeEntitlementsMigration = await readSource(
+    "supabase/migrations/20260719120000_set_active_entitlements_security_invoker.sql"
+  );
+  assert(
+    activeEntitlementsMigration.includes("alter view public.active_entitlements") &&
+      activeEntitlementsMigration.includes("security_invoker = true"),
+    "active_entitlements must stay SECURITY INVOKER to respect querying-user RLS"
+  );
+
+  console.log(
+    "Commerce access valid: Circle unlocks included readings, limited vouchers consume once, and Meu Universo uses shared access resolution."
+  );
+} finally {
+  await rm(temp, { recursive: true, force: true });
+}

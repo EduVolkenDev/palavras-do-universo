@@ -20,7 +20,7 @@ import {
   checkRepeatedQuestion,
   makeFingerprint,
 } from "@/lib/tarot/repeatLimiter";
-import { isPaidReadingProduct } from "@/lib/product/access";
+import { isPaidReadingProduct, shouldConsumeEntitlement } from "@/lib/product/access";
 import { getAvailableEntitlementForProduct } from "@/lib/product/entitlements";
 import { getOwnerEntitlementForProduct } from "@/lib/product/ownerAccess";
 import {
@@ -30,6 +30,10 @@ import {
 } from "@/lib/i18n/oracle";
 import { readJsonBody } from "@/lib/http/request";
 import { LUME_AI_INSTRUCTIONS } from "@/lib/lume/persona";
+import {
+  createUserContext,
+  formatPersonalizationMemory,
+} from "@/lib/personalization/reading-context";
 
 const memory: Record<string, { fingerprint: string; ts: number }[]> = {};
 const freeUsage: Record<string, { day: string; used: number }> = {};
@@ -48,6 +52,7 @@ type ReadingBody = {
   locale?: unknown;
   onboardingFocus?: unknown;
   onboardingSignal?: unknown;
+  readingProfile?: unknown;
   question?: unknown;
   theme?: unknown;
   userId?: unknown;
@@ -501,31 +506,8 @@ async function getPortalMemory(userId: string, remoteEnabled: boolean) {
     ];
 
     if (profileRow) {
-      const readingProfile = isRecord(profileRow.reading_profile)
-        ? profileRow.reading_profile
-        : {};
-      const displayName = asString(profileRow.display_name);
-      const currentPhase =
-        asString(readingProfile.currentPhase) || asString(profileRow.emotional_phase);
-      const guidanceTone = asString(readingProfile.guidanceTone);
-      const desiredShift = asString(readingProfile.desiredShift);
-      const contextNote = asString(readingProfile.contextNote);
-      const boundaries = Array.isArray(readingProfile.boundaries)
-        ? readingProfile.boundaries.map(asString).filter(Boolean).slice(0, 5)
-        : [];
-      const focusAreas = Array.isArray(readingProfile.focusAreas)
-        ? readingProfile.focusAreas.map(asString).filter(Boolean).slice(0, 6)
-        : profileRow.favorite_themes ?? [];
-
-      if (displayName) lines.push(`Nome escolhido pela pessoa: ${displayName}.`);
-      if (focusAreas.length) lines.push(`Áreas de foco declaradas: ${focusAreas.join(", ")}.`);
-      if (currentPhase) lines.push(`Fase atual declarada: ${currentPhase}.`);
-      if (guidanceTone) lines.push(`Tom preferido para orientação: ${guidanceTone}.`);
-      if (desiredShift) lines.push(`Mudança desejada: ${desiredShift}.`);
-      if (boundaries.length) lines.push(`Evitar nas leituras: ${boundaries.join(", ")}.`);
-      if (contextNote) {
-        lines.push(`Contexto livre informado pela pessoa: "${contextNote.slice(0, 260)}".`);
-      }
+      const userContext = createUserContext(profileRow, "remote");
+      lines.push(...formatPersonalizationMemory(userContext));
     }
 
     const themes = topEntries(themeCounts, 4);
@@ -1002,10 +984,18 @@ export async function POST(req: Request) {
 	7) FECHAMENTO: ritual curto, resumo em 3 bullets e convite para retornar amanhã
 	`.trim();
   const portalMemory = await getPortalMemory(userId, remoteEnabled);
+  const localUserContext = !remoteEnabled
+    ? createUserContext(body?.readingProfile, "local")
+    : null;
+  const localProfileMemory = localUserContext
+    ? formatPersonalizationMemory(localUserContext)
+    : [];
   const localOnboardingMemory =
-    !remoteEnabled && (onboardingFocus || onboardingSignal)
+    !remoteEnabled &&
+    (onboardingFocus || onboardingSignal || localProfileMemory.length)
       ? [
           "Contexto inicial local informado antes da leitura:",
+          ...localProfileMemory,
           onboardingFocus ? `Fase/tema de entrada: ${onboardingFocus}.` : "",
           onboardingSignal ? `Sinal simbólico escolhido: ${onboardingSignal}.` : "",
           "Use isso apenas como ponto de partida; não trate como diagnóstico nem como identidade fixa.",
@@ -1125,6 +1115,7 @@ export async function POST(req: Request) {
       mode,
       onboardingFocus,
       onboardingSignal,
+      personalization: localUserContext?.personalizationSignals,
       productKey,
       question,
       spread: spread.map((draw) => ({
@@ -1149,7 +1140,7 @@ export async function POST(req: Request) {
     interpretation,
     remoteEnabled,
   });
-  if (paidProduct && entitlement?.id && entitlement.source === "purchase") {
+  if (paidProduct && entitlement?.id && shouldConsumeEntitlement(entitlement)) {
     await consumeEntitlement(entitlement.id, userId);
   }
 

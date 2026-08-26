@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n/config";
+import type { UserContext } from "@/lib/personalization/reading-context";
 
 export const LUME_NAME = "Lume";
 
@@ -147,8 +148,37 @@ export function getLumeSurface(pathname: string): LumeSurface {
   return "home";
 }
 
-export function getLumeWelcome(surface: LumeSurface, locale: Locale) {
-  return copy[locale][surface];
+export function getLumeWelcome(
+  surface: LumeSurface,
+  locale: Locale,
+  userContext?: UserContext | null
+) {
+  const base = copy[locale][surface];
+  const signals = userContext?.personalizationSignals;
+  if (!signals?.hasExplicitContext) return base;
+
+  const focus = signals.focusAreas[0];
+  const phase = signals.currentPhase;
+  const name = userContext?.readingProfile.displayName;
+  const anchor = [name, focus, phase].filter(Boolean).join(" · ");
+
+  if (locale === "en") {
+    return {
+      ...base,
+      text:
+        surface === "universe"
+          ? `Your map already has an axis${anchor ? ` — ${anchor}` : ""}. I can use what you chose to share to connect your next reading with this moment, without turning it into a fixed identity.`
+          : `I can keep this moment in view${focus ? `, especially around ${focus.toLowerCase()}` : ""}. ${base.text}`,
+    };
+  }
+
+  return {
+    ...base,
+    text:
+      surface === "universe"
+        ? `Seu mapa já tem um eixo${anchor ? ` — ${anchor}` : ""}. Posso usar o que você escolheu compartilhar para conectar a próxima leitura com este momento, sem transformar isso em uma identidade fixa.`
+        : `Posso manter este momento em vista${focus ? `, especialmente em torno de ${focus.toLowerCase()}` : ""}. ${base.text}`,
+  };
 }
 
 function normalize(value: string) {
@@ -161,9 +191,30 @@ function normalize(value: string) {
     .trim();
 }
 
-export function replyToLume(input: string, surface: LumeSurface, locale: Locale): LumeReply {
+export function replyToLume(
+  input: string,
+  surface: LumeSurface,
+  locale: Locale,
+  userContext?: UserContext | null
+): LumeReply {
   const text = normalize(input);
   const isEnglish = locale === "en";
+  const signals = userContext?.personalizationSignals;
+  const focus = signals?.focusAreas[0];
+  const phase = signals?.currentPhase;
+
+  if (/(momento|fase|context|contexto|perfil|profile)/.test(text) && signals?.hasExplicitContext) {
+    if (isEnglish) {
+      return {
+        text: `You told me that you are${phase ? ` ${phase.toLowerCase()}` : " in a specific moment"}${focus ? `, with attention on ${focus.toLowerCase()}` : ""}. I use that as a lens for the next question — not as a prediction or a label.`,
+        action: { label: "Open My Universe", href: "/meu-universo#mapa-inicial" },
+      };
+    }
+    return {
+      text: `Você me contou que está${phase ? ` ${phase.toLowerCase()}` : " atravessando um momento específico"}${focus ? `, com atenção em ${focus.toLowerCase()}` : ""}. Eu uso isso como lente para a próxima pergunta — não como previsão nem como rótulo.`,
+      action: { label: "Abrir meu Mapa Inicial", href: "/meu-universo#mapa-inicial" },
+    };
+  }
 
   if (/(como|how).*(leitura|reading)|fazer.*leitura|get.*reading|pergunta|question/.test(text)) {
     return isEnglish

@@ -3,18 +3,20 @@
 import {
   ArrowRight,
   BadgeCheck,
+  BookOpen,
   Bookmark,
   Check,
   CircleDollarSign,
   Compass,
+  Ear,
   ExternalLink,
   Feather,
+  Flower2,
   HandHeart,
   Heart,
   History,
+  Leaf,
   LifeBuoy,
-  Layers3,
-  LockKeyhole,
   Menu,
   MoonStar,
   Quote,
@@ -23,6 +25,7 @@ import {
   Sparkles,
   Star,
   Sun,
+  Users,
   X,
   type LucideIcon,
   UserRound,
@@ -30,8 +33,8 @@ import {
 import Image from "next/image";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { buildLoginPath } from "@/lib/auth/redirect";
 import {
-  type ProductCard,
   pricingPlans,
   productCards,
 } from "@/lib/product/catalog";
@@ -54,6 +57,7 @@ import {
   type LocalImpactCommitment,
   updateLocalImpactCommitment,
 } from "@/lib/client/localUniverse";
+import { syncLocalUniverseToAccount } from "@/lib/client/syncLocalUniverse";
 import { usePduAtmosphere } from "@/lib/ui/usePduAtmosphere";
 import { usePduScrollRecovery } from "@/lib/ui/usePduScrollRecovery";
 import { usePushNotifications } from "@/lib/push/usePushNotifications";
@@ -63,8 +67,10 @@ import { normalizeLocale, type Locale } from "@/lib/i18n/config";
 import { localizeTarotCard, translateOraclePosition } from "@/lib/i18n/oracle";
 import {
   getImpactAction,
+  IMPACT_ACTIONS,
   IMPACT_AREA_LABELS,
   getRecommendedImpactActions,
+  type ImpactAction,
 } from "@/lib/impact/actions";
 import { CARDS } from "@/lib/tarot/cards";
 import { getSpreadForProduct } from "@/lib/tarot/spreads";
@@ -74,6 +80,13 @@ import { PduAssetStory } from "@/components/PduAssetStory";
 import { LUME_NAME } from "@/lib/lume/persona";
 import { LumePresence, requestLumeOpen } from "@/components/LumeGuide";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import {
+  EMPTY_READING_PROFILE,
+  getProfileCompletion,
+  hasProfileSignal,
+  normalizeReadingProfile,
+  type ReadingProfile,
+} from "@/lib/personalization/reading-context";
 
 type ApiOk = {
   ok: true;
@@ -96,6 +109,73 @@ type ApiOk = {
 };
 
 type ReadingSpreadCard = ApiOk["spread"][number];
+
+const IMPACT_ACTION_VISUALS: Record<
+  string,
+  {
+    image: string;
+    icon: LucideIcon;
+    accent: string;
+    glow: string;
+  }
+> = {
+  mensagem_de_cuidado: {
+    image: PDU_ASSETS.impact.careMessage,
+    icon: Heart,
+    accent: "#ff5fd7",
+    glow: "rgba(255, 95, 215, 0.48)",
+  },
+  cuidar_do_espaco_comum: {
+    image: PDU_ASSETS.impact.sharedSpace,
+    icon: Users,
+    accent: "#38ead7",
+    glow: "rgba(56, 234, 215, 0.44)",
+  },
+  reduzir_desperdicio: {
+    image: PDU_ASSETS.impact.reduceWaste,
+    icon: Leaf,
+    accent: "#f2a34d",
+    glow: "rgba(242, 163, 77, 0.5)",
+  },
+  escutar_com_presenca: {
+    image: PDU_ASSETS.impact.listenPresence,
+    icon: Ear,
+    accent: "#f255de",
+    glow: "rgba(242, 85, 222, 0.44)",
+  },
+  ajuda_com_habilidade: {
+    image: PDU_ASSETS.impact.shareSkill,
+    icon: BookOpen,
+    accent: "#45bfff",
+    glow: "rgba(69, 191, 255, 0.5)",
+  },
+  resolver_pendencia: {
+    image: PDU_ASSETS.impact.resolvePending,
+    icon: Flower2,
+    accent: "#ff4aa5",
+    glow: "rgba(255, 74, 165, 0.5)",
+  },
+};
+
+const IMPACT_ACTION_DISPLAY_ORDER = [
+  "mensagem_de_cuidado",
+  "cuidar_do_espaco_comum",
+  "reduzir_desperdicio",
+  "escutar_com_presenca",
+  "ajuda_com_habilidade",
+  "resolver_pendencia",
+] as const;
+
+const IMPACT_ACTION_CARD_ORDER = IMPACT_ACTION_DISPLAY_ORDER.map((key) =>
+  IMPACT_ACTIONS.find((action) => action.key === key)
+).filter((action): action is ImpactAction => Boolean(action));
+
+const DEFAULT_IMPACT_ACTION_VISUAL = {
+  image: PDU_ASSETS.symbolic.hand,
+  icon: Sparkles,
+  accent: "#f4d58d",
+  glow: "rgba(244, 213, 141, 0.42)",
+};
 
 type ApiPaywall = {
   error: string;
@@ -342,6 +422,27 @@ const experienceAccessPaths = [
   },
 ];
 
+const homeSpreadShowcaseCards = [
+  {
+    title: "O Diamante",
+    label: "Clareza prismática",
+    text: "Para quando a pergunta tem camadas e precisa de mais ângulo antes da resposta.",
+    href: "/tiradas/diamante",
+  },
+  {
+    title: "O Espelho",
+    label: "Relações e projeções",
+    text: "Para olhar vínculos com maturidade, limite e menos ansiedade sobre o outro.",
+    href: "/tiradas/o-espelho",
+  },
+  {
+    title: "Cruz Celta",
+    label: "Mapa amplo",
+    text: "Para fases complexas, decisões maiores e perguntas que pedem contexto inteiro.",
+    href: "/tiradas/cruz-celta",
+  },
+];
+
 const atmosphereWords = [
   "clareza",
   "travessia",
@@ -368,9 +469,6 @@ const universeFeatureTokens = [
   "Áreas da vida em foco",
   "Padrões recorrentes",
 ];
-
-const productActionClass =
-  "pdu-product-action mt-6 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold";
 
 const testimonials = [
   {
@@ -443,6 +541,47 @@ const onboardingOptions: {
   },
 ];
 
+const readingProfileFocusOptions = [
+  "Amor e vínculos",
+  "Carreira",
+  "Dinheiro",
+  "Família",
+  "Propósito",
+  "Espiritualidade",
+];
+
+const readingProfilePhaseOptions = [
+  "Começando um ciclo",
+  "Encerrando algo",
+  "Esperando uma resposta",
+  "Reorganizando a vida",
+  "Tomando uma decisão",
+  "Cuidando da energia",
+];
+
+const readingProfileToneOptions = [
+  "Direta e prática",
+  "Acolhedora",
+  "Profunda e simbólica",
+  "Calma e objetiva",
+];
+
+const readingProfileShiftOptions = [
+  "Clareza para decidir",
+  "Coragem para agir",
+  "Calma para atravessar",
+  "Fechamento de ciclo",
+  "Mais honestidade comigo",
+];
+
+const readingProfileBoundaryOptions = [
+  "Sem fatalismo",
+  "Sem respostas longas",
+  "Sem romantizar ansiedade",
+  "Sem tom duro",
+  "Sem jargão esotérico",
+];
+
 const marketplaceSignals = [
   {
     title: "Perfil público",
@@ -489,7 +628,7 @@ const fallbackSpread: DailyMessage["spread"] = [
     position: "SITUAÇÃO",
     name: "A Lua",
     reversed: false,
-    assetPath: "/tarot/cards/major-18-the-moon.webp",
+    assetPath: "/assets/major-18-the-moon.webp",
     keyword: "sensibilidade",
     meaning: "Nem tudo que assusta é ameaça. Observe antes de concluir.",
   },
@@ -497,7 +636,7 @@ const fallbackSpread: DailyMessage["spread"] = [
     position: "OBSTÁCULO",
     name: "Sete de Paus",
     reversed: false,
-    assetPath: "/tarot/cards/wands-seven.webp",
+    assetPath: "/assets/wands-seven.webp",
     keyword: "posição",
     meaning: "Defenda o que importa sem se explicar para todos.",
   },
@@ -505,7 +644,7 @@ const fallbackSpread: DailyMessage["spread"] = [
     position: "DIREÇÃO",
     name: "A Estrela",
     reversed: false,
-    assetPath: "/tarot/cards/major-17-the-star.webp",
+    assetPath: "/assets/major-17-the-star.webp",
     keyword: "esperança",
     meaning: "Há uma luz discreta indicando caminho.",
   },
@@ -535,88 +674,6 @@ const readingExperienceVisuals: Record<string, string> = {
   cruz_celta: PDU_ASSETS.spreads.celticCrossMobile,
   relacionar: PDU_ASSETS.spreads.relationshipMobile,
   o_paradoxo: PDU_ASSETS.spreads.paradoxMobile,
-};
-
-const productIconVisuals: Record<
-  string,
-  {
-    assetPath: string;
-    mobileAssetPath?: string;
-    fallbackIcon: LucideIcon;
-    tone: "gold" | "mint" | "blue" | "rose";
-    variant?: "three-card-path";
-  }
-> = {
-  "Mensagem do Dia": {
-    assetPath: PDU_ASSETS.products.startFreeSpreadIcon,
-    fallbackIcon: Sparkles,
-    tone: "gold",
-  },
-  "Carta do Dia": {
-    assetPath: PDU_ASSETS.productIcons.cardOfTheDay,
-    fallbackIcon: MoonStar,
-    tone: "blue",
-  },
-  "Clareza Urgente": {
-    assetPath: PDU_ASSETS.productIcons.urgentClarity,
-    fallbackIcon: LifeBuoy,
-    tone: "rose",
-  },
-  "Caminho das 3 Cartas": {
-    assetPath: PDU_ASSETS.productIcons.threeCardPath,
-    fallbackIcon: Compass,
-    tone: "mint",
-  },
-  "Sinais do Amor": {
-    assetPath: PDU_ASSETS.productIcons.loveSignals,
-    fallbackIcon: Heart,
-    tone: "rose",
-  },
-  "O Diamante": {
-    assetPath: PDU_ASSETS.productIcons.diamond,
-    fallbackIcon: Sparkles,
-    tone: "blue",
-  },
-  "O Pássaro Voando": {
-    assetPath: PDU_ASSETS.productIcons.flyingBird,
-    fallbackIcon: Compass,
-    tone: "mint",
-  },
-  "A Chave": {
-    assetPath: PDU_ASSETS.productIcons.key,
-    fallbackIcon: LockKeyhole,
-    tone: "gold",
-  },
-  "O Espelho": {
-    assetPath: PDU_ASSETS.productIcons.mirror,
-    fallbackIcon: Heart,
-    tone: "blue",
-  },
-  "Cruz Celta": {
-    assetPath: PDU_ASSETS.productIcons.celticCross,
-    fallbackIcon: Layers3,
-    tone: "blue",
-  },
-  "Relacionar": {
-    assetPath: PDU_ASSETS.productIcons.relationship,
-    fallbackIcon: Heart,
-    tone: "rose",
-  },
-  "O Paradoxo": {
-    assetPath: PDU_ASSETS.productIcons.paradox,
-    fallbackIcon: MoonStar,
-    tone: "gold",
-  },
-  "Energia da Semana": {
-    assetPath: PDU_ASSETS.productIcons.weekEnergy,
-    fallbackIcon: Sun,
-    tone: "gold",
-  },
-  "Mapa do Momento": {
-    assetPath: PDU_ASSETS.productIcons.momentMap,
-    fallbackIcon: UserRound,
-    tone: "blue",
-  },
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1069,6 +1126,9 @@ export default function Home() {
     useState<DailyMessage>(fallbackDailyMessage);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingFocusId, setOnboardingFocusId] = useState("");
+  const [onboardingStep, setOnboardingStep] = useState<"phase" | "profile">("phase");
+  const [onboardingProfileDraft, setOnboardingProfileDraft] =
+    useState<ReadingProfile>(EMPTY_READING_PROFILE);
   const [readingStateHydrated, setReadingStateHydrated] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [headerCondensed, setHeaderCondensed] = useState(false);
@@ -1293,6 +1353,14 @@ export default function Home() {
       params.has("product") || params.has("resume") || params.has("acao") || params.has("corrente");
     const storedFocus = localStorage.getItem("pdu_focus") ?? "";
     if (storedFocus) setOnboardingFocusId(storedFocus);
+    const storedProfile = localStorage.getItem("pdu_onboarding_profile");
+    if (storedProfile) {
+      try {
+        setOnboardingProfileDraft(normalizeReadingProfile(JSON.parse(storedProfile)));
+      } catch {
+        localStorage.removeItem("pdu_onboarding_profile");
+      }
+    }
     const seen = localStorage.getItem("pdu_onboarding_done");
     if (seen || hasIntentRoute) return;
 
@@ -1415,6 +1483,11 @@ export default function Home() {
     [t]
   );
   const impactActions = useMemo(() => getRecommendedImpactActions(theme), [theme]);
+  const impactActionCards = useMemo(() => IMPACT_ACTION_CARD_ORDER, []);
+  const selectedImpactAction = useMemo(
+    () => getImpactAction(impactActionKey) ?? impactActions[0],
+    [impactActionKey, impactActions]
+  );
 
   useEffect(() => {
     if (suggestedQuestionSource) {
@@ -1563,6 +1636,9 @@ export default function Home() {
               ? t(onboardingFocusOption.label)
               : "",
             onboardingSignal: onboardingFocusOption?.signal ?? "",
+            readingProfile: hasProfileSignal(onboardingProfileDraft)
+              ? onboardingProfileDraft
+              : undefined,
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           }),
         }, READING_REQUEST_TIMEOUT_MS),
@@ -1963,7 +2039,7 @@ export default function Home() {
         const next = `/?product=${encodeURIComponent(
           productKey
         )}&resume=checkout#produtos`;
-        window.location.href = `/entrar?next=${encodeURIComponent(next)}`;
+        window.location.href = buildLoginPath(next);
         return;
       }
 
@@ -1986,6 +2062,40 @@ export default function Home() {
   }
 
   startCheckoutRef.current = startCheckout;
+
+  useEffect(() => {
+    const supabaseClient = getSupabaseBrowserClient();
+    if (!supabaseClient) return;
+
+    let cancelled = false;
+
+    async function syncWhenAuthenticated(session: unknown) {
+      if (cancelled || !session) return;
+
+      try {
+        await syncLocalUniverseToAccount();
+      } catch (error) {
+        console.warn("[account/sync-local] background sync failed", {
+          message: error instanceof Error ? error.message : "Unknown sync error",
+        });
+      }
+    }
+
+    void supabaseClient.auth
+      .getSession()
+      .then(({ data }) => syncWhenAuthenticated(data.session));
+
+    const {
+      data: { subscription },
+    } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+      void syncWhenAuthenticated(session);
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (!resumeCheckoutProduct) return;
@@ -2012,7 +2122,17 @@ export default function Home() {
       window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
       setResumeCheckoutProduct(null);
       timer = window.setTimeout(() => {
-        if (!cancelled) void startCheckoutRef.current(productKey);
+        if (!cancelled) {
+          void syncLocalUniverseToAccount()
+            .catch((error) => {
+              console.warn("[account/sync-local] pre-checkout sync failed", {
+                message: error instanceof Error ? error.message : "Unknown sync error",
+              });
+            })
+            .finally(() => {
+              if (!cancelled) void startCheckoutRef.current(productKey);
+            });
+        }
       }, 220);
     }
 
@@ -2142,19 +2262,50 @@ export default function Home() {
       localStorage.setItem("pdu_focus", focus);
       setOnboardingFocusId(focus);
     }
+    const normalizedProfile = focus
+      ? normalizeReadingProfile(onboardingProfileDraft)
+      : null;
+    if (normalizedProfile && hasProfileSignal(normalizedProfile)) {
+      localStorage.setItem(
+        "pdu_onboarding_profile",
+        JSON.stringify(normalizedProfile)
+      );
+    }
+    setOnboardingStep("phase");
     setShowOnboarding(false);
 
-    // Persist to Supabase profile so the AI reading uses it via "Fase atual declarada"
-    if (focus) {
-      const label = onboardingOptions.find((o) => o.id === focus)?.label ?? focus;
+    if (normalizedProfile && hasProfileSignal(normalizedProfile)) {
       fetch("/api/profile", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ currentPhase: label }),
+        body: JSON.stringify(normalizedProfile),
       }).catch(() => {
-        // Silently ignore — localStorage already captured the selection
+        // Local storage remains the safe fallback until the account is available.
       });
     }
+  }
+
+  function beginOnboardingProfile(focus: string) {
+    const option = onboardingOptions.find((item) => item.id === focus);
+    setOnboardingFocusId(focus);
+    setOnboardingProfileDraft((current) => ({
+      ...current,
+      currentPhase: option?.label ?? current.currentPhase,
+    }));
+    setOnboardingStep("profile");
+  }
+
+  function toggleOnboardingProfileList(
+    key: "focusAreas" | "boundaries",
+    value: string
+  ) {
+    setOnboardingProfileDraft((current) => {
+      const exists = current[key].includes(value);
+      const next = exists
+        ? current[key].filter((item) => item !== value)
+        : [...current[key], value].slice(0, key === "focusAreas" ? 3 : 5);
+      return { ...current, [key]: next };
+    });
   }
 
   return (
@@ -2215,36 +2366,249 @@ export default function Home() {
               </div>
 
               <div className="pdu-onboarding-choices p-5 sm:p-7">
-                <div className="mb-5 flex items-center justify-between gap-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
-                    Selecione uma fase
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => completeOnboarding()}
-                    aria-label="Pular"
-                    className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-[#8d837b] transition hover:border-[#f4d58d]/40 hover:text-[#d8ccc0]"
-                  >
-                    <X size={15} />
-                  </button>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {onboardingOptions.map((opt) => (
-                    <OnboardingIconOption
-                      key={opt.id}
-                      option={opt}
-                      onSelect={() => completeOnboarding(opt.id)}
-                    />
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => completeOnboarding()}
-                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-[#d8ccc0] transition hover:border-[#f4d58d]/35 hover:text-[#fff7e8]"
-                >
-                  Entrar sem calibrar agora
-                  <ArrowRight size={16} />
-                </button>
+                {onboardingStep === "phase" ? (
+                  <>
+                    <div className="mb-5 flex items-center justify-between gap-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+                        Selecione uma fase
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => completeOnboarding()}
+                        aria-label="Pular"
+                        className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-[#8d837b] transition hover:border-[#f4d58d]/40 hover:text-[#d8ccc0]"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {onboardingOptions.map((opt) => (
+                        <OnboardingIconOption
+                          key={opt.id}
+                          option={opt}
+                          onSelect={() => beginOnboardingProfile(opt.id)}
+                        />
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => completeOnboarding()}
+                      className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-[#d8ccc0] transition hover:border-[#f4d58d]/35 hover:text-[#fff7e8]"
+                    >
+                      Entrar sem calibrar agora
+                      <ArrowRight size={16} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="mb-5 flex items-center justify-between gap-4">
+	                      <div>
+	                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+	                          {t("Seu Mapa Inicial")}
+	                        </p>
+	                        <p className="mt-1 text-sm text-[#bfb5ad]">
+	                          {getProfileCompletion(onboardingProfileDraft)}/5{" "}
+	                          {t("sinais essenciais")}
+	                        </p>
+	                      </div>
+	                      <button
+	                        type="button"
+	                        onClick={() => completeOnboarding(onboardingFocusId)}
+	                        aria-label={t("Salvar e fechar")}
+                        className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-[#8d837b] transition hover:border-[#f4d58d]/40 hover:text-[#d8ccc0]"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+
+                    <div className="grid gap-4">
+	                      <label className="block">
+	                        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
+	                          {t("Como podemos chamar você? (opcional)")}
+	                        </span>
+                        <input
+                          value={onboardingProfileDraft.displayName}
+                          onChange={(event) =>
+                            setOnboardingProfileDraft((current) => ({
+                              ...current,
+                              displayName: event.target.value,
+                            }))
+                          }
+	                          maxLength={80}
+	                          className="mt-2 w-full rounded-2xl border border-white/12 bg-black/20 px-4 py-3 text-sm text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/70"
+	                          placeholder={t("Seu nome ou como prefere ser chamado")}
+	                        />
+	                      </label>
+
+	                      <label className="block">
+	                        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
+	                          {t("Em que fase você está?")}
+	                        </span>
+                        <select
+                          value={onboardingProfileDraft.currentPhase}
+                          onChange={(event) =>
+                            setOnboardingProfileDraft((current) => ({
+                              ...current,
+                              currentPhase: event.target.value,
+                            }))
+                          }
+                          className="mt-2 w-full rounded-2xl border border-white/12 bg-[#171522] px-4 py-3 text-sm text-[#fff7e8] outline-none focus:border-[#f4d58d]/70"
+                        >
+                          <option value="">Escolha uma fase</option>
+                          {readingProfilePhaseOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                          {onboardingProfileDraft.currentPhase &&
+                          !readingProfilePhaseOptions.includes(onboardingProfileDraft.currentPhase) ? (
+                            <option value={onboardingProfileDraft.currentPhase}>
+                              {onboardingProfileDraft.currentPhase}
+                            </option>
+                          ) : null}
+                        </select>
+                      </label>
+
+	                      <div>
+	                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
+	                          {t("O que está em foco?")}
+	                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {readingProfileFocusOptions.map((option) => {
+                            const active = onboardingProfileDraft.focusAreas.includes(option);
+                            return (
+                              <button
+                                key={option}
+                                type="button"
+                                aria-pressed={active}
+                                onClick={() => toggleOnboardingProfileList("focusAreas", option)}
+                                className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                                  active
+                                    ? "border-[#f4d58d] bg-[#f4d58d] text-[#1c1308]"
+                                    : "border-white/12 bg-white/[0.04] text-[#d8ccc0] hover:border-[#f4d58d]/45"
+                                }`}
+                              >
+                                {option}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <label className="block">
+                          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
+                            Tom da orientação
+                          </span>
+                          <select
+                            value={onboardingProfileDraft.guidanceTone}
+                            onChange={(event) =>
+                              setOnboardingProfileDraft((current) => ({
+                                ...current,
+                                guidanceTone: event.target.value,
+                              }))
+                            }
+                            className="mt-2 w-full rounded-2xl border border-white/12 bg-[#171522] px-4 py-3 text-sm text-[#fff7e8] outline-none focus:border-[#f4d58d]/70"
+                          >
+                            <option value="">Escolha um tom</option>
+                            {readingProfileToneOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <label className="block">
+                          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
+                            O que você busca agora?
+                          </span>
+                          <select
+                            value={onboardingProfileDraft.desiredShift}
+                            onChange={(event) =>
+                              setOnboardingProfileDraft((current) => ({
+                                ...current,
+                                desiredShift: event.target.value,
+                              }))
+                            }
+                            className="mt-2 w-full rounded-2xl border border-white/12 bg-[#171522] px-4 py-3 text-sm text-[#fff7e8] outline-none focus:border-[#f4d58d]/70"
+                          >
+                            <option value="">Escolha uma intenção</option>
+                            {readingProfileShiftOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+
+	                      <div>
+	                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
+	                          {t("O que Lume deve respeitar?")}
+	                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {readingProfileBoundaryOptions.map((option) => {
+                            const active = onboardingProfileDraft.boundaries.includes(option);
+                            return (
+                              <button
+                                key={option}
+                                type="button"
+                                aria-pressed={active}
+                                onClick={() => toggleOnboardingProfileList("boundaries", option)}
+                                className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                                  active
+                                    ? "border-[#a7d7c5] bg-[#a7d7c5] text-[#07120e]"
+                                    : "border-white/12 bg-white/[0.04] text-[#d8ccc0] hover:border-[#a7d7c5]/55"
+                                }`}
+                              >
+                                {option}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+	                      <label className="block">
+	                        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
+	                          {t("Algo que vale lembrar (opcional)")}
+	                        </span>
+                        <textarea
+                          value={onboardingProfileDraft.contextNote}
+                          onChange={(event) =>
+                            setOnboardingProfileDraft((current) => ({
+                              ...current,
+                              contextNote: event.target.value,
+                            }))
+                          }
+                          maxLength={500}
+	                          rows={3}
+	                          className="mt-2 w-full resize-none rounded-2xl border border-white/12 bg-black/20 px-4 py-3 text-sm leading-6 text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/70"
+	                          placeholder={t("Ex.: quero respostas práticas e sem alimentar ansiedade.")}
+	                        />
+	                      </label>
+                    </div>
+
+                    <div className="mt-5 flex flex-col gap-3">
+                      <button
+                        type="button"
+                        onClick={() => completeOnboarding(onboardingFocusId)}
+                        disabled={!hasProfileSignal(onboardingProfileDraft)}
+	                        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#a7d7c5] px-4 py-3 text-sm font-semibold text-[#07120e] transition hover:bg-[#c1ecdc] disabled:cursor-not-allowed disabled:opacity-45"
+	                      >
+	                        {t("Guardar meu mapa e começar")}
+	                        <ArrowRight size={16} />
+	                      </button>
+                      <button
+                        type="button"
+	                        onClick={() => setOnboardingStep("phase")}
+	                        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-[#d8ccc0] transition hover:border-[#f4d58d]/35 hover:text-[#fff7e8]"
+	                      >
+	                        {t("Voltar para escolher a fase")}
+	                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -2566,54 +2930,6 @@ export default function Home() {
               </div>
             ))}
           </div>
-
-          <section
-            className="pdu-reveal pdu-mobile-deferred pdu-marketplace-band"
-            id="profissionais"
-            aria-labelledby="profissionais-title"
-          >
-            <div className="pdu-marketplace-band__head">
-              <div>
-                <SectionEyebrow dark>{t("Cuidado humano opcional")}</SectionEyebrow>
-                <h2 id="profissionais-title" className="brand-serif">
-                  {t(
-                    "Quando uma leitura pede presença humana, você pode procurar profissionais com ética, idioma e faixa de acesso clara."
-                  )}
-                </h2>
-              </div>
-              <p>
-                {t(
-                  "Profissionais não substituem a sua leitura e a leitura não substitui cuidado humano. Este espaço existe para continuar a conversa quando você quiser apoio real, com escolha e privacidade."
-                )}
-              </p>
-            </div>
-
-            <div className="pdu-marketplace-flow">
-              {marketplaceFlow.map((item, index) => {
-                return (
-                  <article
-                    key={item.title}
-                    className="pdu-marketplace-flow__card"
-                    style={
-                      { "--pdu-market-index": index } as CSSProperties
-                    }
-                  >
-                    <span className="pdu-marketplace-flow__icon relative">
-                      <Image
-                        src={item.assetPath}
-                        alt=""
-                        fill
-                        sizes="2.5rem"
-                        className="object-contain"
-                      />
-                    </span>
-                    <strong>{t(item.title)}</strong>
-                    <p>{t(item.text)}</p>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
 
           <div className="pdu-reveal pdu-mobile-deferred pdu-portal-entry">
             <div className="pdu-portal-entry__art" aria-hidden="true">
@@ -2956,14 +3272,18 @@ export default function Home() {
                         }
                         onAction={() => {
                           if (paywall.kind === "auth") {
-                            window.location.href = `/entrar?reason=reading-access&next=${encodeURIComponent(`/?product=${readingProductKey}#leitura`)}`;
+                            window.location.href = buildLoginPath(`/?product=${readingProductKey}#leitura`, {
+                              reason: "reading-access",
+                            });
                             return;
                           }
                           if (paywall.kind === "access") {
                             void startCheckout(readingProductKey);
                             return;
                           }
-                          window.location.href = `/entrar?reason=reading-history&next=${encodeURIComponent("/meu-universo?from=reading")}`;
+                          window.location.href = buildLoginPath("/meu-universo?from=reading", {
+                            reason: "reading-history",
+                          });
                         }}
                       />
                     ) : null}
@@ -3163,7 +3483,9 @@ export default function Home() {
             {t("Crie uma conta grátis para proteger esta tirada, rever suas cartas e construir um contexto que poderá tornar as próximas orientações mais pessoais.")}
           </p>
           <a
-            href={`/entrar?reason=reading-history&next=${encodeURIComponent("/meu-universo?from=reading")}`}
+            href={buildLoginPath("/meu-universo?from=reading", {
+              reason: "reading-history",
+            })}
             className="mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-6 py-3 text-sm font-semibold text-[#1c1308] transition hover:bg-[#ffe6a8]"
           >
             <UserRound size={17} />
@@ -3175,7 +3497,7 @@ export default function Home() {
           </p>
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             <a
-              href={`/entrar?next=${encodeURIComponent("/?product=clareza_urgente&resume=checkout#produtos")}`}
+              href={buildLoginPath("/?product=clareza_urgente&resume=checkout#produtos")}
               className="group flex flex-col rounded-[10px] border border-[#f4d58d]/30 bg-white/[0.05] p-6 text-left transition hover:border-[#f4d58d]/60 hover:bg-white/[0.08]"
             >
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4d58d]">
@@ -3195,7 +3517,7 @@ export default function Home() {
               </span>
             </a>
             <a
-              href={`/entrar?next=${encodeURIComponent("/?product=circulo_do_universo&resume=checkout#produtos")}`}
+              href={buildLoginPath("/?product=circulo_do_universo&resume=checkout#produtos")}
               className="group flex flex-col rounded-[10px] border border-[#a9cdbf]/30 bg-white/[0.05] p-6 text-left transition hover:border-[#a9cdbf]/60 hover:bg-white/[0.08]"
             >
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#a9cdbf]">
@@ -3222,139 +3544,198 @@ export default function Home() {
       {result || showInvitedAction ? (
       <section
         id="acao"
-        className="pdu-mobile-deferred border-b border-white/10 bg-[#101019] px-4 py-20 text-[#f8efe2] sm:px-6 lg:px-8"
+        className="pdu-mobile-deferred pdu-impact-section px-4 py-20 text-[#f8efe2] sm:px-6 lg:px-8 lg:py-28"
       >
-        <div className="pdu-reveal is-visible mx-auto max-w-7xl">
-          <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
-            <div>
-              <SectionEyebrow dark>Palavras que viram ação</SectionEyebrow>
-              <h2 className="brand-serif text-4xl font-semibold leading-tight sm:text-5xl">
-                Clareza só muda a vida quando encontra um gesto.
-              </h2>
-              <p className="mt-5 max-w-xl text-base leading-7 text-[#d8ccc0]">
-                Escolha uma ação pequena, possível e concreta para realizar nas
-                próximas 24 horas. Depois, convide alguém para continuar a
-                corrente.
-              </p>
-              {invitedBy ? (
-                <div className="mt-6 rounded-[8px] border border-[#a9cdbf]/35 bg-[#a9cdbf]/10 p-4 text-sm leading-6 text-[#d9f4e8]">
-                  Alguém convidou você para continuar uma corrente de cuidado.
-                  Adapte o gesto à sua realidade e faça apenas o que for seguro
-                  e possível.
-                </div>
-              ) : null}
+        <div className="pdu-reveal is-visible pdu-impact-shell mx-auto">
+          <div className="pdu-impact-story">
+            <span className="pdu-impact-eyebrow">
+              <span aria-hidden="true" />
+              {t("Palavras que viram ação")}
+            </span>
+            <h2 className="pdu-impact-title brand-serif">
+              {t("Clareza só muda a vida quando encontra um")}{" "}
+              <em>{t("gesto.")}</em>
+            </h2>
+            <p className="pdu-impact-copy">
+              {t(
+                "Escolha uma ação pequena, possível e concreta para realizar nas próximas 24 horas. Depois, convide alguém para continuar a corrente."
+              )}
+            </p>
+            {invitedBy ? (
+              <div className="pdu-impact-invite">
+                {t(
+                  "Alguém convidou você para continuar uma corrente de cuidado. Adapte o gesto à sua realidade e faça apenas o que for seguro e possível."
+                )}
+              </div>
+            ) : null}
+            <div className="pdu-impact-hero-art" aria-hidden="true">
+              <span className="pdu-impact-hero-art__orbit pdu-impact-hero-art__orbit--one" />
+              <span className="pdu-impact-hero-art__orbit pdu-impact-hero-art__orbit--two" />
+              <Image
+                src={PDU_ASSETS.symbolic.hourglass}
+                alt=""
+                width={880}
+                height={880}
+                sizes="(max-width: 1024px) 82vw, 42vw"
+                className="pdu-impact-hero-art__image"
+              />
+              <Image
+                src={PDU_ASSETS.symbolic.lotus}
+                alt=""
+                width={420}
+                height={420}
+                sizes="(max-width: 1024px) 34vw, 16vw"
+                className="pdu-impact-hero-art__lotus"
+              />
+            </div>
+          </div>
+
+          <div className="pdu-impact-panel">
+            <div className="pdu-impact-panel-heading">
+              <span aria-hidden="true" />
+              <strong>{t("Sugestões para agora")}</strong>
+              <span aria-hidden="true" />
             </div>
 
-            <div className="rounded-[8px] border border-[#f4d58d]/24 bg-white/[0.045] p-5 shadow-[0_26px_80px_rgba(0,0,0,0.2)] sm:p-7">
-              <div className="grid gap-3 sm:grid-cols-2">
-                {impactActions.map((action, index) => {
-                  const selected = action.key === impactActionKey;
-                  return (
-                    <button
-                      key={action.key}
-                      type="button"
-                      onClick={() => selectImpactAction(action.key)}
-                      className={`rounded-[8px] border p-4 text-left transition ${
-                        selected
-                          ? "border-[#f4d58d]/70 bg-[#f4d58d]/12"
-                          : "border-white/10 bg-black/10 hover:border-white/25"
-                      }`}
-                    >
-                      <span className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
-                        {index < 3 ? "Recomendada · " : ""}
-                        {IMPACT_AREA_LABELS[action.area]}
+            <div className="pdu-impact-card-grid">
+              {impactActionCards.map((action) => {
+                const selected = action.key === impactActionKey;
+                const visual =
+                  IMPACT_ACTION_VISUALS[action.key] ?? DEFAULT_IMPACT_ACTION_VISUAL;
+                const Icon = visual.icon;
+
+                return (
+                  <button
+                    key={action.key}
+                    type="button"
+                    onClick={() => selectImpactAction(action.key)}
+                    aria-pressed={selected}
+                    className={`pdu-impact-card ${selected ? "is-selected" : ""}`}
+                    style={
+                      {
+                        "--impact-accent": visual.accent,
+                        "--impact-glow": visual.glow,
+                      } as CSSProperties
+                    }
+                  >
+                    <span className="pdu-impact-card__media" aria-hidden="true">
+                      <Image
+                        src={visual.image}
+                        alt=""
+                        fill
+                        sizes="(max-width: 640px) 88vw, (max-width: 1024px) 42vw, 19vw"
+                        className="pdu-impact-card__image"
+                      />
+                    </span>
+                    <span className="pdu-impact-card__body">
+                      <span className="pdu-impact-card__area">
+                        <Icon size={17} strokeWidth={1.45} />
+                        <span>{t(IMPACT_AREA_LABELS[action.area])}</span>
                       </span>
-                      <strong className="mt-2 block text-sm text-[#fff7e8]">
-                        {action.title}
-                      </strong>
-                      <span className="mt-2 block text-xs leading-5 text-[#bfb3a9]">
-                        {action.description}
+                      <strong>{t(action.title)}</strong>
+                      <span className="pdu-impact-card__description">
+                        {t(action.description)}
                       </span>
-                    </button>
-                  );
-                })}
+                      <span className="pdu-impact-card__arrow" aria-hidden="true">
+                        <ArrowRight size={19} strokeWidth={1.8} />
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div
+              className="pdu-impact-plan-card"
+              style={
+                {
+                  "--impact-accent":
+                    (IMPACT_ACTION_VISUALS[impactActionKey] ??
+                      DEFAULT_IMPACT_ACTION_VISUAL).accent,
+                  "--impact-glow":
+                    (IMPACT_ACTION_VISUALS[impactActionKey] ??
+                      DEFAULT_IMPACT_ACTION_VISUAL).glow,
+                } as CSSProperties
+              }
+            >
+              <div className="pdu-impact-plan-main">
+                <label htmlFor="impact-plan" className="pdu-impact-plan-label">
+                  <Sparkles size={18} strokeWidth={1.55} />
+                  {t("Meu plano concreto")}
+                </label>
+                <button
+                  type="button"
+                  onClick={commitImpactAction}
+                  disabled={impactSaving || impactPlan.trim().length < 8}
+                  className="pdu-impact-plan-submit"
+                >
+                  {impactSaving
+                    ? t("Guardando compromisso...")
+                    : impactCommitment
+                      ? t("Atualizar meu compromisso")
+                      : t("Confirmar plano")}
+                  <ArrowRight size={18} strokeWidth={1.8} />
+                </button>
               </div>
 
-              <label
-                htmlFor="impact-plan"
-                className="mt-6 block text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]"
-              >
-                Meu plano concreto
-              </label>
               <textarea
                 id="impact-plan"
                 value={impactPlan}
                 onChange={(event) => setImpactPlan(event.target.value)}
                 maxLength={500}
-                rows={3}
-                className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-4 py-3 text-base leading-6 text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/60 sm:text-sm"
-                placeholder="Quando, onde e como você realizará esta ação?"
+                rows={2}
+                className="pdu-impact-plan-input"
+                placeholder={t("Quando, onde e como você realizará esta ação?")}
               />
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#d8ccc0]">
-                  Para quem ou onde?
+              <div className="pdu-impact-plan-fields">
+                <label>
+                  <span>{t("Para quem ou onde?")}</span>
                   <input
                     value={impactBeneficiary}
                     onChange={(event) => setImpactBeneficiary(event.target.value)}
                     maxLength={240}
-                    className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-[#fff7e8] outline-none focus:border-[#f4d58d]/60 sm:text-sm"
-                    placeholder="Ex.: uma amiga, minha rua, minha casa"
+                    placeholder={t("Ex.: uma amiga, minha rua, minha casa")}
                   />
                 </label>
-                <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#d8ccc0]">
-                  Quando?
+                <label>
+                  <span>{t("Quando?")}</span>
                   <input
                     type="datetime-local"
                     value={impactScheduledFor}
                     onChange={(event) => setImpactScheduledFor(event.target.value)}
-                    className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-[#fff7e8] outline-none focus:border-[#f4d58d]/60 sm:text-sm"
                   />
                 </label>
               </div>
-              <label className="mt-3 block text-xs font-semibold uppercase tracking-[0.12em] text-[#d8ccc0]">
-                Menor primeiro passo
+
+              <label className="pdu-impact-first-step">
+                <span>{t("Menor primeiro passo")}</span>
                 <input
                   value={impactFirstStep}
                   onChange={(event) => setImpactFirstStep(event.target.value)}
                   maxLength={500}
-                  className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-[#fff7e8] outline-none focus:border-[#f4d58d]/60 sm:text-sm"
-                  placeholder="Ex.: abrir a conversa e escrever a primeira frase"
+                  placeholder={t("Ex.: abrir a conversa e escrever a primeira frase")}
                 />
               </label>
 
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={commitImpactAction}
-                  disabled={impactSaving || impactPlan.trim().length < 8}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#1c1308] disabled:opacity-50"
-                >
-                  <HandHeart size={17} />
-                  {impactSaving
-                    ? "Guardando compromisso..."
-                    : impactCommitment
-                      ? "Atualizar meu compromisso"
-                      : "Assumir este compromisso"}
-                </button>
+              <div className="pdu-impact-plan-footer">
+                <span>
+                  {selectedImpactAction
+                    ? t(selectedImpactAction.title)
+                    : t("Escolher uma ação")}
+                </span>
                 {impactCommitment ? (
-                  <button
-                    type="button"
-                    onClick={shareImpactAction}
-                    className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/35 px-5 py-3 text-sm font-semibold text-[#fff3df]"
-                  >
-                    <Share2 size={17} />
-                    Convidar alguém
+                  <button type="button" onClick={shareImpactAction}>
+                    <Share2 size={16} />
+                    {t("Convidar alguém")}
                   </button>
                 ) : null}
               </div>
 
               {impactNotice ? (
-                <p className="mt-4 text-sm leading-6 text-[#d8ccc0]">
+                <p className="pdu-impact-notice">
                   {impactNotice}{" "}
-                  <a href="/meu-universo" className="font-semibold text-[#f5d896]">
-                    Acompanhar no Meu Universo
-                  </a>
+                  <a href="/meu-universo">{t("Acompanhar no Meu Universo")}</a>
                 </p>
               ) : null}
             </div>
@@ -3362,6 +3743,78 @@ export default function Home() {
         </div>
       </section>
       ) : null}
+
+      <section
+        className="pdu-reveal pdu-mobile-deferred pdu-marketplace-band"
+        id="profissionais"
+        aria-labelledby="profissionais-title"
+      >
+        <div className="pdu-marketplace-band__aura" aria-hidden="true" />
+        <div className="pdu-marketplace-band__head">
+          <div>
+            <SectionEyebrow dark>{t("Cuidado humano opcional")}</SectionEyebrow>
+            <h2 id="profissionais-title" className="brand-serif">
+              {t(
+                "Quando uma leitura pede presença humana, você pode procurar profissionais com ética, idioma e faixa de acesso clara."
+              )}
+            </h2>
+          </div>
+          <p>
+            {t(
+              "Profissionais não substituem a sua leitura e a leitura não substitui cuidado humano. Este espaço existe para continuar a conversa quando você quiser apoio real, com escolha e privacidade."
+            )}
+          </p>
+        </div>
+
+        <div className="pdu-marketplace-flow">
+          {marketplaceFlow.map((item, index) => {
+            return (
+              <article
+                key={item.title}
+                className="pdu-marketplace-flow__card"
+                style={{ "--pdu-market-index": index } as CSSProperties}
+              >
+                <span className="pdu-marketplace-flow__icon relative">
+                  <Image
+                    src={item.assetPath}
+                    alt=""
+                    fill
+                    sizes="2.5rem"
+                    className="object-contain"
+                  />
+                </span>
+                <strong>{t(item.title)}</strong>
+                <p>{t(item.text)}</p>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="pdu-marketplace-band__footer">
+          <div className="pdu-marketplace-band__invitation">
+            <span className="pdu-marketplace-band__invitation-mark" aria-hidden="true">
+              <Sparkles size={17} strokeWidth={1.6} />
+            </span>
+            <div>
+              <strong>{locale === "en" ? "The next door is human." : "A próxima porta pode ser humana."}</strong>
+              <p>
+                {locale === "en"
+                  ? "Explore a real conversation when reflection needs listening, continuity, or care."
+                  : "Explore uma conversa real quando a reflexão pedir escuta, continuidade ou cuidado."}
+              </p>
+            </div>
+          </div>
+          <div className="pdu-marketplace-band__actions">
+            <Link href="/profissionais" className="pdu-marketplace-band__cta">
+              {locale === "en" ? "Meet the professionals" : "Conhecer profissionais"}
+              <ArrowRight size={17} />
+            </Link>
+            <Link href="/profissionais/me" className="pdu-marketplace-band__secondary-cta">
+              {t("Sou profissional")}
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <section
         id="produtos"
@@ -3436,85 +3889,62 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="pdu-product-river mt-10">
-            {productCards.map((product, index) => (
-              <article
-                key={product.title}
-                className={`pdu-product-node pdu-product-node--${product.mode} group`}
-                style={{ "--pdu-product-index": index } as CSSProperties}
-              >
-                <div className="pdu-product-node__top">
-                  <span
-                    className={`pdu-product-mode rounded-full px-3 py-1 text-xs font-semibold ${getProductModeClass(
-                      product.mode
-                    )}`}
+          <div className="pdu-spread-showcase mt-10">
+            <div className="pdu-spread-showcase__visual">
+              <div className="pdu-spread-showcase__aura" aria-hidden="true" />
+              <Image
+                src={PDU_ASSETS.homepage.spreadsShowcase}
+                alt={t("Prévia visual de três tiradas premium do Palavras do Universo")}
+                width={1600}
+                height={960}
+                sizes="(max-width: 768px) 100vw, 58vw"
+                className="pdu-spread-showcase__image"
+              />
+              <div className="pdu-spread-showcase__badge">
+                <Sparkles size={15} />
+                {t("3 portas, uma biblioteca inteira")}
+              </div>
+            </div>
+
+            <div className="pdu-spread-showcase__content">
+              <p className="pdu-spread-showcase__eyebrow">
+                {t("Tiradas sem excesso")}
+              </p>
+              <h3 className="brand-serif pdu-spread-showcase__title">
+                {t("Três portas bastam para sentir o mapa.")}
+              </h3>
+              <p className="pdu-spread-showcase__text">
+                {t("A biblioteca completa fica na página de tiradas. Aqui a home mostra só uma amostra do ritmo, da profundidade e da diferença entre cada leitura.")}
+              </p>
+
+              <div className="pdu-spread-showcase__cards">
+                {homeSpreadShowcaseCards.map((spread) => (
+                  <Link
+                    key={spread.title}
+                    href={spread.href}
+                    className="pdu-spread-showcase__card"
                   >
-                    {t(getProductModeLabel(product))}
-                  </span>
-                </div>
-                <ProductIconVisual title={product.title} />
-                <div className="pdu-product-node__content">
-                  <p className="pdu-product-node__eyebrow">
-                    {product.archetype}
-                  </p>
-                  <h3 className="brand-serif pdu-product-node__title">
-                    {product.title}
-                  </h3>
-                  <p className="pdu-product-node__promise">
-                    {product.promise}
-                  </p>
-                  <div className="pdu-product-node__transformation">
-                    <span className="font-semibold text-[#4d3c31]">
-                      Transformação:
-                    </span>{" "}
-                    {product.transformation}
-                  </div>
-                  <div className="pdu-product-node__details">
-                    <p>
-                      <span className="font-semibold text-[#4d3c31]">
-                        Melhor para:
-                      </span>{" "}
-                      {product.bestFor}
-                    </p>
-                    <p>
-                      <span className="font-semibold text-[#4d3c31]">
-                        Não é para:
-                      </span>{" "}
-                      {product.notFor}
-                    </p>
-                  </div>
-                  {product.price ? (
-                    <p className="pdu-product-node__price">
-                      {product.price}
-                    </p>
-                  ) : null}
-                  {product.href ? (
-                    <a href={product.href} className={productActionClass}>
-                      {product.cta}
-                      <ArrowRight size={16} />
-                    </a>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        product.mode === "paid"
-                          ? startCheckout(product.productKey)
-                          : product.mode === "included"
-                            ? scrollToId("circulo")
-                            : scrollToId("leitura")
-                      }
-                      disabled={checkoutLoading === product.productKey}
-                      className={productActionClass}
-                    >
-                      {checkoutLoading === product.productKey
-                        ? "Abrindo checkout..."
-                        : product.cta}
-                      <ArrowRight size={16} />
-                    </button>
-                  )}
-                </div>
-              </article>
-            ))}
+                    <span>{t(spread.label)}</span>
+                    <strong>{t(spread.title)}</strong>
+                    <p>{t(spread.text)}</p>
+                  </Link>
+                ))}
+              </div>
+
+              <div className="pdu-spread-showcase__actions">
+                <Link href="/tiradas" className="pdu-spread-showcase__primary">
+                  {t("Ver todas as tiradas")}
+                  <ArrowRight size={16} />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => scrollToId("leitura")}
+                  className="pdu-spread-showcase__secondary"
+                >
+                  {t("Começar pela leitura grátis")}
+                </button>
+              </div>
+            </div>
           </div>
           {checkoutError ? (
             <p className="mt-6 max-w-2xl text-sm leading-6 text-[#7a2f2a]">
@@ -3974,71 +4404,6 @@ function ReadingSpreadPortal(props: { immersive?: boolean; locale?: "pt-BR" | "e
   );
 }
 
-function ProductIconVisual(props: { title: string }) {
-  const [failed, setFailed] = useState(false);
-  const visual = productIconVisuals[props.title] ?? {
-    assetPath: PDU_ASSETS.products.startFreeSpreadIcon,
-    fallbackIcon: Sparkles,
-    tone: "gold" as const,
-  };
-  const FallbackIcon = visual.fallbackIcon;
-
-  return (
-    <div
-      className={`pdu-product-visual pdu-product-visual--${visual.tone}${
-        visual.variant ? ` pdu-product-visual--${visual.variant}` : ""
-      } mb-5`}
-    >
-      <div className="pdu-product-visual__halo" />
-      <div className="pdu-product-visual__portal" aria-hidden="true" />
-      <div className="pdu-product-visual__veil pdu-product-visual__veil--back" aria-hidden="true" />
-      <div className="pdu-product-visual__ring pdu-product-visual__ring--outer" aria-hidden="true" />
-      <div className="pdu-product-visual__ring pdu-product-visual__ring--inner" aria-hidden="true" />
-      <div className="pdu-product-visual__veil pdu-product-visual__veil--front" aria-hidden="true" />
-      <div className="pdu-product-visual__beam" aria-hidden="true" />
-      {!failed ? (
-        <div className="pdu-product-visual__image relative z-10 transition duration-500 group-hover:scale-[1.04]">
-          {visual.mobileAssetPath ? (
-            <picture>
-              <source
-                media="(max-width: 768px)"
-                srcSet={visual.mobileAssetPath}
-              />
-              <img
-                src={visual.assetPath}
-                alt=""
-                width={420}
-                height={420}
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full object-contain"
-                onError={() => setFailed(true)}
-              />
-            </picture>
-          ) : (
-            <Image
-              src={visual.assetPath}
-              alt=""
-              width={420}
-              height={420}
-              unoptimized
-              loading="lazy"
-              className="h-full w-full object-contain"
-              onError={() => setFailed(true)}
-            />
-          )}
-        </div>
-      ) : (
-        <div className="relative z-10 grid h-40 place-items-center">
-          <div className="pdu-product-visual__fallback">
-            <FallbackIcon size={62} strokeWidth={1.45} />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function StatusPanel(props: {
   tone: "gold" | "rose";
   title: string;
@@ -4067,19 +4432,6 @@ function StatusPanel(props: {
       ) : null}
     </div>
   );
-}
-
-function getProductModeLabel(product: ProductCard) {
-  if (product.mode === "paid" && product.includedInCircle) return "Avulsa + Círculo";
-  if (product.mode === "paid") return "Pago avulso";
-  if (product.mode === "included") return "No Círculo";
-  return "Gratuito";
-}
-
-function getProductModeClass(mode: string) {
-  if (mode === "paid") return "bg-[#111019] text-[#fff7e8]";
-  if (mode === "included") return "bg-[#efe4ff] text-[#4b3d6b]";
-  return "bg-[#dfe7dc] text-[#425746]";
 }
 
 function getProductName(productKey: string) {

@@ -43,7 +43,7 @@ try {
               name: "The Fool",
               reversed: false,
               meaning: "A clean beginning asks for presence.",
-              assetPath: "/tarot/cards/major-00-the-fool.webp",
+              assetPath: "/assets/major-00-the-fool.webp",
             },
             {
               position: "Obstacle",
@@ -52,7 +52,7 @@ try {
               name: "The Lovers",
               reversed: false,
               meaning: "Choice becomes clearer when values align.",
-              assetPath: "/tarot/cards/major-06-the-lovers.webp",
+              assetPath: "/assets/major-06-the-lovers.webp",
             },
             {
               position: "Direction",
@@ -61,7 +61,7 @@ try {
               name: "The Empress",
               reversed: false,
               meaning: "Care and consistency create the next step.",
-              assetPath: "/tarot/cards/major-03-the-empress.webp",
+              assetPath: "/assets/major-03-the-empress.webp",
             },
           ],
           interpretation: [
@@ -113,7 +113,12 @@ try {
     });
     await page.locator("#reading-opened").waitFor({ state: "visible", timeout: 60_000 });
     await page.waitForTimeout(1_500);
-    await page.locator("#reading-opened").scrollIntoViewIfNeeded();
+    await page.evaluate(() => {
+      document.getElementById("reading-opened")?.scrollIntoView({
+        block: "start",
+        inline: "nearest",
+      });
+    });
     await page.waitForTimeout(400);
 
     const metrics = await page.evaluate(() => {

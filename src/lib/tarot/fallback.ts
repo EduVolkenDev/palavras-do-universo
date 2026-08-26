@@ -2,6 +2,7 @@ import type { DailyMessage } from "../daily/message";
 import { hashSeed } from "../daily/seed";
 import type { Locale } from "../i18n/config";
 import type { TarotCard } from "./cards";
+import type { PersonalizationSignals } from "../personalization/reading-context";
 
 type FallbackDraw = {
   card: TarotCard;
@@ -16,6 +17,10 @@ type FallbackReadingParams = {
   mode: string;
   onboardingFocus?: string;
   onboardingSignal?: string;
+  personalization?: Pick<
+    PersonalizationSignals,
+    "focusAreas" | "currentPhase" | "guidanceTone" | "desiredShift" | "boundaries"
+  >;
   productKey: string;
   question: string;
   spread: FallbackDraw[];
@@ -515,15 +520,45 @@ function buildLocalPresenceLine(params: {
   isEnglish: boolean;
   onboardingFocus?: string;
   onboardingSignal?: string;
+  personalization?: FallbackReadingParams["personalization"];
   patternLine: string;
 }) {
   const focus = params.onboardingFocus?.trim();
   const signal = params.onboardingSignal?.trim();
-  if (!focus && !signal) return params.patternLine;
+  const profile = params.personalization;
+  const profileLines = [
+    profile?.focusAreas.length
+      ? params.isEnglish
+        ? `Your declared focus is ${profile.focusAreas.join(", ").toLowerCase()}.`
+        : `Seu foco declarado está em ${profile.focusAreas.join(", ").toLowerCase()}.`
+      : "",
+    profile?.currentPhase
+      ? params.isEnglish
+        ? `You described this phase as ${profile.currentPhase.toLowerCase()}.`
+        : `Você descreveu esta fase como ${profile.currentPhase.toLowerCase()}.`
+      : "",
+    profile?.desiredShift
+      ? params.isEnglish
+        ? `The shift you want is ${profile.desiredShift.toLowerCase()}.`
+        : `A transformação que você busca é ${profile.desiredShift.toLowerCase()}.`
+      : "",
+    profile?.guidanceTone
+      ? params.isEnglish
+        ? `I will keep the guidance ${profile.guidanceTone.toLowerCase()}.`
+        : `Vou manter a orientação ${profile.guidanceTone.toLowerCase()}.`
+      : "",
+    profile?.boundaries.length
+      ? params.isEnglish
+        ? `Your boundaries are part of the reading: ${profile.boundaries.join(", ").toLowerCase()}.`
+        : `Seus limites fazem parte da leitura: ${profile.boundaries.join(", ").toLowerCase()}.`
+      : "",
+  ].filter(Boolean);
+  if (!focus && !signal && !profileLines.length) return params.patternLine;
 
   if (params.isEnglish) {
     return [
       params.patternLine,
+      ...profileLines,
       focus ? `You entered the reading through "${focus}", so I will treat this as part of the emotional weather around the question.` : "",
       signal ? `The chosen signal, "${signal}", works here as a symbolic tone rather than a fixed label about you.` : "",
     ].filter(Boolean).join(" ");
@@ -531,6 +566,7 @@ function buildLocalPresenceLine(params: {
 
   return [
     params.patternLine,
+    ...profileLines,
     focus ? `Você entrou na leitura por "${focus}", então vou tratar isso como parte do clima emocional da pergunta.` : "",
     signal ? `O sinal escolhido, "${signal}", funciona aqui como tom simbólico, não como rótulo fixo sobre você.` : "",
   ].filter(Boolean).join(" ");
@@ -563,6 +599,7 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     mode,
     onboardingFocus,
     onboardingSignal,
+    personalization,
     productKey,
     question,
     spread,
@@ -637,6 +674,7 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     isEnglish,
     onboardingFocus,
     onboardingSignal,
+    personalization,
     patternLine: momentLine,
   });
   const directAnswer = isEnglish

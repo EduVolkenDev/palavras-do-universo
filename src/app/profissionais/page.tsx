@@ -13,6 +13,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { buildLoginPath } from "@/lib/auth/redirect";
 import {
   getOfferPriceLabel,
   type PublicProfessionalProfile,
@@ -178,7 +179,7 @@ export default function ProfessionalsMarketplacePage() {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) {
-        window.location.href = `/entrar?next=${encodeURIComponent("/profissionais")}`;
+        window.location.href = buildLoginPath("/profissionais");
         return;
       }
     }
@@ -203,7 +204,7 @@ export default function ProfessionalsMarketplacePage() {
       });
       const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
       if (response.status === 401) {
-        window.location.href = `/entrar?next=${encodeURIComponent("/profissionais")}`;
+        window.location.href = buildLoginPath("/profissionais");
         return;
       }
       if (!response.ok) {

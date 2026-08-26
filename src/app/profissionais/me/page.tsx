@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { buildLoginPath } from "@/lib/auth/redirect";
 import {
   normalizeAvailability,
   normalizeHandle,
@@ -196,12 +197,9 @@ function parseCents(value: string) {
 }
 
 function getLoginHref() {
-  const params = new URLSearchParams();
   const lang = new URLSearchParams(window.location.search).get("lang");
   const localeSuffix = lang === "en" || lang === "pt-BR" ? `?lang=${lang}` : "";
-  params.set("next", `/profissionais/me${localeSuffix}`);
-  if (lang === "en" || lang === "pt-BR") params.set("lang", lang);
-  return `/entrar?${params.toString()}`;
+  return buildLoginPath(`/profissionais/me${localeSuffix}`, { lang });
 }
 
 export default function ProfessionalManagerPage() {

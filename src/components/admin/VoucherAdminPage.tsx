@@ -461,7 +461,28 @@ export default function VoucherAdminPage({
                   <select
                     value={form.kind}
                     onChange={(event) =>
-                      setForm((current) => ({ ...current, kind: event.target.value as VoucherKind }))
+                      setForm((current) => {
+                        const kind = event.target.value as VoucherKind;
+                        const grantProductKeys =
+                          isGrantKind(kind) &&
+                          current.productKey &&
+                          !current.grantProductKeys.includes(current.productKey)
+                            ? [...current.grantProductKeys, current.productKey]
+                            : current.grantProductKeys;
+                        const eligibleProductKeys =
+                          isDiscountKind(kind) &&
+                          current.productKey &&
+                          !current.eligibleProductKeys.includes(current.productKey)
+                            ? [...current.eligibleProductKeys, current.productKey]
+                            : current.eligibleProductKeys;
+
+                        return {
+                          ...current,
+                          kind,
+                          grantProductKeys,
+                          eligibleProductKeys,
+                        };
+                      })
                     }
                     className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                   >
@@ -475,7 +496,28 @@ export default function VoucherAdminPage({
                   <select
                     value={form.productKey}
                     onChange={(event) =>
-                      setForm((current) => ({ ...current, productKey: event.target.value }))
+                      setForm((current) => {
+                        const productKey = event.target.value;
+                        const grantProductKeys =
+                          isGrantKind(current.kind) &&
+                          productKey &&
+                          !current.grantProductKeys.includes(productKey)
+                            ? [...current.grantProductKeys, productKey]
+                            : current.grantProductKeys;
+                        const eligibleProductKeys =
+                          isDiscountKind(current.kind) &&
+                          productKey &&
+                          !current.eligibleProductKeys.includes(productKey)
+                            ? [...current.eligibleProductKeys, productKey]
+                            : current.eligibleProductKeys;
+
+                        return {
+                          ...current,
+                          productKey,
+                          grantProductKeys,
+                          eligibleProductKeys,
+                        };
+                      })
                     }
                     className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                   >

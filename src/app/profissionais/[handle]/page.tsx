@@ -13,6 +13,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
+import { buildLoginPath } from "@/lib/auth/redirect";
 import {
   buildProfileSummary,
   getOfferPriceLabel,
@@ -210,7 +211,7 @@ export default async function ProfessionalProfilePage({ params }: PageParams) {
                 <ArrowRight size={16} />
               </Link>
               <Link
-                href="/entrar?next=/profissionais"
+                href={buildLoginPath("/profissionais")}
                 className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-[#fff7e8] hover:border-[#f4d58d]/45 hover:bg-white/[0.07]"
               >
                 Entrar para briefings

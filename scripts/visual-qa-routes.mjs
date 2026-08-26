@@ -77,6 +77,8 @@ try {
         waitUntil: "domcontentloaded",
         timeout: 45_000,
       });
+      await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => {});
+      await page.waitForTimeout(route === "/profissionais/me" ? 1_200 : 300);
       await page.waitForFunction(
         (expectedLocale) => document.documentElement.lang === expectedLocale,
         scenario.locale,

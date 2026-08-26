@@ -263,6 +263,39 @@ export function getLocalActiveReading() {
   }
 }
 
+export function localActiveReadingAsSavedMessage(reading: LocalActiveReading | null) {
+  if (!reading?.result) return null;
+
+  const identity = [
+    reading.reading_id ?? "",
+    reading.product_key,
+    reading.question,
+    reading.spread_cards
+      .map((card) => `${card.cardKey}:${card.reversed ? "r" : "u"}`)
+      .join("|"),
+  ].join("::");
+
+  return {
+    id: `local_active${hashLocalValue(identity)}`,
+    reading_id: reading.reading_id,
+    message_type: "reading",
+    payload: {
+      savedAt: reading.updated_at,
+      locale: reading.locale,
+      theme: reading.theme,
+      productKey: reading.product_key,
+      spreadType: reading.spread_type,
+      spreadLabel: reading.spread_label,
+      question: reading.question,
+      spreadLine: reading.spread_line,
+      spreadCards: reading.spread_cards,
+      result: reading.result,
+    },
+    created_at: reading.updated_at,
+    local_only: true,
+  } satisfies LocalSavedMessage;
+}
+
 export function saveLocalActiveReading(params: {
   locale: string;
   theme: string;

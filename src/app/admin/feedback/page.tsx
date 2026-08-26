@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import FeedbackAdminPage from "@/components/admin/FeedbackAdminPage";
+import { buildLoginPath } from "@/lib/auth/redirect";
 import { getAuthenticatedUser, hasSupabaseConfig } from "@/lib/supabase/server";
 import { isOwnerAccessUser } from "@/lib/product/ownerAccess";
 import { normalizeLocale } from "@/lib/i18n/config";
@@ -14,7 +15,7 @@ export default async function AdminFeedbackRoute({
 
   if (!user) {
     const next = locale === "en" ? "/admin/feedback?lang=en" : "/admin/feedback";
-    redirect(`/entrar?next=${encodeURIComponent(next)}${locale === "en" ? "&lang=en" : ""}`);
+    redirect(buildLoginPath(next, { lang: locale === "en" ? "en" : null }));
   }
 
   if (!isOwnerAccessUser(user)) {

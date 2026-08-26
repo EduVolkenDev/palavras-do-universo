@@ -33,7 +33,7 @@ const cards = [
   ["major-14-temperance", "A Temperança", "Temperance", "equilíbrio", "balance"],
   ["wands-ace", "Ás de Paus", "Ace of Wands", "início", "beginning"],
 ].map(([key, ptName, enName, ptKeyword, enKeyword], index) => ({
-  assetPath: `/tarot/cards/${key}.webp`,
+  assetPath: `/assets/${key}.webp`,
   enKeyword,
   enName,
   id: index + 1,
