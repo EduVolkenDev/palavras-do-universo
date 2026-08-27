@@ -4,7 +4,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 
 const baseUrl = process.env.PDU_QA_URL ?? "http://127.0.0.1:3005";
-const chromePath = process.env.PDU_CHROME_PATH ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const chromePath = process.env.PDU_CHROME_PATH?.trim();
 const outDir = process.env.PDU_QA_OUT_DIR ?? "/tmp";
 
 const viewports = [
@@ -14,7 +14,7 @@ const viewports = [
 
 const browser = await chromium.launch({
   headless: true,
-  executablePath: chromePath,
+  ...(chromePath ? { executablePath: chromePath } : {}),
 });
 
 const results = [];
@@ -65,14 +65,19 @@ try {
             },
           ],
           interpretation: [
-            "1) DIRECT ANSWER TO THE QUESTION",
+            "1) DIRECT ANSWER",
             "Move with clarity instead of waiting for perfect certainty.",
-            "2) INITIAL LISTENING",
-            "There is enough information for one honest next step today.",
-            "3) MANTRA",
-            "I can listen to myself and move with calm.",
-            "4) THE THREE THREADS",
-            "Truth: name what is already clear. Shadow: release the pressure to know everything. Direction: support the choice with consistent care.",
+            "2) CARDS",
+            "- Situation: The Fool — Begin with one visible step, not a perfect plan.",
+            "- Obstacle: The Lovers — Choose by values instead of trying to please every possible path.",
+            "- Direction: The Empress — Support the choice with care, rhythm, and consistency.",
+            "3) ACTIONS",
+            "- Write the next action in one sentence.",
+            "- Remove one distraction for twenty minutes.",
+            "- Confirm the choice through one small gesture today.",
+            "4) CLOSING",
+            "Mantra: I can listen to myself and move with calm.",
+            "Next question: What needs one practical step now?",
           ].join("\n\n"),
         }),
       });
@@ -153,6 +158,10 @@ try {
       return {
         viewport: { width: window.innerWidth, height: window.innerHeight },
         scrollOverflow: document.documentElement.scrollWidth - window.innerWidth,
+        blocks: queryAll(".pdu-reading-block").map((element) => ({
+          rect: rect(element),
+          text: element.textContent?.trim() ?? "",
+        })),
         cards,
         frames,
         overlaps,
@@ -166,7 +175,12 @@ try {
     });
 
     const screenshotPath = `${outDir}/pdu-reading-${item.name}.png`;
+    const transcriptScreenshotPath = `${outDir}/pdu-reading-transcript-${item.name}.png`;
     await page.locator("#reading-opened").screenshot({ path: screenshotPath, type: "png" });
+    await page.locator(".pdu-reading-transcript").screenshot({
+      path: transcriptScreenshotPath,
+      type: "png",
+    });
     await page.close();
 
     const problems = [];
@@ -179,6 +193,10 @@ try {
     if (!metrics.stage || metrics.stage.height > metrics.viewport.height * 1.25) {
       problems.push(`stage too tall ${metrics.stage?.height ?? 0}`);
     }
+    if (metrics.blocks.length !== 4) problems.push(`expected 4 reading blocks got ${metrics.blocks.length}`);
+    if (metrics.blocks.some((block) => !block.text || !block.rect || block.rect.height < 32)) {
+      problems.push("reading block text is not visibly measurable");
+    }
     if (metrics.langBad) problems.push("EN page contains PT marketplace copy");
     const actionableFailed = failed.filter((request) => request.error !== "net::ERR_ABORTED");
     if (actionableFailed.length) problems.push(`failed requests ${actionableFailed.length}`);
@@ -187,9 +205,11 @@ try {
     results.push({
       name: item.name,
       screenshotPath,
+      transcriptScreenshotPath,
       problems,
       scrollOverflow: metrics.scrollOverflow,
       cardCount: metrics.cards.length,
+      blockCount: metrics.blocks.length,
       cardOverlaps: metrics.overlaps,
       stage: metrics.stage,
       strip: metrics.strip,

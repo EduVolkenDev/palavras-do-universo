@@ -82,11 +82,19 @@ export function getSupabaseAdmin() {
   return adminClient;
 }
 
-export async function ensureSupabaseProfile(userId: string) {
+export async function ensureSupabaseProfile(userId: string, email?: string | null) {
   const supabase = getSupabaseAdmin();
-  const { error } = await supabase
-    .from("profiles")
-    .upsert({ id: userId }, { onConflict: "id" });
+  const normalizedEmail =
+    typeof email === "string" && email.includes("@")
+      ? email.trim().toLowerCase()
+      : null;
+  const { error } = normalizedEmail
+    ? await supabase
+        .from("profiles")
+        .upsert({ id: userId, email: normalizedEmail }, { onConflict: "id" })
+    : await supabase
+        .from("profiles")
+        .upsert({ id: userId }, { onConflict: "id" });
 
   if (error) throw error;
 }

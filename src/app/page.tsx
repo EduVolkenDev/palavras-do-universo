@@ -109,6 +109,10 @@ type ApiOk = {
 };
 
 type ReadingSpreadCard = ApiOk["spread"][number];
+type ReadingTextBlock = {
+  lines: string[];
+  title: string | null;
+};
 
 const IMPACT_ACTION_VISUALS: Record<
   string,
@@ -723,33 +727,81 @@ function isUuid(value: string | null) {
   );
 }
 
-function splitReadingIntoBlocks(reading: string) {
+const READING_SECTION_HEADING_RE =
+  /^(?:\d+\)\s*)?(DIRECT ANSWER(?: TO THE QUESTION)?|RESPOSTA DIRETA(?: À PERGUNTA| A PERGUNTA)?|INITIAL LISTENING|ESCUTA INICIAL|MANTRA|SPREAD MAP|MAP OF THE SPREAD|MAPA DA TIRADA|THE THREE THREADS|TR[IÍ]ADE|CARDS|CARTAS|READING BY POSITION|LEITURA POR POSIÇÃO|ACTIONS|AÇÕES|ACOES|CLOSING|FECHAMENTO|INTEGRATION(?: RITUAL)?|INTEGRAÇÃO|RITUAL DE INTEGRAÇÃO|DIRECT SUMMARY|RESUMO DIRETO|SUMMARY|RESUMO|GANCHO|NEXT QUESTION|CONSELHO|ADVICE|READING IN THE SELECTED LANGUAGE|LEITURA NO IDIOMA SELECIONADO)\b\s*[:—-]?\s*(.*)$/i;
+
+function normalizeReadingSectionTitle(title: string) {
+  return title
+    .replace(/DIRECT ANSWER TO THE QUESTION/i, "DIRECT ANSWER")
+    .replace(/RESPOSTA DIRETA (À|A) PERGUNTA/i, "RESPOSTA DIRETA")
+    .replace(/MAP OF THE SPREAD/i, "SPREAD MAP")
+    .replace(/THE THREE THREADS/i, "CARDS")
+    .replace(/TR[IÍ]ADE/i, "CARTAS")
+    .replace(/READING BY POSITION/i, "CARDS")
+    .replace(/LEITURA POR POSIÇÃO/i, "CARTAS")
+    .replace(/INTEGRATION RITUAL/i, "INTEGRATION")
+    .replace(/RITUAL DE INTEGRAÇÃO/i, "INTEGRAÇÃO")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanReadingLine(line: string) {
+  return line
+    .trim()
+    .replace(/^#{1,6}\s*/g, "")
+    .replace(/^\s*[-*_]{3,}\s*$/g, "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/^>\s?/g, "")
+    .trim();
+}
+
+function splitReadingIntoBlocks(reading: string): ReadingTextBlock[] {
   const clean = reading
     .split("\n")
-    .map((line) =>
-      line
-        .trim()
-        .replace(/^#{1,6}\s*/g, "")
-        .replace(/^\s*[-*_]{3,}\s*$/g, "")
-        .replace(/\*\*([^*]+)\*\*/g, "$1")
-        .replace(/\*([^*]+)\*/g, "$1")
-        .replace(/^>\s?/g, "")
-        .trim()
-    )
+    .map(cleanReadingLine)
     .filter((line) => line && !/^[^\p{L}\p{N}]*palavras do universo$/iu.test(line))
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   if (!clean) return [];
 
-  const blocks = clean
-    .split(
-      /\n(?=(?:\d\)\s|DIRECT ANSWER|RESPOSTA DIRETA|INITIAL LISTENING|THE THREE THREADS|READING BY POSITION|ACTIONS|INTEGRATION|MANTRA|TR[IÍ]ADE|LEITURA|AÇÕES|ACOES|RESUMO|GANCHO))/i
-    )
-    .map((block) => block.trim())
-    .filter(Boolean);
+  const blocks: ReadingTextBlock[] = [];
+  let current: ReadingTextBlock = { lines: [], title: null };
 
-  return blocks.length ? blocks : [clean];
+  const pushCurrent = () => {
+    if (current.title || current.lines.length) {
+      blocks.push({
+        lines: current.lines.filter(Boolean),
+        title: current.title,
+      });
+    }
+  };
+
+  clean.split("\n").forEach((line) => {
+    const normalizedLine = line.trim();
+    const heading = normalizedLine.match(READING_SECTION_HEADING_RE);
+    const isClosingDetail =
+      Boolean(heading?.[2]?.trim()) &&
+      /^(MANTRA|NEXT QUESTION)$/i.test(heading?.[1] ?? "") &&
+      /^(CLOSING|FECHAMENTO)$/i.test(current.title ?? "");
+
+    if (heading && !isClosingDetail) {
+      pushCurrent();
+      const trailing = heading[2]?.trim();
+      current = {
+        lines: trailing ? [trailing] : [],
+        title: normalizeReadingSectionTitle(heading[1]),
+      };
+      return;
+    }
+
+    current.lines.push(normalizedLine);
+  });
+
+  pushCurrent();
+
+  return blocks.length ? blocks : [{ lines: clean.split("\n"), title: null }];
 }
 
 function escapeRegExp(value: string) {
@@ -808,15 +860,20 @@ function firstMeaningfulLine(block: string) {
       (line) =>
         line &&
         !/^\d\)\s/.test(line) &&
-        !/^(MANTRA|TR[IÍ]ADE|AÇÕES|ACOES|ACTIONS|INTEGRATION|INTEGRAÇÃO)$/i.test(
-          line
-        )
+        !/^(MANTRA|TR[IÍ]ADE|CARTAS|CARDS|MAPA DA TIRADA|SPREAD MAP|FECHAMENTO|CLOSING|AÇÕES|ACOES|ACTIONS|INTEGRATION|INTEGRAÇÃO)$/i.test(line)
     );
 }
 
 function getReadingMantra(reading: string, fallback: string) {
+  const inline = reading.match(
+    /(?:^|\n)\s*(?:[-•]\s*)?Mantra\s*:\s*([^\n]+)/i
+  );
+  if (inline?.[1]?.trim()) {
+    return inline[1].trim().replace(/^[-•]\s*/, "") || fallback;
+  }
+
   const match = reading.match(
-    /(?:^|\n)\s*(?:\d\)\s*)?MANTRA\s*\n+([\s\S]*?)(?=\n\s*(?:\d\)\s*)?(?:TR[IÍ]ADE|THE THREE THREADS|LEITURA|READING BY POSITION|AÇÕES|ACTIONS|INTEGRAÇÃO|INTEGRATION)\b|$)/i
+    /(?:^|\n)\s*(?:\d\)\s*)?MANTRA\s*\n+([\s\S]*?)(?=\n\s*(?:\d\)\s*)?(?:TR[IÍ]ADE|THE THREE THREADS|CARTAS|CARDS|LEITURA|READING BY POSITION|AÇÕES|ACTIONS|FECHAMENTO|CLOSING|INTEGRAÇÃO|INTEGRATION)\b|$)/i
   );
   const line = match ? firstMeaningfulLine(match[1]) : "";
   return line?.replace(/^[-•]\s*/, "") || fallback;
@@ -895,7 +952,7 @@ function buildLocalizedReadingText(params: {
 
 function getReadingAction(reading: string, fallback: string) {
   const match = reading.match(
-    /(?:^|\n)\s*(?:\d\)\s*)?(?:AÇÕES|ACOES|ACTIONS)\s*\n+([\s\S]*?)(?=\n\s*(?:\d\)\s*)?(?:INTEGRAÇÃO|INTEGRATION|RITUAL|RESUMO|SUMMARY)\b|$)/i
+    /(?:^|\n)\s*(?:\d\)\s*)?(?:AÇÕES|ACOES|ACTIONS)\s*\n+([\s\S]*?)(?=\n\s*(?:\d\)\s*)?(?:FECHAMENTO|CLOSING|INTEGRAÇÃO|INTEGRATION|RITUAL|RESUMO|SUMMARY)\b|$)/i
   );
   const line = match ? firstMeaningfulLine(match[1]) : "";
   return line?.replace(/^[-•]\s*/, "") || fallback;
@@ -3445,19 +3502,53 @@ export default function Home() {
                 className="pdu-reading-blocks min-h-72"
               >
                 {loading ? (
-                  <p className="pdu-reading-block text-sm leading-7 text-[#efe2d2]">
-                    {t("Sua pergunta chegou até Lume. Um novo caminho está sendo formado para este momento.")}
-                  </p>
+                  <article
+                    className="pdu-reading-block"
+                    style={{ "--pdu-block-index": 0 } as CSSProperties}
+                  >
+                    <div className="pdu-reading-block__body">
+                      <p className="pdu-reading-block__line">
+                        {t("Sua pergunta chegou até Lume. Um novo caminho está sendo formado para este momento.")}
+                      </p>
+                    </div>
+                  </article>
                 ) : (
-                  readingBlocks.map((block, index) => (
-                    <p
-                      key={`${block.slice(0, 18)}-${index}`}
-                      className="pdu-reading-block whitespace-pre-wrap text-sm leading-7 text-[#efe2d2]"
-                      style={{ "--pdu-block-index": index } as CSSProperties}
-                    >
-                      {block}
-                    </p>
-                  ))
+                  readingBlocks.map((block, index) => {
+                    const firstLine = block.lines[0] ?? "";
+
+                    return (
+                      <article
+                        key={`${block.title ?? "reading"}-${firstLine.slice(0, 18)}-${index}`}
+                        className="pdu-reading-block"
+                        style={{ "--pdu-block-index": index } as CSSProperties}
+                      >
+                        {block.title ? (
+                          <span className="pdu-reading-block__title">
+                            {block.title}
+                          </span>
+                        ) : null}
+                        <div className="pdu-reading-block__body">
+                          {block.lines.map((line, lineIndex) => {
+                            const isBullet = /^[-•]\s+/.test(line);
+                            const cleanLine = line.replace(/^[-•]\s+/, "").trim();
+
+                            return (
+                              <p
+                                key={`${cleanLine.slice(0, 24)}-${lineIndex}`}
+                                className={`pdu-reading-block__line${
+                                  isBullet
+                                    ? " pdu-reading-block__line--bullet"
+                                    : ""
+                                }`}
+                              >
+                                {cleanLine}
+                              </p>
+                            );
+                          })}
+                        </div>
+                      </article>
+                    );
+                  })
                 )}
               </div>
             </div>

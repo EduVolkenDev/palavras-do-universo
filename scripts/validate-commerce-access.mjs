@@ -101,6 +101,18 @@ try {
     readingRoute.includes("shouldConsumeEntitlement(entitlement)"),
     "Reading creation must consume every limited entitlement, including vouchers"
   );
+  assert(
+    readingRoute.includes("email: authenticatedUser?.email ?? null") &&
+      readingRoute.includes(".from(\"readings\")") &&
+      readingRoute.includes("params.email.trim().toLowerCase()"),
+    "Reading creation must persist the authenticated user's normalized email"
+  );
+
+  const readingsRoute = await readSource("src/app/api/readings/route.ts");
+  assert(
+    readingsRoute.includes("id, email, locale") && readingsRoute.includes(".eq(\"user_id\", auth.user.id)"),
+    "Readings API must expose email only through the authenticated user's own history"
+  );
 
   const vouchersService = await readSource("src/lib/vouchers/service.ts");
   assert(

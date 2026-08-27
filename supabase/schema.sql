@@ -85,6 +85,7 @@ grant execute on function public.claim_free_reading(text, date, text) to service
 create table if not exists public.readings (
   id uuid primary key default gen_random_uuid(),
   user_id text not null references public.profiles(id) on delete cascade,
+  email text,
   theme text not null,
   question text not null,
   mode text not null,
@@ -138,6 +139,10 @@ alter table public.purchases enable row level security;
 
 create index if not exists readings_user_created_idx
   on public.readings (user_id, created_at desc);
+
+create index if not exists readings_email_created_idx
+  on public.readings (lower(email), created_at desc)
+  where email is not null;
 
 create index if not exists saved_messages_user_created_idx
   on public.saved_messages (user_id, created_at desc);

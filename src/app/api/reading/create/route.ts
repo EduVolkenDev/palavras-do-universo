@@ -709,6 +709,7 @@ async function claimFreeReading(params: {
 
 async function persistReading(params: {
   userId: string;
+  email?: string | null;
   locale: "pt-BR" | "en";
   theme: string;
   question: string;
@@ -722,12 +723,16 @@ async function persistReading(params: {
   if (!params.remoteEnabled || !hasSupabaseConfig()) return null;
 
   try {
-    await ensureSupabaseProfile(params.userId);
+    await ensureSupabaseProfile(params.userId, params.email);
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from("readings")
       .insert({
         user_id: params.userId,
+        email:
+          typeof params.email === "string" && params.email.includes("@")
+            ? params.email.trim().toLowerCase()
+            : null,
         locale: params.locale,
         theme: params.theme,
         question: params.question,
@@ -929,59 +934,55 @@ export async function POST(req: Request) {
   const experienceFormat =
     EXPERIENCE_FORMATS[productKey] ?? EXPERIENCE_FORMATS.free_daily;
   const outputLimits = paidProduct
-    ? { maxTokens: spreadConfig.positions.length > 7 ? 3_200 : 2_400, maxCharacters: spreadConfig.positions.length > 7 ? 12_000 : 8_500 }
-    : { maxTokens: 1_300, maxCharacters: 5_000 };
+    ? spreadConfig.positions.length > 7
+      ? { maxTokens: 2_100, maxCharacters: 6_800 }
+      : { maxTokens: 1_700, maxCharacters: 5_200 }
+    : { maxTokens: 900, maxCharacters: 3_000 };
   const isEnglish = locale === "en";
   const outputFormat = paidProduct
     ? isEnglish
       ? `
 		Required format:
-		1) DIRECT ANSWER TO THE QUESTION (2–3 concise sentences connecting the question to the full spread)
-		2) INITIAL LISTENING (2 sentences)
-		3) MANTRA (1 sentence) + plain meaning (1 sentence)
-		4) MAP OF THE SPREAD: name the movement that connects all ${spreadConfig.positions.length} positions (3 short sentences)
-		5) READING BY POSITION
-		   For every position, name the position, the card and one precise, contextual interpretation. Keep each entry concise so all positions receive real attention.
-		6) ACTIONS: 3 executable micro-steps of 10-20 min (1 line each)
-		7) INTEGRATION RITUAL: short practice + journal sentence starting with "I choose..."
-		8) DIRECT SUMMARY: 3 short bullets
-		9) NEXT QUESTION: recommended question + suggestion for deeper reading
+		1) DIRECT ANSWER (2-3 short sentences that answer the question without circling around it)
+		2) SPREAD MAP (1 short paragraph connecting all ${spreadConfig.positions.length} positions as one movement)
+		3) CARDS
+		   One bullet per position. Each bullet must include: position, card, and one practical meaning for this question.
+		4) ACTIONS
+		   3 concrete micro-steps. One line each. Simple enough to do today.
+		5) CLOSING
+		   Mantra in one line + next question in one line.
 		`.trim()
       : `
 		Formato obrigatório:
-		1) RESPOSTA DIRETA À PERGUNTA (2–3 frases curtas conectando a pergunta à tirada inteira)
-		2) ESCUTA INICIAL (2 frases)
-		3) MANTRA (1 frase) + tradução simples (1 frase)
-	4) MAPA DA TIRADA: nomeie o movimento que conecta as ${spreadConfig.positions.length} posições (3 frases curtas)
-	5) LEITURA POR POSIÇÃO
-	   Para cada posição, diga o nome da posição, a carta e uma interpretação precisa e contextual. Seja concisa para que todas as posições recebam atenção real.
-	6) AÇÕES: 3 micro-passos executáveis de 10–20 min (1 linha cada)
-	7) RITUAL DE INTEGRAÇÃO: prática curta + frase de diário começando com "Eu escolho..."
-		8) RESUMO DIRETO: 3 bullets curtos
-		9) GANCHO: pergunta recomendada + sugestão de aprofundamento
+		1) RESPOSTA DIRETA (2-3 frases curtas que respondem sem rodeio)
+		2) MAPA DA TIRADA (1 parágrafo curto conectando as ${spreadConfig.positions.length} posições como um movimento só)
+		3) CARTAS
+		   Um bullet por posição. Cada bullet deve trazer: posição, carta e um significado prático para esta pergunta.
+		4) AÇÕES
+		   3 micro-passos concretos. Uma linha cada. Simples o bastante para fazer hoje.
+		5) FECHAMENTO
+		   Mantra em uma linha + próxima pergunta em uma linha.
 		`.trim()
     : isEnglish
       ? `
 		Required format for free reading:
-		1) DIRECT ANSWER TO THE QUESTION (2 short sentences connecting the question to the three cards)
-		2) INITIAL LISTENING (2 sentences)
-		3) MANTRA (1 sentence) + plain meaning (1 sentence)
-		4) THE THREE THREADS: Truth, Shadow, and Direction (1 short sentence each)
-		5) READING BY POSITION
-		   For each card: practical meaning (1 sentence) and direction (1 sentence).
-		6) ACTIONS: 3 objective micro-steps (1 line each)
-		7) CLOSING: short ritual, 3-bullet summary, and an invitation to return tomorrow
+		1) DIRECT ANSWER (2 short sentences)
+		2) CARDS
+		   3 bullets only: one for each card, with practical meaning for this question.
+		3) ACTIONS
+		   3 objective micro-steps. One line each.
+		4) CLOSING
+		   Mantra in one line + next question in one line.
 		`.trim()
       : `
 		Formato obrigatório para leitura gratuita:
-		1) RESPOSTA DIRETA À PERGUNTA (2 frases curtas conectando pergunta e as três cartas)
-		2) ESCUTA INICIAL (2 frases)
-		3) MANTRA (1 frase) + tradução simples (1 frase)
-	4) TRÍADE: Verdade, Sombra e Direção (1 frase curta para cada)
-	5) LEITURA POR POSIÇÃO
-	   Para cada carta: significado prático (1 frase) e direção (1 frase).
-	6) AÇÕES: 3 micro-passos objetivos (1 linha cada)
-	7) FECHAMENTO: ritual curto, resumo em 3 bullets e convite para retornar amanhã
+		1) RESPOSTA DIRETA (2 frases curtas)
+		2) CARTAS
+		   3 bullets apenas: um para cada carta, com significado prático para esta pergunta.
+		3) AÇÕES
+		   3 micro-passos objetivos. Uma linha cada.
+		4) FECHAMENTO
+		   Mantra em uma linha + próxima pergunta em uma linha.
 	`.trim();
   const portalMemory = await getPortalMemory(userId, remoteEnabled);
   const localUserContext = !remoteEnabled
@@ -1038,6 +1039,7 @@ export async function POST(req: Request) {
 	Você está dentro de "Palavras do Universo", um ritual digital premium de reflexão interna, inteligência emocional e clareza para decisões.
 	Você usa as cartas como linguagem simbólica, não como previsão fixa.
 	Você escreve com elegância, presença e mistério, MAS precisa ser fácil de entender para qualquer pessoa.
+	A resposta deve parecer pessoal, limpa e útil, não um texto longo de oráculo.
 
 	Contrato da experiência:
 	- Arquétipo: ${experience.archetype}
@@ -1084,8 +1086,14 @@ export async function POST(req: Request) {
 	
 	Regras:
 	- Limite editorial absoluto: no máximo ${outputLimits.maxCharacters} caracteres, incluindo títulos e espaços.
-	- Complete todas as seções dentro do limite; não prolongue reflexões nem repita ideias.
-	- Use no máximo 2 frases curtas por item, exceto onde o formato exigir menos.
+	- Complete todas as seções dentro do limite; corte explicações secundárias antes de aumentar o texto.
+	- Nenhum parágrafo pode ter mais de 2 frases curtas ou mais de 220 caracteres.
+	- Bullets devem ter no máximo 26 palavras.
+	- Use palavras simples, de conversa adulta e clara. Evite termos raros, místicos demais ou acadêmicos.
+	- Não repita a mesma ideia com outras palavras. Se algo já foi dito, avance.
+	- Não use aberturas genéricas como "as cartas mostram que" em todas as seções.
+	- Varie ritmo e vocabulário; não reutilize frases prontas de leituras anteriores quando a memória indicar recorrência.
+	- Explique a carta dentro da pergunta da pessoa; não liste significado genérico de baralho.
 	- Escreva toda a resposta em ${locale === "en" ? "inglês claro e natural" : "português brasileiro claro e natural"}.
 	- Sem fatalismo, sem datas e sem promessas absolutas.
 	- Não diga que sabe o que outra pessoa sente ou fará.
@@ -1093,8 +1101,8 @@ export async function POST(req: Request) {
 	- Se a pergunta envolver amor, não alimente ansiedade; devolva eixo para a pessoa.
 	- Se envolver dinheiro ou carreira, traduza intuição em ação prática.
 	- Se envolver dor emocional, acolha sem diagnosticar.
-	- Evite metáforas difíceis; se usar, explique na “Tradução simples”.
-	- Linguagem clara, brasileira, sem jargão esotérico.
+	- Evite metáforas difíceis; se usar uma imagem, explique em linguagem comum na própria frase.
+	- Em português, use português brasileiro simples. Em inglês, use plain English natural e acessível.
 	`.trim();
 
   // 3) IA + fallback
@@ -1130,6 +1138,7 @@ export async function POST(req: Request) {
 
   const readingId = await persistReading({
     userId,
+    email: authenticatedUser?.email ?? null,
     locale,
     theme,
     question,

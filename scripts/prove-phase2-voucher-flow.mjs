@@ -33,7 +33,7 @@ function createRunId() {
 }
 
 function cleanBaseUrl(value) {
-  return String(value ?? "http://127.0.0.1:3000").replace(/\/$/, "");
+  return String(value ?? "http://localhost:3000").replace(/\/$/, "");
 }
 
 function cookieHeader(jar) {
@@ -226,6 +226,17 @@ async function readAvailableEntitlements(userId) {
   );
 }
 
+async function readPersistedReading(readingId) {
+  return expectNoError(
+    await admin
+      .from("readings")
+      .select("id, user_id, email, intent_key")
+      .eq("id", readingId)
+      .single(),
+    "Could not read persisted reading"
+  );
+}
+
 async function createCircleEntitlement(user) {
   const entitlement = await expectNoError(
     await admin
@@ -406,6 +417,19 @@ try {
   });
   assert(reading.status === 200 && reading.json?.ok === true, "Voucher reading did not open");
   assert(reading.json?.readingId, "Voucher reading was not persisted");
+  const persistedVoucherReading = await readPersistedReading(reading.json.readingId);
+  assert(
+    persistedVoucherReading.user_id === voucherUser.userId,
+    "Voucher reading was not linked to the authenticated user"
+  );
+  assert(
+    persistedVoucherReading.email === voucherUser.email,
+    "Voucher reading did not persist the authenticated user's email"
+  );
+  assert(
+    persistedVoucherReading.intent_key === voucherProductKey,
+    "Voucher reading did not persist the paid product key"
+  );
 
   const availableAfterReading = await readAvailableEntitlements(voucherUser.userId);
   assert(
@@ -461,6 +485,16 @@ try {
     theme: "spirit",
   });
   assert(circleReading.status === 200 && circleReading.json?.ok === true, "Circle reading did not open");
+  assert(circleReading.json?.readingId, "Circle reading was not persisted");
+  const persistedCircleReading = await readPersistedReading(circleReading.json.readingId);
+  assert(
+    persistedCircleReading.user_id === circleUser.userId,
+    "Circle reading was not linked to the authenticated user"
+  );
+  assert(
+    persistedCircleReading.email === circleUser.email,
+    "Circle reading did not persist the authenticated user's email"
+  );
   const circleRows = await readEntitlements(circleUser.userId);
   const circleRow = circleRows.find((entitlement) => entitlement.product_key === circleProductKey);
   assert(circleRow?.usage_limit === null, "Circle entitlement should remain unlimited");
@@ -493,11 +527,13 @@ try {
           "Meu Universo entitlement feed before reading",
           "Meu Universo page render",
           "paid reading opens with voucher entitlement",
+          "voucher reading row stores authenticated user email",
           "voucher entitlement consumed after reading",
           "second paid reading blocked after voucher consumption",
           "Circle entitlement appears as unlimited",
           "Circle included product bypasses checkout",
           "Circle reading opens without consuming Circle entitlement",
+          "Circle reading row stores authenticated user email",
           "user without access receives paywall",
         ],
         cleanup: {

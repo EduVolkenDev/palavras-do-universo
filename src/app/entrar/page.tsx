@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Loader2, Mail } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, Lock, Mail, UserPlus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
@@ -12,9 +12,10 @@ import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 import { PduAssetStory } from "@/components/PduAssetStory";
 
-type FormState = "idle" | "sending" | "sent" | "error";
+type AuthMode = "login" | "signup" | "forgot" | "reset-password";
+type FormState = "idle" | "sending" | "sent" | "error" | "success";
 
-const RESEND_WAIT_SECONDS = 60;
+const PASSWORD_MIN_LENGTH = 8;
 
 const productVisuals: Record<string, string> = {
   mensagem_do_dia: PDU_ASSETS.products.messageOfTheDay,
@@ -64,21 +65,24 @@ function getProductFromNextParam(): { title: string; price: string; visual: stri
 
 export default function EntrarPage() {
   const { locale } = useI18n();
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [state, setState] = useState<FormState>("idle");
   const [message, setMessage] = useState("");
   const [product, setProduct] = useState<{ title: string; price: string; visual: string } | null>(null);
   const [readingHistoryReason, setReadingHistoryReason] = useState(false);
-  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(null);
-  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const reason = params.get("reason") === "reading-history";
+      const mode = params.get("mode");
       setProduct(getProductFromNextParam());
-      setReadingHistoryReason(
-        new URLSearchParams(window.location.search).get("reason") ===
-          "reading-history"
-      );
+      setReadingHistoryReason(reason);
+      if (mode === "reset-password") setAuthMode("reset-password");
+      else if (mode === "signup" || mode === "criar" || reason) setAuthMode("signup");
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
@@ -95,8 +99,8 @@ export default function EntrarPage() {
         setState("error");
         setMessage(
           locale === "en"
-            ? "This access link expired or was already used. Request a new link to continue."
-            : "Este link expirou ou já foi usado. Peça um novo link para continuar."
+            ? "This confirmation or recovery link expired. Request a new one to continue."
+            : "Este link de confirmação ou recuperação expirou. Peça um novo para continuar."
         );
         return;
       }
@@ -109,13 +113,42 @@ export default function EntrarPage() {
     return () => window.clearTimeout(timer);
   }, [locale, state]);
 
-  useEffect(() => {
-    if (!resendAvailableAt) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [resendAvailableAt]);
+  function getNextPath() {
+    const requested = new URLSearchParams(window.location.search).get("next");
+    return sanitizeAuthRedirect(requested);
+  }
 
-  async function signIn(event: FormEvent<HTMLFormElement>) {
+  function switchMode(nextMode: AuthMode) {
+    setAuthMode(nextMode);
+    setState("idle");
+    setMessage("");
+    setPassword("");
+    setConfirmPassword("");
+  }
+
+  function validatePasswordPair() {
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      setState("error");
+      setMessage(
+        locale === "en"
+          ? `Use at least ${PASSWORD_MIN_LENGTH} characters.`
+          : `Use pelo menos ${PASSWORD_MIN_LENGTH} caracteres.`
+      );
+      return false;
+    }
+    if ((authMode === "signup" || authMode === "reset-password") && password !== confirmPassword) {
+      setState("error");
+      setMessage(
+        locale === "en"
+          ? "The passwords do not match."
+          : "As senhas não conferem."
+      );
+      return false;
+    }
+    return true;
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const supabase = getSupabaseBrowserClient();
 
@@ -129,50 +162,176 @@ export default function EntrarPage() {
       return;
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+    if (authMode !== "reset-password" && !cleanEmail.includes("@")) {
+      setState("error");
+      setMessage(isEn ? "Enter a valid email." : "Informe um e-mail válido.");
+      return;
+    }
+
     setState("sending");
     setMessage("");
 
-    const requested = new URLSearchParams(window.location.search).get("next");
-    const nextPath = sanitizeAuthRedirect(requested);
-    const redirectTo = buildAuthCallbackUrl(window.location.origin, nextPath);
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: { emailRedirectTo: redirectTo },
+    const nextPath = getNextPath();
+
+    if (authMode === "forgot") {
+      const recoveryNext = `/entrar?mode=reset-password&next=${encodeURIComponent(nextPath)}`;
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: buildAuthCallbackUrl(window.location.origin, recoveryNext),
+      });
+
+      if (error) {
+        console.error("[auth] resetPasswordForEmail failed", {
+          message: error.message,
+          status: error.status,
+        });
+        setState("error");
+        setMessage(
+          locale === "en"
+            ? "Could not send the recovery email. Check the address and try again."
+            : "Não foi possível enviar a recuperação. Revise o e-mail e tente novamente."
+        );
+        return;
+      }
+
+      setState("sent");
+      setMessage(
+        locale === "en"
+          ? "We sent a password recovery link. Open it once to define a new password."
+          : "Enviamos um link de recuperação. Abra uma vez para definir uma nova senha."
+      );
+      return;
+    }
+
+    if (!validatePasswordPair()) return;
+
+    if (authMode === "reset-password") {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        console.error("[auth] updateUser password failed", {
+          message: error.message,
+          status: error.status,
+        });
+        setState("error");
+        setMessage(
+          locale === "en"
+            ? "Could not update the password. Open a fresh recovery link and try again."
+            : "Não foi possível atualizar a senha. Abra um link de recuperação novo e tente outra vez."
+        );
+        return;
+      }
+
+      setState("success");
+      setMessage(locale === "en" ? "Password updated." : "Senha atualizada.");
+      window.location.assign(nextPath);
+      return;
+    }
+
+    if (authMode === "signup") {
+      const { data, error } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: {
+          emailRedirectTo: buildAuthCallbackUrl(window.location.origin, nextPath),
+        },
+      });
+
+      if (error) {
+        console.error("[auth] signUp failed", {
+          message: error.message,
+          status: error.status,
+        });
+        setState("error");
+        setMessage(
+          locale === "en"
+            ? "Could not create the account. Check the email and password and try again."
+            : "Não foi possível criar a conta. Revise e-mail e senha e tente novamente."
+        );
+        return;
+      }
+
+      if (data.session) {
+        setState("success");
+        setMessage(locale === "en" ? "Account created." : "Conta criada.");
+        window.location.assign(nextPath);
+        return;
+      }
+
+      setState("sent");
+      setMessage(
+        readingHistoryReason
+          ? locale === "en"
+            ? "We sent the confirmation email. Confirm once to protect the reading saved here; after that, use your password on this page."
+            : "Enviamos a confirmação. Confirme uma vez para proteger a tirada salva aqui; depois disso, use sua senha nesta página."
+          : locale === "en"
+            ? "We sent the confirmation email. Confirm once; after that, you can sign in here with your password."
+            : "Enviamos a confirmação. Confirme uma vez; depois disso, você entra aqui com sua senha."
+      );
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password,
     });
 
     if (error) {
-      console.error("[auth] signInWithOtp failed", {
+      console.error("[auth] signInWithPassword failed", {
         message: error.message,
         status: error.status,
       });
       setState("error");
       setMessage(
         locale === "en"
-          ? "Could not send access link. Check the email and try again."
-          : "Não foi possível enviar o acesso. Revise o e-mail e tente novamente."
+          ? "Could not sign in. Check the email and password."
+          : "Não foi possível entrar. Revise e-mail e senha."
       );
       return;
     }
 
-    setState("sent");
-    setResendAvailableAt(Date.now() + RESEND_WAIT_SECONDS * 1000);
-    setMessage(
-      readingHistoryReason
-        ? locale === "en"
-          ? "We sent a secure link. Open it on this same device and browser to protect the reading saved here."
-          : "Enviamos um link seguro. Abra neste mesmo aparelho e navegador para proteger a tirada salva aqui."
-        : locale === "en"
-          ? "We sent a secure link. If it does not arrive, check spam or promotions before requesting a new one."
-          : "Enviamos um link seguro. Se ele não chegar, confira spam ou promoções antes de pedir outro."
-    );
+    setState("success");
+    setMessage(locale === "en" ? "Signed in." : "Entrada confirmada.");
+    window.location.assign(nextPath);
   }
 
   const isEn = locale === "en";
   const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "suporte@palavrasdouniverso.com";
-  const resendSeconds = resendAvailableAt
-    ? Math.max(0, Math.ceil((resendAvailableAt - now) / 1000))
-    : 0;
-  const canResend = state === "sent" && resendSeconds === 0;
+  const isSubmitting = state === "sending";
+  const needsEmail = authMode !== "reset-password";
+  const needsPassword = authMode !== "forgot";
+  const needsConfirmPassword = authMode === "signup" || authMode === "reset-password";
+  const modeTitle =
+    authMode === "signup"
+      ? isEn ? "Create your account." : "Crie sua conta."
+      : authMode === "forgot"
+        ? isEn ? "Recover access." : "Recupere o acesso."
+        : authMode === "reset-password"
+          ? isEn ? "Define a new password." : "Defina uma nova senha."
+          : isEn ? "Enter your Universe." : "Entre no seu Universo.";
+  const modeBody =
+    authMode === "signup"
+      ? isEn
+        ? "Confirm your email once. After that, your password keeps the path open on this page."
+        : "Confirme seu e-mail uma vez. Depois disso, sua senha mantém o caminho aberto nesta página."
+      : authMode === "forgot"
+        ? isEn
+          ? "Enter your email and we will send a recovery link."
+          : "Informe seu e-mail e enviaremos um link de recuperação."
+        : authMode === "reset-password"
+          ? isEn
+            ? "Choose the password you want to use from now on."
+            : "Escolha a senha que você quer usar daqui em diante."
+        : locale === "en"
+          ? "Use your email and password to return without waiting for a new link."
+          : "Use seu e-mail e senha para voltar sem esperar por um novo link.";
+  const submitLabel =
+    authMode === "signup"
+      ? isEn ? "Create account" : "Criar conta"
+      : authMode === "forgot"
+        ? isEn ? "Send recovery email" : "Enviar recuperação"
+        : authMode === "reset-password"
+          ? isEn ? "Save new password" : "Salvar nova senha"
+          : isEn ? "Sign in" : "Entrar";
 
   return (
     <main className="ritual-texture min-h-screen px-4 py-12 text-[#241b18]">
@@ -199,7 +358,7 @@ export default function EntrarPage() {
           {isEn ? "Your account" : "Sua conta"}
         </p>
         <h1 className="brand-serif mt-2 text-4xl font-semibold leading-none">
-          {isEn ? "Continue your path." : "Continue seu caminho."}
+          {modeTitle}
         </h1>
 
         {readingHistoryReason ? (
@@ -213,8 +372,8 @@ export default function EntrarPage() {
             />
             <p className="text-sm leading-6 text-[#315d56]">
               {isEn
-                ? "Create your free account to protect the reading already saved on this device. After signing in, it will appear in My Universe."
-                : "Crie sua conta grátis para proteger a tirada que já está salva neste dispositivo. Depois de entrar, ela aparecerá no Meu Universo."}
+                ? "Create your free account to protect the reading already saved on this device. After confirming once, you return here with your password."
+                : "Crie sua conta grátis para proteger a tirada que já está salva neste dispositivo. Depois de confirmar uma vez, você volta aqui com sua senha."}
             </p>
           </div>
         ) : product ? (
@@ -229,56 +388,148 @@ export default function EntrarPage() {
             <p className="text-sm leading-6 text-[#4d3c31]">
               {isEn ? (
                 <>
-                  To unlock <strong>{product.title}</strong> ({product.price}), sign in first — it only takes a second.
+                  To unlock <strong>{product.title}</strong> ({product.price}), sign in or create your account first.
                 </>
               ) : (
                 <>
-                  Para acessar <strong>{product.title}</strong> ({product.price}), entre primeiro — leva só um instante.
+                  Para acessar <strong>{product.title}</strong> ({product.price}), entre ou crie sua conta primeiro.
                 </>
               )}
             </p>
           </div>
         ) : (
           <p className="mt-4 text-sm leading-6 text-[#6f615a]">
-            {isEn
-              ? "Sign in to protect your readings, access, and saved messages across all your devices."
-              : "Entre para proteger suas leituras, acessos e mensagens salvas em todos os seus dispositivos."}
+            {modeBody}
           </p>
         )}
 
-        <form onSubmit={signIn} className="mt-7">
-          <label htmlFor="email" className="text-sm font-semibold text-[#4d3c31]">
-            {isEn ? "Your email" : "Seu e-mail"}
-          </label>
-          <div className="mt-2 flex items-center gap-2 rounded-lg border border-[#d8c3a6] bg-white px-3">
-            <Mail size={17} className="text-[#8a786b]" />
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder={isEn ? "you@example.com" : "voce@exemplo.com"}
-              className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"
-            />
+        {authMode !== "forgot" && authMode !== "reset-password" ? (
+          <div className="mt-7 grid grid-cols-2 rounded-lg border border-[#d8c3a6] bg-white/60 p-1">
+            <button
+              type="button"
+              onClick={() => switchMode("login")}
+              className={`inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${
+                authMode === "login"
+                  ? "bg-[#241b18] text-[#fff7e8]"
+                  : "text-[#6f615a] hover:bg-white"
+              }`}
+            >
+              <KeyRound size={15} />
+              {isEn ? "Sign in" : "Entrar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode("signup")}
+              className={`inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${
+                authMode === "signup"
+                  ? "bg-[#241b18] text-[#fff7e8]"
+                  : "text-[#6f615a] hover:bg-white"
+              }`}
+            >
+              <UserPlus size={15} />
+              {isEn ? "Create" : "Criar"}
+            </button>
           </div>
+        ) : null}
+
+        <form onSubmit={handleSubmit} className={authMode === "login" || authMode === "signup" ? "mt-5" : "mt-7"}>
+          {needsEmail ? (
+            <>
+              <label htmlFor="email" className="text-sm font-semibold text-[#4d3c31]">
+                {isEn ? "Your email" : "Seu e-mail"}
+              </label>
+              <div className="mt-2 flex items-center gap-2 rounded-lg border border-[#d8c3a6] bg-white px-3">
+                <Mail size={17} className="text-[#8a786b]" />
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder={isEn ? "you@example.com" : "voce@exemplo.com"}
+                  className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"
+                />
+              </div>
+            </>
+          ) : null}
+
+          {needsPassword ? (
+            <>
+              <label htmlFor="password" className="mt-4 block text-sm font-semibold text-[#4d3c31]">
+                {authMode === "reset-password"
+                  ? isEn ? "New password" : "Nova senha"
+                  : isEn ? "Password" : "Senha"}
+              </label>
+              <div className="mt-2 flex items-center gap-2 rounded-lg border border-[#d8c3a6] bg-white px-3">
+                <Lock size={17} className="text-[#8a786b]" />
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete={authMode === "login" ? "current-password" : "new-password"}
+                  required
+                  minLength={PASSWORD_MIN_LENGTH}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder={isEn ? "At least 8 characters" : "Pelo menos 8 caracteres"}
+                  className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"
+                />
+              </div>
+            </>
+          ) : null}
+
+          {needsConfirmPassword ? (
+            <>
+              <label htmlFor="confirm-password" className="mt-4 block text-sm font-semibold text-[#4d3c31]">
+                {isEn ? "Confirm password" : "Confirmar senha"}
+              </label>
+              <div className="mt-2 flex items-center gap-2 rounded-lg border border-[#d8c3a6] bg-white px-3">
+                <Lock size={17} className="text-[#8a786b]" />
+                <input
+                  id="confirm-password"
+                  name="confirm-password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={PASSWORD_MIN_LENGTH}
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder={isEn ? "Repeat your password" : "Repita sua senha"}
+                  className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"
+                />
+              </div>
+            </>
+          ) : null}
+
           <button
             type="submit"
-            disabled={state === "sending" || (state === "sent" && !canResend)}
+            disabled={isSubmitting}
             className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#241b18] px-4 py-3 text-sm font-semibold text-[#fff7e8] hover:bg-[#3a2c25] disabled:cursor-default disabled:opacity-70"
           >
-            {state === "sending" ? <Loader2 size={17} className="animate-spin" /> : null}
-            {state === "sent" && !canResend
-              ? isEn ? `Resend in ${resendSeconds}s` : `Reenviar em ${resendSeconds}s`
-              : state === "sent" && canResend
-                ? isEn ? "Send a new link" : "Enviar novo link"
-              : readingHistoryReason
-                ? isEn ? "Create free account" : "Criar conta grátis"
-                : isEn ? "Receive access link" : "Receber link de acesso"}
+            {isSubmitting ? <Loader2 size={17} className="animate-spin" /> : null}
+            {submitLabel}
           </button>
         </form>
+
+        {authMode === "login" ? (
+          <button
+            type="button"
+            onClick={() => switchMode("forgot")}
+            className="mt-3 text-sm font-semibold text-[#5f462f] underline-offset-4 hover:underline"
+          >
+            {isEn ? "Forgot your password?" : "Esqueceu sua senha?"}
+          </button>
+        ) : authMode === "forgot" || authMode === "reset-password" ? (
+          <button
+            type="button"
+            onClick={() => switchMode("login")}
+            className="mt-3 text-sm font-semibold text-[#5f462f] underline-offset-4 hover:underline"
+          >
+            {isEn ? "Back to sign in" : "Voltar para entrar"}
+          </button>
+        ) : null}
 
         {message ? (
           <p
@@ -294,10 +545,10 @@ export default function EntrarPage() {
 
         <p className="mt-6 text-xs leading-5 text-[#8a786b]">
           {isEn
-            ? "No password to remember. The link expires and can only be used once."
-            : "Sem senha para lembrar. O link expira e só pode ser usado uma vez."}
+            ? "Your password stays with you. Confirmation and recovery links are used only when needed."
+            : "Sua senha fica com você. Links de confirmação e recuperação só são usados quando necessário."}
           {" "}
-          {isEn ? "Still no email?" : "Ainda não chegou?"}{" "}
+          {isEn ? "Need help?" : "Precisa de ajuda?"}{" "}
           <a className="font-semibold text-[#5f462f] underline-offset-4 hover:underline" href={`mailto:${supportEmail}`}>
             {supportEmail}
           </a>

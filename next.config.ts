@@ -45,6 +45,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  allowedDevOrigins: ["127.0.0.1"],
   poweredByHeader: false,
   images: {
     qualities: [72, 74, 75, 84, 86, 88, 90, 95],

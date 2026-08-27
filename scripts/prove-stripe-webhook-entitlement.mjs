@@ -34,7 +34,7 @@ function createRunId() {
 }
 
 function cleanBaseUrl(value) {
-  return String(value ?? "http://127.0.0.1:3000").replace(/\/$/, "");
+  return String(value ?? "http://localhost:3000").replace(/\/$/, "");
 }
 
 function cookieHeader(jar) {
@@ -269,6 +269,17 @@ async function readPaymentEvents() {
   );
 }
 
+async function readPersistedReading(readingId) {
+  return expectNoError(
+    await admin
+      .from("readings")
+      .select("id, user_id, email, intent_key")
+      .eq("id", readingId)
+      .single(),
+    "Could not read persisted Stripe proof reading"
+  );
+}
+
 async function cleanupProof() {
   const warnings = [];
   async function safe(label, promise) {
@@ -462,6 +473,19 @@ try {
   });
   assert(reading.status === 200 && reading.json?.ok === true, "Paid entitlement did not open reading");
   assert(reading.json?.readingId, "Paid reading was not persisted");
+  const persistedReading = await readPersistedReading(reading.json.readingId);
+  assert(
+    persistedReading.user_id === user.userId,
+    "Paid reading was not linked to the authenticated user"
+  );
+  assert(
+    persistedReading.email === user.email,
+    "Paid reading did not persist the authenticated user's email"
+  );
+  assert(
+    persistedReading.intent_key === productKey,
+    "Paid reading did not persist the product key"
+  );
 
   const entitlementsAfterReading = await readEntitlements(user.userId);
   const consumedEntitlement = entitlementsAfterReading.find(
@@ -502,6 +526,7 @@ try {
           "purchase entitlement granted with one use",
           "duplicate webhook idempotent",
           "paid reading opens with purchase entitlement",
+          "paid reading row stores authenticated user email",
           "paid reading consumes purchase entitlement",
           "second paid reading blocked after consumption",
         ],

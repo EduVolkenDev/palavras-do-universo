@@ -35,6 +35,23 @@ type ThemeCopy = {
   questions: readonly string[];
 };
 
+const PRODUCT_LABELS: Record<string, { en: string; pt: string }> = {
+  a_chave: { en: "The Key", pt: "A Chave" },
+  caminho_3_cartas: { en: "Three-Card Path", pt: "Caminho das 3 Cartas" },
+  circulo_do_universo: { en: "Circle of the Universe", pt: "Círculo do Universo" },
+  clareza_urgente: { en: "Urgent Clarity", pt: "Clareza Urgente" },
+  cruz_celta: { en: "Celtic Cross", pt: "Cruz Celta" },
+  energia_da_semana: { en: "Weekly Energy", pt: "Energia da Semana" },
+  free_daily: { en: "Daily Message", pt: "Mensagem do Dia" },
+  mapa_do_momento: { en: "Present Map", pt: "Mapa do Momento" },
+  o_espelho: { en: "The Mirror", pt: "O Espelho" },
+  o_paradoxo: { en: "The Paradox", pt: "O Paradoxo" },
+  passaro_voando: { en: "Flying Bird", pt: "Pássaro Voando" },
+  relacionar: { en: "Relating", pt: "Relacionar" },
+  sinais_do_amor: { en: "Signs of Love", pt: "Sinais do Amor" },
+  tirada_diamante: { en: "Diamond Spread", pt: "Tirada Diamante" },
+};
+
 const PT_THEMES: Record<string, ThemeCopy> = {
   love: {
     label: "afetos e vínculos",
@@ -321,119 +338,6 @@ const EN_OPENINGS: Record<string, readonly string[]> = {
   ],
 };
 
-const PRODUCT_CONTEXT: Record<string, { en: string; pt: string }> = {
-  free_daily: {
-    en: "This free reading offers one useful direction without trying to resolve the whole journey.",
-    pt: "Esta leitura gratuita oferece uma direção útil sem tentar resolver toda a jornada.",
-  },
-  clareza_urgente: {
-    en: "Clareza Urgente separates pressure, boundaries, and the safest action for the next 24 hours.",
-    pt: "Clareza Urgente separa pressão, limite e a ação mais segura para as próximas 24 horas.",
-  },
-  caminho_3_cartas: {
-    en: "The Three-Card Path turns the question into situation, shadow, and practical direction.",
-    pt: "O Caminho das 3 Cartas transforma a pergunta em situação, sombra e direção prática.",
-  },
-  sinais_do_amor: {
-    en: "Sinais do Amor centers reciprocity, emotional boundaries, and responsible communication.",
-    pt: "Sinais do Amor prioriza reciprocidade, limite afetivo e comunicação responsável.",
-  },
-  energia_da_semana: {
-    en: "Weekly Energy organizes where to invest attention and where to preserve strength.",
-    pt: "Energia da Semana organiza onde investir atenção e onde preservar força.",
-  },
-  mapa_do_momento: {
-    en: "The Present Map highlights the current phase, its repeating pattern, and its main priority.",
-    pt: "O Mapa do Momento destaca a fase atual, o padrão recorrente e a prioridade principal.",
-  },
-  circulo_do_universo: {
-    en: "Círculo do Universo connects this answer with continuity, memory, and personal ritual.",
-    pt: "O Círculo do Universo conecta esta resposta com continuidade, memória e ritual pessoal.",
-  },
-  tirada_diamante: {
-    en: "The Diamond reads inner influence, outer influence, resolution, and integration as one connected question.",
-    pt: "O Diamante lê influência interna, influência externa, resolução e integração como uma única questão conectada.",
-  },
-  passaro_voando: {
-    en: "The Flying Bird distinguishes fear, receptivity, action, and the horizon that becomes possible when movement gains integrity.",
-    pt: "O Pássaro Voando diferencia medo, receptividade, ação e o horizonte que surge quando o movimento ganha integridade.",
-  },
-  a_chave: {
-    en: "The Key treats hidden layers as symbolic hypotheses and looks for the understanding that restores choice.",
-    pt: "A Chave trata camadas ocultas como hipóteses simbólicas e procura a compreensão que devolve escolha.",
-  },
-  o_espelho: {
-    en: "The Mirror keeps the reading within your field: projection, need, boundary, conversation, and choice.",
-    pt: "O Espelho mantém a leitura no seu campo: projeção, necessidade, limite, conversa e escolha.",
-  },
-  cruz_celta: {
-    en: "The Celtic Cross organizes the wider map into context, tension, roots, environment, and integration.",
-    pt: "A Cruz Celta organiza o mapa amplo em contexto, tensão, raízes, campo e integração.",
-  },
-  relacionar: {
-    en: "Relating observes your field, the other field, what emerges between both, and the awareness that makes the bond more honest.",
-    pt: "Relacionar observa seu campo, o outro campo, o que nasce entre ambos e a consciência que torna o vínculo mais honesto.",
-  },
-  o_paradoxo: {
-    en: "The Paradox gives both truths room to breathe until a third perspective becomes possible.",
-    pt: "O Paradoxo dá espaço para as duas verdades respirarem até que um terceiro olhar se torne possível.",
-  },
-};
-
-const PT_POSITION_GUIDANCE: readonly (readonly string[])[] = [
-  [
-    "Observe o que já é verdadeiro antes de reagir.",
-    "Nomeie o fato central sem acrescentar medo à leitura.",
-    "Reconheça o ponto de partida antes de tentar mudá-lo.",
-    "Separe o que está acontecendo do que você teme que aconteça.",
-  ],
-  [
-    "Não deixe este padrão escolher por você.",
-    "Trate o obstáculo como informação, não como sentença.",
-    "Perceba onde a reação automática está consumindo escolha.",
-    "Diminua a velocidade exatamente onde a tensão aumenta.",
-  ],
-  [
-    "Transforme este símbolo em uma escolha visível hoje.",
-    "Leve a direção para uma ação que possa ser concluída.",
-    "Escolha o menor gesto capaz de confirmar esta direção.",
-    "Use esta energia como critério para dizer um sim ou um não.",
-  ],
-  [
-    "Leia esta posição como parte do mapa inteiro, não como uma mensagem isolada.",
-    "Observe como esta camada conversa com as cartas anteriores e prepara a próxima.",
-    "Deixe esta posição acrescentar nuance antes de procurar uma conclusão.",
-    "Pergunte o que muda no conjunto quando esta energia é reconhecida.",
-  ],
-];
-
-const EN_POSITION_GUIDANCE: readonly (readonly string[])[] = [
-  [
-    "Observe what is already true before reacting.",
-    "Name the central fact without adding fear to it.",
-    "Recognize the starting point before trying to change it.",
-    "Separate what is happening from what you fear may happen.",
-  ],
-  [
-    "Do not let this pattern make the decision for you.",
-    "Treat the obstacle as information, not a verdict.",
-    "Notice where an automatic reaction is consuming choice.",
-    "Slow down precisely where tension starts to rise.",
-  ],
-  [
-    "Turn this symbol into one visible choice today.",
-    "Bring this direction into an action you can complete.",
-    "Choose the smallest gesture that confirms this direction.",
-    "Use this energy as a criterion for one clear yes or no.",
-  ],
-  [
-    "Read this position as part of the whole map, not as an isolated message.",
-    "Notice how this layer speaks to the cards before it and prepares the next one.",
-    "Let this position add nuance before looking for a conclusion.",
-    "Ask what changes in the full spread when this energy is acknowledged.",
-  ],
-];
-
 const PT_POSITION_CONTEXT: readonly (readonly string[])[] = [
   [
     "{card} enquadra {question}: {keyword} aparece como o primeiro sinal a ser lido antes de decidir o próximo passo.",
@@ -620,6 +524,13 @@ export function generateFallbackReading(params: FallbackReadingParams) {
   );
   const themeKey = normalizeTheme(theme);
   const copy = (isEnglish ? EN_THEMES : PT_THEMES)[themeKey];
+  const productLabel =
+    (PRODUCT_LABELS[productKey] ?? PRODUCT_LABELS.free_daily)[
+      isEnglish ? "en" : "pt"
+    ];
+  const contextLine = isEnglish
+    ? `${productLabel} for ${copy.label}.`
+    : `${productLabel} em ${copy.label}.`;
   const pick = <T,>(items: readonly T[], salt: string) =>
     pickVariant(items, seed, salt);
   const momentPattern = detectMomentPattern(question, theme);
@@ -639,6 +550,11 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     draw.reversed ? draw.card.reversed : draw.card.upright;
   const label = (draw: (typeof localizedSpread)[number]) =>
     `${draw.card.name}${draw.reversed ? (isEnglish ? " (reversed)" : " (reversa)") : ""}`;
+  const limitWords = (text: string, limit: number) => {
+    const clean = text.replace(/\s+/g, " ").trim();
+    const words = clean.split(/\s+/).filter(Boolean);
+    return words.length > limit ? `${words.slice(0, limit).join(" ")}...` : clean;
+  };
   const cleanQuestion = question.replace(/\s+/g, " ").trim();
   const shortQuestion =
     cleanQuestion.length > 96 ? `${cleanQuestion.slice(0, 93).trim()}...` : cleanQuestion;
@@ -677,114 +593,81 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     personalization,
     patternLine: momentLine,
   });
-  const directAnswer = isEnglish
+  const compactPresenceLine = localPresenceLine
+    ? limitWords(localPresenceLine, isEnglish ? 24 : 26)
+    : "";
+  const directCore = isEnglish
     ? hasExtendedSpread
-      ? `${localPresenceLine} Your question is not asking for perfect certainty; this ${localizedSpread.length}-position map begins with ${label(situation)}, turns through ${label(midpoint)}, and converges toward ${label(direction)}.`
-      : `${localPresenceLine} Your question is not asking for perfect certainty; it is asking you to read the situation through ${label(situation)}, notice the tension shown by ${label(obstacle)}, and choose the direction opened by ${label(direction)}.`
+      ? `This ${localizedSpread.length}-position map begins with ${label(situation)}, turns through ${label(midpoint)}, and points to ${label(direction)}.`
+      : `The answer is to read the situation through ${label(situation)}, notice the tension in ${label(obstacle)}, and move through ${label(direction)}.`
     : hasExtendedSpread
-      ? `${localPresenceLine} A sua pergunta não está pedindo certeza perfeita; este mapa de ${localizedSpread.length} posições começa em ${label(situation)}, atravessa ${label(midpoint)} e converge para ${label(direction)}.`
-      : `${localPresenceLine} A sua pergunta não está pedindo certeza perfeita; ela pede que você leia a situação por ${label(situation)}, perceba a tensão mostrada por ${label(obstacle)} e escolha a direção aberta por ${label(direction)}.`;
+      ? `Este mapa de ${localizedSpread.length} posições começa em ${label(situation)}, atravessa ${label(midpoint)} e aponta para ${label(direction)}.`
+      : `A resposta é ler a situação por ${label(situation)}, perceber a tensão em ${label(obstacle)} e agir pela direção de ${label(direction)}.`;
+  const directAnswer = compactPresenceLine
+    ? `${compactPresenceLine} ${directCore}`
+    : directCore;
   const memoryLine = hasPortalMemory
     ? isEnglish
-      ? "Your saved journey suggests this is part of a continuing pattern; notice what is repeating without forcing a conclusion."
-      : "Sua jornada salva indica continuidade; observe o que se repete sem forçar uma conclusão."
+      ? "Something in your saved journey repeats here; notice the pattern without rushing the conclusion."
+      : "Algo da sua jornada salva se repete aqui; observe o padrão sem correr para a conclusão."
     : "";
   const mantra = pick(copy.mantras, "mantra");
-  const productContext = PRODUCT_CONTEXT[productKey] ?? PRODUCT_CONTEXT.free_daily;
-  const triadLine = (draw: (typeof localizedSpread)[number], index: number) => {
+  const cardLine = (draw: (typeof localizedSpread)[number], index: number) => {
     const keyword = draw.card.keywords[0] ?? (isEnglish ? "presence" : "presença");
-    const templates = isEnglish
-      ? [
-          `${label(draw)} names the truth beneath the noise: ${keyword} is the first layer to acknowledge honestly.`,
-          `${label(draw)} shows the shadow clearly: ${keyword} needs to be seen before the pattern repeats.`,
-          `${label(draw)} opens direction through one grounded movement shaped by ${keyword}.`,
-        ]
-      : [
-          `${label(draw)} nomeia a verdade sob o ruído: ${keyword} é a primeira camada a reconhecer com honestidade.`,
-          `${label(draw)} mostra a sombra com clareza: ${keyword} precisa ser visto antes que o padrão se repita.`,
-          `${label(draw)} abre direção por meio de um movimento possível guiado por ${keyword}.`,
-        ];
-    return templates[index] ?? templates[0];
+    const text = contextualMeaning(draw, index);
+    return isEnglish
+      ? `- ${draw.position}: ${label(draw)} — ${limitWords(text || keyword, 24)}`
+      : `- ${draw.position}: ${label(draw)} — ${limitWords(text || keyword, 24)}`;
   };
+  const mapLine = isEnglish
+    ? hasExtendedSpread
+      ? `The movement goes from ${situation.card.keywords[0]}, crosses ${midpoint.card.keywords[0]}, and asks for ${direction.card.keywords[0]}.`
+      : `Read the three cards as truth, tension, and next step. ${memoryLine}`.trim()
+    : hasExtendedSpread
+      ? `O movimento sai de ${situation.card.keywords[0]}, atravessa ${midpoint.card.keywords[0]} e pede ${direction.card.keywords[0]}.`
+      : `Leia as três cartas como verdade, tensão e próximo passo. ${memoryLine}`.trim();
+  const openingLine = hasExtendedSpread
+    ? [contextLine, mapLine, memoryLine].filter(Boolean).join(" ")
+    : [contextLine, contextualOpening, memoryLine].filter(Boolean).join(" ");
   const actions = unique([
     pick(copy.actions, "action-theme"),
     daily.advice,
     isEnglish
       ? `Let ${label(direction)} define one concrete action you can complete before the day ends.`
       : `Deixe ${label(direction)} definir uma ação concreta que você consiga concluir antes do fim do dia.`,
-  ]).slice(0, 3);
+  ]).map((action) => limitWords(action, 18)).slice(0, 3);
   const recommendedQuestion = pick(copy.questions, "question");
 
   const lines = isEnglish
     ? [
-        "1) DIRECT ANSWER TO THE QUESTION",
+        "1) DIRECT ANSWER",
         directAnswer,
         "",
-        "2) INITIAL LISTENING",
-        contextualOpening,
-        productContext.en,
-        memoryLine,
+        hasExtendedSpread ? "2) SPREAD MAP" : "2) CARDS",
+        openingLine,
+        ...(hasExtendedSpread ? localizedSpread.map(cardLine) : localizedSpread.slice(0, 3).map(cardLine)),
         "",
-        "3) MANTRA",
-        mantra,
-        `Plain meaning: ${daily.affirmation}`,
-        "",
-        hasExtendedSpread ? "4) MAP OF THE SPREAD" : "4) THE THREE THREADS",
-        `- ${hasExtendedSpread ? "Opening" : "Truth"}: ${triadLine(situation, 0)}`,
-        `- ${hasExtendedSpread ? "Turning point" : "Shadow"}: ${triadLine(hasExtendedSpread ? midpoint : obstacle, 1)}`,
-        `- ${hasExtendedSpread ? "Integration" : "Direction"}: ${triadLine(direction, 2)}`,
-        "",
-        "5) READING BY POSITION",
-        ...localizedSpread.flatMap((draw, index) => [
-          `- ${draw.position} — ${label(draw)}`,
-          `  In practice: ${contextualMeaning(draw, index)}`,
-          `  ${pick(EN_POSITION_GUIDANCE[index] ?? EN_POSITION_GUIDANCE[3], `position-${index}`)}`,
-          "",
-        ]),
-        "6) ACTIONS",
+        "3) ACTIONS",
         ...actions.map((action) => `- ${action}`),
         "",
-        "7) INTEGRATION",
-        daily.ritual,
-        `- What is happening: ${situation.card.keywords[0]} is setting the tone.`,
-        `- What blocks you: ${obstacle.card.keywords[0]} needs awareness rather than impulse.`,
-        `- Next step: act through ${direction.card.keywords[0]}.`,
-        `- Recommended question: ${recommendedQuestion}`,
+        "4) CLOSING",
+        `Mantra: ${mantra}`,
+        `Next question: ${recommendedQuestion}`,
       ]
     : [
-        "1) RESPOSTA DIRETA À PERGUNTA",
+        "1) RESPOSTA DIRETA",
         directAnswer,
         "",
-        "2) ESCUTA INICIAL",
-        contextualOpening,
-        productContext.pt,
-        memoryLine,
+        hasExtendedSpread ? "2) MAPA DA TIRADA" : "2) CARTAS",
+        openingLine,
+        ...(hasExtendedSpread ? localizedSpread.map(cardLine) : localizedSpread.slice(0, 3).map(cardLine)),
         "",
-        "3) MANTRA",
-        mantra,
-        `Tradução simples: ${daily.affirmation}`,
-        "",
-        hasExtendedSpread ? "4) MAPA DA TIRADA" : "4) TRÍADE",
-        `- ${hasExtendedSpread ? "Abertura" : "Verdade"}: ${triadLine(situation, 0)}`,
-        `- ${hasExtendedSpread ? "Ponto de virada" : "Sombra"}: ${triadLine(hasExtendedSpread ? midpoint : obstacle, 1)}`,
-        `- ${hasExtendedSpread ? "Integração" : "Direção"}: ${triadLine(direction, 2)}`,
-        "",
-        "5) LEITURA POR POSIÇÃO",
-        ...localizedSpread.flatMap((draw, index) => [
-          `- ${draw.position} — ${label(draw)}`,
-          `  Na prática: ${contextualMeaning(draw, index)}`,
-          `  ${pick(PT_POSITION_GUIDANCE[index] ?? PT_POSITION_GUIDANCE[3], `position-${index}`)}`,
-          "",
-        ]),
-        "6) AÇÕES",
+        "3) AÇÕES",
         ...actions.map((action) => `- ${action}`),
         "",
-        "7) INTEGRAÇÃO",
-        daily.ritual,
-        `- O que está acontecendo: ${situation.card.keywords[0]} dá o tom.`,
-        `- O que trava: ${obstacle.card.keywords[0]} pede consciência, não impulso.`,
-        `- Próximo passo: agir por meio de ${direction.card.keywords[0]}.`,
-        `- Pergunta recomendada: ${recommendedQuestion}`,
+        "4) FECHAMENTO",
+        `Mantra: ${mantra}`,
+        `Próxima pergunta: ${recommendedQuestion}`,
       ];
 
   return lines

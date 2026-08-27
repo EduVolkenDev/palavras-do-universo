@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 
-const baseUrl = process.env.PDU_QA_URL ?? "http://127.0.0.1:3000";
+const baseUrl = process.env.PDU_QA_URL ?? "http://localhost:3000";
 const chromePath =
   process.env.PDU_CHROME_PATH ??
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";

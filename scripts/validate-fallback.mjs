@@ -170,7 +170,7 @@ try {
       spread: spreadFor("en"),
     })
   );
-  assert(english.includes("INITIAL LISTENING"), "English structure is missing");
+  assert(english.includes("CARDS"), "English compact structure is missing");
   assert(
     english.includes("How to organize my priorities") ||
       english.includes("How can I organize my priorities"),
