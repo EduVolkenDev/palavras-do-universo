@@ -728,7 +728,7 @@ function isUuid(value: string | null) {
 }
 
 const READING_SECTION_HEADING_RE =
-  /^(?:\d+\)\s*)?(DIRECT ANSWER(?: TO THE QUESTION)?|RESPOSTA DIRETA(?: À PERGUNTA| A PERGUNTA)?|INITIAL LISTENING|ESCUTA INICIAL|MANTRA|SPREAD MAP|MAP OF THE SPREAD|MAPA DA TIRADA|THE THREE THREADS|TR[IÍ]ADE|CARDS|CARTAS|READING BY POSITION|LEITURA POR POSIÇÃO|ACTIONS|AÇÕES|ACOES|CLOSING|FECHAMENTO|INTEGRATION(?: RITUAL)?|INTEGRAÇÃO|RITUAL DE INTEGRAÇÃO|DIRECT SUMMARY|RESUMO DIRETO|SUMMARY|RESUMO|GANCHO|NEXT QUESTION|CONSELHO|ADVICE|READING IN THE SELECTED LANGUAGE|LEITURA NO IDIOMA SELECIONADO)\b\s*[:—-]?\s*(.*)$/i;
+  /^(?:\d+[).]\s*)?(DIRECT ANSWER(?: TO THE QUESTION)?|RESPOSTA DIRETA(?: À PERGUNTA| A PERGUNTA)?|INITIAL LISTENING|ESCUTA INICIAL|MANTRA|SPREAD MAP|MAP OF THE SPREAD|MAPA DA TIRADA|THE THREE THREADS|TR[IÍ]ADE|CARDS|CARTAS|READING BY POSITION|LEITURA POR POSIÇÃO|ACTIONS|AÇÕES|ACOES|CLOSING|FECHAMENTO|INTEGRATION(?: RITUAL)?|INTEGRAÇÃO|RITUAL DE INTEGRAÇÃO|DIRECT SUMMARY|RESUMO DIRETO|SUMMARY|RESUMO|GANCHO|NEXT QUESTION|CONSELHO|ADVICE|READING IN THE SELECTED LANGUAGE|LEITURA NO IDIOMA SELECIONADO)\b\s*[:—-]?\s*(.*)$/i;
 
 function normalizeReadingSectionTitle(title: string) {
   return title
@@ -859,7 +859,7 @@ function firstMeaningfulLine(block: string) {
     .find(
       (line) =>
         line &&
-        !/^\d\)\s/.test(line) &&
+        !/^\d+[).]\s/.test(line) &&
         !/^(MANTRA|TR[IÍ]ADE|CARTAS|CARDS|MAPA DA TIRADA|SPREAD MAP|FECHAMENTO|CLOSING|AÇÕES|ACOES|ACTIONS|INTEGRATION|INTEGRAÇÃO)$/i.test(line)
     );
 }
@@ -873,7 +873,7 @@ function getReadingMantra(reading: string, fallback: string) {
   }
 
   const match = reading.match(
-    /(?:^|\n)\s*(?:\d\)\s*)?MANTRA\s*\n+([\s\S]*?)(?=\n\s*(?:\d\)\s*)?(?:TR[IÍ]ADE|THE THREE THREADS|CARTAS|CARDS|LEITURA|READING BY POSITION|AÇÕES|ACTIONS|FECHAMENTO|CLOSING|INTEGRAÇÃO|INTEGRATION)\b|$)/i
+    /(?:^|\n)\s*(?:\d+[).]\s*)?MANTRA\s*\n+([\s\S]*?)(?=\n\s*(?:\d+[).]\s*)?(?:TR[IÍ]ADE|THE THREE THREADS|CARTAS|CARDS|LEITURA|READING BY POSITION|AÇÕES|ACTIONS|FECHAMENTO|CLOSING|INTEGRAÇÃO|INTEGRATION)\b|$)/i
   );
   const line = match ? firstMeaningfulLine(match[1]) : "";
   return line?.replace(/^[-•]\s*/, "") || fallback;
@@ -952,7 +952,7 @@ function buildLocalizedReadingText(params: {
 
 function getReadingAction(reading: string, fallback: string) {
   const match = reading.match(
-    /(?:^|\n)\s*(?:\d\)\s*)?(?:AÇÕES|ACOES|ACTIONS)\s*\n+([\s\S]*?)(?=\n\s*(?:\d\)\s*)?(?:FECHAMENTO|CLOSING|INTEGRAÇÃO|INTEGRATION|RITUAL|RESUMO|SUMMARY)\b|$)/i
+    /(?:^|\n)\s*(?:\d+[).]\s*)?(?:AÇÕES|ACOES|ACTIONS)\s*\n+([\s\S]*?)(?=\n\s*(?:\d+[).]\s*)?(?:FECHAMENTO|CLOSING|INTEGRAÇÃO|INTEGRATION|RITUAL|RESUMO|SUMMARY)\b|$)/i
   );
   const line = match ? firstMeaningfulLine(match[1]) : "";
   return line?.replace(/^[-•]\s*/, "") || fallback;

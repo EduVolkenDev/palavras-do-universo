@@ -1,7 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 const DEFAULT_MODEL = "claude-sonnet-4-6";
-const DEFAULT_TIMEOUT_MS = 16_000;
+// Long spreads need enough time to interpret every position without silently
+// falling back before the provider has finished generating the response.
+const DEFAULT_TIMEOUT_MS = 45_000;
 const DEFAULT_MAX_RETRIES = 0;
 
 type ReadingGenerationLimits = {
@@ -52,7 +54,7 @@ export async function generateReadingAI(
       process.env.ANTHROPIC_TIMEOUT_MS,
       DEFAULT_TIMEOUT_MS,
       5_000,
-      30_000
+      45_000
     ),
     maxRetries: readBoundedNumber(
       process.env.ANTHROPIC_MAX_RETRIES,

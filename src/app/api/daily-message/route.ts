@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getDailyMessage, getDailyVisitorKey } from "@/lib/daily/message";
 import {
   getZonedDay,
+  localizeZonedDay,
   normalizeTimeZone,
   secondsUntilNextZonedMidnight,
 } from "@/lib/daily/time";
@@ -123,7 +124,7 @@ export async function GET(req: NextRequest) {
   const response = NextResponse.json({
     ok: true,
     daily,
-    today: day,
+    today: localizeZonedDay(day, locale),
     expiresInSeconds: secondsUntilNextZonedMidnight(day),
   });
   response.headers.set("Cache-Control", "no-store, max-age=0");

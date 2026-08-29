@@ -31,7 +31,11 @@ async function readSource(source) {
 
 try {
   await compile("src/lib/product/access.ts", "src/lib/product/access.js");
+  await compile("src/lib/product/catalog.ts", "src/lib/product/catalog.js");
+  await compile("src/lib/tarot/spreads.ts", "src/lib/tarot/spreads.js");
   const access = await import(join(temp, "src/lib/product/access.js"));
+  const catalog = await import(join(temp, "src/lib/product/catalog.js"));
+  const spreads = await import(join(temp, "src/lib/tarot/spreads.js"));
 
   const circle = {
     id: "circle",
@@ -96,6 +100,70 @@ try {
     "Subscription/Circle entitlement must not be consumed per reading"
   );
 
+  const paidCards = catalog.productCards.filter((card) => card.mode === "paid");
+  const paidCardKeys = new Set(paidCards.map((card) => card.productKey));
+  const paidReadingKeys = Array.from(access.PAID_READING_PRODUCTS).filter(
+    (productKey) => productKey !== access.CIRCLE_PRODUCT_KEY
+  );
+
+  for (const productKey of paidReadingKeys) {
+    assert(
+      paidCardKeys.has(productKey),
+      `Paid reading ${productKey} must have a paid product card`
+    );
+    assert(
+      typeof catalog.productCards.find((card) => card.productKey === productKey)?.price ===
+        "string",
+      `Paid reading ${productKey} must have a standalone price`
+    );
+    assert(
+      Number.isFinite(
+        Number(
+          catalog.productCards
+            .find((card) => card.productKey === productKey)
+            .price.replace(/[^0-9,]/g, "")
+            .replace(".", "")
+            .replace(",", ".")
+        )
+      ),
+      `Paid reading ${productKey} must have a numeric standalone price`
+    );
+    assert(
+      spreads.PRODUCT_SPREAD_TYPES[productKey] &&
+        spreads.getSpreadForProduct(productKey)?.positions.length > 0,
+      `Paid reading ${productKey} must map to a valid spread experience`
+    );
+  }
+
+  const circleCardKeys = new Set(
+    paidCards
+      .filter((card) => card.includedInCircle)
+      .map((card) => card.productKey)
+  );
+  assert(
+    circleCardKeys.size === access.CIRCLE_INCLUDED_PRODUCTS.size &&
+      Array.from(access.CIRCLE_INCLUDED_PRODUCTS).every((productKey) =>
+        circleCardKeys.has(productKey)
+      ),
+    "Circle access rules must match the product-card inclusion flags"
+  );
+  assert(
+    !circleCardKeys.has("clareza_urgente"),
+    "Clareza Urgente must remain a standalone reading outside the Circle"
+  );
+  assert(
+    catalog.pricingPlans
+      .find((plan) => plan.productKey === access.CIRCLE_PRODUCT_KEY)
+      .features.some((feature) => feature.includes("11 leituras")),
+    "Circle pricing copy must state the complete 11-reading entitlement"
+  );
+  assert(
+    !catalog.pricingPlans
+      .find((plan) => plan.productKey === access.CIRCLE_PRODUCT_KEY)
+      .features.includes("7 tiradas especiais com experiências próprias"),
+    "Circle pricing copy must not retain the stale seven-reading claim"
+  );
+
   const readingRoute = await readSource("src/app/api/reading/create/route.ts");
   assert(
     readingRoute.includes("shouldConsumeEntitlement(entitlement)"),
@@ -152,6 +220,54 @@ try {
       activeEntitlementsMigration.includes("security_invoker = true"),
     "active_entitlements must stay SECURITY INVOKER to respect querying-user RLS"
   );
+
+  const checkoutRoute = await readSource("src/app/api/checkout/create/route.ts");
+  for (const productKey of access.PAID_READING_PRODUCTS) {
+    assert(
+      checkoutRoute.includes(productKey),
+      `Checkout copy must cover paid product ${productKey}`
+    );
+  }
+  assert(
+    !checkoutRoute.includes("payment_method_types"),
+    "Checkout must keep Stripe payment-method selection automatic"
+  );
+
+  const commerceHealthRoute = await readSource("src/app/api/health/commerce/route.ts");
+  assert(
+    commerceHealthRoute.includes("expectedPaidProductKeys") &&
+      commerceHealthRoute.includes("catalogMatrix"),
+    "Commerce health must validate the complete catalog and Circle matrix"
+  );
+
+  const circleMigration = await readSource(
+    "supabase/migrations/20260816123000_align_circle_included_products.sql"
+  );
+  for (const productKey of access.CIRCLE_INCLUDED_PRODUCTS) {
+    assert(
+      circleMigration.includes(`'${productKey}'`),
+      `Circle migration must include ${productKey}`
+    );
+  }
+  const standalonePricingMigration = await readSource(
+    "supabase/migrations/20260819120000_price_premium_spreads_avulso.sql"
+  );
+  for (const productKey of [
+    "energia_da_semana",
+    "mapa_do_momento",
+    "tirada_diamante",
+    "passaro_voando",
+    "a_chave",
+    "o_espelho",
+    "cruz_celta",
+    "relacionar",
+    "o_paradoxo",
+  ]) {
+    assert(
+      standalonePricingMigration.includes(`'${productKey}'`),
+      `Standalone pricing migration must cover ${productKey}`
+    );
+  }
 
   console.log(
     "Commerce access valid: Circle unlocks included readings, limited vouchers consume once, and Meu Universo uses shared access resolution."

@@ -110,6 +110,26 @@ export function getZonedDay(timeZoneInput?: string | null): ZonedDay {
   };
 }
 
+export function formatZonedDayLabel(day: ZonedDay, localeInput = "pt-BR") {
+  const isEnglish = localeInput.startsWith("en");
+  const date = new Date(Date.UTC(day.year, day.month - 1, day.day, 12));
+
+  return new Intl.DateTimeFormat(isEnglish ? "en-US" : "pt-BR", {
+    timeZone: "UTC",
+    weekday: "long",
+    day: isEnglish ? "numeric" : "2-digit",
+    month: isEnglish ? "long" : "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
+export function localizeZonedDay(day: ZonedDay, localeInput = "pt-BR"): ZonedDay {
+  return {
+    ...day,
+    label: formatZonedDayLabel(day, localeInput),
+  };
+}
+
 export function secondsUntilNextZonedMidnight(day: ZonedDay) {
   const nextMidnightUtc = zonedMidnightUtcMs({
     day: day.day + 1,

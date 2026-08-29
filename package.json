@@ -12,10 +12,13 @@
     "optimize:assets": "node scripts/optimize-assets.mjs",
     "convert:webp": "node scripts/convert-images-to-webp.mjs",
     "prove:commerce-access": "node scripts/prove-commerce-access-live.mjs",
+    "prove:ai-reading-quality": "node scripts/prove-ai-reading-quality-live.mjs",
+    "prove:paid-reading-quality": "node scripts/prove-paid-reading-quality-live.mjs",
     "prove:phase2-voucher-flow": "node scripts/prove-phase2-voucher-flow.mjs",
     "prove:stripe-webhook-entitlement": "node scripts/prove-stripe-webhook-entitlement.mjs",
     "validate:commerce-access": "node scripts/validate-commerce-access.mjs",
     "validate:fallback": "node scripts/validate-fallback.mjs",
+    "validate:reading-quality": "node scripts/validate-reading-quality.mjs",
     "validate:tarot-assets": "node scripts/validate-tarot-assets.mjs",
     "qa:routes": "node scripts/visual-qa-routes.mjs",
     "qa:reading": "node scripts/visual-qa-reading.mjs"

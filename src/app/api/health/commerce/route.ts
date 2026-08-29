@@ -5,6 +5,11 @@ import {
   hasSupabasePublicConfig,
 } from "@/lib/supabase/server";
 import { getSiteUrl, getStripe, hasStripeConfig } from "@/lib/stripe/server";
+import {
+  CIRCLE_INCLUDED_PRODUCTS,
+  CIRCLE_PRODUCT_KEY,
+  PAID_READING_PRODUCTS,
+} from "@/lib/product/access";
 
 type PaidProduct = {
   product_key: string;
@@ -12,6 +17,7 @@ type PaidProduct = {
   price_cents: number;
   currency: string;
   provider_price_id: string | null;
+  included_in: string[] | null;
   metadata?: Record<string, unknown> | null;
 };
 
@@ -34,6 +40,7 @@ export async function GET(request: Request) {
     stripeWebhook: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
     stripeCheckoutVerified: false,
     stripeCustomerPortalVerified: false,
+    catalogMatrix: false,
     anthropicKey: hasAnthropicConfig(),
     productionUrl: !getSiteUrl().includes("localhost"),
     supportEmail: Boolean(process.env.NEXT_PUBLIC_SUPPORT_EMAIL),
@@ -42,12 +49,14 @@ export async function GET(request: Request) {
   let catalogError = "";
   let stripeError = "";
   let paidProducts: PaidProduct[] = [];
+  const expectedPaidProductKeys = Array.from(PAID_READING_PRODUCTS);
+  const expectedCircleIncludedProductKeys = Array.from(CIRCLE_INCLUDED_PRODUCTS);
 
   if (checks.supabaseServer) {
     const { data, error } = await getSupabaseAdmin()
       .from("oracle_products")
       .select(
-        "product_key,product_type,price_cents,currency,provider_price_id,metadata"
+        "product_key,product_type,price_cents,currency,provider_price_id,included_in,metadata"
       )
       .eq("status", "active")
       .gt("price_cents", 0)
@@ -57,6 +66,26 @@ export async function GET(request: Request) {
     );
     activePaidProducts = paidProducts.length;
     catalogError = error?.message ?? "";
+
+    const activePaidProductKeys = new Set(
+      paidProducts.map((product) => product.product_key)
+    );
+    const missingPaidProductKeys = expectedPaidProductKeys.filter(
+      (productKey) => !activePaidProductKeys.has(productKey)
+    );
+    const missingCircleIncludedProductKeys = expectedCircleIncludedProductKeys.filter(
+      (productKey) => {
+        const product = paidProducts.find(
+          (candidate) => candidate.product_key === productKey
+        );
+        return !(product?.included_in ?? []).includes(CIRCLE_PRODUCT_KEY);
+      }
+    );
+    checks.catalogMatrix =
+      !catalogError &&
+      activePaidProductKeys.has(CIRCLE_PRODUCT_KEY) &&
+      missingPaidProductKeys.length === 0 &&
+      missingCircleIncludedProductKeys.length === 0;
   }
 
   if (checks.stripeSecret && !catalogError && paidProducts.length > 0) {
@@ -91,7 +120,7 @@ export async function GET(request: Request) {
       ]);
 
       checks.stripeCheckoutVerified =
-        prices.length >= 4 && prices.every(Boolean);
+        prices.length >= expectedPaidProductKeys.length && prices.every(Boolean);
       checks.stripeCustomerPortalVerified =
         portalConfigurations.data.length > 0;
     } catch (error) {
@@ -102,7 +131,7 @@ export async function GET(request: Request) {
 
   const ready =
     Object.values(checks).every(Boolean) &&
-    activePaidProducts >= 4 &&
+    activePaidProducts >= expectedPaidProductKeys.length &&
     !catalogError &&
     !stripeError;
   const oneTimeReady =
@@ -114,7 +143,7 @@ export async function GET(request: Request) {
     checks.anthropicKey &&
     checks.productionUrl &&
     checks.supportEmail &&
-    activePaidProducts >= 3 &&
+    activePaidProducts >= expectedPaidProductKeys.length &&
     !catalogError &&
     !stripeError;
 
@@ -130,6 +159,19 @@ export async function GET(request: Request) {
     ...summary,
     checks,
     activePaidProducts,
+    expectedPaidProducts: expectedPaidProductKeys,
+    expectedCircleIncludedProducts: expectedCircleIncludedProductKeys,
+    missingPaidProductKeys: expectedPaidProductKeys.filter(
+      (productKey) => !paidProducts.some((product) => product.product_key === productKey)
+    ),
+    missingCircleIncludedProductKeys: expectedCircleIncludedProductKeys.filter(
+      (productKey) =>
+        !paidProducts.some(
+          (product) =>
+            product.product_key === productKey &&
+            (product.included_in ?? []).includes(CIRCLE_PRODUCT_KEY)
+        )
+    ),
     catalogError: catalogError ? "Catalog query failed" : null,
     stripeError: stripeError ? "Stripe verification failed" : null,
   });

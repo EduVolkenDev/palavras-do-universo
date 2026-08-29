@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import {
+  formatZonedDayLabel,
   getZonedDay,
   normalizeTimeZone,
   secondsUntilNextZonedMidnight,
@@ -204,16 +205,7 @@ export function GET(req: NextRequest) {
   const timeZone = normalizeTimeZone(req.nextUrl.searchParams.get("tz"));
   const locale = req.nextUrl.searchParams.get("locale") ?? "pt-BR";
   const today = getZonedDay(timeZone);
-  const todayLabel =
-    locale.startsWith("en")
-      ? new Intl.DateTimeFormat("en-US", {
-          timeZone: today.timeZone,
-          day: "2-digit",
-          month: "long",
-          year: "numeric",
-          weekday: "long",
-        }).format(new Date())
-      : today.label;
+  const todayLabel = formatZonedDayLabel(today, locale);
   const visitorSeed =
     req.cookies.get(VISITOR_SEED_COOKIE_NAME)?.value ?? randomUUID();
   const current = decodeOpening(req.cookies.get(COOKIE_NAME)?.value);

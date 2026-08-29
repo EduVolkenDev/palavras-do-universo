@@ -298,6 +298,21 @@ function walk(dir) {
 
 walk(srcRoot);
 
+const dailyMessageRoutePath = path.join(srcRoot, "app/api/daily-message/route.ts");
+const dailyMessageRoute = fs.readFileSync(dailyMessageRoutePath, "utf8");
+if (
+  dailyMessageRoute.includes("today: day") ||
+  !dailyMessageRoute.includes("today: localizeZonedDay(day, locale)")
+) {
+  reports.push({
+    kind: "api-locale-leak",
+    file: path.relative(root, dailyMessageRoutePath),
+    line: 1,
+    column: 1,
+    message: "Daily message API must localize today.label before returning it.",
+  });
+}
+
 reports.sort((a, b) => `${a.file}:${a.line}:${a.column}`.localeCompare(`${b.file}:${b.line}:${b.column}`));
 
 if (reports.length) {

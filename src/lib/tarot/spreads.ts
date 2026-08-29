@@ -282,7 +282,7 @@ export const SPREADS: Record<SpreadType, SpreadExperience> = {
 export const PRODUCT_SPREAD_TYPES: Record<string, SpreadType> = {
   free_daily: "situation_obstacle_direction",
   carta_do_dia: "one_card",
-  caminho_3_cartas: "situation_obstacle_direction",
+  caminho_3_cartas: "three_card_timeline",
   clareza_urgente: "situation_obstacle_direction",
   sinais_do_amor: "relationship_intention_dynamic_boundary",
   energia_da_semana: "three_card_timeline",

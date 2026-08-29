@@ -42,7 +42,77 @@ const checkoutCopyByLocale: Record<
   CheckoutLocale,
   Record<string, { title: string; description: string }>
 > = {
-  "pt-BR": {},
+  "pt-BR": {
+    teste_checkout_50: {
+      title: "Teste de Checkout",
+      description: "Validação interna de pagamento do Palavras do Universo.",
+    },
+    clareza_urgente: {
+      title: "Clareza Urgente",
+      description:
+        "Uma leitura premium para respirar, entender o que pesa e escolher o próximo passo de hoje.",
+    },
+    caminho_3_cartas: {
+      title: "Caminho das 3 Cartas",
+      description:
+        "Situação, sombra e direção para uma pergunta real com clareza prática.",
+    },
+    sinais_do_amor: {
+      title: "Sinais do Amor",
+      description:
+        "Clareza para sentimentos, vínculos, padrões emocionais e escolhas afetivas.",
+    },
+    energia_da_semana: {
+      title: "Energia da Semana",
+      description:
+        "Um guia simbólico para os próximos sete dias, com foco, cuidado e integração.",
+    },
+    mapa_do_momento: {
+      title: "Mapa do Momento",
+      description:
+        "Um retrato simbólico da sua fase atual, dos padrões recorrentes e da próxima direção.",
+    },
+    tirada_diamante: {
+      title: "O Diamante",
+      description:
+        "Uma tirada premium de cinco cartas para observar uma questão por dentro, por fora e em integração.",
+    },
+    passaro_voando: {
+      title: "O Pássaro Voando",
+      description:
+        "Uma tirada premium de sete cartas sobre movimento, medo, receptividade, ação e horizonte.",
+    },
+    a_chave: {
+      title: "A Chave",
+      description:
+        "Uma tirada premium de oito cartas para nomear padrões ocultos e abrir uma escolha real.",
+    },
+    o_espelho: {
+      title: "O Espelho",
+      description:
+        "Uma tirada premium de doze cartas para relações, projeções, necessidades, limites e escolhas.",
+    },
+    cruz_celta: {
+      title: "Cruz Celta",
+      description:
+        "Uma tirada premium de dez cartas para contexto amplo, tensão, raízes, campo e integração.",
+    },
+    relacionar: {
+      title: "Relacionar",
+      description:
+        "Uma tirada premium de quatro cartas para presença, conexão, limites e clareza relacional.",
+    },
+    o_paradoxo: {
+      title: "O Paradoxo",
+      description:
+        "Uma tirada premium de cinco cartas para acolher a contradição e encontrar um terceiro olhar.",
+    },
+    circulo_do_universo: {
+      title: "Círculo do Universo",
+      description:
+        "Histórico simbólico, rituais, ciclos, favoritos e acesso contínuo às principais leituras.",
+    },
+  },
   en: {
     teste_checkout_50: {
       title: "Checkout Test",

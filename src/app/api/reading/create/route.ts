@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { CARDS } from "@/lib/tarot/cards";
 import { getDailyMessage, getDailyVisitorKey } from "@/lib/daily/message";
 import { getZonedDay, normalizeTimeZone } from "@/lib/daily/time";
@@ -9,6 +10,7 @@ import {
 } from "@/lib/tarot/spreads";
 import { generateReadingAI } from "@/lib/tarot/ai";
 import { generateFallbackReading } from "@/lib/tarot/fallback";
+import { validateReadingQuality } from "@/lib/tarot/reading-quality";
 import { sanitizeQuestion } from "@/lib/tarot/sanitizeQuestion";
 import {
   ensureSupabaseProfile,
@@ -722,36 +724,50 @@ async function persistReading(params: {
 }): Promise<string | null> {
   if (!params.remoteEnabled || !hasSupabaseConfig()) return null;
 
-  try {
-    await ensureSupabaseProfile(params.userId, params.email);
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-      .from("readings")
-      .insert({
-        user_id: params.userId,
-        email:
-          typeof params.email === "string" && params.email.includes("@")
-            ? params.email.trim().toLowerCase()
-            : null,
-        locale: params.locale,
-        theme: params.theme,
-        question: params.question,
-        mode: params.mode,
-        intent_key: params.productKey,
-        sanitized_question: params.question,
-        spread_type: params.spreadType,
-        spread: params.spread,
-        interpretation: params.interpretation,
-      })
-      .select("id")
-      .single();
+  const readingId = randomUUID();
+  let lastError: unknown = null;
 
-    if (error) throw error;
-    return typeof data?.id === "string" ? data.id : null;
-  } catch (caught) {
-    console.warn("Supabase reading persistence skipped:", caught);
-    return null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await ensureSupabaseProfile(params.userId, params.email);
+      const supabase = getSupabaseAdmin();
+      const { data, error } = await supabase
+        .from("readings")
+        .upsert(
+          {
+            id: readingId,
+            user_id: params.userId,
+            email:
+              typeof params.email === "string" && params.email.includes("@")
+                ? params.email.trim().toLowerCase()
+                : null,
+            locale: params.locale,
+            theme: params.theme,
+            question: params.question,
+            mode: params.mode,
+            intent_key: params.productKey,
+            sanitized_question: params.question,
+            spread_type: params.spreadType,
+            spread: params.spread,
+            interpretation: params.interpretation,
+          },
+          { onConflict: "id" }
+        )
+        .select("id")
+        .single();
+
+      if (error) throw error;
+      return typeof data?.id === "string" ? data.id : null;
+    } catch (caught) {
+      lastError = caught;
+      if (attempt === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+    }
   }
+
+  console.warn("Supabase reading persistence skipped:", lastError);
+  return null;
 }
 
 async function getAvailableEntitlement(params: {
@@ -1107,10 +1123,53 @@ export async function POST(req: Request) {
 
   // 3) IA + fallback
   let interpretation = "";
-  try {
-    interpretation = await generateReadingAI(prompt, outputLimits);
-  } catch {
-    interpretation = "";
+  let readingSource: "ai" | "fallback:ai_error" | "fallback:quality" = "ai";
+  let readingQualityReason: string | null = null;
+  const qualityParams: Parameters<typeof validateReadingQuality>[1] = {
+    expectedCards: spreadConfig.positions.length,
+    locale,
+    maxCharacters: outputLimits.maxCharacters,
+    paidProduct,
+  };
+  const maxAiAttempts = paidProduct ? 2 : 1;
+
+  for (let attempt = 0; attempt < maxAiAttempts && !interpretation; attempt += 1) {
+    const attemptPrompt =
+      attempt === 0
+        ? prompt
+        : `${prompt}
+
+Correção obrigatória antes de responder:
+- A tentativa anterior falhou no controle editorial por: ${readingQualityReason ?? "formato fora do contrato"}.
+- Refaça do zero, mantendo todas as seções obrigatórias.
+- Bullets devem ser curtos: no máximo 22 palavras cada.
+- Cada linha de ação deve ser uma ação concreta, sem explicação adicional.
+- Não misture idiomas. Escreva somente em ${locale === "en" ? "inglês natural" : "português brasileiro natural"}.
+- Não use introdução, pedido de desculpas ou comentário sobre a correção. Entregue apenas a leitura final.`;
+
+    try {
+      const aiInterpretation = await generateReadingAI(attemptPrompt, outputLimits);
+      const quality = validateReadingQuality(aiInterpretation, qualityParams);
+
+      interpretation = quality.ok ? quality.text : "";
+      if (!quality.ok) {
+        readingSource = "fallback:quality";
+        readingQualityReason = quality.reason;
+      } else {
+        readingSource = "ai";
+        readingQualityReason = null;
+      }
+    } catch (caught) {
+      interpretation = "";
+      readingSource = "fallback:ai_error";
+      readingQualityReason = "ai_generation_failed";
+      if (process.env.PDU_READING_DEBUG_SOURCE === "1") {
+        console.warn(
+          "Anthropic reading generation failed:",
+          caught instanceof Error ? caught.message : String(caught)
+        );
+      }
+    }
   }
 
   if (!interpretation) {
@@ -1166,6 +1225,9 @@ export async function POST(req: Request) {
       spreadLabel: spreadConfig.label,
       spread: spreadPayload,
       interpretation,
+      ...(process.env.PDU_READING_DEBUG_SOURCE === "1"
+        ? { readingQualityReason, readingSource }
+        : {}),
     }),
     anonymousUserId
   );

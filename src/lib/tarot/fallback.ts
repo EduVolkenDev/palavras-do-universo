@@ -546,6 +546,7 @@ export function generateFallbackReading(params: FallbackReadingParams) {
   const direction = localizedSpread.at(-1) ?? localizedSpread[0];
   const midpoint = localizedSpread[Math.floor((localizedSpread.length - 1) / 2)] ?? obstacle;
   const hasExtendedSpread = localizedSpread.length > 3;
+  const usesPaidFormat = productKey !== "free_daily";
   const meaning = (draw: (typeof localizedSpread)[number]) =>
     draw.reversed ? draw.card.reversed : draw.card.upright;
   const label = (draw: (typeof localizedSpread)[number]) =>
@@ -622,13 +623,14 @@ export function generateFallbackReading(params: FallbackReadingParams) {
   const mapLine = isEnglish
     ? hasExtendedSpread
       ? `The movement goes from ${situation.card.keywords[0]}, crosses ${midpoint.card.keywords[0]}, and asks for ${direction.card.keywords[0]}.`
-      : `Read the three cards as truth, tension, and next step. ${memoryLine}`.trim()
+      : "Read the three cards as truth, tension, and next step."
     : hasExtendedSpread
       ? `O movimento sai de ${situation.card.keywords[0]}, atravessa ${midpoint.card.keywords[0]} e pede ${direction.card.keywords[0]}.`
-      : `Leia as três cartas como verdade, tensão e próximo passo. ${memoryLine}`.trim();
+      : "Leia as três cartas como verdade, tensão e próximo passo.";
   const openingLine = hasExtendedSpread
     ? [contextLine, mapLine, memoryLine].filter(Boolean).join(" ")
     : [contextLine, contextualOpening, memoryLine].filter(Boolean).join(" ");
+  const mapOpeningLine = [contextLine, mapLine, memoryLine].filter(Boolean).join(" ");
   const actions = unique([
     pick(copy.actions, "action-theme"),
     daily.advice,
@@ -639,36 +641,72 @@ export function generateFallbackReading(params: FallbackReadingParams) {
   const recommendedQuestion = pick(copy.questions, "question");
 
   const lines = isEnglish
-    ? [
-        "1) DIRECT ANSWER",
-        directAnswer,
-        "",
-        hasExtendedSpread ? "2) SPREAD MAP" : "2) CARDS",
-        openingLine,
-        ...(hasExtendedSpread ? localizedSpread.map(cardLine) : localizedSpread.slice(0, 3).map(cardLine)),
-        "",
-        "3) ACTIONS",
-        ...actions.map((action) => `- ${action}`),
-        "",
-        "4) CLOSING",
-        `Mantra: ${mantra}`,
-        `Next question: ${recommendedQuestion}`,
-      ]
-    : [
-        "1) RESPOSTA DIRETA",
-        directAnswer,
-        "",
-        hasExtendedSpread ? "2) MAPA DA TIRADA" : "2) CARTAS",
-        openingLine,
-        ...(hasExtendedSpread ? localizedSpread.map(cardLine) : localizedSpread.slice(0, 3).map(cardLine)),
-        "",
-        "3) AÇÕES",
-        ...actions.map((action) => `- ${action}`),
-        "",
-        "4) FECHAMENTO",
-        `Mantra: ${mantra}`,
-        `Próxima pergunta: ${recommendedQuestion}`,
-      ];
+    ? usesPaidFormat
+      ? [
+          "1) DIRECT ANSWER",
+          directAnswer,
+          "",
+          "2) SPREAD MAP",
+          mapOpeningLine,
+          "",
+          "3) CARDS",
+          ...localizedSpread.map(cardLine),
+          "",
+          "4) ACTIONS",
+          ...actions.map((action) => `- ${action}`),
+          "",
+          "5) CLOSING",
+          `Mantra: ${mantra}`,
+          `Next question: ${recommendedQuestion}`,
+        ]
+      : [
+          "1) DIRECT ANSWER",
+          directAnswer,
+          "",
+          "2) CARDS",
+          openingLine,
+          ...localizedSpread.slice(0, 3).map(cardLine),
+          "",
+          "3) ACTIONS",
+          ...actions.map((action) => `- ${action}`),
+          "",
+          "4) CLOSING",
+          `Mantra: ${mantra}`,
+          `Next question: ${recommendedQuestion}`,
+        ]
+    : usesPaidFormat
+      ? [
+          "1) RESPOSTA DIRETA",
+          directAnswer,
+          "",
+          "2) MAPA DA TIRADA",
+          mapOpeningLine,
+          "",
+          "3) CARTAS",
+          ...localizedSpread.map(cardLine),
+          "",
+          "4) AÇÕES",
+          ...actions.map((action) => `- ${action}`),
+          "",
+          "5) FECHAMENTO",
+          `Mantra: ${mantra}`,
+          `Próxima pergunta: ${recommendedQuestion}`,
+        ]
+      : [
+          "1) RESPOSTA DIRETA",
+          directAnswer,
+          "",
+          "2) CARTAS",
+          openingLine,
+          ...localizedSpread.slice(0, 3).map(cardLine),
+          "",
+          "3) AÇÕES",
+          ...actions.map((action) => `- ${action}`),
+          "",
+          "4) FECHAMENTO",
+          `Mantra: ${mantra}`,
+          `Próxima pergunta: ${recommendedQuestion}`,
+        ];
 
   return lines
     .filter((line, index) => line !== "" || lines[index - 1] !== "")

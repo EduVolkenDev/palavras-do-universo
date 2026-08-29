@@ -402,7 +402,10 @@ try {
     locale: "pt-BR",
     email: user.email,
   });
-  assert(checkout.status === 200 && checkout.json?.ok === true, "Checkout create route failed");
+  assert(
+    checkout.status === 200 && checkout.json?.ok === true,
+    `Checkout create route failed: HTTP ${checkout.status} ${JSON.stringify(checkout.json).slice(0, 500)}`
+  );
   assert(checkout.json?.sessionId, "Checkout route did not return a Stripe session id");
   assert(
     typeof checkout.json.checkoutUrl === "string" &&

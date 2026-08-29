@@ -250,7 +250,9 @@ export const pricingPlans: PricingPlan[] = [
     bestFor: "Transformar orientação em jornada pessoal, com memória e ritual.",
     features: [
       "Leitura do Círculo incluída",
-      "7 tiradas especiais com experiências próprias",
+      "11 leituras incluídas enquanto o plano estiver ativo",
+      "3 Cartas, Amor, ciclos semanais, mapas de momento e 7 tiradas especiais",
+      "Cada tirada também mantém compra avulsa para quem não quer assinar",
       "Clareza para amor, decisões e ciclos",
       "Energia da semana e mapa do momento",
       "Histórico vivo para reconhecer padrões",
