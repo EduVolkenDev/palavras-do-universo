@@ -137,6 +137,8 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
       metadata: {
         checkout_session_id: session.id,
         stripe_subscription_id: subscriptionId,
+        currency: getString(session.metadata?.currency),
+        market: getString(session.metadata?.market),
       },
     });
 
@@ -181,6 +183,8 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
     metadata: {
       checkout_session_id: session.id,
       payment_intent_id: getString(session.payment_intent),
+      currency: getString(session.metadata?.currency),
+      market: getString(session.metadata?.market),
     },
   });
 
@@ -232,6 +236,8 @@ export async function syncStripeSubscription(subscription: Stripe.Subscription) 
       metadata: {
         stripe_subscription_id: subscription.id,
         stripe_status: subscription.status,
+        currency: getString(subscription.metadata?.currency),
+        market: getString(subscription.metadata?.market),
       },
     });
   } else if (["canceled", "unpaid", "incomplete_expired"].includes(subscription.status)) {

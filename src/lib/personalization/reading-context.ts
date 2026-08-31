@@ -1,3 +1,5 @@
+import type { JourneySnapshot } from "./journey";
+
 export const READING_PROFILE_VERSION = "pdu-reading-profile-v2";
 
 const MAX_FOCUS_AREAS = 6;
@@ -29,6 +31,7 @@ export type UserContext = {
   readingProfile: ReadingProfile;
   personalizationSignals: PersonalizationSignals;
   source: "remote" | "local" | "none";
+  journey?: JourneySnapshot;
 };
 
 export type PersistedReadingProfile = ReadingProfile & {
@@ -131,7 +134,8 @@ export function getPersonalizationSignals(
 
 export function createUserContext(
   value: unknown,
-  source: UserContext["source"] = "none"
+  source: UserContext["source"] = "none",
+  journey?: JourneySnapshot
 ): UserContext {
   const readingProfile = normalizeReadingProfile(value);
 
@@ -139,6 +143,7 @@ export function createUserContext(
     readingProfile,
     personalizationSignals: getPersonalizationSignals(readingProfile),
     source,
+    journey,
   };
 }
 

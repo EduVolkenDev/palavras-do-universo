@@ -25,12 +25,17 @@ type ProfilePushRow = {
 // Protected by CRON_SECRET header — call this from your cron job daily at 8am
 // Body: { message?: string, title?: string, url?: string }
 export async function POST(request: Request) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const cronSecret = process.env.CRON_SECRET?.trim();
+  if (!cronSecret) {
+    return NextResponse.json(
+      { error: "Push delivery is not securely configured" },
+      { status: 503 }
+    );
+  }
+
+  const authHeader = request.headers.get("authorization");
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   if (!configureVapid()) {
@@ -44,17 +49,40 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
   }
 
-  let body: { message?: string; title?: string; url?: string } = {};
+  let body: { message?: unknown; title?: unknown; url?: unknown } = {};
   try {
-    body = (await request.json()) as typeof body;
+    const parsed = (await request.json()) as unknown;
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return NextResponse.json({ error: "Invalid push payload" }, { status: 400 });
+    }
+    body = parsed as typeof body;
   } catch {
-    // use defaults
+    return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+  }
+
+  const title = body.title === undefined ? "Palavras do Universo" : body.title;
+  const message =
+    body.message === undefined
+      ? "Sua mensagem de hoje está pronta. Abra para receber."
+      : body.message;
+  const url = body.url === undefined ? "/" : body.url;
+  if (
+    typeof title !== "string" ||
+    typeof message !== "string" ||
+    typeof url !== "string" ||
+    title.trim().length > 120 ||
+    message.trim().length > 2_000 ||
+    url.length > 2_048 ||
+    !url.startsWith("/") ||
+    url.startsWith("//")
+  ) {
+    return NextResponse.json({ error: "Invalid push payload" }, { status: 400 });
   }
 
   const payload = JSON.stringify({
-    title: body.title ?? "Palavras do Universo",
-    body: body.message ?? "Sua mensagem de hoje está pronta. Abra para receber.",
-    url: body.url ?? "/",
+    title: title.trim(),
+    body: message.trim(),
+    url,
     tag: "pdu-daily",
   });
 

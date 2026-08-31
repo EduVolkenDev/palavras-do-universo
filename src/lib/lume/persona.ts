@@ -155,20 +155,44 @@ export function getLumeWelcome(
 ) {
   const base = copy[locale][surface];
   const signals = userContext?.personalizationSignals;
-  if (!signals?.hasExplicitContext) return base;
+  const journey = userContext?.journey;
+  if (
+    !signals?.hasExplicitContext &&
+    !journey?.hasHistory &&
+    !journey?.actionCount
+  ) {
+    return base;
+  }
 
-  const focus = signals.focusAreas[0];
-  const phase = signals.currentPhase;
+  const focus = signals?.focusAreas[0];
+  const phase = signals?.currentPhase;
   const name = userContext?.readingProfile.displayName;
   const anchor = [name, focus, phase].filter(Boolean).join(" · ");
+  const recurringPattern = journey?.recurringThemes[0] ?? journey?.recurringCards[0];
+  const recentTheme = journey?.recentThemes[0];
+  const openActionCount = journey?.openActionCount ?? 0;
 
   if (locale === "en") {
     return {
       ...base,
       text:
         surface === "universe"
-          ? `Your map already has an axis${anchor ? ` — ${anchor}` : ""}. I can use what you chose to share to connect your next reading with this moment, without turning it into a fixed identity.`
-          : `I can keep this moment in view${focus ? `, especially around ${focus.toLowerCase()}` : ""}. ${base.text}`,
+          ? `Your map already has an axis${anchor ? ` — ${anchor}` : ""}.${
+              recurringPattern
+                ? ` ${recurringPattern.label} has returned ${recurringPattern.count} times in what you saved.`
+                : recentTheme
+                  ? ` Your most recent thread is ${recentTheme}.`
+                  : ""
+            }${
+              openActionCount
+                ? ` You have ${openActionCount} open gesture${openActionCount === 1 ? "" : "s"} waiting to be revisited.`
+                : ""
+            } I can use what you chose to share to connect your next reading with this moment, without turning it into a fixed identity.`
+          : `I can keep this moment in view${focus ? `, especially around ${focus.toLowerCase()}` : ""}.${
+              openActionCount
+                ? ` You also have ${openActionCount} open gesture${openActionCount === 1 ? "" : "s"} to revisit.`
+                : ""
+            } ${base.text}`,
     };
   }
 
@@ -176,8 +200,22 @@ export function getLumeWelcome(
     ...base,
     text:
       surface === "universe"
-        ? `Seu mapa já tem um eixo${anchor ? ` — ${anchor}` : ""}. Posso usar o que você escolheu compartilhar para conectar a próxima leitura com este momento, sem transformar isso em uma identidade fixa.`
-        : `Posso manter este momento em vista${focus ? `, especialmente em torno de ${focus.toLowerCase()}` : ""}. ${base.text}`,
+        ? `Seu mapa já tem um eixo${anchor ? ` — ${anchor}` : ""}.${
+            recurringPattern
+              ? ` “${recurringPattern.label}” voltou ${recurringPattern.count} vezes no que você guardou.`
+              : recentTheme
+                ? ` O fio mais recente é ${recentTheme}.`
+                : ""
+          }${
+            openActionCount
+              ? ` Você tem ${openActionCount} gesto${openActionCount === 1 ? "" : "s"} em aberto para revisitar.`
+              : ""
+          } Posso usar o que você escolheu compartilhar para conectar a próxima leitura com este momento, sem transformar isso em uma identidade fixa.`
+        : `Posso manter este momento em vista${focus ? `, especialmente em torno de ${focus.toLowerCase()}` : ""}.${
+            openActionCount
+              ? ` Você também tem ${openActionCount} gesto${openActionCount === 1 ? "" : "s"} em aberto para revisitar.`
+              : ""
+          } ${base.text}`,
   };
 }
 
@@ -202,6 +240,71 @@ export function replyToLume(
   const signals = userContext?.personalizationSignals;
   const focus = signals?.focusAreas[0];
   const phase = signals?.currentPhase;
+  const journey = userContext?.journey;
+
+  if (/(acao|acoes|gesto|concluir|complete|action|gesture|reflex|reflection)/.test(text)) {
+    if (journey?.openActionCount) {
+      return isEnglish
+        ? {
+            text: `You have ${journey.openActionCount} open gesture${journey.openActionCount === 1 ? "" : "s"}. Return to what you chose, mark what happened, and let the reflection be enough — it does not need to be perfect.`,
+            action: {
+              label: "Open actions in My Universe",
+              href: "/meu-universo#acoes-vivas",
+            },
+          }
+        : {
+            text: `Você tem ${journey.openActionCount} gesto${journey.openActionCount === 1 ? "" : "s"} em aberto. Volte ao que escolheu, registre o que aconteceu e deixe a reflexão ser suficiente — ela não precisa ser perfeita.`,
+            action: {
+              label: "Abrir ações no Meu Universo",
+              href: "/meu-universo#acoes-vivas",
+            },
+          };
+    }
+
+    if (journey?.completedActionCount) {
+      return isEnglish
+        ? {
+            text: `You have already recorded ${journey.completedActionCount} completed gesture${journey.completedActionCount === 1 ? "" : "s"}. A new action only needs to be small enough to become real today.`,
+            action: { label: "Choose a new action", href: "/#acao" },
+          }
+        : {
+            text: `Você já registrou ${journey.completedActionCount} gesto${journey.completedActionCount === 1 ? "" : "s"} concluído${journey.completedActionCount === 1 ? "" : "s"}. Uma nova ação só precisa ser pequena o bastante para virar realidade hoje.`,
+            action: { label: "Escolher nova ação", href: "/#acao" },
+          };
+    }
+
+    return isEnglish
+      ? {
+          text: "An action becomes part of your journey when you choose one small, concrete gesture and return to record what changed.",
+          action: { label: "Choose an action", href: "/#acao" },
+        }
+      : {
+          text: "Uma ação entra na sua jornada quando você escolhe um gesto pequeno e concreto e depois volta para registrar o que mudou.",
+          action: { label: "Escolher uma ação", href: "/#acao" },
+        };
+  }
+
+  if (
+    /(histor|history|padr|pattern|recorr|repeat|repet)/.test(text) &&
+    journey?.hasHistory
+  ) {
+    const recurringPattern =
+      journey.recurringThemes[0] ?? journey.recurringCards[0];
+    if (isEnglish) {
+      return {
+        text: recurringPattern
+          ? `In what you chose to save, ${recurringPattern.label} has appeared ${recurringPattern.count} times. Treat that as a question worth revisiting, not as a fixed message.`
+          : `I can see ${journey.totalSignals} saved signals so far, but there is not enough repetition to call a pattern yet. We can keep observing together.`,
+        action: { label: "Open My Universe", href: "/meu-universo#historico-vivo" },
+      };
+    }
+    return {
+      text: recurringPattern
+        ? `No que você escolheu guardar, “${recurringPattern.label}” apareceu ${recurringPattern.count} vezes. Tome isso como uma pergunta para revisitar, não como uma mensagem fixa.`
+        : `Consigo ver ${journey.totalSignals} sinais guardados até agora, mas ainda não há repetição suficiente para chamar isso de padrão. Podemos continuar observando juntos.`,
+      action: { label: "Abrir Meu Universo", href: "/meu-universo#historico-vivo" },
+    };
+  }
 
   if (/(momento|fase|context|contexto|perfil|profile)/.test(text) && signals?.hasExplicitContext) {
     if (isEnglish) {

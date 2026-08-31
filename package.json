@@ -14,6 +14,8 @@
     "prove:commerce-access": "node scripts/prove-commerce-access-live.mjs",
     "prove:ai-reading-quality": "node scripts/prove-ai-reading-quality-live.mjs",
     "prove:paid-reading-quality": "node scripts/prove-paid-reading-quality-live.mjs",
+    "prove:journey-continuity": "node scripts/prove-journey-continuity-live.mjs",
+    "prove:reading-thread": "node scripts/prove-reading-thread-live.mjs",
     "prove:phase2-voucher-flow": "node scripts/prove-phase2-voucher-flow.mjs",
     "prove:stripe-webhook-entitlement": "node scripts/prove-stripe-webhook-entitlement.mjs",
     "validate:commerce-access": "node scripts/validate-commerce-access.mjs",

@@ -29,12 +29,31 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function messageIdentity(message: LocalSavedMessage) {
+  if (
+    message.message_type === "reading" &&
+    isRecord(message.payload) &&
+    typeof message.payload.result === "string"
+  ) {
+    const question =
+      typeof message.payload.question === "string" ? message.payload.question : "";
+    const spreadLine =
+      typeof message.payload.spreadLine === "string"
+        ? message.payload.spreadLine
+        : "";
+    return `reading:${message.reading_id ?? ""}:${question}:${spreadLine}`;
+  }
+
+  return `message:${message.id}`;
+}
+
 function uniqueMessages(messages: LocalSavedMessage[]) {
-  const byId = new Map<string, LocalSavedMessage>();
+  const byIdentity = new Map<string, LocalSavedMessage>();
   messages.forEach((message) => {
-    if (!byId.has(message.id)) byId.set(message.id, message);
+    const identity = messageIdentity(message);
+    if (!byIdentity.has(identity)) byIdentity.set(identity, message);
   });
-  return Array.from(byId.values());
+  return Array.from(byIdentity.values());
 }
 
 function getStoredReadingProfile() {
@@ -50,12 +69,11 @@ function getStoredReadingProfile() {
 
 async function syncMessages() {
   const activeReadingMessage = localActiveReadingAsSavedMessage(getLocalActiveReading());
-  const messages = uniqueMessages(
-    [
-      ...(activeReadingMessage ? [activeReadingMessage] : []),
-      ...getLocalSavedMessages(),
-    ].slice(0, 50)
-  );
+  const allLocalMessages = [
+    ...(activeReadingMessage ? [activeReadingMessage] : []),
+    ...getLocalSavedMessages(),
+  ];
+  const messages = uniqueMessages(allLocalMessages.slice(0, 50));
 
   if (!messages.length) return [];
 
@@ -76,8 +94,24 @@ async function syncMessages() {
     (key): key is string => typeof key === "string"
   );
 
-  removeLocalSavedMessages(syncedKeys);
-  if (activeReadingMessage && syncedKeys.includes(activeReadingMessage.id)) {
+  const syncedIdentities = new Set(
+    messages
+      .filter((message) => syncedKeys.includes(message.id))
+      .map(messageIdentity)
+  );
+  const localIdsToRemove = allLocalMessages
+    .filter(
+      (message) =>
+        syncedKeys.includes(message.id) || syncedIdentities.has(messageIdentity(message))
+    )
+    .map((message) => message.id);
+
+  removeLocalSavedMessages(localIdsToRemove);
+  if (
+    activeReadingMessage &&
+    (syncedKeys.includes(activeReadingMessage.id) ||
+      syncedIdentities.has(messageIdentity(activeReadingMessage)))
+  ) {
     clearLocalActiveReading();
   }
 

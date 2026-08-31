@@ -15,7 +15,13 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { productCards } from "@/lib/product/catalog";
+import {
+  getProductCardPrice,
+  productCards,
+} from "@/lib/product/catalog";
+import type { ProductCurrency } from "@/lib/product/pricing";
+import { useProductCurrency } from "@/lib/product/useProductCurrency";
+import { ProductCurrencySwitch } from "@/components/ProductCurrencySwitch";
 import { useI18n } from "@/components/I18nProvider";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { PduAssetStory } from "@/components/PduAssetStory";
@@ -44,15 +50,22 @@ const spreadKinds: SpreadKind[] = [
   { productKey: "mapa_do_momento", icon: MoonStar, visual: PDU_ASSETS.spreads.momentMapMobile, layer: "Avulsa + Círculo" },
 ];
 
-function productHref(productKey: string) {
+function productHref(productKey: string, currency: ProductCurrency) {
   const product = productCards.find((item) => item.productKey === productKey);
-  if (product?.href) return product.href;
   if (productKey === "carta_do_dia") return "/carta-do-dia";
-  return `/?product=${encodeURIComponent(productKey)}#leitura`;
+  if (product?.href) {
+    const separator = product.href.includes("?") ? "&" : "?";
+    return `${product.href}${separator}currency=${encodeURIComponent(currency)}`;
+  }
+  return `/?product=${encodeURIComponent(productKey)}&currency=${encodeURIComponent(
+    currency
+  )}#leitura`;
 }
 
 export default function TiradasPage() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
+  const { currency: productCurrency, setCurrency: setProductCurrency } =
+    useProductCurrency(locale);
 
   return (
     <main className="pdu-tiradas-page min-h-screen overflow-hidden bg-[#0b0a10] text-[#fff7e8]">
@@ -61,19 +74,27 @@ export default function TiradasPage() {
         <div className="absolute right-[-10rem] top-48 h-96 w-96 rounded-full bg-[#a7d7c5]/10 blur-3xl" />
 
         <div className="relative z-10 mx-auto max-w-7xl">
-          <header className="flex items-center justify-between gap-4">
+          <header className="flex flex-wrap items-center justify-between gap-4">
             <Link href="/" className="inline-flex items-center gap-3 text-sm font-semibold text-[#f5d896]">
               <span className="grid h-10 w-10 place-items-center rounded-[8px] border border-[#f4d58d]/35 bg-[#f4d58d]/10">
                 <Sparkles size={19} />
               </span>
               Palavras do Universo
             </Link>
-            <Link
-              href="/meu-universo"
-              className="hidden rounded-full border border-white/12 px-4 py-2 text-sm font-semibold text-[#efe2d2] hover:border-[#f4d58d]/50 sm:inline-flex"
-            >
-              {t("Meu Universo")}
-            </Link>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <ProductCurrencySwitch
+                currency={productCurrency}
+                locale={locale}
+                onChange={setProductCurrency}
+                tone="dark"
+              />
+              <Link
+                href="/meu-universo"
+                className="hidden rounded-full border border-white/12 px-4 py-2 text-sm font-semibold text-[#efe2d2] hover:border-[#f4d58d]/50 sm:inline-flex"
+              >
+                {t("Meu Universo")}
+              </Link>
+            </div>
           </header>
 
           <div className="grid gap-12 pt-20 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
@@ -106,7 +127,7 @@ export default function TiradasPage() {
             </div>
           </div>
 
-          <div className="pdu-tiradas-grid mt-16 grid gap-5">
+          <div className="pdu-tiradas-grid mt-20 grid gap-7 sm:gap-8 lg:mt-24">
             {spreadKinds.map((kind) => {
               const product = productCards.find(
                 (item) => item.productKey === kind.productKey
@@ -117,10 +138,10 @@ export default function TiradasPage() {
               return (
                 <Link
                   key={kind.productKey}
-                  href={productHref(kind.productKey)}
-                  className="group relative flex min-h-[28rem] flex-col overflow-hidden rounded-[8px] border border-white/10 bg-[#15131d] p-5 transition duration-300 hover:-translate-y-1 hover:border-[#f4d58d]/55 hover:bg-[#191621] sm:p-6"
+                  href={productHref(kind.productKey, productCurrency)}
+                  className="pdu-tiradas-card group relative flex min-h-[34rem] flex-col overflow-hidden rounded-[26px] border border-white/10 bg-[#15131d] p-5 transition duration-300 hover:-translate-y-1 hover:border-[#f4d58d]/55 hover:bg-[#191621] sm:min-h-[38rem] sm:p-7 lg:p-8"
                 >
-                  <div className="absolute -right-10 -top-10 h-44 w-44 rounded-full bg-[#f4d58d]/10 blur-2xl transition group-hover:bg-[#f4d58d]/18" />
+                  <div className="absolute -right-16 -top-16 h-60 w-60 rounded-full bg-[#f4d58d]/10 blur-3xl transition group-hover:bg-[#f4d58d]/18" />
                   <div className="relative z-10 flex items-start justify-between gap-4">
                     <span className="rounded-full border border-[#f4d58d]/24 bg-[#f4d58d]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
                       {t(kind.layer)}
@@ -129,16 +150,18 @@ export default function TiradasPage() {
                       <Icon size={18} strokeWidth={1.6} />
                     </span>
                   </div>
-                  <div className="relative z-10 mt-6 h-44 overflow-hidden rounded-[8px] border border-white/10 bg-black/18 sm:h-48">
+                  <div className="pdu-tiradas-card__visual relative z-10 mt-8 overflow-hidden rounded-[24px] border border-[#f4d58d]/18">
+                    <span className="pdu-tiradas-card__halo" aria-hidden="true" />
+                    <span className="pdu-tiradas-card__orbit" aria-hidden="true" />
                     <Image
                       src={kind.visual}
                       alt=""
                       fill
-                      sizes="(max-width: 768px) 260px, 360px"
-                      className="object-contain p-4 opacity-90 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-100 sm:p-5"
+                      sizes="(max-width: 768px) 92vw, (max-width: 1280px) 44vw, 520px"
+                      className="pdu-tiradas-card__image object-contain p-2 opacity-95 transition duration-500 group-hover:scale-[1.035] group-hover:opacity-100 sm:p-3"
                     />
                   </div>
-                  <div className="relative z-10 mt-6 flex flex-1 flex-col">
+                  <div className="relative z-10 mt-8 flex flex-1 flex-col">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a7d7c5]">
                       {t(product.archetype)}
                     </p>
@@ -153,9 +176,9 @@ export default function TiradasPage() {
                         <strong className="block text-[#fff7e8]">
                           {t("Entrega")}
                         </strong>
-                        {product.price ? (
+                        {getProductCardPrice(product, productCurrency) ? (
                           <span className="rounded-full bg-[#f4d58d]/12 px-3 py-1 text-xs font-semibold text-[#f5d896]">
-                            {product.price}
+                            {getProductCardPrice(product, productCurrency)}
                           </span>
                         ) : null}
                       </div>

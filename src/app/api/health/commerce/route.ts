@@ -10,6 +10,10 @@ import {
   CIRCLE_PRODUCT_KEY,
   PAID_READING_PRODUCTS,
 } from "@/lib/product/access";
+import {
+  PRODUCT_CURRENCIES,
+  getProductPriceForCurrency,
+} from "@/lib/product/pricing";
 
 type PaidProduct = {
   product_key: string;
@@ -41,6 +45,7 @@ export async function GET(request: Request) {
     stripeCheckoutVerified: false,
     stripeCustomerPortalVerified: false,
     catalogMatrix: false,
+    multiCurrencyCatalog: false,
     anthropicKey: hasAnthropicConfig(),
     productionUrl: !getSiteUrl().includes("localhost"),
     supportEmail: Boolean(process.env.NEXT_PUBLIC_SUPPORT_EMAIL),
@@ -51,6 +56,15 @@ export async function GET(request: Request) {
   let paidProducts: PaidProduct[] = [];
   const expectedPaidProductKeys = Array.from(PAID_READING_PRODUCTS);
   const expectedCircleIncludedProductKeys = Array.from(CIRCLE_INCLUDED_PRODUCTS);
+
+  // Detailed checks can query both Supabase and Stripe. Keep unauthenticated
+  // probes cheap and private diagnostics behind the bearer token.
+  if (!isAuthorized(request)) {
+    return NextResponse.json(
+      { ok: false, ready: false, oneTimeReady: false },
+      { status: process.env.HEALTH_CHECK_TOKEN ? 401 : 200 }
+    );
+  }
 
   if (checks.supabaseServer) {
     const { data, error } = await getSupabaseAdmin()
@@ -86,6 +100,14 @@ export async function GET(request: Request) {
       activePaidProductKeys.has(CIRCLE_PRODUCT_KEY) &&
       missingPaidProductKeys.length === 0 &&
       missingCircleIncludedProductKeys.length === 0;
+    checks.multiCurrencyCatalog =
+      checks.catalogMatrix &&
+      expectedPaidProductKeys.every((productKey) =>
+        PRODUCT_CURRENCIES.every((currency) => {
+          const price = getProductPriceForCurrency(productKey, currency);
+          return Boolean(price && price.amountCents >= 50);
+        })
+      );
   }
 
   if (checks.stripeSecret && !catalogError && paidProducts.length > 0) {
@@ -140,6 +162,7 @@ export async function GET(request: Request) {
     checks.stripeSecret &&
     checks.stripeWebhook &&
     checks.stripeCheckoutVerified &&
+    checks.multiCurrencyCatalog &&
     checks.anthropicKey &&
     checks.productionUrl &&
     checks.supportEmail &&
@@ -152,8 +175,6 @@ export async function GET(request: Request) {
     ready,
     oneTimeReady,
   };
-
-  if (!isAuthorized(request)) return NextResponse.json(summary);
 
   return NextResponse.json({
     ...summary,
@@ -172,6 +193,7 @@ export async function GET(request: Request) {
             (product.included_in ?? []).includes(CIRCLE_PRODUCT_KEY)
         )
     ),
+    supportedCurrencies: PRODUCT_CURRENCIES,
     catalogError: catalogError ? "Catalog query failed" : null,
     stripeError: stripeError ? "Stripe verification failed" : null,
   });

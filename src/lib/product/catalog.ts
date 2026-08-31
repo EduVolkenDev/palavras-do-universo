@@ -1,3 +1,11 @@
+import {
+  PRODUCT_CURRENCIES,
+  formatProductPrice,
+  type ProductCurrency,
+} from "./pricing";
+
+type CurrencyPriceMap = Partial<Record<ProductCurrency, string>>;
+
 export type ProductCard = {
   productKey: string;
   title: string;
@@ -7,6 +15,7 @@ export type ProductCard = {
   cta: string;
   mode: "daily" | "free" | "paid" | "included";
   price?: string;
+  priceByCurrency?: CurrencyPriceMap;
   includedInCircle?: boolean;
   bestFor: string;
   notFor: string;
@@ -15,15 +24,48 @@ export type ProductCard = {
 
 export type PricingPlan = {
   productKey?: string;
+  priceProductKey?: string;
   targetId?: "leitura" | "produtos";
   title: string;
   price: string;
+  priceByCurrency?: CurrencyPriceMap;
   cadence: string;
   bestFor: string;
   features: string[];
   cta: string;
   highlighted?: boolean;
 };
+
+function priceByCurrency(productKey: string): CurrencyPriceMap {
+  return Object.fromEntries(
+    PRODUCT_CURRENCIES.map((currency) => [
+      currency,
+      formatProductPrice(productKey, currency),
+    ])
+  ) as CurrencyPriceMap;
+}
+
+function priced(productKey: string) {
+  const prices = priceByCurrency(productKey);
+  return {
+    price: prices.BRL ?? "",
+    priceByCurrency: prices,
+  };
+}
+
+export function getProductCardPrice(
+  product: ProductCard,
+  currency: ProductCurrency
+) {
+  return product.priceByCurrency?.[currency] ?? product.price ?? "";
+}
+
+export function getPricingPlanPrice(
+  plan: PricingPlan,
+  currency: ProductCurrency
+) {
+  return plan.priceByCurrency?.[currency] ?? plan.price;
+}
 
 export const productCards: ProductCard[] = [
   {
@@ -57,7 +99,7 @@ export const productCards: ProductCard[] = [
     transformation: "De urgência emocional para eixo, limite e ação possível.",
     cta: "Quero clareza agora",
     mode: "paid",
-    price: "R$19,90",
+    ...priced("clareza_urgente"),
     bestFor: "Momentos de dúvida forte, conversa difícil ou decisão que não pode esperar.",
     notFor: "Risco físico imediato, emergência médica ou promessa sobre outra pessoa.",
   },
@@ -69,7 +111,7 @@ export const productCards: ProductCard[] = [
     transformation: "De pergunta confusa para próximo passo honesto.",
     cta: "Fazer leitura",
     mode: "paid",
-    price: "R$9,90",
+    ...priced("caminho_3_cartas"),
     includedInCircle: true,
     bestFor: "Uma dúvida concreta que pede firmeza sem pressa.",
     notFor: "Acompanhamento contínuo ou histórico profundo.",
@@ -82,7 +124,7 @@ export const productCards: ProductCard[] = [
     transformation: "De ansiedade afetiva para leitura madura do desejo.",
     cta: "Consultar amor",
     mode: "paid",
-    price: "R$12,90",
+    ...priced("sinais_do_amor"),
     includedInCircle: true,
     bestFor: "Dúvidas afetivas, limites, conversas e padrões emocionais.",
     notFor: "Promessas de volta, controle do outro ou garantias.",
@@ -95,7 +137,7 @@ export const productCards: ProductCard[] = [
     transformation: "De confusão em camadas para uma decisão mais nítida.",
     cta: "Conhecer O Diamante",
     mode: "paid",
-    price: "R$19,90",
+    ...priced("tirada_diamante"),
     includedInCircle: true,
     bestFor: "Uma pergunta importante que pede contexto antes de conclusão.",
     notFor: "Quem busca uma resposta instantânea ou uma previsão fechada.",
@@ -109,7 +151,7 @@ export const productCards: ProductCard[] = [
     transformation: "De paralisia ou excesso de controle para voo possível.",
     cta: "Conhecer o Pássaro",
     mode: "paid",
-    price: "R$22,90",
+    ...priced("passaro_voando"),
     includedInCircle: true,
     bestFor: "Transições, recomeços e momentos em que uma parte sua quer avançar.",
     notFor: "Decisões que precisam ser tomadas no impulso.",
@@ -123,7 +165,7 @@ export const productCards: ProductCard[] = [
     transformation: "De padrão sem nome para compreensão que abre passagem.",
     cta: "Conhecer A Chave",
     mode: "paid",
-    price: "R$24,90",
+    ...priced("a_chave"),
     includedInCircle: true,
     bestFor: "Questões que se repetem, travas internas e mudanças que pedem profundidade.",
     notFor: "Substituir cuidado psicológico ou buscar diagnóstico.",
@@ -137,7 +179,7 @@ export const productCards: ProductCard[] = [
     transformation: "De ansiedade relacional para uma leitura mais madura do encontro.",
     cta: "Conhecer O Espelho",
     mode: "paid",
-    price: "R$29,90",
+    ...priced("o_espelho"),
     includedInCircle: true,
     bestFor: "Relações importantes, conversas difíceis e padrões afetivos recorrentes.",
     notFor: "Descobrir ou controlar o que outra pessoa sente.",
@@ -151,7 +193,7 @@ export const productCards: ProductCard[] = [
     transformation: "De situação grande demais para um mapa que revela prioridade.",
     cta: "Conhecer a Cruz Celta",
     mode: "paid",
-    price: "R$29,90",
+    ...priced("cruz_celta"),
     includedInCircle: true,
     bestFor: "Fases complexas, decisões de vida e perguntas que envolvem mais de uma camada.",
     notFor: "Perguntas simples que uma leitura curta já resolve.",
@@ -165,7 +207,7 @@ export const productCards: ProductCard[] = [
     transformation: "De suposição afetiva para presença, conversa e limite.",
     cta: "Conhecer Relacionar",
     mode: "paid",
-    price: "R$14,90",
+    ...priced("relacionar"),
     includedInCircle: true,
     bestFor: "Um vínculo que pede clareza sem transformar a outra pessoa em resposta.",
     notFor: "Promessas sobre futuro ou comportamento do outro.",
@@ -179,7 +221,7 @@ export const productCards: ProductCard[] = [
     transformation: "De escolha binária para compreensão mais ampla.",
     cta: "Conhecer O Paradoxo",
     mode: "paid",
-    price: "R$19,90",
+    ...priced("o_paradoxo"),
     includedInCircle: true,
     bestFor: "Ambivalências, encruzilhadas e momentos em que duas verdades parecem competir.",
     notFor: "Terceirizar uma decisão que só você pode tomar.",
@@ -193,7 +235,7 @@ export const productCards: ProductCard[] = [
     transformation: "De semana dispersa para foco emocional e prioridade.",
     cta: "Fazer Energia da Semana",
     mode: "paid",
-    price: "R$14,90",
+    ...priced("energia_da_semana"),
     includedInCircle: true,
     bestFor: "Planejar energia, limites e movimentos da semana.",
     notFor: "Resolver uma pergunta urgente agora.",
@@ -206,7 +248,7 @@ export const productCards: ProductCard[] = [
     transformation: "De sensação de estar perdido para leitura de contexto.",
     cta: "Fazer Mapa do Momento",
     mode: "paid",
-    price: "R$19,90",
+    ...priced("mapa_do_momento"),
     includedInCircle: true,
     bestFor: "Entender padrões, repetições e direção de vida agora.",
     notFor: "Resposta objetiva imediata.",
@@ -217,6 +259,7 @@ export const pricingPlans: PricingPlan[] = [
   {
     title: "Gratuito",
     price: "R$0",
+    priceByCurrency: { BRL: "R$0", GBP: "£0" },
     cadence: "para começar",
     bestFor: "Conhecer a linguagem e criar o hábito.",
     features: [
@@ -230,7 +273,8 @@ export const pricingPlans: PricingPlan[] = [
   },
   {
     title: "Leituras avulsas",
-    price: "R$9,90",
+    priceProductKey: "caminho_3_cartas",
+    ...priced("caminho_3_cartas"),
     cadence: "a partir de",
     bestFor: "Resolver uma questão específica sem iniciar uma assinatura.",
     features: [
@@ -245,7 +289,7 @@ export const pricingPlans: PricingPlan[] = [
   {
     productKey: "circulo_do_universo",
     title: "Círculo do Universo",
-    price: "R$29,90",
+    ...priced("circulo_do_universo"),
     cadence: "por mês",
     bestFor: "Transformar orientação em jornada pessoal, com memória e ritual.",
     features: [

@@ -23,21 +23,25 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { buildLoginPath } from "@/lib/auth/redirect";
 import {
-  clearLocalActiveReading,
   completeLocalImpactCommitment,
   getLocalActiveReading,
   getLocalImpactCommitments,
   getLocalSavedMessages,
   getOrCreateLocalUserId,
   localActiveReadingAsSavedMessage,
-  removeLocalImpactCommitments,
-  removeLocalSavedMessages,
   type LocalImpactCommitment,
   updateLocalImpactCommitment,
 } from "@/lib/client/localUniverse";
+import { syncLocalUniverseToAccount } from "@/lib/client/syncLocalUniverse";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { IMPACT_AREA_LABELS, type ImpactArea } from "@/lib/impact/actions";
-import { productCards } from "@/lib/product/catalog";
+import {
+  getProductCardPrice,
+  productCards,
+} from "@/lib/product/catalog";
+import { ProductCurrencySwitch } from "@/components/ProductCurrencySwitch";
+import { formatProductPrice } from "@/lib/product/pricing";
+import { useProductCurrency } from "@/lib/product/useProductCurrency";
 import {
   CIRCLE_PRODUCT_KEY,
   findEntitlementForProduct,
@@ -57,6 +61,10 @@ import {
   normalizeReadingProfile,
   type ReadingProfile,
 } from "@/lib/personalization/reading-context";
+import {
+  buildJourneySnapshot,
+  getJourneyRecommendations,
+} from "@/lib/personalization/journey";
 
 type Reading = {
   id: string;
@@ -154,6 +162,39 @@ const boundaryOptions = [
   "Sem tom duro",
   "Sem jargão esotérico",
 ];
+
+const profileSignalLabels: Record<string, Record<Locale, string>> = {
+  "Amor e vínculos": { "pt-BR": "Amor e vínculos", en: "Love and bonds" },
+  Carreira: { "pt-BR": "Carreira", en: "Career" },
+  Dinheiro: { "pt-BR": "Dinheiro", en: "Money" },
+  Família: { "pt-BR": "Família", en: "Family" },
+  Propósito: { "pt-BR": "Propósito", en: "Purpose" },
+  Espiritualidade: { "pt-BR": "Espiritualidade", en: "Spirituality" },
+  "Começando um ciclo": { "pt-BR": "Começando um ciclo", en: "Starting a cycle" },
+  "Encerrando algo": { "pt-BR": "Encerrando algo", en: "Closing something" },
+  "Esperando uma resposta": {
+    "pt-BR": "Esperando uma resposta",
+    en: "Waiting for an answer",
+  },
+  "Reorganizando a vida": {
+    "pt-BR": "Reorganizando a vida",
+    en: "Reorganizing life",
+  },
+  "Tomando uma decisão": { "pt-BR": "Tomando uma decisão", en: "Making a decision" },
+  "Cuidando da energia": { "pt-BR": "Cuidando da energia", en: "Caring for your energy" },
+  "Clareza para decidir": { "pt-BR": "Clareza para decidir", en: "Clarity to decide" },
+  "Coragem para agir": { "pt-BR": "Coragem para agir", en: "Courage to act" },
+  "Calma para atravessar": { "pt-BR": "Calma para atravessar", en: "Calm to move through" },
+  "Fechamento de ciclo": { "pt-BR": "Fechamento de ciclo", en: "Closing a cycle" },
+  "Mais honestidade comigo": {
+    "pt-BR": "Mais honestidade comigo",
+    en: "More honesty with myself",
+  },
+};
+
+function localizeProfileSignal(value: string, locale: Locale) {
+  return profileSignalLabels[value]?.[locale] ?? value;
+}
 
 const paidReadingProducts = productCards.filter((product) => product.mode === "paid");
 
@@ -287,7 +328,14 @@ function isSavedReadingPayload(value: unknown): value is {
 
 function getMessageDedupeKey(message: SavedMessage) {
   if (message.client_key) return `client:${message.client_key}`;
-  if (message.id.startsWith("local_")) return `client:${message.id}`;
+
+  if (message.message_type === "reading" && isSavedReadingPayload(message.payload)) {
+    if (message.reading_id) return `reading:${message.reading_id}`;
+
+    const question = asString(message.payload.question);
+    const spreadLine = asString(message.payload.spreadLine);
+    if (question || spreadLine) return `reading:${question}:${spreadLine}`;
+  }
 
   if (
     message.message_type === "daily_card" &&
@@ -297,7 +345,19 @@ function getMessageDedupeKey(message: SavedMessage) {
     return `daily_card:${message.payload.opening_key ?? message.payload.date_key}`;
   }
 
+  if (message.id.startsWith("local_")) return `client:${message.id}`;
+
   return message.id;
+}
+
+function dedupeMessages(messages: SavedMessage[]) {
+  const seen = new Set<string>();
+  return messages.filter((message) => {
+    const dedupeKey = getMessageDedupeKey(message);
+    if (seen.has(dedupeKey)) return false;
+    seen.add(dedupeKey);
+    return true;
+  });
 }
 
 function getSavedTitle(message: SavedMessage) {
@@ -336,61 +396,86 @@ function getSavedPreview(message: SavedMessage) {
     : "";
 }
 
-function topLabels(values: string[], limit = 3) {
-  return [...values.reduce((counts, value) => {
-    counts.set(value, (counts.get(value) ?? 0) + 1);
-    return counts;
-  }, new Map<string, number>()).entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([label, count]) => (count > 1 ? `${label} (${count}x)` : label));
-}
-
-function getSpreadCards(value: unknown) {
-  return normalizeSpreadCards(value).map((card) => card.name).filter(Boolean);
-}
-
-function getSymbolicPatterns(readings: Reading[], messages: SavedMessage[]) {
-  const themes = readings.map((reading) => asString(reading.theme)).filter(Boolean);
-  const readingCards = readings.flatMap((reading) => getSpreadCards(reading.spread));
-  const savedCards = messages.flatMap((message) => {
-    if (message.message_type === "daily_card" && isDailyCardPayload(message.payload)) {
-      return [asString(message.payload.card?.name)].filter(Boolean);
-    }
-    if (message.message_type === "reading" && isSavedReadingPayload(message.payload)) {
-      return (message.payload.spreadCards ?? [])
-        .map((card) => asString(card.name))
-        .filter(Boolean);
-    }
-    return [];
-  });
-
-  return {
-    themes: topLabels(themes),
-    cards: topLabels([...readingCards, ...savedCards]),
-    totalSignals: readings.length + messages.length,
+type InitialMapStep = {
+  title: string;
+  text: string;
+  href: string;
+  continuity?: {
+    theme: string;
+    prompt: string;
   };
-}
+};
 
-function getInitialMapNextSteps(profile: ReadingProfile, hasHistory: boolean) {
-  const focus = profile.focusAreas[0] ?? "sua energia principal";
-  const phase = profile.currentPhase || "a fase que você está atravessando";
+function getInitialMapNextSteps(
+  profile: ReadingProfile,
+  hasHistory: boolean,
+  locale: Locale
+): InitialMapStep[] {
+  const isEnglish = locale === "en";
+  const copy = isEnglish
+    ? {
+        ritualTitle: "Two-minute ritual",
+        ritualText:
+          "Take a breath, name the phase you are moving through, and write one sentence about what needs care today.",
+        reviewTitle: "Review a pattern",
+        reviewText:
+          "Notice the card or theme that returned more than once before opening another question.",
+        firstTitle: "First signal",
+        firstText: "Open a reading about",
+        firstSuffix: "so the map can begin recognizing recurrences.",
+        actionTitle: "Concrete action",
+        actionText: "Choose a small gesture connected to",
+        actionFallback:
+          "Choose a small gesture that makes the day clearer, even without solving everything.",
+      }
+    : {
+        ritualTitle: "Ritual de 2 minutos",
+        ritualText:
+          "Respire, nomeie a fase que você está atravessando e escreva uma frase sobre o que pede cuidado hoje.",
+        reviewTitle: "Revisar padrão",
+        reviewText:
+          "Observe a carta ou tema que voltou mais de uma vez antes de abrir outra pergunta.",
+        firstTitle: "Primeiro sinal",
+        firstText: "Abra uma leitura sobre",
+        firstSuffix: "para o mapa começar a reconhecer recorrências.",
+        actionTitle: "Ação concreta",
+        actionText: "Escolha um gesto pequeno ligado a",
+        actionFallback:
+          "Escolha um gesto pequeno que deixe o dia mais claro, mesmo sem resolver tudo.",
+      };
+  const focus = profile.focusAreas[0]
+    ? localizeProfileSignal(profile.focusAreas[0], locale).toLowerCase()
+    : isEnglish
+      ? "your main energy"
+      : "sua energia principal";
+  const phase = profile.currentPhase
+    ? localizeProfileSignal(profile.currentPhase, locale).toLowerCase()
+    : isEnglish
+      ? "the phase you are moving through"
+      : "a fase que você está atravessando";
+  const desiredShift = profile.desiredShift
+    ? localizeProfileSignal(profile.desiredShift, locale).toLowerCase()
+    : "";
+
   return [
     {
-      title: "Ritual de 2 minutos",
-      text: `Respire, nomeie ${phase.toLowerCase()} e escreva uma frase sobre o que pede cuidado hoje.`,
+      title: copy.ritualTitle,
+      text: isEnglish
+        ? copy.ritualText.replace("the phase you are moving through", phase)
+        : copy.ritualText.replace("a fase que você está atravessando", phase),
+      href: "#mapa-inicial",
     },
     {
-      title: hasHistory ? "Revisar padrão" : "Primeiro sinal",
+      title: hasHistory ? copy.reviewTitle : copy.firstTitle,
       text: hasHistory
-        ? "Observe a carta ou tema que voltou mais de uma vez antes de abrir outra pergunta."
-        : `Abra uma leitura sobre ${focus.toLowerCase()} para o mapa começar a reconhecer recorrências.`,
+        ? copy.reviewText
+        : `${copy.firstText} ${focus} ${copy.firstSuffix}`,
+      href: hasHistory ? "#historico-vivo" : "/#leitura",
     },
     {
-      title: "Ação concreta",
-      text: profile.desiredShift
-        ? `Escolha um gesto pequeno ligado a ${profile.desiredShift.toLowerCase()}.`
-        : "Escolha um gesto pequeno que deixe o dia mais claro, mesmo sem resolver tudo.",
+      title: copy.actionTitle,
+      text: desiredShift ? `${copy.actionText} ${desiredShift}.` : copy.actionFallback,
+      href: "/#acao",
     },
   ];
 }
@@ -504,6 +589,8 @@ function formatDate(value: string, locale: Locale) {
 
 export default function MeuUniversoPage() {
   const { locale, t } = useI18n();
+  const { currency: productCurrency, setCurrency: setProductCurrency } =
+    useProductCurrency(locale);
   const [userId, setUserId] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
   const [authChecked, setAuthChecked] = useState(false);
@@ -556,10 +643,10 @@ export default function MeuUniversoPage() {
       setLoading(true);
       setError("");
       const activeReadingMessage = localActiveReadingAsSavedMessage(getLocalActiveReading());
-      const initialLocalMessages = [
+      const initialLocalMessages = dedupeMessages([
         ...(activeReadingMessage ? [activeReadingMessage] : []),
         ...getLocalSavedMessages(),
-      ];
+      ]);
       const initialLocalCommitments = getLocalImpactCommitments();
       const localProfile = getStoredReadingProfile();
       if (initialLocalMessages.length) {
@@ -601,65 +688,15 @@ export default function MeuUniversoPage() {
           return;
         }
 
-        if (initialLocalMessages.length) {
-          const syncRes = await fetch("/api/account/sync-local", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ messages: initialLocalMessages }),
-          });
-          const syncData = (await syncRes.json()) as unknown;
-
-          if (
-            syncRes.ok &&
-            isRecord(syncData) &&
-            Array.isArray(syncData.syncedKeys)
-          ) {
-            const syncedKeys = syncData.syncedKeys.filter(
-              (key): key is string => typeof key === "string"
-            );
-            removeLocalSavedMessages(syncedKeys);
-            if (activeReadingMessage && syncedKeys.includes(activeReadingMessage.id)) {
-              clearLocalActiveReading();
-            }
-            if (syncedKeys.length) {
-              setSyncNotice(
-                `${syncedKeys.length} ${
-                  syncedKeys.length === 1 ? "mensagem foi protegida" : "mensagens foram protegidas"
-                } na sua conta.`
-              );
-            }
-          }
-        }
-
-        if (initialLocalCommitments.length) {
-          const syncedActionIds: string[] = [];
-          for (const commitment of initialLocalCommitments) {
-            const syncRes = await fetch("/api/actions", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({
-                clientKey: commitment.id,
-                actionKey: commitment.action_key,
-                plan: commitment.plan,
-                sourceReadingId: commitment.source_reading_id,
-                invitedBy: commitment.invited_by,
-                status: commitment.status,
-                reflection: commitment.reflection,
-                completedAt: commitment.completed_at,
-                beneficiary: commitment.beneficiary,
-                firstStep: commitment.first_step,
-                scheduledFor: commitment.scheduled_for,
-                publicToken: commitment.public_token,
-                publicCompletionSecret: commitment.public_completion_secret,
-                rootChainToken: commitment.root_chain_token,
-                parentPublicToken: commitment.parent_public_token,
-                deferredUntil: commitment.deferred_until,
-                cancelledReason: commitment.cancelled_reason,
-              }),
-            });
-            if (syncRes.ok) syncedActionIds.push(commitment.id);
-          }
-          removeLocalImpactCommitments(syncedActionIds);
+        const syncResult = await syncLocalUniverseToAccount();
+        if (syncResult.syncedMessageKeys.length) {
+          setSyncNotice(
+            `${syncResult.syncedMessageKeys.length} ${
+              syncResult.syncedMessageKeys.length === 1
+                ? "mensagem foi protegida"
+                : "mensagens foram protegidas"
+            } na sua conta.`
+          );
         }
 
         const [readingsRes, messagesRes, entitlementsRes, actionsRes, profileRes] = await Promise.all([
@@ -699,15 +736,7 @@ export default function MeuUniversoPage() {
           ...(currentActiveReadingMessage ? [currentActiveReadingMessage] : []),
           ...getLocalSavedMessages(),
         ];
-        const seen = new Set<string>();
-        const mergedMessages = [...remoteMessages, ...localMessages].filter(
-          (message) => {
-            const dedupeKey = getMessageDedupeKey(message);
-            if (seen.has(dedupeKey)) return false;
-            seen.add(dedupeKey);
-            return true;
-          }
-        );
+        const mergedMessages = dedupeMessages([...remoteMessages, ...localMessages]);
 
         setMessages(
           mergedMessages.sort(
@@ -819,13 +848,118 @@ export default function MeuUniversoPage() {
     ]
   );
 
-  const symbolicPatterns = useMemo(
-    () => getSymbolicPatterns(readings, messages),
-    [messages, readings]
+  const journeySnapshot = useMemo(
+    () => buildJourneySnapshot(readings, messages, readingProfile, commitments),
+    [commitments, messages, readingProfile, readings]
+  );
+  const journeyRecommendations = useMemo(
+    () => getJourneyRecommendations(journeySnapshot),
+    [journeySnapshot]
+  );
+  const journeyThemes = useMemo(
+    () =>
+      journeySnapshot.themes.map((pattern) =>
+        pattern.count > 1 ? `${pattern.label} (${pattern.count}x)` : pattern.label
+      ),
+    [journeySnapshot.themes]
+  );
+  const journeyCards = useMemo(
+    () =>
+      journeySnapshot.cards.map((pattern) =>
+        pattern.count > 1 ? `${pattern.label} (${pattern.count}x)` : pattern.label
+      ),
+    [journeySnapshot.cards]
   );
   const nextMapSteps = useMemo(
-    () => getInitialMapNextSteps(readingProfile, symbolicPatterns.totalSignals > 0),
-    [readingProfile, symbolicPatterns.totalSignals]
+    () => {
+      const steps = getInitialMapNextSteps(
+        readingProfile,
+        journeySnapshot.hasHistory,
+        locale
+      );
+      const recurringPattern =
+        journeySnapshot.recurringThemes[0] ?? journeySnapshot.recurringCards[0];
+      const recurringLabel = recurringPattern
+        ? localizeTheme(recurringPattern.label, locale)
+        : "";
+
+      if (
+        recurringPattern &&
+        journeyRecommendations.some((item) => item.kind === "review_pattern")
+      ) {
+        steps[1] = {
+          title: locale === "en" ? "Review a pattern" : "Revisar padrão",
+          text:
+            locale === "en"
+              ? `Notice how “${recurringLabel}” returned ${recurringPattern.count} times before opening another question.`
+              : `Observe como “${recurringLabel}” voltou ${recurringPattern.count} vezes antes de abrir outra pergunta.`,
+          href: "#historico-vivo",
+        };
+      } else if (
+        journeySnapshot.recentThemes[0] &&
+        journeyRecommendations.some((item) => item.kind === "continue_thread")
+      ) {
+        steps[1] = {
+          title: locale === "en" ? "Continue this thread" : "Continuar este fio",
+          text:
+            locale === "en"
+              ? `Return to what appeared most recently — “${localizeTheme(journeySnapshot.recentThemes[0], locale)}” — and notice what has changed since then.`
+              : `Volte ao que apareceu por último — “${journeySnapshot.recentThemes[0]}” — e veja o que mudou desde então.`,
+          href: "/?continuar=1#leitura",
+          continuity: {
+            theme: journeySnapshot.recentThemes[0],
+            prompt:
+              locale === "en"
+                ? `What has changed around ${journeySnapshot.recentThemes[0]} since I last looked at it?`
+                : `O que mudou em relação a ${journeySnapshot.recentThemes[0]} desde a última vez que olhei para isso?`,
+          },
+        };
+      } else if (
+        journeyRecommendations.some((item) => item.kind === "open_first_reading")
+      ) {
+        steps[1] = {
+          title: locale === "en" ? "First signal" : "Primeiro sinal",
+          text:
+            locale === "en"
+              ? `Open a reading about ${localizeProfileSignal(readingProfile.focusAreas[0] ?? "your main energy", locale).toLowerCase()} so the map can begin recognizing recurrences.`
+              : `Abra uma leitura sobre ${(readingProfile.focusAreas[0] ?? "sua energia principal").toLowerCase()} para o mapa começar a reconhecer recorrências.`,
+          href: "/#leitura",
+        };
+      }
+
+      if (journeyRecommendations.some((item) => item.kind === "calibrate_profile")) {
+        steps[0] = {
+          title: locale === "en" ? "Complete the Map" : "Completar o Mapa",
+          text:
+            locale === "en"
+              ? "Choose a few more signals about your moment so future answers can find a more personal axis."
+              : "Escolha mais alguns sinais sobre seu momento para as próximas respostas encontrarem um eixo mais pessoal.",
+          href: "#mapa-inicial",
+        };
+      }
+
+      if (journeyRecommendations.some((item) => item.kind === "complete_action")) {
+        steps[2] = {
+          title: locale === "en" ? "Complete a gesture" : "Concluir um gesto",
+          text:
+            locale === "en"
+              ? "Return to the commitment you chose and record what happened without demanding perfection."
+              : "Volte ao compromisso que você escolheu e registre o que aconteceu, sem exigir perfeição.",
+          href: "#acoes-vivas",
+        };
+      }
+
+      return steps;
+    },
+    [
+      journeyRecommendations,
+      journeySnapshot.hasHistory,
+      journeySnapshot.recurringCards,
+      journeySnapshot.recurringThemes,
+      journeySnapshot.recentThemes,
+      locale,
+      readingProfile,
+    ]
   );
   const activeCircleAccess = entitlements.some((item) => isCircleEntitlement(item));
   const activeBillingSubscription = entitlements.some(
@@ -843,7 +977,9 @@ export default function MeuUniversoPage() {
   const recommendedPromise = recommendedProduct
     ? t(recommendedProduct.promise)
     : "";
-  const recommendedPrice = recommendedProduct?.price ?? "R$9,90";
+  const recommendedPrice = recommendedProduct
+    ? getProductCardPrice(recommendedProduct, productCurrency)
+    : formatProductPrice("caminho_3_cartas", productCurrency);
   const recommendedEntitlement = recommendedProduct
     ? findEntitlementForProduct(entitlements, recommendedProduct.productKey)
     : null;
@@ -865,8 +1001,19 @@ export default function MeuUniversoPage() {
 
   function openReadingProduct(productKey: string) {
     const product = productCards.find((item) => item.productKey === productKey);
+    if (product?.href && productKey !== "carta_do_dia") {
+      const separator = product.href.includes("?") ? "&" : "?";
+      window.location.href = `${product.href}${separator}currency=${encodeURIComponent(
+        productCurrency
+      )}`;
+      return;
+    }
+
     window.location.href =
-      product?.href ?? `/?product=${encodeURIComponent(productKey)}`;
+      product?.href ??
+      `/?product=${encodeURIComponent(productKey)}&currency=${encodeURIComponent(
+        productCurrency
+      )}`;
   }
 
   function toggleProfileList(key: "focusAreas" | "boundaries", value: string) {
@@ -939,12 +1086,16 @@ export default function MeuUniversoPage() {
       const res = await fetch("/api/checkout/create", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ productKey, locale }),
+        body: JSON.stringify({ productKey, locale, currency: productCurrency }),
       });
       const data = (await res.json()) as unknown;
 
       if (res.status === 401) {
-        window.location.href = buildLoginPath(`/meu-universo?comprar=${productKey}`);
+        window.location.href = buildLoginPath(
+          `/meu-universo?comprar=${encodeURIComponent(
+            productKey
+          )}&currency=${encodeURIComponent(productCurrency)}`
+        );
         return;
       }
 
@@ -985,8 +1136,8 @@ export default function MeuUniversoPage() {
 
   return (
     <main className="min-h-screen ritual-texture text-[#241b18]">
-      <header className="border-b border-[#e2d3c0] bg-[#fbf6ee]/92 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+      <header className="pdu-universe-header border-b border-[#e2d3c0] bg-[#fbf6ee]/92 backdrop-blur">
+        <div className="pdu-universe-header__inner mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-sm font-semibold text-[#4d3c31]"
@@ -994,9 +1145,15 @@ export default function MeuUniversoPage() {
             <ArrowLeft size={17} />
             Voltar
           </Link>
-          <div className="flex items-center gap-2 text-sm text-[#6f615a]">
+          <div className="pdu-universe-header__actions flex min-w-0 flex-wrap items-center justify-end gap-2 text-sm text-[#6f615a]">
             <Sparkles size={16} />
             Meu Universo
+            <ProductCurrencySwitch
+              currency={productCurrency}
+              locale={locale}
+              onChange={setProductCurrency}
+              className="pdu-currency-switch--compact ml-2"
+            />
             {accountEmail ? (
               <span
                 title={accountEmail}
@@ -1665,7 +1822,10 @@ export default function MeuUniversoPage() {
                       ? t("Abrindo assinatura...")
                       : activeCircleAccess
                         ? t("Círculo ativo")
-                        : t("Entrar no Círculo mensal")}
+                        : `${t("Entrar no Círculo mensal")} · ${formatProductPrice(
+                            "circulo_do_universo",
+                            productCurrency
+                          )}/${locale === "en" ? "month" : "mês"}`}
                   </button>
                 </div>
               </div>
@@ -1681,19 +1841,19 @@ export default function MeuUniversoPage() {
                   Progressão simbólica
                 </p>
                 <h2 className="brand-serif mt-3 text-4xl font-semibold leading-tight">
-                  {symbolicPatterns.totalSignals
+                  {journeySnapshot.totalSignals
                     ? "Seu mapa já começou a reconhecer padrões."
                     : "Seu mapa não começa vazio."}
                 </h2>
                 <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
-                  {symbolicPatterns.totalSignals
+                  {journeySnapshot.totalSignals
                     ? "Cada leitura salva, carta do dia e ação registrada aumenta o contexto das próximas respostas."
                     : "Mesmo antes do histórico, o Mapa Inicial transforma fase, foco e intenção em um ponto de partida pessoal."}
                 </p>
 
                 <div className="mt-6 grid gap-3">
                   {[
-                    ["Sinais registrados", String(symbolicPatterns.totalSignals)],
+                    ["Sinais registrados", String(journeySnapshot.totalSignals)],
                     [
                       "Fase atual",
                       readingProfile.currentPhase || "A calibrar no Mapa Inicial",
@@ -1723,8 +1883,8 @@ export default function MeuUniversoPage() {
                       Temas que retornam
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {(symbolicPatterns.themes.length
-                        ? symbolicPatterns.themes
+                      {(journeyThemes.length
+                        ? journeyThemes
                         : readingProfile.focusAreas.length
                           ? readingProfile.focusAreas.slice(0, 3)
                           : ["Ainda sem histórico"]).map((item) => (
@@ -1742,8 +1902,8 @@ export default function MeuUniversoPage() {
                       Cartas e símbolos
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {(symbolicPatterns.cards.length
-                        ? symbolicPatterns.cards
+                      {(journeyCards.length
+                        ? journeyCards
                         : ["Abra uma leitura para revelar"]).map((item) => (
                         <span
                           key={item}
@@ -1758,9 +1918,17 @@ export default function MeuUniversoPage() {
 
                 <div className="mt-5 grid gap-3 lg:grid-cols-3">
                   {nextMapSteps.map((step) => (
-                    <div
+                    <Link
                       key={step.title}
-                      className="rounded-2xl border border-[#e4d3ba] bg-[#fbf6ee] p-4"
+                      href={step.href}
+                      onClick={() => {
+                        if (!step.continuity) return;
+                        window.sessionStorage.setItem(
+                          "pdu_continuity_prompt",
+                          JSON.stringify(step.continuity)
+                        );
+                      }}
+                      className="group rounded-2xl border border-[#e4d3ba] bg-[#fbf6ee] p-4 transition hover:-translate-y-0.5 hover:border-[#c4a678] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6b3f] focus-visible:ring-offset-2"
                     >
                       <p className="text-sm font-semibold text-[#332720]">
                         {step.title}
@@ -1768,7 +1936,11 @@ export default function MeuUniversoPage() {
                       <p className="mt-2 text-sm leading-6 text-[#6f615a]">
                         {step.text}
                       </p>
-                    </div>
+                      <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">
+                        {locale === "en" ? "Continue" : "Continuar"}
+                        <ArrowRight size={13} />
+                      </span>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -1847,7 +2019,10 @@ export default function MeuUniversoPage() {
           )}
         </section>
 
-        <section className="mt-8 rounded-lg border border-[#a9cdbf] bg-[#f3f8f3] p-5">
+        <section
+          id="acoes-vivas"
+          className="mt-8 scroll-mt-28 rounded-lg border border-[#a9cdbf] bg-[#f3f8f3] p-5"
+        >
           <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#52705c]">
@@ -1891,7 +2066,10 @@ export default function MeuUniversoPage() {
           )}
         </section>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1.12fr_0.88fr]">
+        <div
+          id="historico-vivo"
+          className="mt-8 scroll-mt-28 grid gap-6 lg:grid-cols-[1.12fr_0.88fr]"
+        >
           <section className="rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-5">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>

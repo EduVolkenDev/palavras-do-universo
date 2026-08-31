@@ -31,9 +31,11 @@ async function readSource(source) {
 
 try {
   await compile("src/lib/product/access.ts", "src/lib/product/access.js");
+  await compile("src/lib/product/pricing.ts", "src/lib/product/pricing.js");
   await compile("src/lib/product/catalog.ts", "src/lib/product/catalog.js");
   await compile("src/lib/tarot/spreads.ts", "src/lib/tarot/spreads.js");
   const access = await import(join(temp, "src/lib/product/access.js"));
+  const pricing = await import(join(temp, "src/lib/product/pricing.js"));
   const catalog = await import(join(temp, "src/lib/product/catalog.js"));
   const spreads = await import(join(temp, "src/lib/tarot/spreads.js"));
 
@@ -128,6 +130,18 @@ try {
       ),
       `Paid reading ${productKey} must have a numeric standalone price`
     );
+    for (const currency of pricing.PRODUCT_CURRENCIES) {
+      const price = catalog.productCards.find((card) => card.productKey === productKey)
+        ?.priceByCurrency?.[currency];
+      assert(
+        typeof price === "string" && price.length > 0,
+        `Paid reading ${productKey} must have a ${currency} display price`
+      );
+      assert(
+        pricing.getProductPriceForCurrency(productKey, currency)?.amountCents >= 50,
+        `Paid reading ${productKey} must have a payable ${currency} checkout price`
+      );
+    }
     assert(
       spreads.PRODUCT_SPREAD_TYPES[productKey] &&
         spreads.getSpreadForProduct(productKey)?.positions.length > 0,
@@ -236,8 +250,9 @@ try {
   const commerceHealthRoute = await readSource("src/app/api/health/commerce/route.ts");
   assert(
     commerceHealthRoute.includes("expectedPaidProductKeys") &&
-      commerceHealthRoute.includes("catalogMatrix"),
-    "Commerce health must validate the complete catalog and Circle matrix"
+      commerceHealthRoute.includes("catalogMatrix") &&
+      commerceHealthRoute.includes("multiCurrencyCatalog"),
+    "Commerce health must validate the complete catalog, Circle matrix, and GBP/BRL price matrix"
   );
 
   const circleMigration = await readSource(

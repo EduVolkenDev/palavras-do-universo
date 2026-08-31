@@ -17,12 +17,21 @@ import {
   readVoucherCodeFromRequest,
   recordPendingVoucherCheckout,
 } from "@/lib/vouchers/service";
+import {
+  getProductPriceForCurrency,
+  marketForProductCurrency,
+  normalizeProductCurrency,
+  resolveProductCurrency,
+  type ProductPrice,
+} from "@/lib/product/pricing";
 
 type CheckoutBody = {
   productKey?: unknown;
   email?: unknown;
   locale?: unknown;
   voucherCode?: unknown;
+  currency?: unknown;
+  market?: unknown;
 };
 
 type OracleProduct = {
@@ -208,23 +217,30 @@ function getCheckoutMode(product: OracleProduct): Stripe.Checkout.SessionCreateP
 
 function buildLineItem(
   product: OracleProduct,
+  checkoutPrice: ProductPrice,
   overrideAmountCents?: number | null,
   locale: CheckoutLocale = "pt-BR"
 ): Stripe.Checkout.SessionCreateParams.LineItem {
-  if (product.provider_price_id && !overrideAmountCents && locale !== "en") {
+  const baseCurrency = normalizeProductCurrency(product.currency);
+
+  if (
+    product.provider_price_id &&
+    !overrideAmountCents &&
+    baseCurrency === checkoutPrice.currency
+  ) {
     return {
       price: product.provider_price_id,
       quantity: 1,
     };
   }
 
-  const amountCents = overrideAmountCents ?? product.price_cents;
+  const amountCents = overrideAmountCents ?? checkoutPrice.amountCents;
 
   if (!amountCents || amountCents <= 0) {
     throw new Error("Product is missing a payable price");
   }
 
-  const currency = product.currency.toLowerCase();
+  const currency = checkoutPrice.currency.toLowerCase();
   const recurring =
     getCheckoutMode(product) === "subscription"
       ? { recurring: { interval: "month" as const } }
@@ -272,6 +288,11 @@ export async function POST(req: Request) {
   const body = parsed.body;
   const productKey = String(body.productKey ?? "").trim();
   const locale = normalizeCheckoutLocale(body.locale);
+  const checkoutCurrency = resolveProductCurrency({
+    currency: body.currency,
+    market: body.market,
+    locale,
+  });
   const userId = auth.user.id;
   const email =
     typeof body.email === "string" && body.email.includes("@")
@@ -328,6 +349,14 @@ export async function POST(req: Request) {
     return jsonError("Product is included in the Círculo do Universo", 409);
   }
 
+  const fallbackCurrency = normalizeProductCurrency(product.currency) ?? "BRL";
+  const checkoutPrice =
+    getProductPriceForCurrency(product.product_key, checkoutCurrency) ??
+    ({
+      amountCents: product.price_cents ?? 0,
+      currency: fallbackCurrency,
+    } satisfies ProductPrice);
+
   if (!hasStripeConfig()) {
     return jsonError("Stripe is not configured", 503);
   }
@@ -347,7 +376,7 @@ export async function POST(req: Request) {
     return jsonError(voucherResult.message, 409);
   }
 
-  const originalAmountCents = product.price_cents ?? 0;
+  const originalAmountCents = checkoutPrice.amountCents;
   const discountPercent = voucherResult?.ok ? voucherResult.voucher.discount_percent ?? 0 : 0;
   const discountedAmountCents =
     discountPercent > 0
@@ -372,6 +401,7 @@ export async function POST(req: Request) {
       line_items: [
         buildLineItem(
           product,
+          checkoutPrice,
           voucherResult?.ok && discountPercent > 0 ? discountedAmountCents : null,
           locale
         ),
@@ -381,13 +411,19 @@ export async function POST(req: Request) {
       billing_address_collection: "auto",
       success_url: `${siteUrl}/meu-universo?checkout=success&session_id={CHECKOUT_SESSION_ID}&product=${encodeURIComponent(
         product.product_key
+      )}&currency=${encodeURIComponent(
+        checkoutPrice.currency
       )}`,
       cancel_url: `${siteUrl}/?checkout=cancelled&product=${encodeURIComponent(
         product.product_key
+      )}&currency=${encodeURIComponent(
+        checkoutPrice.currency
       )}`,
       metadata: {
         user_id: userId,
         product_key: product.product_key,
+        currency: checkoutPrice.currency,
+        market: marketForProductCurrency(checkoutPrice.currency),
         access_model: product.access_model ?? product.product_type,
         voucher_id: voucherResult?.ok ? voucherResult.voucher.id : "",
         voucher_code: voucherResult?.ok ? voucherResult.voucher.code : "",
@@ -400,6 +436,8 @@ export async function POST(req: Request) {
               metadata: {
                 user_id: userId,
                 product_key: product.product_key,
+                currency: checkoutPrice.currency,
+                market: marketForProductCurrency(checkoutPrice.currency),
               },
             }
           : undefined,
@@ -409,6 +447,8 @@ export async function POST(req: Request) {
               metadata: {
                 user_id: userId,
                 product_key: product.product_key,
+                currency: checkoutPrice.currency,
+                market: marketForProductCurrency(checkoutPrice.currency),
               },
             }
           : undefined,
@@ -432,11 +472,13 @@ export async function POST(req: Request) {
         provider_customer_id:
           typeof session.customer === "string" ? session.customer : null,
         price_cents: discountedAmountCents,
-        currency: product.currency,
+        currency: checkoutPrice.currency,
         metadata: {
           checkout_url: session.url,
           original_amount_cents: originalAmountCents,
           discount_percent: discountPercent,
+          market: marketForProductCurrency(checkoutPrice.currency),
+          base_currency: product.currency,
         },
       });
 
@@ -449,7 +491,7 @@ export async function POST(req: Request) {
       user_id: userId,
       product_key: product.product_key,
       amount_cents: discountedAmountCents,
-      currency: product.currency,
+      currency: checkoutPrice.currency,
       status: "pending",
       provider: "stripe",
       provider_checkout_id: session.id,
@@ -457,6 +499,8 @@ export async function POST(req: Request) {
         checkout_url: session.url,
         original_amount_cents: originalAmountCents,
         discount_percent: discountPercent,
+        market: marketForProductCurrency(checkoutPrice.currency),
+        base_currency: product.currency,
       },
     });
 
@@ -474,6 +518,7 @@ export async function POST(req: Request) {
       productKey: product.product_key,
       originalAmountCents,
       discountedAmountCents,
+      currency: checkoutPrice.currency,
     });
   }
 
@@ -481,6 +526,8 @@ export async function POST(req: Request) {
     ok: true,
     checkoutUrl: session.url,
     sessionId: session.id,
+    currency: checkoutPrice.currency,
+    amountCents: discountedAmountCents,
     appliedVoucher:
       voucherResult?.ok
         ? {

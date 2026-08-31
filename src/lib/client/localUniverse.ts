@@ -276,7 +276,7 @@ export function localActiveReadingAsSavedMessage(reading: LocalActiveReading | n
   ].join("::");
 
   return {
-    id: `local_active${hashLocalValue(identity)}`,
+    id: `local_reading${hashLocalValue(identity)}`,
     reading_id: reading.reading_id,
     message_type: "reading",
     payload: {

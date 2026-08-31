@@ -19,6 +19,16 @@ export type JourneyMessageRecord = {
   created_at?: unknown;
 };
 
+export type JourneyActionRecord = {
+  id?: unknown;
+  client_key?: unknown;
+  status?: unknown;
+  action_title?: unknown;
+  plan?: unknown;
+  reflection?: unknown;
+  created_at?: unknown;
+};
+
 export type JourneyPattern = {
   key: string;
   label: string;
@@ -30,6 +40,9 @@ export type JourneySnapshot = {
   totalSignals: number;
   readingCount: number;
   savedMessageCount: number;
+  actionCount: number;
+  completedActionCount: number;
+  openActionCount: number;
   hasHistory: boolean;
   lastEntryAt: string | null;
   themes: JourneyPattern[];
@@ -46,7 +59,8 @@ export type JourneyRecommendation = {
     | "calibrate_profile"
     | "open_first_reading"
     | "review_pattern"
-    | "continue_thread";
+    | "continue_thread"
+    | "complete_action";
   signal: string;
   patternKey?: string;
 };
@@ -120,7 +134,14 @@ function messageCards(message: JourneyMessageRecord) {
 
 function messageTheme(message: JourneyMessageRecord) {
   if (!isRecord(message.payload)) return "";
-  return asString(message.payload.theme);
+  const directTheme = asString(message.payload.theme);
+  if (directTheme) return directTheme;
+
+  if (message.message_type === "daily_card" && isRecord(message.payload.daily_context)) {
+    return asString(message.payload.daily_context.suggested_focus);
+  }
+
+  return "";
 }
 
 function rankSignals(signals: Signal[]): JourneyPattern[] {
@@ -169,6 +190,7 @@ function sharesMeaningfulToken(left: string, right: string) {
 
 function profileFocusMatches(profile: ReadingProfile, readings: JourneyReadingRecord[]) {
   const searchable = readings
+    .filter(isRecord)
     .flatMap((reading) => [asString(reading.theme), asString(reading.question)])
     .map(normalizeKey)
     .filter(Boolean);
@@ -190,13 +212,15 @@ function profileFocusMatches(profile: ReadingProfile, readings: JourneyReadingRe
 export function buildJourneySnapshot(
   readings: JourneyReadingRecord[],
   messages: JourneyMessageRecord[],
-  profile: ReadingProfile
+  profile: ReadingProfile,
+  actions: JourneyActionRecord[] = []
 ): JourneySnapshot {
   const themeSignals: Signal[] = [];
   const cardSignals: Signal[] = [];
   const entryDates: Array<string | null> = [];
 
   readings.forEach((reading) => {
+    if (!isRecord(reading)) return;
     const seenAt = reading.created_at;
     addSignal(themeSignals, reading.theme, seenAt);
     spreadCards(reading.spread).forEach((card) => addSignal(cardSignals, card, seenAt));
@@ -204,6 +228,7 @@ export function buildJourneySnapshot(
   });
 
   messages.forEach((message) => {
+    if (!isRecord(message)) return;
     const seenAt = message.created_at;
     addSignal(themeSignals, messageTheme(message), seenAt);
     messageCards(message).forEach((card) => addSignal(cardSignals, card, seenAt));
@@ -212,11 +237,31 @@ export function buildJourneySnapshot(
 
   const themes = rankSignals(themeSignals);
   const cards = rankSignals(cardSignals);
+  const seenActionKeys = new Set<string>();
+  const actionRecords = actions.filter((action) => {
+    if (!isRecord(action)) return false;
+
+    const identity = asString(action.client_key) || asString(action.id);
+    if (!identity) return true;
+    if (seenActionKeys.has(identity)) return false;
+
+    seenActionKeys.add(identity);
+    return true;
+  });
+  const completedActionCount = actionRecords.filter(
+    (action) => asString(action.status) === "completed"
+  ).length;
+  const openActionCount = actionRecords.filter((action) =>
+    ["committed", "deferred"].includes(asString(action.status))
+  ).length;
 
   return {
     totalSignals: readings.length + messages.length,
     readingCount: readings.length,
     savedMessageCount: messages.length,
+    actionCount: actionRecords.length,
+    completedActionCount,
+    openActionCount,
     hasHistory: readings.length > 0 || messages.length > 0,
     lastEntryAt: sortedDates(entryDates)[0] ?? null,
     themes,
@@ -243,6 +288,13 @@ export function getJourneyRecommendations(
     recommendations.push({
       kind: "calibrate_profile",
       signal: "profile_incomplete",
+    });
+  }
+
+  if (snapshot.openActionCount > 0) {
+    recommendations.push({
+      kind: "complete_action",
+      signal: "action_open",
     });
   }
 

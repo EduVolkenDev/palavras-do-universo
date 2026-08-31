@@ -117,7 +117,23 @@ try {
       timeout: 15_000,
     });
     await page.locator("#reading-opened").waitFor({ state: "visible", timeout: 60_000 });
+    await page.locator(".pdu-result-card-strip").waitFor({ state: "visible", timeout: 60_000 });
     await page.waitForTimeout(1_500);
+    const autoScroll = await page.evaluate(() => {
+      const opened = document.querySelector("#reading-opened");
+      const firstCard = document.querySelector(".pdu-result-card-strip__item");
+      const openedRect = opened?.getBoundingClientRect();
+      const cardRect = firstCard?.getBoundingClientRect();
+
+      return {
+        scrollY: window.scrollY,
+        openedTop: openedRect?.top ?? null,
+        firstCardTop: cardRect?.top ?? null,
+        firstCardVisible: Boolean(
+          cardRect && cardRect.top >= 0 && cardRect.top < window.innerHeight
+        ),
+      };
+    });
     await page.evaluate(() => {
       document.getElementById("reading-opened")?.scrollIntoView({
         block: "start",
@@ -126,7 +142,7 @@ try {
     });
     await page.waitForTimeout(400);
 
-    const metrics = await page.evaluate(() => {
+    const metrics = await page.evaluate((autoScroll) => {
       const query = (selector) => document.querySelector(selector);
       const queryAll = (selector) => Array.from(document.querySelectorAll(selector));
       const rect = (element) => {
@@ -145,6 +161,23 @@ try {
       };
       const cards = queryAll(".pdu-result-card-strip__item").map(rect);
       const frames = queryAll(".pdu-result-card-strip__item .pdu-tarot-frame").map(rect);
+      const cardImages = queryAll(".pdu-result-card-strip__item img").map((image) => ({
+        rect: rect(image),
+        complete: image.complete,
+        naturalWidth: image.naturalWidth,
+        naturalHeight: image.naturalHeight,
+        src: image.currentSrc || image.getAttribute("src") || "",
+      }));
+      const cardVisibility = queryAll(".pdu-result-card-strip__item").map((element) => {
+        const style = window.getComputedStyle(element);
+        const value = element.getBoundingClientRect();
+        return {
+          opacity: Number(style.opacity),
+          visibility: style.visibility,
+          display: style.display,
+          area: value.width * value.height,
+        };
+      });
       const overlap = (a, b) =>
         Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
         Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
@@ -157,12 +190,15 @@ try {
 
       return {
         viewport: { width: window.innerWidth, height: window.innerHeight },
+        autoScroll,
         scrollOverflow: document.documentElement.scrollWidth - window.innerWidth,
         blocks: queryAll(".pdu-reading-block").map((element) => ({
           rect: rect(element),
           text: element.textContent?.trim() ?? "",
         })),
         cards,
+        cardImages,
+        cardVisibility,
         frames,
         overlaps,
         transcript: rect(query(".pdu-reading-transcript")),
@@ -172,7 +208,7 @@ try {
         heading: rect(query("#reading-opened h2")),
         langBad: /Voce pode buscar|Você pode buscar|DESCUBRIR|CONECTAR/.test(document.body.innerText),
       };
-    });
+    }, autoScroll);
 
     const screenshotPath = `${outDir}/pdu-reading-${item.name}.png`;
     const transcriptScreenshotPath = `${outDir}/pdu-reading-transcript-${item.name}.png`;
@@ -186,6 +222,33 @@ try {
     const problems = [];
     if (metrics.scrollOverflow > 3) problems.push(`horizontal overflow ${metrics.scrollOverflow}`);
     if (metrics.cards.length !== 3) problems.push(`expected 3 cards got ${metrics.cards.length}`);
+    if (
+      metrics.cardVisibility.length !== metrics.cards.length ||
+      metrics.cardVisibility.some(
+        (card) =>
+          card.opacity < 0.01 ||
+          card.visibility === "hidden" ||
+          card.display === "none" ||
+          card.area < 1
+      )
+    ) {
+      problems.push(`cards are not visibly rendered ${JSON.stringify(metrics.cardVisibility)}`);
+    }
+    if (!metrics.autoScroll.firstCardVisible) problems.push(`cards not visible after automatic result scroll ${JSON.stringify(metrics.autoScroll)}`);
+    if (
+      metrics.cardImages.length !== metrics.cards.length ||
+      metrics.cardImages.some(
+        (image) =>
+          !image.complete ||
+          image.naturalWidth < 40 ||
+          image.naturalHeight < 40 ||
+          !image.rect ||
+          image.rect.width < (metrics.viewport.width < 600 ? 150 : 90) ||
+          image.rect.height < (metrics.viewport.width < 600 ? 220 : 130)
+      )
+    ) {
+      problems.push(`card images are not visibly loaded ${JSON.stringify(metrics.cardImages)}`);
+    }
     if (metrics.overlaps.some((value) => value > 1)) problems.push(`cards overlap ${metrics.overlaps.join(",")}`);
     if (!metrics.transcript || metrics.transcript.width < (metrics.viewport.width < 600 ? 300 : 420)) {
       problems.push(`transcript too narrow ${metrics.transcript?.width ?? 0}`);

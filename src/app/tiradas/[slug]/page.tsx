@@ -7,7 +7,8 @@ import { notFound } from "next/navigation";
 import { normalizeLocale } from "@/lib/i18n/config";
 import { translations } from "@/lib/i18n/translations";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
-import { productCards } from "@/lib/product/catalog";
+import { getProductCardPrice, productCards } from "@/lib/product/catalog";
+import { resolveProductCurrency } from "@/lib/product/pricing";
 import { SPREADS, type SpreadType } from "@/lib/tarot/spreads";
 
 const PREMIUM_SPREAD_TYPES = [
@@ -135,7 +136,7 @@ export async function generateMetadata({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ lang?: string }>;
+  searchParams?: Promise<{ lang?: string; currency?: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
   const locale = normalizeLocale((await searchParams)?.lang);
@@ -163,10 +164,15 @@ export default async function SpreadExperiencePage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ lang?: string }>;
+  searchParams?: Promise<{ lang?: string; currency?: string }>;
 }) {
   const { slug } = await params;
-  const locale = normalizeLocale((await searchParams)?.lang);
+  const resolvedSearchParams = await searchParams;
+  const locale = normalizeLocale(resolvedSearchParams?.lang);
+  const productCurrency = resolveProductCurrency({
+    currency: resolvedSearchParams?.currency,
+    locale,
+  });
   const t = (value: string) => translateText(value, locale);
   const spread = Object.values(SPREADS).find((item) => item.slug === slug);
 
@@ -175,7 +181,8 @@ export default async function SpreadExperiencePage({
   const detail = PAGE_DETAILS[spread.type];
   const product = productCards.find((item) => item.productKey === spread.productKey);
   if (!product) notFound();
-  const accessLabel = [t("Avulsa"), product.price, t("Círculo")]
+  const productPrice = getProductCardPrice(product, productCurrency);
+  const accessLabel = [t("Avulsa"), productPrice, t("Círculo")]
     .filter(Boolean)
     .join(" · ");
   const translatedLabel = t(spread.label);
@@ -187,12 +194,23 @@ export default async function SpreadExperiencePage({
     signature: t(detail.signature),
   };
   const productHref = localizedHref(
-    `/?product=${encodeURIComponent(spread.productKey)}#leitura`,
+    `/?product=${encodeURIComponent(spread.productKey)}&currency=${encodeURIComponent(
+      productCurrency
+    )}#leitura`,
     locale,
   );
-  const circleHref = localizedHref("/#circulo", locale);
-  const spreadsHref = localizedHref("/tiradas", locale);
-  const homeHref = localizedHref("/", locale);
+  const circleHref = localizedHref(
+    `/?currency=${encodeURIComponent(productCurrency)}#circulo`,
+    locale
+  );
+  const spreadsHref = localizedHref(
+    `/tiradas?currency=${encodeURIComponent(productCurrency)}`,
+    locale
+  );
+  const homeHref = localizedHref(
+    `/?currency=${encodeURIComponent(productCurrency)}`,
+    locale
+  );
 
   const visualStyle = {
     "--pdu-spread-accent": detail.accent,
@@ -262,7 +280,7 @@ export default async function SpreadExperiencePage({
 
           <div className="pdu-spread-experience__facts">
             <span><strong>{spread.positions.length}</strong> {t("posições")}</span>
-            {product.price ? <span><strong>{product.price}</strong> {t("avulsa")}</span> : null}
+            {productPrice ? <span><strong>{productPrice}</strong> {t("avulsa")}</span> : null}
             <span><strong>1</strong> {t("pergunta central")}</span>
             <span><strong>{t("Círculo")}</strong> {t("inclui")}</span>
           </div>

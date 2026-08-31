@@ -20,6 +20,17 @@ import {
   createUserContext,
   type UserContext,
 } from "@/lib/personalization/reading-context";
+import {
+  buildJourneySnapshot,
+  type JourneyMessageRecord,
+  type JourneyReadingRecord,
+} from "@/lib/personalization/journey";
+import {
+  getLocalActiveReading,
+  getLocalImpactCommitments,
+  getLocalSavedMessages,
+  localActiveReadingAsSavedMessage,
+} from "@/lib/client/localUniverse";
 
 type LumeMessage = {
   id: number;
@@ -64,14 +75,80 @@ export default function LumeGuide() {
     if (!open || contextLoaded) return;
 
     let cancelled = false;
-    fetch("/api/profile", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) return null;
-        const data = (await response.json()) as { profile?: unknown };
-        return data.profile ?? null;
-      })
-      .then((profile) => {
-        if (!cancelled && profile) setUserContext(createUserContext(profile, "remote"));
+    Promise.all(
+      [
+        "/api/profile",
+        "/api/readings?limit=20",
+        "/api/saved-messages?limit=20",
+        "/api/actions",
+      ].map((url) => fetch(url, { cache: "no-store" }).catch(() => null))
+    )
+      .then(async ([profileResponse, readingsResponse, messagesResponse, actionsResponse]) => {
+        const [profileData, readingsData, messagesData, actionsData] = await Promise.all(
+          [profileResponse, readingsResponse, messagesResponse, actionsResponse].map(async (response) => {
+            if (!response?.ok) return null;
+            try {
+              return (await response.json()) as unknown;
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        let localProfile: unknown = null;
+        try {
+          const stored = window.localStorage.getItem("pdu_onboarding_profile");
+          localProfile = stored ? JSON.parse(stored) : null;
+        } catch {
+          localProfile = null;
+        }
+
+        const remoteProfile =
+          profileData && typeof profileData === "object" && profileData !== null
+            ? (profileData as { profile?: unknown }).profile ?? null
+            : null;
+        const profile = remoteProfile ?? localProfile;
+        const source: UserContext["source"] = remoteProfile
+          ? "remote"
+          : localProfile
+            ? "local"
+            : "none";
+        const remoteReadings =
+          readingsData && typeof readingsData === "object" && readingsData !== null
+            ? (readingsData as { readings?: unknown }).readings
+            : [];
+        const remoteMessages =
+          messagesData && typeof messagesData === "object" && messagesData !== null
+            ? (messagesData as { messages?: unknown }).messages
+            : [];
+        const remoteActions =
+          actionsData && typeof actionsData === "object" && actionsData !== null
+            ? (actionsData as { commitments?: unknown }).commitments
+            : [];
+        const localActiveReading = localActiveReadingAsSavedMessage(
+          getLocalActiveReading()
+        );
+        const messages = [
+          ...(Array.isArray(remoteMessages) ? remoteMessages : []),
+          ...(localActiveReading ? [localActiveReading] : []),
+          ...getLocalSavedMessages(),
+        ] as JourneyMessageRecord[];
+        const readings = (Array.isArray(remoteReadings) ? remoteReadings : []) as JourneyReadingRecord[];
+        const actions = [
+          ...(Array.isArray(remoteActions) ? remoteActions : []),
+          ...getLocalImpactCommitments(),
+        ];
+        const baseContext = createUserContext(profile, source);
+        const journey = buildJourneySnapshot(
+          readings,
+          messages,
+          baseContext.readingProfile,
+          actions
+        );
+
+        if (!cancelled && (profile || journey.hasHistory || journey.actionCount > 0)) {
+          setUserContext(createUserContext(profile, source, journey));
+        }
       })
       .catch(() => null)
       .finally(() => {
@@ -145,7 +222,7 @@ export default function LumeGuide() {
           <div className="pdu-lume-presence-field" aria-hidden="true" />
           <section
             id="lume-guide-panel"
-            className="pdu-lume-guide-panel fixed right-[5.5rem] top-1/2 z-[111] flex max-h-[min(75vh,38rem)] w-[min(23rem,calc(100vw-1.5rem))] -translate-y-1/2 flex-col overflow-hidden rounded-[26px] border border-[#f4d58d]/30 bg-[#111019] text-[#fff7e8] shadow-[0_28px_90px_rgba(0,0,0,0.46)]"
+            className="pdu-lume-guide-panel fixed right-[5.5rem] top-1/2 z-[111] flex max-h-[min(75vh,38rem)] w-[min(23rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[26px] border border-[#f4d58d]/30 bg-[#111019] text-[#fff7e8] shadow-[0_28px_90px_rgba(0,0,0,0.46)]"
             aria-label={`${LUME_NAME} — ${locale === "en" ? "guidance" : "orientação"}`}
             role="dialog"
           >

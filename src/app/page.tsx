@@ -35,9 +35,13 @@ import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link";
 import { buildLoginPath } from "@/lib/auth/redirect";
 import {
+  getPricingPlanPrice,
   pricingPlans,
   productCards,
 } from "@/lib/product/catalog";
+import { ProductCurrencySwitch } from "@/components/ProductCurrencySwitch";
+import { formatProductPrice } from "@/lib/product/pricing";
+import { useProductCurrency } from "@/lib/product/useProductCurrency";
 import type { DailyMessage } from "@/lib/daily/message";
 import {
   PRODUCT_DEFAULT_QUESTIONS,
@@ -707,10 +711,12 @@ function shouldUseInstantScroll() {
   );
 }
 
-function scrollToId(id: string) {
+function scrollToId(id: string, instant = false) {
   document
     .getElementById(id)
-    ?.scrollIntoView({ behavior: shouldUseInstantScroll() ? "auto" : "smooth" });
+    ?.scrollIntoView({
+      behavior: instant || shouldUseInstantScroll() ? "auto" : "smooth",
+    });
 }
 
 const fallbackHeroMark =
@@ -891,7 +897,9 @@ function localizeReadingSpreadCard(
   card: ReadingSpreadCard,
   locale: Locale
 ): ReadingSpreadCard {
-  const sourceCard = CARDS.find((item) => item.key === card.cardKey);
+  const sourceCard = CARDS.find(
+    (item) => item.key === card.cardKey || item.name === card.name
+  );
   const localizedCard = sourceCard ? localizeTarotCard(sourceCard, locale) : null;
   const meaning = localizedCard
     ? card.reversed
@@ -907,6 +915,44 @@ function localizeReadingSpreadCard(
     meaning,
     assetPath: localizedCard?.assetPath ?? card.assetPath,
   };
+}
+
+function normalizeReadingSpreadCards(value: unknown): ApiOk["spread"] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item) => {
+    if (!isRecord(item)) return [];
+
+    const cardKey = typeof item.cardKey === "string" ? item.cardKey : "";
+    const name = typeof item.name === "string" ? item.name : "";
+    const sourceCard = CARDS.find(
+      (card) => card.key === cardKey || card.name === name
+    );
+    const position = typeof item.position === "string" ? item.position : "";
+    const assetPath =
+      sourceCard?.assetPath ??
+      (typeof item.assetPath === "string" ? item.assetPath : "");
+
+    if (!position || !name || !assetPath) return [];
+
+    return [
+      {
+        position,
+        cardKey: sourceCard?.key ?? cardKey,
+        keyword:
+          typeof item.keyword === "string"
+            ? item.keyword
+            : sourceCard?.keywords[0] ?? "",
+        name,
+        reversed: item.reversed === true,
+        meaning:
+          typeof item.meaning === "string"
+            ? item.meaning
+            : sourceCard?.upright ?? "",
+        assetPath,
+      },
+    ];
+  });
 }
 
 function buildLocalizedReadingText(params: {
@@ -1142,6 +1188,8 @@ function OnboardingIconOption({
 
 export default function Home() {
   const { locale, t } = useI18n();
+  const { currency: productCurrency, setCurrency: setProductCurrency } =
+    useProductCurrency(locale);
   const [userId, setUserId] = useState("");
   const [theme, setTheme] = useState("love");
   const [portalIntentId, setPortalIntentId] = useState("atravessar");
@@ -1196,6 +1244,7 @@ export default function Home() {
   const [selectedHeroMark, setSelectedHeroMark] =
     useState<HeroMarkCandidate>(fallbackHeroMark);
   const hasRestoredReadingStateRef = useRef(false);
+  const lastAppliedSuggestedQuestionRef = useRef("");
   const shouldScrollToOpenedReadingRef = useRef(false);
   const startCheckoutRef = useRef<(productKey: string) => Promise<void>>(
     async () => undefined
@@ -1354,7 +1403,10 @@ export default function Home() {
 
     const params = new URLSearchParams(window.location.search);
     const hasRouteOverride =
-      params.has("product") || params.has("acao") || params.has("corrente");
+      params.has("product") ||
+      params.has("acao") ||
+      params.has("corrente") ||
+      params.has("continuar");
 
     if (!hasRouteOverride) {
       const storedDraft = getLocalReadingDraft();
@@ -1387,7 +1439,7 @@ export default function Home() {
             : storedReading.question
         );
         setSpreadLine(storedReading.spread_line);
-        setSpreadCards(storedReading.spread_cards);
+        setSpreadCards(normalizeReadingSpreadCards(storedReading.spread_cards));
         setResult(storedReading.result);
         setResultLocale(normalizeLocale(storedReading.locale));
         setReadingId(storedReading.reading_id);
@@ -1407,7 +1459,11 @@ export default function Home() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const hasIntentRoute =
-      params.has("product") || params.has("resume") || params.has("acao") || params.has("corrente");
+      params.has("product") ||
+      params.has("resume") ||
+      params.has("acao") ||
+      params.has("corrente") ||
+      params.has("continuar");
     const storedFocus = localStorage.getItem("pdu_focus") ?? "";
     if (storedFocus) setOnboardingFocusId(storedFocus);
     const storedProfile = localStorage.getItem("pdu_onboarding_profile");
@@ -1484,6 +1540,45 @@ export default function Home() {
     const resume = params.get("resume");
     const invitedActionKey = params.get("acao");
     const chainId = params.get("corrente");
+    const shouldContinue = params.has("continuar");
+
+    if (shouldContinue) {
+      let continuation: unknown = null;
+      try {
+        const stored = window.sessionStorage.getItem("pdu_continuity_prompt");
+        continuation = stored ? JSON.parse(stored) : null;
+        window.sessionStorage.removeItem("pdu_continuity_prompt");
+      } catch {
+        continuation = null;
+      }
+
+      clearReadingView();
+      setReadingProductKey("free_daily");
+
+      if (isRecord(continuation)) {
+        const continuationTheme =
+          typeof continuation.theme === "string" ? continuation.theme : "";
+        const continuationPrompt =
+          typeof continuation.prompt === "string"
+            ? continuation.prompt.trim()
+            : "";
+        const matchingTheme = themeOptions.find(
+          (option) => option.value === continuationTheme
+        );
+
+        if (matchingTheme) {
+          setTheme(matchingTheme.value);
+          const mappedIntentId = THEME_INTENT_ID[matchingTheme.value];
+          if (mappedIntentId) setPortalIntentId(mappedIntentId);
+        }
+        if (continuationPrompt) {
+          setSuggestedQuestionSource("");
+          setQuestion(continuationPrompt);
+        }
+      }
+
+      window.setTimeout(() => scrollToId("leitura"), 120);
+    }
 
     if (invitedActionKey) {
       const invitedAction = getImpactAction(invitedActionKey);
@@ -1548,7 +1643,22 @@ export default function Home() {
 
   useEffect(() => {
     if (suggestedQuestionSource) {
-      setQuestion(t(suggestedQuestionSource));
+      const nextSuggestedQuestion = t(suggestedQuestionSource);
+      setQuestion((currentQuestion) => {
+        const current = currentQuestion.trim();
+        const canRefresh =
+          !current || current === lastAppliedSuggestedQuestionRef.current;
+
+        if (!canRefresh) {
+          if (current === nextSuggestedQuestion) {
+            lastAppliedSuggestedQuestionRef.current = nextSuggestedQuestion;
+          }
+          return currentQuestion;
+        }
+
+        lastAppliedSuggestedQuestionRef.current = nextSuggestedQuestion;
+        return nextSuggestedQuestion;
+      });
     }
   }, [locale, suggestedQuestionSource, t]);
 
@@ -1578,7 +1688,7 @@ export default function Home() {
       // During the ritual, show Lume's opening state. Once the new spread is
       // ready, return to the top of the reading so the three cards are the
       // first thing the person sees instead of opening below the fold.
-      scrollToId(loading ? "reading-opened" : "leitura");
+      scrollToId("reading-opened", true);
       if (!loading && result) {
         shouldScrollToOpenedReadingRef.current = false;
       }
@@ -1605,7 +1715,7 @@ export default function Home() {
         : storedReading.question
     );
     setSpreadLine(storedReading.spread_line);
-    setSpreadCards(storedReading.spread_cards);
+    setSpreadCards(normalizeReadingSpreadCards(storedReading.spread_cards));
     setResult(storedReading.result);
     setResultLocale(normalizeLocale(storedReading.locale));
     setReadingId(storedReading.reading_id);
@@ -1773,7 +1883,12 @@ export default function Home() {
       }
 
       const ok = data as ApiOk;
-      const line = ok.spread
+      const normalizedSpread = normalizeReadingSpreadCards(ok.spread);
+      if (!normalizedSpread.length) {
+        setError("A leitura abriu, mas as cartas não puderam ser carregadas. Tente novamente.");
+        return;
+      }
+      const line = normalizedSpread
         .map((card) => {
           const reversed = card.reversed
             ? locale === "en"
@@ -1785,7 +1900,7 @@ export default function Home() {
         .join(" | ");
 
       setSpreadLine(line);
-      setSpreadCards(ok.spread);
+      setSpreadCards(normalizedSpread);
       setResult(ok.interpretation);
       setResultLocale(locale);
       setReadingId(ok.readingId);
@@ -1799,7 +1914,7 @@ export default function Home() {
         question: q,
         suggestedQuestionSource,
         spreadLine: line,
-        spreadCards: ok.spread,
+        spreadCards: normalizedSpread,
         result: ok.interpretation,
         readingId: ok.readingId,
       });
@@ -1814,7 +1929,7 @@ export default function Home() {
           spreadLabel: ok.spreadLabel,
           question: q,
           spreadLine: line,
-          spreadCards: ok.spread,
+          spreadCards: normalizedSpread,
           result: ok.interpretation,
         },
       });
@@ -2077,6 +2192,12 @@ export default function Home() {
     }
   }
 
+  function buildCheckoutNextPath(productKey: string) {
+    return `/?product=${encodeURIComponent(
+      productKey
+    )}&currency=${encodeURIComponent(productCurrency)}&resume=checkout#produtos`;
+  }
+
   async function startCheckout(productKey: string) {
     const activeUserId = userId || getOrCreateLocalUserId();
     if (!userId) setUserId(activeUserId);
@@ -2088,15 +2209,12 @@ export default function Home() {
       const res = await fetch("/api/checkout/create", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ productKey, locale }),
+        body: JSON.stringify({ productKey, locale, currency: productCurrency }),
       });
       const data = (await res.json()) as unknown;
 
       if (res.status === 401) {
-        const next = `/?product=${encodeURIComponent(
-          productKey
-        )}&resume=checkout#produtos`;
-        window.location.href = buildLoginPath(next);
+        window.location.href = buildLoginPath(buildCheckoutNextPath(productKey));
         return;
       }
 
@@ -2215,6 +2333,9 @@ export default function Home() {
   const shownSpread = spreadCards.length ? localizedSpreadCards : dailyOpening.spread;
   const readingGridColumns =
     shownSpread.length >= 8 ? 4 : Math.max(1, Math.min(shownSpread.length, 5));
+  const urgentClarityPrice = formatProductPrice("clareza_urgente", productCurrency);
+  const circleMonthlyPrice = formatProductPrice("circulo_do_universo", productCurrency);
+  const circleCadenceSuffix = locale === "en" ? "month" : "mês";
   const activeSpreadLabel = selectedSpreadConfig.shortLabel;
   const reversedSuffix = locale === "en" ? " (reversed)" : " reversa";
   const activeReading = Boolean(result);
@@ -2744,16 +2865,26 @@ export default function Home() {
             {t("Mensagem de hoje")}
           </button>
 
-          <button
-            type="button"
-            className="pdu-site-header__mobile-toggle inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.06] p-2.5 text-[#f5d896] md:hidden"
-            aria-label={mobileMenuOpen ? t("Fechar menu") : t("Abrir menu")}
-            aria-controls="pdu-mobile-menu"
-            aria-expanded={mobileMenuOpen}
-            onClick={() => setMobileMenuOpen((open) => !open)}
-          >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+          <div className="pdu-site-header__mobile-actions flex items-center gap-2 md:hidden">
+            <Link
+              href={buildLoginPath("/meu-universo")}
+              className="pdu-site-header__mobile-account inline-flex items-center gap-1.5 rounded-full border border-[#f4d58d]/45 bg-[#f4d58d]/12 px-3 py-2 text-xs font-semibold text-[#fff7e8]"
+              aria-label={t("Entrar ou criar conta")}
+            >
+              <UserRound size={15} />
+              <span>{t("Entrar")}</span>
+            </Link>
+            <button
+              type="button"
+              className="pdu-site-header__mobile-toggle inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.06] p-2.5 text-[#f5d896]"
+              aria-label={mobileMenuOpen ? t("Fechar menu") : t("Abrir menu")}
+              aria-controls="pdu-mobile-menu"
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((open) => !open)}
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </div>
 
         {mobileMenuOpen ? (
@@ -2792,6 +2923,16 @@ export default function Home() {
                 {t("Meu Universo")}
               </Link>
             </nav>
+            <Link
+              href={buildLoginPath("/meu-universo")}
+              onClick={() => setMobileMenuOpen(false)}
+              className="pdu-mobile-menu__auth-cta"
+              data-testid="mobile-account-entry"
+            >
+              <UserRound size={16} />
+              {t("Entrar ou criar conta")}
+              <ArrowRight size={15} />
+            </Link>
             <button
               type="button"
               className="pdu-mobile-menu__cta mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-4 py-3 text-sm font-semibold text-[#1c1308]"
@@ -3329,7 +3470,9 @@ export default function Home() {
                         }
                         onAction={() => {
                           if (paywall.kind === "auth") {
-                            window.location.href = buildLoginPath(`/?product=${readingProductKey}#leitura`, {
+                            window.location.href = buildLoginPath(`/?product=${encodeURIComponent(
+                              readingProductKey
+                            )}&currency=${encodeURIComponent(productCurrency)}#leitura`, {
                               reason: "reading-access",
                             });
                             return;
@@ -3398,7 +3541,7 @@ export default function Home() {
         className="pdu-mobile-deferred pdu-depth-section relative overflow-hidden border-y border-white/10 px-4 py-14 text-[#f8efe2] scroll-mt-28 sm:px-6 lg:px-8"
       >
         <div className="pdu-open-reading-layout pdu-reveal is-visible mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.56fr_1.44fr] lg:items-start">
-          <div>
+          <div className="order-2 lg:order-1">
             <SectionEyebrow dark>
               {loading ? t("Lume está abrindo") : t("Leitura aberta")}
             </SectionEyebrow>
@@ -3468,7 +3611,7 @@ export default function Home() {
             ) : null}
           </div>
 
-          <div className="pdu-result-stage">
+          <div className="pdu-result-stage order-1 lg:order-2">
             {loading ? (
               <ReadingSpreadPortal immersive locale={locale} />
             ) : (
@@ -3479,7 +3622,7 @@ export default function Home() {
                     className="pdu-result-card-strip__item"
                     style={{ "--pdu-card-index": index } as CSSProperties}
                   >
-                    <TarotFrame card={card} compact locale={locale} />
+                    <TarotFrame card={card} compact eager locale={locale} />
                     <div>
                       <span>{card.position}</span>
                       <strong>
@@ -3588,7 +3731,7 @@ export default function Home() {
           </p>
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             <a
-              href={buildLoginPath("/?product=clareza_urgente&resume=checkout#produtos")}
+              href={buildLoginPath(buildCheckoutNextPath("clareza_urgente"))}
               className="group flex flex-col rounded-[10px] border border-[#f4d58d]/30 bg-white/[0.05] p-6 text-left transition hover:border-[#f4d58d]/60 hover:bg-white/[0.08]"
             >
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4d58d]">
@@ -3601,14 +3744,14 @@ export default function Home() {
                 {t("Uma leitura premium para respirar, entender o que pesa e escolher o próximo passo hoje.")}
               </span>
               <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#f4d58d]">
-                {t("Quero clareza agora")} — R$19,90
+                {t("Quero clareza agora")} — {urgentClarityPrice}
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                   <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </span>
             </a>
             <a
-              href={buildLoginPath("/?product=circulo_do_universo&resume=checkout#produtos")}
+              href={buildLoginPath(buildCheckoutNextPath("circulo_do_universo"))}
               className="group flex flex-col rounded-[10px] border border-[#a9cdbf]/30 bg-white/[0.05] p-6 text-left transition hover:border-[#a9cdbf]/60 hover:bg-white/[0.08]"
             >
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#a9cdbf]">
@@ -3621,7 +3764,7 @@ export default function Home() {
                 {t("Histórico vivo, rituais semanais e leituras premium para transformar orientação em jornada.")}
               </span>
               <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#a9cdbf]">
-                {t("Entrar no Círculo")} — R$29,90/mês
+                {t("Entrar no Círculo")} — {circleMonthlyPrice}/{circleCadenceSuffix}
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                   <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
@@ -3930,14 +4073,21 @@ export default function Home() {
                 próximo passo me faz melhor agora.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => scrollToId("leitura")}
-              className="inline-flex w-fit items-center gap-2 rounded-full bg-[#111019] px-5 py-3 text-sm font-semibold text-[#fff7e8] shadow-[0_18px_50px_rgba(17,16,25,0.18)] hover:bg-[#242130]"
-            >
-              <Feather size={17} />
-              Experimentar gratuitamente
-            </button>
+            <div className="pdu-commerce-actions">
+              <ProductCurrencySwitch
+                currency={productCurrency}
+                locale={locale}
+                onChange={setProductCurrency}
+              />
+              <button
+                type="button"
+                onClick={() => scrollToId("leitura")}
+                className="inline-flex w-fit items-center gap-2 rounded-full bg-[#111019] px-5 py-3 text-sm font-semibold text-[#fff7e8] shadow-[0_18px_50px_rgba(17,16,25,0.18)] hover:bg-[#242130]"
+              >
+                <Feather size={17} />
+                Experimentar gratuitamente
+              </button>
+            </div>
           </div>
 
           <div className="pdu-magic-marquee pdu-scroll-reveal" aria-hidden="true">
@@ -4181,7 +4331,9 @@ export default function Home() {
                       {plan.cadence}
                     </span>
                   ) : null}
-                  <span className="text-4xl font-semibold">{plan.price}</span>
+                  <span className="text-4xl font-semibold">
+                    {getPricingPlanPrice(plan, productCurrency)}
+                  </span>
                   {!isPrefixPriceCadence(plan.cadence) ? (
                     <span
                       className={
@@ -4405,6 +4557,7 @@ function TarotFrame(props: {
     assetPath: string;
   };
   compact?: boolean;
+  eager?: boolean;
 }) {
   return (
     <div
@@ -4418,6 +4571,7 @@ function TarotFrame(props: {
           alt={`${props.card.position}: ${props.card.name}`}
           width={420}
           height={680}
+          loading={props.eager ? "eager" : "lazy"}
           className={`h-full w-full object-cover transition duration-500 group-hover:scale-[1.03] ${
             props.card.reversed ? "rotate-180" : ""
           }`}

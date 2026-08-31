@@ -556,6 +556,22 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     const words = clean.split(/\s+/).filter(Boolean);
     return words.length > limit ? `${words.slice(0, limit).join(" ")}...` : clean;
   };
+  const completeSentences = (text: string, maxWords: number) => {
+    const sentences =
+      text
+        .match(/[^.!?]+(?:[.!?]+(?=\s|$)|$)/g)
+        ?.map((sentence) => sentence.trim())
+        .filter(Boolean) ?? [];
+    const selected: string[] = [];
+
+    for (const sentence of sentences) {
+      const candidate = [...selected, sentence].join(" ");
+      if (candidate.split(/\s+/).filter(Boolean).length > maxWords) break;
+      selected.push(sentence);
+    }
+
+    return selected.join(" ") || sentences[0] || "";
+  };
   const cleanQuestion = question.replace(/\s+/g, " ").trim();
   const shortQuestion =
     cleanQuestion.length > 96 ? `${cleanQuestion.slice(0, 93).trim()}...` : cleanQuestion;
@@ -576,12 +592,15 @@ export function generateFallbackReading(params: FallbackReadingParams) {
       `position-context:${index}:${draw.card.key}:${draw.reversed ? "r" : "u"}`
     );
 
-    return fillTemplate(template, {
+    const positionLine = fillTemplate(template, {
       card: label(draw),
       keyword,
       meaning: cardMeaning || keyword,
       question: questionPart,
     });
+    const practicalMeaning = limitWords(cardMeaning || keyword, 16);
+    const bridge = isEnglish ? "In practice:" : "Na prática:";
+    return `${positionLine} ${bridge} ${practicalMeaning}.`;
   };
 
   const contextualOpening = isEnglish
@@ -595,7 +614,7 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     patternLine: momentLine,
   });
   const compactPresenceLine = localPresenceLine
-    ? limitWords(localPresenceLine, isEnglish ? 24 : 26)
+    ? completeSentences(localPresenceLine, isEnglish ? 42 : 46)
     : "";
   const directCore = isEnglish
     ? hasExtendedSpread
@@ -617,8 +636,8 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     const keyword = draw.card.keywords[0] ?? (isEnglish ? "presence" : "presença");
     const text = contextualMeaning(draw, index);
     return isEnglish
-      ? `- ${draw.position}: ${label(draw)} — ${limitWords(text || keyword, 24)}`
-      : `- ${draw.position}: ${label(draw)} — ${limitWords(text || keyword, 24)}`;
+      ? `- ${draw.position}: ${label(draw)} — ${limitWords(text || keyword, 38)}`
+      : `- ${draw.position}: ${label(draw)} — ${limitWords(text || keyword, 38)}`;
   };
   const mapLine = isEnglish
     ? hasExtendedSpread
@@ -635,8 +654,8 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     pick(copy.actions, "action-theme"),
     daily.advice,
     isEnglish
-      ? `Let ${label(direction)} define one concrete action you can complete before the day ends.`
-      : `Deixe ${label(direction)} definir uma ação concreta que você consiga concluir antes do fim do dia.`,
+      ? `Let ${label(direction)} guide one concrete action you can complete today.`
+      : `Deixe ${label(direction)} guiar uma ação concreta que você consiga concluir hoje.`,
   ]).map((action) => limitWords(action, 18)).slice(0, 3);
   const recommendedQuestion = pick(copy.questions, "question");
 

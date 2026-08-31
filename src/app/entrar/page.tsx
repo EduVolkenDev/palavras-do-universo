@@ -7,7 +7,13 @@ import { FormEvent, useEffect, useState } from "react";
 import { useI18n } from "@/components/I18nProvider";
 import { buildAuthCallbackUrl, sanitizeAuthRedirect } from "@/lib/auth/redirect";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { productCards, pricingPlans } from "@/lib/product/catalog";
+import {
+  getProductCardPrice,
+  getPricingPlanPrice,
+  productCards,
+  pricingPlans,
+} from "@/lib/product/catalog";
+import { resolveProductCurrency } from "@/lib/product/pricing";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 import { PduAssetStory } from "@/components/PduAssetStory";
@@ -28,9 +34,12 @@ const productVisuals: Record<string, string> = {
   circulo_do_universo: PDU_ASSETS.ambient.mandala,
 };
 
-function getProductFromNextParam(): { title: string; price: string; visual: string } | null {
+function getProductFromNextParam(
+  locale: string
+): { title: string; price: string; visual: string } | null {
   if (typeof window === "undefined") return null;
-  const next = new URLSearchParams(window.location.search).get("next");
+  const params = new URLSearchParams(window.location.search);
+  const next = params.get("next");
   if (!next) return null;
 
   // next looks like: /?product=clareza_urgente#produtos
@@ -38,12 +47,17 @@ function getProductFromNextParam(): { title: string; price: string; visual: stri
     const inner = new URLSearchParams(next.split("?")[1]?.split("#")[0] ?? "");
     const key = inner.get("product");
     if (!key) return null;
+    const productCurrency = resolveProductCurrency({
+      currency: inner.get("currency") ?? params.get("currency"),
+      locale,
+    });
 
     const fromCards = productCards.find((p) => p.productKey === key);
-    if (fromCards?.price) {
+    const cardPrice = fromCards ? getProductCardPrice(fromCards, productCurrency) : "";
+    if (fromCards && cardPrice) {
       return {
         title: fromCards.title,
-        price: fromCards.price,
+        price: cardPrice,
         visual: productVisuals[key] ?? PDU_ASSETS.surfaces.account,
       };
     }
@@ -52,7 +66,7 @@ function getProductFromNextParam(): { title: string; price: string; visual: stri
     if (fromPlans) {
       return {
         title: fromPlans.title,
-        price: `${fromPlans.price}/${fromPlans.cadence}`,
+        price: `${getPricingPlanPrice(fromPlans, productCurrency)}/${fromPlans.cadence}`,
         visual: productVisuals[key] ?? PDU_ASSETS.surfaces.account,
       };
     }
@@ -71,21 +85,27 @@ export default function EntrarPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [state, setState] = useState<FormState>("idle");
   const [message, setMessage] = useState("");
+  const [lastConfirmationEmail, setLastConfirmationEmail] = useState("");
+  const [canResendConfirmation, setCanResendConfirmation] = useState(false);
+  const [existingAccountHint, setExistingAccountHint] = useState(false);
+  const [resendState, setResendState] = useState<FormState>("idle");
+  const [resendMessage, setResendMessage] = useState("");
   const [product, setProduct] = useState<{ title: string; price: string; visual: string } | null>(null);
   const [readingHistoryReason, setReadingHistoryReason] = useState(false);
+  const isEn = locale === "en";
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const params = new URLSearchParams(window.location.search);
       const reason = params.get("reason") === "reading-history";
       const mode = params.get("mode");
-      setProduct(getProductFromNextParam());
+      setProduct(getProductFromNextParam(locale));
       setReadingHistoryReason(reason);
       if (mode === "reset-password") setAuthMode("reset-password");
       else if (mode === "signup" || mode === "criar" || reason) setAuthMode("signup");
     }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     if (state !== "idle") return;
@@ -122,6 +142,11 @@ export default function EntrarPage() {
     setAuthMode(nextMode);
     setState("idle");
     setMessage("");
+    setLastConfirmationEmail("");
+    setCanResendConfirmation(false);
+    setExistingAccountHint(false);
+    setResendState("idle");
+    setResendMessage("");
     setPassword("");
     setConfirmPassword("");
   }
@@ -171,6 +196,10 @@ export default function EntrarPage() {
 
     setState("sending");
     setMessage("");
+    setCanResendConfirmation(false);
+    setExistingAccountHint(false);
+    setResendState("idle");
+    setResendMessage("");
 
     const nextPath = getNextPath();
 
@@ -257,7 +286,22 @@ export default function EntrarPage() {
         return;
       }
 
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        setState("sent");
+        setExistingAccountHint(true);
+        setCanResendConfirmation(false);
+        setLastConfirmationEmail(cleanEmail);
+        setMessage(
+          locale === "en"
+            ? "This email may already have an account. Use your password to sign in, or recover access if you do not remember it."
+            : "Este e-mail pode já ter uma conta. Entre com sua senha ou recupere o acesso se não lembrar."
+        );
+        return;
+      }
+
       setState("sent");
+      setLastConfirmationEmail(cleanEmail);
+      setCanResendConfirmation(true);
       setMessage(
         readingHistoryReason
           ? locale === "en"
@@ -281,11 +325,22 @@ export default function EntrarPage() {
         status: error.status,
       });
       setState("error");
-      setMessage(
-        locale === "en"
-          ? "Could not sign in. Check the email and password."
-          : "Não foi possível entrar. Revise e-mail e senha."
-      );
+      if (error.message.toLowerCase().includes("email not confirmed")) {
+        setState("sent");
+        setLastConfirmationEmail(cleanEmail);
+        setCanResendConfirmation(true);
+        setMessage(
+          locale === "en"
+            ? "This account still needs email confirmation. Resend the confirmation and then come back with your password."
+            : "Esta conta ainda precisa de confirmação por e-mail. Reenvie a confirmação e depois volte com sua senha."
+        );
+      } else {
+        setMessage(
+          locale === "en"
+            ? "Could not sign in. Check the email and password, or recover access."
+            : "Não foi possível entrar. Revise e-mail e senha ou recupere o acesso."
+        );
+      }
       return;
     }
 
@@ -294,9 +349,63 @@ export default function EntrarPage() {
     window.location.assign(nextPath);
   }
 
-  const isEn = locale === "en";
+  async function handleResendConfirmation() {
+    const supabase = getSupabaseBrowserClient();
+    const cleanEmail = (lastConfirmationEmail || email).trim().toLowerCase();
+
+    if (!supabase || !cleanEmail.includes("@")) {
+      setResendState("error");
+      setResendMessage(
+        isEn
+          ? "Enter the account email again before resending."
+          : "Informe novamente o e-mail da conta antes de reenviar."
+      );
+      return;
+    }
+
+    setResendState("sending");
+    setResendMessage("");
+
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: cleanEmail,
+      options: {
+        emailRedirectTo: buildAuthCallbackUrl(window.location.origin, getNextPath()),
+      },
+    });
+
+    if (error) {
+      console.error("[auth] resend confirmation failed", {
+        message: error.message,
+        status: error.status,
+      });
+      setResendState("error");
+      setResendMessage(
+        error.status === 429
+          ? isEn
+            ? "Too many attempts. Wait a few minutes before requesting another confirmation."
+            : "Muitas tentativas. Aguarde alguns minutos antes de pedir outra confirmação."
+          : isEn
+            ? "Could not resend the confirmation email. Check the address and try again."
+            : "Não foi possível reenviar a confirmação. Revise o e-mail e tente novamente."
+      );
+      return;
+    }
+
+    setLastConfirmationEmail(cleanEmail);
+    setCanResendConfirmation(true);
+    setExistingAccountHint(false);
+    setResendState("sent");
+    setResendMessage(
+      isEn
+        ? "Confirmation resent. Check inbox, spam, and promotions."
+        : "Confirmação reenviada. Confira entrada, spam e promoções."
+    );
+  }
+
   const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "suporte@palavrasdouniverso.com";
   const isSubmitting = state === "sending";
+  const isResending = resendState === "sending";
   const needsEmail = authMode !== "reset-password";
   const needsPassword = authMode !== "forgot";
   const needsConfirmPassword = authMode === "signup" || authMode === "reset-password";
@@ -541,6 +650,62 @@ export default function EntrarPage() {
           >
             {message}
           </p>
+        ) : null}
+
+        {state === "sent" && existingAccountHint ? (
+          <div className="mt-4 rounded-lg border border-[#d8c3a6] bg-[#fffaf2] p-4">
+            <p className="text-sm leading-6 text-[#6f615a]">
+              {isEn
+                ? "For an existing account, no new confirmation email is sent. Sign in with the password you created or recover access now."
+                : "Para uma conta já existente, nenhum novo e-mail de confirmação é enviado. Entre com a senha criada ou recupere o acesso agora."}
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => switchMode("login")}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#241b18] px-4 py-2.5 text-sm font-semibold text-[#fff7e8] hover:bg-[#3a2c25]"
+              >
+                <KeyRound size={16} />
+                {isEn ? "Sign in" : "Entrar com senha"}
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode("forgot")}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#8a6b3f] px-4 py-2.5 text-sm font-semibold text-[#5f462f] hover:bg-[#f6ead6]"
+              >
+                <Mail size={16} />
+                {isEn ? "Recover access" : "Recuperar acesso"}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {state === "sent" && canResendConfirmation ? (
+          <div className="mt-4 rounded-lg border border-[#dfccb0] bg-white/70 p-4">
+            <p className="text-sm leading-6 text-[#6f615a]">
+              {isEn
+                ? "If it does not arrive in a minute, resend the confirmation. Also check spam and promotions."
+                : "Se não chegar em um minuto, reenvie a confirmação. Confira também spam e promoções."}
+            </p>
+            <button
+              type="button"
+              onClick={handleResendConfirmation}
+              disabled={isResending}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#8a6b3f] px-4 py-2.5 text-sm font-semibold text-[#5f462f] hover:bg-[#f6ead6] disabled:cursor-default disabled:opacity-70"
+            >
+              {isResending ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
+              {isEn ? "Resend confirmation" : "Reenviar confirmação"}
+            </button>
+            {resendMessage ? (
+              <p
+                className={`mt-3 text-sm leading-6 ${
+                  resendState === "error" ? "text-[#7b3330]" : "text-[#315d56]"
+                }`}
+              >
+                {resendMessage}
+              </p>
+            ) : null}
+          </div>
         ) : null}
 
         <p className="mt-6 text-xs leading-5 text-[#8a786b]">

@@ -679,6 +679,7 @@ export async function recordPendingVoucherCheckout(params: {
   productKey: string;
   originalAmountCents: number;
   discountedAmountCents: number;
+  currency: string;
 }) {
   await ensureSupabaseProfile(params.user.id);
   await getSupabaseAdmin().from("voucher_redemptions").upsert(
@@ -692,6 +693,7 @@ export async function recordPendingVoucherCheckout(params: {
       metadata: {
         original_amount_cents: params.originalAmountCents,
         discounted_amount_cents: params.discountedAmountCents,
+        currency: params.currency,
         discount_percent: params.voucher.discount_percent,
       },
     },

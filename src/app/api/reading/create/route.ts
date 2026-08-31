@@ -1123,8 +1123,15 @@ export async function POST(req: Request) {
 
   // 3) IA + fallback
   let interpretation = "";
-  let readingSource: "ai" | "fallback:ai_error" | "fallback:quality" = "ai";
-  let readingQualityReason: string | null = null;
+  const qaNoAi =
+    process.env.NODE_ENV !== "production" &&
+    process.env.PDU_READING_QA_NO_AI === "1";
+  let readingSource:
+    | "ai"
+    | "fallback:ai_error"
+    | "fallback:quality"
+    | "fallback:qa_no_ai" = qaNoAi ? "fallback:qa_no_ai" : "ai";
+  let readingQualityReason: string | null = qaNoAi ? "qa_no_ai" : null;
   const qualityParams: Parameters<typeof validateReadingQuality>[1] = {
     expectedCards: spreadConfig.positions.length,
     locale,
@@ -1133,11 +1140,12 @@ export async function POST(req: Request) {
   };
   const maxAiAttempts = paidProduct ? 2 : 1;
 
-  for (let attempt = 0; attempt < maxAiAttempts && !interpretation; attempt += 1) {
-    const attemptPrompt =
-      attempt === 0
-        ? prompt
-        : `${prompt}
+  if (!qaNoAi) {
+    for (let attempt = 0; attempt < maxAiAttempts && !interpretation; attempt += 1) {
+      const attemptPrompt =
+        attempt === 0
+          ? prompt
+          : `${prompt}
 
 Correção obrigatória antes de responder:
 - A tentativa anterior falhou no controle editorial por: ${readingQualityReason ?? "formato fora do contrato"}.
@@ -1147,27 +1155,28 @@ Correção obrigatória antes de responder:
 - Não misture idiomas. Escreva somente em ${locale === "en" ? "inglês natural" : "português brasileiro natural"}.
 - Não use introdução, pedido de desculpas ou comentário sobre a correção. Entregue apenas a leitura final.`;
 
-    try {
-      const aiInterpretation = await generateReadingAI(attemptPrompt, outputLimits);
-      const quality = validateReadingQuality(aiInterpretation, qualityParams);
+      try {
+        const aiInterpretation = await generateReadingAI(attemptPrompt, outputLimits);
+        const quality = validateReadingQuality(aiInterpretation, qualityParams);
 
-      interpretation = quality.ok ? quality.text : "";
-      if (!quality.ok) {
-        readingSource = "fallback:quality";
-        readingQualityReason = quality.reason;
-      } else {
-        readingSource = "ai";
-        readingQualityReason = null;
-      }
-    } catch (caught) {
-      interpretation = "";
-      readingSource = "fallback:ai_error";
-      readingQualityReason = "ai_generation_failed";
-      if (process.env.PDU_READING_DEBUG_SOURCE === "1") {
-        console.warn(
-          "Anthropic reading generation failed:",
-          caught instanceof Error ? caught.message : String(caught)
-        );
+        interpretation = quality.ok ? quality.text : "";
+        if (!quality.ok) {
+          readingSource = "fallback:quality";
+          readingQualityReason = quality.reason;
+        } else {
+          readingSource = "ai";
+          readingQualityReason = null;
+        }
+      } catch (caught) {
+        interpretation = "";
+        readingSource = "fallback:ai_error";
+        readingQualityReason = "ai_generation_failed";
+        if (process.env.PDU_READING_DEBUG_SOURCE === "1") {
+          console.warn(
+            "Anthropic reading generation failed:",
+            caught instanceof Error ? caught.message : String(caught)
+          );
+        }
       }
     }
   }

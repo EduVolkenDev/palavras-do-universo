@@ -6,20 +6,49 @@ import {
   hasSupabaseConfig,
 } from "@/lib/supabase/server";
 import { readJsonBody } from "@/lib/http/request";
+import { checkRateLimit } from "@/lib/security/rateLimit";
 
 type SubscribeBody = {
   subscription?: unknown;
 };
 
 function isValidSubscription(v: unknown): v is PushSubscriptionJSON {
+  if (typeof v !== "object" || v === null) return false;
+  const record = v as Record<string, unknown>;
+  const endpoint = record.endpoint;
+  const keys = record.keys;
+  if (typeof endpoint !== "string" || endpoint.length > 2_048) return false;
+
+  try {
+    if (new URL(endpoint).protocol !== "https:") return false;
+  } catch {
+    return false;
+  }
+
+  if (typeof keys !== "object" || keys === null) return false;
+  const pushKeys = keys as Record<string, unknown>;
   return (
-    typeof v === "object" &&
-    v !== null &&
-    typeof (v as Record<string, unknown>).endpoint === "string"
+    typeof pushKeys.p256dh === "string" &&
+    pushKeys.p256dh.length > 0 &&
+    pushKeys.p256dh.length <= 512 &&
+    typeof pushKeys.auth === "string" &&
+    pushKeys.auth.length > 0 &&
+    pushKeys.auth.length <= 512
   );
 }
 
 export async function POST(request: Request) {
+  if (
+    !(await checkRateLimit({
+      request,
+      scope: "push-subscribe",
+      limit: 20,
+      windowMs: 60 * 60 * 1_000,
+    }))
+  ) {
+    return NextResponse.json({ error: "Too many subscription attempts" }, { status: 429 });
+  }
+
   const parsed = await readJsonBody<SubscribeBody>(request);
   if (!parsed.ok) return parsed.response;
 
@@ -75,6 +104,17 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (
+    !(await checkRateLimit({
+      request,
+      scope: "push-unsubscribe",
+      limit: 20,
+      windowMs: 60 * 60 * 1_000,
+    }))
+  ) {
+    return NextResponse.json({ error: "Too many subscription attempts" }, { status: 429 });
+  }
+
   const parsed = await readJsonBody<SubscribeBody>(request);
   if (!parsed.ok) return parsed.response;
 

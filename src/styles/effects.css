@@ -555,6 +555,13 @@
     will-change: auto !important;
   }
 
+  /* Expose the final state when the reveal animation is disabled. */
+  .pdu-reading-card-grid.is-revealed > div,
+  .pdu-result-card-strip__item {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
   .pdu-card-portal::before,
   .pdu-card-portal::after,
   .pdu-card-portal__gate,

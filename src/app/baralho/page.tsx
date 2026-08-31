@@ -311,6 +311,7 @@ export default function BaralhoPage() {
                     width={520}
                     height={832}
                     priority={index < 8}
+                    loading={index < 8 ? "eager" : "lazy"}
                     className="h-full w-full object-contain p-2 transition duration-500 group-hover:scale-[1.025]"
                     sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                   />

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/auth/api";
 import {
@@ -91,7 +92,8 @@ export async function POST(request: Request) {
     ? cleanText(body.status, 20)
     : "committed";
   const status = existing?.status === "completed" ? "completed" : requestedStatus;
-  const publicToken = cleanUuid(body.publicToken) || existing?.public_token;
+  const publicToken =
+    cleanUuid(body.publicToken) || existing?.public_token || randomUUID();
   const rootChainToken =
     cleanUuid(body.rootChainToken) || existing?.root_chain_token || publicToken;
   const payload = {
@@ -108,12 +110,12 @@ export async function POST(request: Request) {
     invited_by: cleanText(body.invitedBy, 90) || null,
     parent_public_token:
       cleanUuid(body.parentPublicToken) || existing?.parent_public_token || null,
-    public_token: publicToken || undefined,
+    public_token: publicToken,
     public_completion_secret:
       cleanUuid(body.publicCompletionSecret) ||
       existing?.public_completion_secret ||
       undefined,
-    root_chain_token: rootChainToken || undefined,
+    root_chain_token: rootChainToken,
     status,
     reflection:
       status === "completed" ? cleanText(body.reflection, 1000) : "",
