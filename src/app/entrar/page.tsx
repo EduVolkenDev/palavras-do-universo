@@ -23,6 +23,127 @@ type FormState = "idle" | "sending" | "sent" | "error" | "success";
 
 const PASSWORD_MIN_LENGTH = 8;
 
+type AuthErrorContext = "signup" | "signin" | "recovery" | "reset" | "resend";
+type AuthFailureKind =
+  | "existing-account"
+  | "rate-limit"
+  | "confirmation-delivery"
+  | "signup-disabled"
+  | "invalid-email"
+  | "weak-password"
+  | "redirect"
+  | "generic";
+
+function getAuthFailure(
+  error: unknown,
+  isEn: boolean,
+  context: AuthErrorContext
+): { kind: AuthFailureKind; message: string } {
+  const record = error && typeof error === "object" ? (error as Record<string, unknown>) : {};
+  const code = typeof record.code === "string" ? record.code.toLowerCase() : "";
+  const message = typeof record.message === "string" ? record.message.toLowerCase() : "";
+  const status = typeof record.status === "number" ? record.status : 0;
+  const signal = `${code} ${message}`;
+
+  if (
+    context === "signup" &&
+    /(email_exists|user_already_exists|already registered|already exists)/.test(signal)
+  ) {
+    return {
+      kind: "existing-account",
+      message: isEn
+        ? "This email already has an account. Sign in with your password, or recover access if you do not remember it."
+        : "Este e-mail já tem uma conta. Entre com sua senha ou recupere o acesso se não lembrar.",
+    };
+  }
+
+  if (
+    status === 429 ||
+    /(rate.?limit|too many requests|too many attempts|over_email_send_rate_limit)/.test(signal)
+  ) {
+    return {
+      kind: "rate-limit",
+      message: isEn
+        ? "There were too many attempts. Wait a few minutes before trying again, then check your inbox and spam folder."
+        : "Houve muitas tentativas. Aguarde alguns minutos antes de tentar de novo e confira também entrada e spam.",
+    };
+  }
+
+  if (
+    context === "signup" &&
+    /(signup_disabled|email_provider_disabled|sign.?ups? (are )?disabled)/.test(signal)
+  ) {
+    return {
+      kind: "signup-disabled",
+      message: isEn
+        ? "Email signup is temporarily unavailable. Please try again later."
+        : "O cadastro por e-mail está temporariamente indisponível. Tente novamente mais tarde.",
+    };
+  }
+
+  if (
+    context === "signup" &&
+    /(error sending.*(confirmation|email)|confirmation.*(send|deliver)|smtp|mailer)/.test(signal)
+  ) {
+    return {
+      kind: "confirmation-delivery",
+      message: isEn
+        ? "We could not send the confirmation email right now. Wait a few minutes and try again; if the account was already created, use Recover access."
+        : "Não conseguimos enviar o e-mail de confirmação agora. Aguarde alguns minutos e tente novamente; se a conta já tiver sido criada, use Recuperar acesso.",
+    };
+  }
+
+  if (
+    (context === "signup" || context === "reset") &&
+    /(weak_password|password.*(weak|strength)|password should|password must)/.test(signal)
+  ) {
+    return {
+      kind: "weak-password",
+      message: isEn
+        ? "Choose a stronger password with at least 8 characters."
+        : "Escolha uma senha mais forte com pelo menos 8 caracteres.",
+    };
+  }
+
+  if (/(email_address_invalid|invalid email|email.*valid|validation_failed)/.test(signal)) {
+    return {
+      kind: "invalid-email",
+      message: isEn
+        ? "Check the email address and try again."
+        : "Confira o endereço de e-mail e tente novamente.",
+    };
+  }
+
+  if (/(redirect|allow.?list|site.?url)/.test(signal)) {
+    return {
+      kind: "redirect",
+      message: isEn
+        ? "The account request reached the service, but its confirmation path needs attention. Try again later or contact support."
+        : "A solicitação chegou ao serviço, mas o caminho de confirmação precisa de atenção. Tente novamente mais tarde ou fale com o suporte.",
+    };
+  }
+
+  const messages: Record<AuthErrorContext, string> = {
+    signup: isEn
+      ? "We could not create the account right now. Check the fields and try again."
+      : "Não conseguimos criar a conta agora. Confira os campos e tente novamente.",
+    signin: isEn
+      ? "Could not sign in. Check the email and password, or recover access."
+      : "Não foi possível entrar. Revise e-mail e senha ou recupere o acesso.",
+    recovery: isEn
+      ? "Could not send the recovery email. Check the address and try again."
+      : "Não foi possível enviar a recuperação. Revise o e-mail e tente novamente.",
+    reset: isEn
+      ? "Could not update the password. Open a fresh recovery link and try again."
+      : "Não foi possível atualizar a senha. Abra um link de recuperação novo e tente outra vez.",
+    resend: isEn
+      ? "Could not resend the confirmation email. Check the address and try again."
+      : "Não foi possível reenviar a confirmação. Revise o endereço e tente novamente.",
+  };
+
+  return { kind: "generic", message: messages[context] };
+}
+
 const productVisuals: Record<string, string> = {
   mensagem_do_dia: PDU_ASSETS.products.messageOfTheDay,
   carta_do_dia: PDU_ASSETS.products.cardOfTheDayDisplay,
@@ -212,14 +333,11 @@ export default function EntrarPage() {
       if (error) {
         console.error("[auth] resetPasswordForEmail failed", {
           message: error.message,
+          code: error.code,
           status: error.status,
         });
         setState("error");
-        setMessage(
-          locale === "en"
-            ? "Could not send the recovery email. Check the address and try again."
-            : "Não foi possível enviar a recuperação. Revise o e-mail e tente novamente."
-        );
+        setMessage(getAuthFailure(error, isEn, "recovery").message);
         return;
       }
 
@@ -239,14 +357,11 @@ export default function EntrarPage() {
       if (error) {
         console.error("[auth] updateUser password failed", {
           message: error.message,
+          code: error.code,
           status: error.status,
         });
         setState("error");
-        setMessage(
-          locale === "en"
-            ? "Could not update the password. Open a fresh recovery link and try again."
-            : "Não foi possível atualizar a senha. Abra um link de recuperação novo e tente outra vez."
-        );
+        setMessage(getAuthFailure(error, isEn, "reset").message);
         return;
       }
 
@@ -266,16 +381,21 @@ export default function EntrarPage() {
       });
 
       if (error) {
+        const failure = getAuthFailure(error, isEn, "signup");
         console.error("[auth] signUp failed", {
           message: error.message,
+          code: error.code,
           status: error.status,
         });
-        setState("error");
-        setMessage(
-          locale === "en"
-            ? "Could not create the account. Check the email and password and try again."
-            : "Não foi possível criar a conta. Revise e-mail e senha e tente novamente."
-        );
+        if (failure.kind === "existing-account") {
+          setState("sent");
+          setExistingAccountHint(true);
+          setCanResendConfirmation(false);
+          setLastConfirmationEmail(cleanEmail);
+        } else {
+          setState("error");
+        }
+        setMessage(failure.message);
         return;
       }
 
@@ -320,8 +440,10 @@ export default function EntrarPage() {
     });
 
     if (error) {
+      const failure = getAuthFailure(error, isEn, "signin");
       console.error("[auth] signInWithPassword failed", {
         message: error.message,
+        code: error.code,
         status: error.status,
       });
       setState("error");
@@ -335,11 +457,7 @@ export default function EntrarPage() {
             : "Esta conta ainda precisa de confirmação por e-mail. Reenvie a confirmação e depois volte com sua senha."
         );
       } else {
-        setMessage(
-          locale === "en"
-            ? "Could not sign in. Check the email and password, or recover access."
-            : "Não foi possível entrar. Revise e-mail e senha ou recupere o acesso."
-        );
+        setMessage(failure.message);
       }
       return;
     }
@@ -375,20 +493,14 @@ export default function EntrarPage() {
     });
 
     if (error) {
+      const failure = getAuthFailure(error, isEn, "resend");
       console.error("[auth] resend confirmation failed", {
         message: error.message,
+        code: error.code,
         status: error.status,
       });
       setResendState("error");
-      setResendMessage(
-        error.status === 429
-          ? isEn
-            ? "Too many attempts. Wait a few minutes before requesting another confirmation."
-            : "Muitas tentativas. Aguarde alguns minutos antes de pedir outra confirmação."
-          : isEn
-            ? "Could not resend the confirmation email. Check the address and try again."
-            : "Não foi possível reenviar a confirmação. Revise o e-mail e tente novamente."
-      );
+      setResendMessage(failure.message);
       return;
     }
 
