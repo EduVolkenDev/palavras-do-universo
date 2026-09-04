@@ -100,6 +100,7 @@ export const productCards: ProductCard[] = [
     cta: "Quero clareza agora",
     mode: "paid",
     ...priced("clareza_urgente"),
+    href: "/clareza-urgente",
     bestFor: "Momentos de dúvida forte, conversa difícil ou decisão que não pode esperar.",
     notFor: "Risco físico imediato, emergência médica ou promessa sobre outra pessoa.",
   },

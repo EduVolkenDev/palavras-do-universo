@@ -39,6 +39,54 @@ try {
   const catalog = await import(join(temp, "src/lib/product/catalog.js"));
   const spreads = await import(join(temp, "src/lib/tarot/spreads.js"));
 
+  assert(
+    pricing.currencyForCountry("BR") === "BRL" &&
+      pricing.currencyForCountry("GB") === "GBP" &&
+      pricing.currencyForCountry("US") === "GBP" &&
+      pricing.currencyForCountry("XX") === null,
+    "Country pricing must keep Brazil in BRL and international traffic in GBP"
+  );
+  assert(
+    pricing.resolveProductCurrency({ country: "BR", locale: "en" }) === "BRL" &&
+      pricing.resolveProductCurrency({ country: "GB", locale: "pt-BR" }) === "GBP",
+    "Country pricing must take precedence over locale when no manual currency is selected"
+  );
+  const expectedMarketPrices = {
+    caminho_3_cartas: { BRL: 1290, GBP: 600 },
+    sinais_do_amor: { BRL: 1590, GBP: 700 },
+    energia_da_semana: { BRL: 1790, GBP: 800 },
+    relacionar: { BRL: 1790, GBP: 800 },
+    clareza_urgente: { BRL: 2290, GBP: 1000 },
+    tirada_diamante: { BRL: 2290, GBP: 1000 },
+    mapa_do_momento: { BRL: 2290, GBP: 1000 },
+    o_paradoxo: { BRL: 2290, GBP: 1000 },
+    passaro_voando: { BRL: 2690, GBP: 1200 },
+    a_chave: { BRL: 2990, GBP: 1400 },
+    o_espelho: { BRL: 3490, GBP: 1600 },
+    cruz_celta: { BRL: 3490, GBP: 1600 },
+    circulo_do_universo: { BRL: 4990, GBP: 2000 },
+  };
+  for (const [productKey, prices] of Object.entries(expectedMarketPrices)) {
+    for (const [currency, amountCents] of Object.entries(prices)) {
+      assert(
+        pricing.getProductPriceForCurrency(productKey, currency)?.amountCents === amountCents,
+        `Market price changed unexpectedly for ${productKey}/${currency}`
+      );
+    }
+  }
+  assert(
+    access.isInternalTestProduct("teste_checkout_50") &&
+      !access.isPaidReadingProduct("teste_checkout_50") &&
+      pricing.getProductPriceForCurrency("teste_checkout_50", "BRL")?.amountCents === 50 &&
+      pricing.getProductPriceForCurrency("teste_checkout_50", "GBP")?.amountCents === 50,
+    "Internal checkout product must stay isolated from the public paid catalog while retaining its test price"
+  );
+  assert(
+    !catalog.productCards.some((product) => product.productKey === "teste_checkout_50") &&
+      !catalog.pricingPlans.some((plan) => plan.productKey === "teste_checkout_50"),
+    "Internal checkout product must stay out of public product cards and pricing plans"
+  );
+
   const circle = {
     id: "circle",
     product_key: "circulo_do_universo",
@@ -244,7 +292,18 @@ try {
   }
   assert(
     !checkoutRoute.includes("payment_method_types"),
-    "Checkout must keep Stripe payment-method selection automatic"
+    "Checkout must keep Stripe payment-method selection dynamic"
+  );
+  assert(
+    checkoutRoute.includes("PDU_ENABLE_INTERNAL_TEST_CHECKOUT") &&
+      checkoutRoute.includes("PDU_ENABLE_INTERNAL_LIVE_CHECKOUT") &&
+      checkoutRoute.includes("isInternalTestProduct(product.product_key)") &&
+      checkoutRoute.includes("isOwnerAccess"),
+    "Internal checkout product must require an explicit test gate and owner-only live gate"
+  );
+  assert(
+    readingRoute.includes("isPaidReadingProduct(productKey) || isInternalTestProduct(productKey)"),
+    "Internal checkout product must consume a one-use entitlement when opening its test reading"
   );
 
   const commerceHealthRoute = await readSource("src/app/api/health/commerce/route.ts");

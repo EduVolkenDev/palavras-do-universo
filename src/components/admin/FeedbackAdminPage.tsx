@@ -150,6 +150,10 @@ export default function FeedbackAdminPage({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Link href="/admin/eventos" className="inline-flex items-center gap-2 rounded-full border border-[#cdbbab] bg-white/60 px-4 py-2 text-sm font-semibold text-[#604b42]">
+              Eventos
+              <ExternalLink size={14} />
+            </Link>
             <Link href="/admin/codigos" className="inline-flex items-center gap-2 rounded-full border border-[#cdbbab] bg-white/60 px-4 py-2 text-sm font-semibold text-[#604b42]">
               Códigos
               <ExternalLink size={14} />

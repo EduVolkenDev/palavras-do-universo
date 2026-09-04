@@ -22,7 +22,11 @@ import {
   checkRepeatedQuestion,
   makeFingerprint,
 } from "@/lib/tarot/repeatLimiter";
-import { isPaidReadingProduct, shouldConsumeEntitlement } from "@/lib/product/access";
+import {
+  isInternalTestProduct,
+  isPaidReadingProduct,
+  shouldConsumeEntitlement,
+} from "@/lib/product/access";
 import { getAvailableEntitlementForProduct } from "@/lib/product/entitlements";
 import { getOwnerEntitlementForProduct } from "@/lib/product/ownerAccess";
 import {
@@ -307,6 +311,20 @@ function buildSpreadCardMeaning(params: {
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function isProductionRuntime() {
+  const siteUrl = String(process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
+  return (
+    process.env.VERCEL_ENV === "production" ||
+    /^https:\/\/(www\.)?palavrasdouniverso\.com\b/i.test(siteUrl) ||
+    /^https:\/\/(www\.)?palavrasdouniverso\.volynx\.world\b/i.test(siteUrl) ||
+    /^https:\/\/(www\.)?palavrasdouniverso\.volinx\.world\b/i.test(siteUrl)
+  );
+}
+
+function isQaNoAiEnabled() {
+  return process.env.PDU_READING_QA_NO_AI === "1" && !isProductionRuntime();
 }
 
 function parseCookieHeader(header: string | null) {
@@ -830,7 +848,7 @@ export async function POST(req: Request) {
     authenticatedUser?.id ?? null,
     body?.userId
   );
-  const paidProduct = isPaidReadingProduct(productKey);
+  const paidProduct = isPaidReadingProduct(productKey) || isInternalTestProduct(productKey);
   if (paidProduct && !authenticatedUser) {
     return withAnonymousCookie(
       NextResponse.json(
@@ -1123,9 +1141,7 @@ export async function POST(req: Request) {
 
   // 3) IA + fallback
   let interpretation = "";
-  const qaNoAi =
-    process.env.NODE_ENV !== "production" &&
-    process.env.PDU_READING_QA_NO_AI === "1";
+  const qaNoAi = isQaNoAiEnabled();
   let readingSource:
     | "ai"
     | "fallback:ai_error"

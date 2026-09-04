@@ -4,11 +4,42 @@ import { NextRequest, NextResponse } from "next/server";
 const MAX_MUTATION_BODY_BYTES = 128 * 1024;
 const LARGE_MUTATION_BODY_BYTES = 600 * 1024;
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+const DEFAULT_AUTH_TIMEOUT_MS = 8_000;
 
 function mutationBodyLimit(pathname: string) {
   return pathname === "/api/account/sync-local"
     ? LARGE_MUTATION_BODY_BYTES
     : MAX_MUTATION_BODY_BYTES;
+}
+
+function readBoundedNumber(value: string | undefined, fallback: number, min: number, max: number) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(Math.max(Math.trunc(parsed), min), max);
+}
+
+async function withAuthTimeout<T>(promise: Promise<T>) {
+  const timeoutMs = readBoundedNumber(
+    process.env.SUPABASE_AUTH_TIMEOUT_MS,
+    DEFAULT_AUTH_TIMEOUT_MS,
+    2_000,
+    15_000
+  );
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error(`Supabase auth timed out after ${timeoutMs}ms`)),
+          timeoutMs
+        );
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 function allowedOrigins(request: NextRequest) {
@@ -62,7 +93,16 @@ async function refreshSupabaseSession(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  try {
+    await withAuthTimeout(supabase.auth.getUser());
+  } catch (caught) {
+    if (process.env.PDU_AUTH_DEBUG === "1") {
+      console.warn(
+        "Supabase session refresh failed:",
+        caught instanceof Error ? caught.message : String(caught)
+      );
+    }
+  }
 
   return response;
 }

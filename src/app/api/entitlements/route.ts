@@ -16,7 +16,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("available_entitlements")
     .select(
-      "id, product_key, title, product_type, access_model, source, starts_at, expires_at, usage_limit, usage_count"
+      "id, product_key, title, product_type, access_model, source, status, starts_at, expires_at, usage_limit, usage_count"
     )
     .eq("user_id", auth.user.id)
     .order("starts_at", { ascending: false });

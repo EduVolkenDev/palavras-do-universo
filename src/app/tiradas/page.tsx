@@ -127,6 +127,54 @@ export default function TiradasPage() {
             </div>
           </div>
 
+          <section
+            aria-labelledby="free-readings-title"
+            className="mt-12 overflow-hidden rounded-[28px] border border-[#a7d7c5]/28 bg-[linear-gradient(110deg,rgba(167,215,197,0.13),rgba(244,213,141,0.08)_48%,rgba(255,255,255,0.04))] p-5 shadow-[0_25px_90px_rgba(0,0,0,0.24)] sm:p-7 lg:mt-16 lg:flex lg:items-center lg:justify-between lg:gap-12 lg:p-9"
+          >
+            <div className="max-w-2xl">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[#a7d7c5]/35 bg-[#a7d7c5]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#c5eadb]">
+                  <Sparkles size={13} />
+                  {t("Comece grátis")}
+                </span>
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
+                  {t("Uma leitura gratuita por dia")}
+                </span>
+              </div>
+              <h2
+                id="free-readings-title"
+                className="brand-serif mt-5 max-w-xl text-3xl font-semibold leading-tight sm:text-4xl"
+              >
+                {t("Comece grátis")}
+              </h2>
+              <p className="mt-4 max-w-xl text-sm leading-7 text-[#d8ccc0]">
+                {t("Uma leitura gratuita por dia")}. {t("Mensagem e Carta do Dia para criar o hábito sem compromisso.")}
+              </p>
+            </div>
+            <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:mt-0 lg:min-w-[22rem] lg:grid-cols-1">
+              <Link
+                href="/#leitura"
+                className="group inline-flex items-center justify-between rounded-[18px] border border-[#f4d58d]/28 bg-black/20 px-5 py-4 text-sm font-semibold text-[#fff7e8] transition hover:border-[#f4d58d]/65 hover:bg-black/30"
+              >
+                <span>
+                  <span className="block text-xs uppercase tracking-[0.14em] text-[#f5d896]">{t("Mensagem diária")}</span>
+                  <span className="mt-1 block">{t("Receber agora")}</span>
+                </span>
+                <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link
+                href="/carta-do-dia"
+                className="group inline-flex items-center justify-between rounded-[18px] border border-[#a7d7c5]/28 bg-black/20 px-5 py-4 text-sm font-semibold text-[#fff7e8] transition hover:border-[#a7d7c5]/65 hover:bg-black/30"
+              >
+                <span>
+                  <span className="block text-xs uppercase tracking-[0.14em] text-[#c5eadb]">{t("Carta do dia")}</span>
+                  <span className="mt-1 block">{t("Tirar minha carta")}</span>
+                </span>
+                <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </section>
+
           <div className="pdu-tiradas-grid mt-20 grid gap-7 sm:gap-8 lg:mt-24">
             {spreadKinds.map((kind) => {
               const product = productCards.find(

@@ -10,7 +10,10 @@ import { getSiteUrl, getStripe, hasStripeConfig } from "@/lib/stripe/server";
 import { checkRateLimit } from "@/lib/security/rateLimit";
 import { readJsonBody } from "@/lib/http/request";
 import { isOwnerAccessUser } from "@/lib/product/ownerAccess";
-import { CIRCLE_PRODUCT_KEY } from "@/lib/product/access";
+import {
+  CIRCLE_PRODUCT_KEY,
+  isInternalTestProduct,
+} from "@/lib/product/access";
 import { hasAvailableEntitlementForProduct } from "@/lib/product/entitlements";
 import {
   applyDiscountVoucherToCheckout,
@@ -43,6 +46,7 @@ type OracleProduct = {
   currency: string;
   access_model: "free" | "one_time" | "subscription_included" | "subscription" | null;
   provider_price_id: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 type CheckoutLocale = "pt-BR" | "en";
@@ -208,6 +212,33 @@ function getStripeLocale(locale: CheckoutLocale): Stripe.Checkout.SessionCreateP
   return locale === "en" ? "en" : "pt-BR";
 }
 
+function isProductionCheckoutTarget() {
+  const siteUrl = getSiteUrl();
+  return (
+    process.env.VERCEL_ENV === "production" ||
+    /^https:\/\/(www\.)?palavrasdouniverso\.com\b/i.test(siteUrl) ||
+    /^https:\/\/(www\.)?palavrasdouniverso\.volynx\.world\b/i.test(siteUrl) ||
+    /^https:\/\/(www\.)?palavrasdouniverso\.volinx\.world\b/i.test(siteUrl)
+  );
+}
+
+function isInternalTestCheckoutAllowed(isOwnerAccess: boolean) {
+  const stripeKey = String(process.env.STRIPE_SECRET_KEY ?? "").trim();
+  const isStripeTestKey = /^(?:sk|rk)_test_/.test(stripeKey);
+  const isStripeLiveKey = /^(?:sk|rk)_live_/.test(stripeKey);
+  const isProduction = isProductionCheckoutTarget();
+
+  return (
+    (process.env.PDU_ENABLE_INTERNAL_TEST_CHECKOUT === "true" &&
+      isStripeTestKey &&
+      !isProduction) ||
+    (process.env.PDU_ENABLE_INTERNAL_LIVE_CHECKOUT === "true" &&
+      isStripeLiveKey &&
+      isProduction &&
+      isOwnerAccess)
+  );
+}
+
 function getCheckoutMode(product: OracleProduct): Stripe.Checkout.SessionCreateParams.Mode {
   return product.access_model === "subscription" ||
     product.product_type === "subscription"
@@ -222,10 +253,15 @@ function buildLineItem(
   locale: CheckoutLocale = "pt-BR"
 ): Stripe.Checkout.SessionCreateParams.LineItem {
   const baseCurrency = normalizeProductCurrency(product.currency);
+  const usesInlinePricing =
+    product.product_key === CIRCLE_PRODUCT_KEY ||
+    product.metadata?.pricing_source === "inline" ||
+    product.price_cents !== checkoutPrice.amountCents;
 
   if (
     product.provider_price_id &&
     !overrideAmountCents &&
+    !usesInlinePricing &&
     baseCurrency === checkoutPrice.currency
   ) {
     return {
@@ -265,6 +301,7 @@ function buildLineItem(
 }
 
 function getUnlockedRedirectPath(productKey: string) {
+  if (isInternalTestProduct(productKey)) return "/admin/teste-checkout?checkout=active";
   if (productKey === CIRCLE_PRODUCT_KEY) return "/meu-universo?access=active";
   return `/?product=${encodeURIComponent(productKey)}`;
 }
@@ -291,6 +328,7 @@ export async function POST(req: Request) {
   const checkoutCurrency = resolveProductCurrency({
     currency: body.currency,
     market: body.market,
+    country: req.headers.get("x-vercel-ip-country"),
     locale,
   });
   const userId = auth.user.id;
@@ -298,10 +336,11 @@ export async function POST(req: Request) {
     typeof body.email === "string" && body.email.includes("@")
       ? body.email.trim()
       : auth.user.email;
+  const ownerAccess = isOwnerAccessUser(auth.user);
 
   if (!productKey) return jsonError("Missing productKey", 400);
 
-  if (isOwnerAccessUser(auth.user)) {
+  if (ownerAccess && !isInternalTestProduct(productKey)) {
     return NextResponse.json({
       ok: true,
       ownerAccess: true,
@@ -315,25 +354,53 @@ export async function POST(req: Request) {
   }
 
   const supabase = getSupabaseAdmin();
-  await ensureSupabaseProfile(userId);
+  let product: OracleProduct | null = null;
 
-  const { data: product, error } = await supabase
-    .from("oracle_products")
-    .select(
-      "product_key,title,product_type,status,price_cents,currency,access_model,provider_price_id"
-    )
-    .eq("product_key", productKey)
-    .single<OracleProduct>();
+  try {
+    await ensureSupabaseProfile(userId);
+    const productResult = await supabase
+      .from("oracle_products")
+      .select(
+        "product_key,title,product_type,status,price_cents,currency,access_model,provider_price_id,metadata"
+      )
+      .eq("product_key", productKey)
+      .single<OracleProduct>();
 
-  if (error || !product) return jsonError("Product not found", 404);
+    if (productResult.error || !productResult.data) {
+      return jsonError("Checkout temporarily unavailable", 503);
+    }
+    product = productResult.data;
+  } catch (caught) {
+    console.error(
+      "Checkout data lookup failed:",
+      caught instanceof Error ? caught.message : String(caught)
+    );
+    return jsonError("Checkout temporarily unavailable", 503);
+  }
+
   if (product.status !== "active") return jsonError("Product is not active", 409);
 
-  if (
-    await hasAvailableEntitlementForProduct({
+  const isInternalTest =
+    isInternalTestProduct(product.product_key) || product.metadata?.internal_test === true;
+  if (isInternalTest && !isInternalTestCheckoutAllowed(ownerAccess)) {
+    return jsonError("Product not found", 404);
+  }
+
+  let alreadyUnlocked = false;
+  try {
+    alreadyUnlocked = await hasAvailableEntitlementForProduct({
       userId,
       productKey: product.product_key,
-    })
-  ) {
+    });
+  } catch (caught) {
+    console.error(
+      "Checkout entitlement lookup failed:",
+      caught instanceof Error ? caught.message : String(caught)
+    );
+    return jsonError("Checkout temporarily unavailable", 503);
+  }
+
+  if (alreadyUnlocked) {
     return NextResponse.json({
       ok: true,
       alreadyUnlocked: true,
@@ -409,7 +476,7 @@ export async function POST(req: Request) {
       customer_email: email,
       allow_promotion_codes: true,
       billing_address_collection: "auto",
-      success_url: `${siteUrl}/meu-universo?checkout=success&session_id={CHECKOUT_SESSION_ID}&product=${encodeURIComponent(
+      success_url: `${siteUrl}${isInternalTest ? "/admin/teste-checkout" : "/meu-universo"}?checkout=success&session_id={CHECKOUT_SESSION_ID}&product=${encodeURIComponent(
         product.product_key
       )}&currency=${encodeURIComponent(
         checkoutPrice.currency
@@ -454,9 +521,14 @@ export async function POST(req: Request) {
           : undefined,
     });
   } catch (caught) {
-    const message =
-      caught instanceof Error ? caught.message : "Could not create checkout";
-    return jsonError(message, 502);
+    const message = caught instanceof Error ? caught.message : "Could not create checkout";
+    if (message.toLowerCase().includes("payment method type provided: pix is invalid")) {
+      return jsonError(
+        "Pix ainda não está habilitado na conta de pagamentos. Ative o Pix na Stripe para continuar.",
+        503
+      );
+    }
+    return jsonError("Não foi possível preparar o pagamento agora. Tente novamente em instantes.", 502);
   }
 
   if (mode === "subscription") {

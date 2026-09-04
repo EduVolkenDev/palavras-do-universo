@@ -1,6 +1,11 @@
 import type { DailyMessage } from "@/lib/daily/message";
-import type { TarotCard } from "@/lib/tarot/cards";
+import { CARDS, type TarotCard } from "@/lib/tarot/cards";
 import { normalizeLocale, type Locale } from "./config";
+import {
+  CARD_ENGLISH_MEANINGS,
+  DAILY_ENERGY_TRANSLATIONS,
+  translateDailyOracleText,
+} from "./oracle-content";
 
 const majorNames: Record<string, string> = {
   "major-00-the-fool": "The Fool",
@@ -343,23 +348,6 @@ const positionTranslations: Record<string, string> = {
   "NOVO OLHAR": "NEW PERSPECTIVE",
 };
 
-const energyTranslations: Record<string, string> = {
-  "Recomeço silencioso": "Quiet renewal",
-  "Clareza em movimento": "Clarity in motion",
-  "Cuidado com o próprio centro": "Care for your center",
-  "Limite luminoso": "A clear boundary",
-  "Sinal no detalhe": "A sign in the details",
-  "Coragem serena": "Quiet courage",
-  Integração: "Integration",
-  "Presença fértil": "Fruitful presence",
-  "Desapego gentil": "Gentle release",
-  "Escuta profunda": "Deep listening",
-  "Alegria possível": "Possible joy",
-  "Escolha consciente": "Conscious choice",
-  "Confiança em construção": "Building trust",
-  "Expansão com raiz": "Rooted expansion",
-};
-
 export function getCardEnglishName(key: string, fallback: string) {
   if (majorNames[key]) return majorNames[key];
   const [suit, rank] = key.split("-");
@@ -391,14 +379,19 @@ export function localizeTarotCard<T extends TarotCard>(card: T, localeInput: str
   if (locale !== "en") return card;
 
   const keywords = card.keywords.map(translateOracleKeyword);
+  const meaning = CARD_ENGLISH_MEANINGS[card.key];
   const lead = keywords[0] ?? "clarity";
 
   return {
     ...card,
     name: getCardEnglishName(card.key, card.name),
     keywords,
-    upright: `This card invites you to bring ${lead} into the situation with honesty and presence. Notice what becomes simpler when you act from your values.`,
-    reversed: `Reversed, this card asks you to examine where ${lead} may be blocked, rushed, or shaped by fear. Pause before choosing your next move.`,
+    upright:
+      meaning?.upright ??
+      `This card invites you to bring ${lead} into the situation with honesty and presence. Notice what becomes simpler when you act from your values.`,
+    reversed:
+      meaning?.reversed ??
+      `Reversed, this card asks you to examine where ${lead} may be blocked, rushed, or shaped by fear. Pause before choosing your next move.`,
   };
 }
 
@@ -407,29 +400,30 @@ export function localizeDailyMessage(message: DailyMessage, localeInput: string)
   if (locale !== "en") return message;
 
   const spread = message.spread.map((item) => {
+    const sourceCard = CARDS.find((card) => card.name === item.name);
+    const localizedCard = sourceCard ? localizeTarotCard(sourceCard, locale) : null;
     const keyword = translateOracleKeyword(item.keyword);
     return {
       ...item,
       position: translateOraclePosition(item.position, locale) as DailyMessage["spread"][number]["position"],
-      name: getCardEnglishNameFromPortuguese(item.name),
+      name: localizedCard?.name ?? getCardEnglishNameFromPortuguese(item.name),
       keyword,
-      meaning: item.reversed
-        ? `This card shows where ${keyword} may be shaped by fear, excess, or avoidance. Pause before reacting.`
-        : `${keyword} is active here; read it as context for one honest, grounded choice today.`,
+      meaning: localizedCard
+        ? item.reversed
+          ? localizedCard.reversed
+          : localizedCard.upright
+        : translateDailyOracleText(item.meaning),
     };
   });
-  const focus = spread[2]?.keyword ?? spread[0]?.keyword ?? "clarity";
 
   return {
     ...message,
-    energy: energyTranslations[message.energy] ?? "A moment of clarity",
-    message:
-      "Something within you is asking for attention without urgency. Let this message be a pause to notice what is true before choosing what comes next.",
-    advice: "Choose one small action that puts this message into practice today.",
-    affirmation: "I can listen to myself with honesty and move with calm.",
-    reflection: `What changes when you read this moment through the lens of ${focus}?`,
-    ritual:
-      "Take three slow breaths, write down one honest sentence, and choose one action you can complete today.",
+    energy: DAILY_ENERGY_TRANSLATIONS[message.energy] ?? message.energy,
+    message: translateDailyOracleText(message.message),
+    advice: translateDailyOracleText(message.advice),
+    affirmation: translateDailyOracleText(message.affirmation),
+    reflection: translateDailyOracleText(message.reflection),
+    ritual: translateDailyOracleText(message.ritual),
     spread,
   };
 }

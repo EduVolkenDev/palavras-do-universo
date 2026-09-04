@@ -74,6 +74,10 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const baseUrl = cleanBaseUrl(process.env.PDU_QA_URL);
 const origin = new URL(baseUrl).origin;
+const requestTimeoutMs = Math.max(
+  5_000,
+  Number.parseInt(process.env.PDU_PROOF_TIMEOUT_MS ?? "30000", 10) || 30_000
+);
 
 if (!supabaseUrl || !serviceRoleKey || !anonKey) {
   console.error(
@@ -105,6 +109,27 @@ const cleanup = {
   profileIds: [],
   voucherIds: [],
 };
+
+function stage(name) {
+  console.log(JSON.stringify({ stage: name, at: new Date().toISOString() }));
+}
+
+async function fetchWithTimeout(url, options = {}, label = "request") {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: options.signal ?? controller.signal,
+    });
+  } catch (caught) {
+    const message = caught instanceof Error ? caught.message : String(caught);
+    throw new Error(`${label} failed or timed out after ${requestTimeoutMs}ms: ${message}`);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 async function createNormalUser(label) {
   const email = `pdu-${runId}-${label}@example.invalid`;
@@ -155,20 +180,31 @@ async function createNormalUser(label) {
   });
   if (session.error) throw session.error;
 
-  return { email, userId, jar };
+  const proofIp =
+    label === "voucher"
+      ? "198.51.100.21"
+      : label === "circle"
+        ? "198.51.100.22"
+        : "198.51.100.23";
+  return { email, userId, jar, proofIp };
 }
 
 async function apiJson(user, method, path, body) {
-  const response = await fetch(`${baseUrl}${path}`, {
-    method,
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-      cookie: cookieHeader(user.jar),
-      origin,
+  const response = await fetchWithTimeout(
+    `${baseUrl}${path}`,
+    {
+      method,
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        cookie: cookieHeader(user.jar),
+        origin,
+        "x-real-ip": user.proofIp,
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+    `${method} ${path}`
+  );
   mergeSetCookies(user.jar, response);
   const json = await readJsonResponse(response);
   return { status: response.status, json };
@@ -347,11 +383,17 @@ async function cleanupProof() {
 }
 
 try {
-  const health = await fetch(`${baseUrl}/api/health/supabase`);
+  stage("health:supabase");
+  const health = await fetchWithTimeout(
+    `${baseUrl}/api/health/supabase`,
+    {},
+    "GET /api/health/supabase"
+  );
   assert(health.ok, `Local app is not reachable at ${baseUrl}`);
   const healthJson = await readJsonResponse(health);
   assert(healthJson?.ok === true, "Local Supabase health is not OK");
 
+  stage("catalog");
   const products = await expectNoError(
     await admin
       .from("oracle_products")
@@ -367,13 +409,16 @@ try {
     "Circle included product is not active"
   );
 
+  stage("auth:create-users");
   const voucherUser = await createNormalUser("voucher");
   const circleUser = await createNormalUser("circle");
   const noAccessUser = await createNormalUser("noaccess");
 
+  stage("voucher:create");
   const voucher = await createVoucherFor(voucherUser);
   assert(voucher.times_used === 0 && voucher.max_uses === 1, "Voucher was not created with one use");
 
+  stage("voucher:redeem");
   const redeem = await apiJson(voucherUser, "POST", "/api/vouchers/redeem", {
     code: voucher.code,
   });
@@ -383,6 +428,7 @@ try {
     "Voucher redeem response did not identify invite access"
   );
 
+  stage("entitlements:after-redeem");
   const availableAfterRedeem = await readAvailableEntitlements(voucherUser.userId);
   const voucherAccess = availableAfterRedeem.find(
     (entitlement) => entitlement.product_key === voucherProductKey
@@ -391,6 +437,7 @@ try {
   assert(voucherAccess.usage_limit === 1, "Voucher entitlement usage_limit is not 1");
   assert(voucherAccess.usage_count === 0, "Voucher entitlement usage_count is not 0 before reading");
 
+  stage("api:entitlements");
   const entitlementsApi = await apiJson(voucherUser, "GET", "/api/entitlements");
   assert(entitlementsApi.status === 200 && entitlementsApi.json?.ok === true, "Entitlements API failed");
   assert(
@@ -403,11 +450,17 @@ try {
     "Meu Universo entitlement feed does not show the voucher access"
   );
 
-  const universePage = await fetch(`${baseUrl}/meu-universo`, {
-    headers: { cookie: cookieHeader(voucherUser.jar) },
-  });
+  stage("page:meu-universo");
+  const universePage = await fetchWithTimeout(
+    `${baseUrl}/meu-universo`,
+    {
+      headers: { cookie: cookieHeader(voucherUser.jar) },
+    },
+    "GET /meu-universo"
+  );
   assert(universePage.ok, "Meu Universo page did not render for voucher user");
 
+  stage("reading:voucher");
   const reading = await apiJson(voucherUser, "POST", "/api/reading/create", {
     locale: "pt-BR",
     productKey: voucherProductKey,
@@ -431,6 +484,7 @@ try {
     "Voucher reading did not persist the paid product key"
   );
 
+  stage("entitlements:after-reading");
   const availableAfterReading = await readAvailableEntitlements(voucherUser.userId);
   assert(
     !availableAfterReading.some((entitlement) => entitlement.product_key === voucherProductKey),
@@ -443,6 +497,7 @@ try {
   assert(consumedVoucherEntitlement.usage_count === 1, "Voucher entitlement was not consumed");
   assert(consumedVoucherEntitlement.consumed_at, "Voucher entitlement consumed_at was not set");
 
+  stage("reading:voucher-second-paywall");
   const secondReading = await apiJson(voucherUser, "POST", "/api/reading/create", {
     locale: "pt-BR",
     productKey: voucherProductKey,
@@ -453,7 +508,9 @@ try {
   assert(secondReading.status === 402, "Consumed voucher allowed a second paid reading");
   assert(secondReading.json?.paywall === true, "Second voucher reading did not return paywall");
 
+  stage("circle:create-entitlement");
   await createCircleEntitlement(circleUser);
+  stage("circle:api-entitlements");
   const circleEntitlements = await apiJson(circleUser, "GET", "/api/entitlements");
   assert(circleEntitlements.status === 200, "Circle entitlements API failed");
   assert(
@@ -463,13 +520,16 @@ try {
     "Circle entitlement does not appear in the entitlement feed"
   );
 
+  stage("circle:included-checkout");
   const circleCheckout = await apiJson(circleUser, "POST", "/api/checkout/create", {
     productKey: circleIncludedProductKey,
     locale: "pt-BR",
   });
   assert(
     circleCheckout.status === 200 && circleCheckout.json?.alreadyUnlocked === true,
-    "Circle user was still sent to checkout for an included product"
+    `Circle user was still sent to checkout for an included product: HTTP ${circleCheckout.status} ${JSON.stringify(
+      circleCheckout.json
+    ).slice(0, 400)}`
   );
   assert(
     typeof circleCheckout.json?.checkoutUrl === "string" &&
@@ -477,6 +537,7 @@ try {
     "Circle included product returned a Stripe checkout URL"
   );
 
+  stage("reading:circle");
   const circleReading = await apiJson(circleUser, "POST", "/api/reading/create", {
     locale: "pt-BR",
     productKey: circleIncludedProductKey,
@@ -500,6 +561,7 @@ try {
   assert(circleRow?.usage_limit === null, "Circle entitlement should remain unlimited");
   assert(circleRow?.usage_count === 0, "Circle entitlement should not be consumed per reading");
 
+  stage("reading:no-access-paywall");
   const noAccessReading = await apiJson(noAccessUser, "POST", "/api/reading/create", {
     locale: "pt-BR",
     productKey: voucherProductKey,
@@ -510,6 +572,7 @@ try {
   assert(noAccessReading.status === 402, "User without access opened a paid reading");
   assert(noAccessReading.json?.paywall === true, "User without access did not receive paywall");
 
+  stage("cleanup");
   const cleanupResult = await cleanupProof();
   assert(cleanupResult.remaining === 0, "Temporary proof rows were not fully cleaned up");
 

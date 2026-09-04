@@ -28,6 +28,7 @@ type AuthFailureKind =
   | "existing-account"
   | "rate-limit"
   | "confirmation-delivery"
+  | "email-delivery"
   | "signup-disabled"
   | "invalid-email"
   | "weak-password"
@@ -90,6 +91,18 @@ function getAuthFailure(
       message: isEn
         ? "We could not send the confirmation email right now. Wait a few minutes and try again; if the account was already created, use Recover access."
         : "Não conseguimos enviar o e-mail de confirmação agora. Aguarde alguns minutos e tente novamente; se a conta já tiver sido criada, use Recuperar acesso.",
+    };
+  }
+
+  if (
+    (context === "recovery" || context === "resend") &&
+    /(could not send email|error sending.*email|not yet activated|smtp|gomail|mailer|unexpected_failure)/.test(signal)
+  ) {
+    return {
+      kind: "email-delivery",
+      message: isEn
+        ? "The email service is temporarily unavailable. Try again later or contact support if you need access now."
+        : "O serviço de e-mail está temporariamente indisponível. Tente novamente mais tarde ou fale com o suporte se precisar recuperar o acesso agora.",
     };
   }
 

@@ -68,6 +68,16 @@ async function readJsonResponse(response) {
   }
 }
 
+async function fetchWithTimeout(url, init = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function nowUnix() {
   return Math.floor(Date.now() / 1000);
 }
@@ -81,11 +91,27 @@ const stripeKey = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 const baseUrl = cleanBaseUrl(process.env.PDU_QA_URL);
 const origin = new URL(baseUrl).origin;
-const productKey = process.env.PDU_STRIPE_PROOF_PRODUCT_KEY || "caminho_3_cartas";
+const INTERNAL_TEST_PRODUCT_KEY = "teste_checkout_50";
+const productKey = process.env.PDU_STRIPE_PROOF_PRODUCT_KEY || INTERNAL_TEST_PRODUCT_KEY;
+const proofCurrency = process.env.PDU_STRIPE_PROOF_CURRENCY === "GBP" ? "GBP" : "BRL";
+const proofLocale = proofCurrency === "GBP" ? "en" : "pt-BR";
+const stripeTimeoutMs = Number(process.env.PDU_STRIPE_TIMEOUT_MS || 45_000);
+const requestTimeoutMs = Number(process.env.PDU_PROOF_TIMEOUT_MS || 45_000);
 
 if (!supabaseUrl || !serviceRoleKey || !anonKey || !stripeKey || !webhookSecret) {
   console.error(
     "Stripe proof skipped: configure Supabase URL, service role key, anon key, STRIPE_SECRET_KEY, and STRIPE_WEBHOOK_SECRET."
+  );
+  process.exit(2);
+}
+
+if (
+  productKey === INTERNAL_TEST_PRODUCT_KEY &&
+  (process.env.PDU_ENABLE_INTERNAL_TEST_CHECKOUT !== "true" ||
+    !/^(?:sk|rk)_test_/.test(stripeKey))
+) {
+  console.error(
+    "Stripe proof skipped: the internal checkout product requires PDU_ENABLE_INTERNAL_TEST_CHECKOUT=true and a sk_test_/rk_test_ Stripe key."
   );
   process.exit(2);
 }
@@ -104,6 +130,8 @@ const publicClient = createClient(supabaseUrl, anonKey, {
 });
 const stripe = new Stripe(stripeKey, {
   apiVersion: "2026-05-27.dahlia",
+  timeout: stripeTimeoutMs,
+  maxNetworkRetries: 0,
 });
 
 const runId = createRunId();
@@ -168,13 +196,14 @@ async function createNormalUser() {
 }
 
 async function apiJson(user, method, path, body) {
-  const response = await fetch(`${baseUrl}${path}`, {
+  const response = await fetchWithTimeout(`${baseUrl}${path}`, {
     method,
     headers: {
       accept: "application/json",
       "content-type": "application/json",
       cookie: cookieHeader(user.jar),
       origin,
+      "x-real-ip": "198.51.100.31",
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -184,7 +213,7 @@ async function apiJson(user, method, path, body) {
 }
 
 async function postWebhook(payload, signature) {
-  const response = await fetch(`${baseUrl}/api/stripe/webhook`, {
+  const response = await fetchWithTimeout(`${baseUrl}/api/stripe/webhook`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -379,7 +408,7 @@ async function cleanupProof() {
 }
 
 try {
-  const health = await fetch(`${baseUrl}/api/health/supabase`);
+  const health = await fetchWithTimeout(`${baseUrl}/api/health/supabase`);
   assert(health.ok, `Local app is not reachable at ${baseUrl}`);
   const healthJson = await readJsonResponse(health);
   assert(healthJson?.ok === true, "Local Supabase health is not OK");
@@ -399,7 +428,8 @@ try {
   const user = await createNormalUser();
   const checkout = await apiJson(user, "POST", "/api/checkout/create", {
     productKey,
-    locale: "pt-BR",
+    locale: proofLocale,
+    currency: proofCurrency,
     email: user.email,
   });
   assert(

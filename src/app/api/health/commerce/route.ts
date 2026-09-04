@@ -13,6 +13,7 @@ import {
 import {
   PRODUCT_CURRENCIES,
   getProductPriceForCurrency,
+  normalizeProductCurrency,
 } from "@/lib/product/pricing";
 
 type PaidProduct = {
@@ -125,6 +126,21 @@ export async function GET(request: Request) {
             }
             const price = await stripe.prices.retrieve(product.provider_price_id);
             const expectsRecurring = product.product_type === "subscription";
+            const baseCurrency = normalizeProductCurrency(product.currency);
+            const matrixPrice = baseCurrency
+              ? getProductPriceForCurrency(product.product_key, baseCurrency)
+              : null;
+            const usesInlinePricing =
+              product.product_key === CIRCLE_PRODUCT_KEY ||
+              product.metadata?.pricing_source === "inline" ||
+              matrixPrice?.amountCents !== product.price_cents;
+            if (usesInlinePricing) {
+              return Boolean(
+                matrixPrice &&
+                  matrixPrice.amountCents === product.price_cents &&
+                  product.price_cents >= 50
+              );
+            }
             return (
               price.active &&
               price.livemode &&

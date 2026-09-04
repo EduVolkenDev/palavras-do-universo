@@ -3,9 +3,40 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 let adminClient: SupabaseClient | null = null;
+const DEFAULT_AUTH_TIMEOUT_MS = 8_000;
 
 function getSupabaseServerUrl() {
   return process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+}
+
+function readBoundedNumber(value: string | undefined, fallback: number, min: number, max: number) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(Math.max(Math.trunc(parsed), min), max);
+}
+
+async function withAuthTimeout<T>(promise: Promise<T>) {
+  const timeoutMs = readBoundedNumber(
+    process.env.SUPABASE_AUTH_TIMEOUT_MS,
+    DEFAULT_AUTH_TIMEOUT_MS,
+    2_000,
+    15_000
+  );
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error(`Supabase auth timed out after ${timeoutMs}ms`)),
+          timeoutMs
+        );
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 export function hasSupabaseConfig() {
@@ -55,11 +86,21 @@ export async function getAuthenticatedUser() {
   if (!hasSupabasePublicConfig()) return null;
 
   const supabase = await getSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const {
+      data: { user },
+    } = await withAuthTimeout(supabase.auth.getUser());
 
-  return user;
+    return user;
+  } catch (caught) {
+    if (process.env.PDU_AUTH_DEBUG === "1") {
+      console.warn(
+        "Supabase authenticated user lookup failed:",
+        caught instanceof Error ? caught.message : String(caught)
+      );
+    }
+    return null;
+  }
 }
 
 export function getSupabaseAdmin() {

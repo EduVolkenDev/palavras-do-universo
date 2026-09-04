@@ -68,7 +68,11 @@ import { usePushNotifications } from "@/lib/push/usePushNotifications";
 import { useI18n } from "@/components/I18nProvider";
 import FeedbackDialog from "@/components/FeedbackDialog";
 import { normalizeLocale, type Locale } from "@/lib/i18n/config";
-import { localizeTarotCard, translateOraclePosition } from "@/lib/i18n/oracle";
+import {
+  localizeDailyMessage,
+  localizeTarotCard,
+  translateOraclePosition,
+} from "@/lib/i18n/oracle";
 import {
   getImpactAction,
   IMPACT_ACTIONS,
@@ -1227,8 +1231,9 @@ export default function Home() {
   const [impactSaving, setImpactSaving] = useState(false);
   const [invitedBy, setInvitedBy] = useState("");
   const [showInvitedAction, setShowInvitedAction] = useState(false);
-  const [dailyOpening, setDailyOpening] =
-    useState<DailyMessage>(fallbackDailyMessage);
+  const [dailyOpening, setDailyOpening] = useState<DailyMessage>(() =>
+    localizeDailyMessage(fallbackDailyMessage, locale)
+  );
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingFocusId, setOnboardingFocusId] = useState("");
   const [onboardingStep, setOnboardingStep] = useState<"phase" | "profile">("phase");
@@ -1528,7 +1533,8 @@ export default function Home() {
         setDailyOpening(data.daily as DailyMessage);
       })
       .catch(() => {
-        // O fallback local mantém a home funcional se a abertura diária falhar.
+        // O fallback local mantém a home funcional sem trocar o idioma da abertura.
+        setDailyOpening(localizeDailyMessage(fallbackDailyMessage, locale));
       });
 
     return () => controller.abort();

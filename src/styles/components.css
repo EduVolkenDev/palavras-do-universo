@@ -47,8 +47,9 @@
 }
 
 .pdu-home > section {
-  position: relative;
   z-index: 1;
+  position: relative;
+  margin: 60px auto;
 }
 
 .pdu-home > header {
@@ -6526,7 +6527,6 @@ body:has(.pdu-onboarding-overlay) .pdu-lume-ambient {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pdu-magic-marquee__track,
   .pdu-feature-cloud__core,
   .pdu-floating-symbol,
   .pdu-product-visual__image,
@@ -6742,6 +6742,20 @@ body:has(.pdu-onboarding-overlay) .pdu-lume-ambient {
   filter:
     drop-shadow(0 34px 44px rgba(42, 28, 18, 0.2))
     drop-shadow(0 0 30px rgba(244, 213, 141, 0.2));
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  .pdu-magic-marquee__track {
+    animation: pdu-marquee-drift 46s linear infinite !important;
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdu-magic-marquee__track {
+    animation: pdu-marquee-drift 72s linear infinite !important;
+  }
 }
 
 .pdu-product-visual--three-card-path {
@@ -10283,5 +10297,20 @@ body:has(.pdu-not-found) .pdu-lume-ambient {
   .pdu-not-found *::after {
     animation: none !important;
     transition-duration: 0ms !important;
+  }
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  .pdu-home .pdu-magic-marquee__track {
+    animation: pdu-marquee-drift 46s linear infinite !important;
+    transform: translate3d(0, 0, 0);
+    will-change: transform !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdu-home .pdu-magic-marquee__track {
+    animation: pdu-marquee-drift 72s linear infinite !important;
+    will-change: transform !important;
   }
 }

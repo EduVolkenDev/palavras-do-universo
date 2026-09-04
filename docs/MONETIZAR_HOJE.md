@@ -6,7 +6,7 @@ possivel.
 ## Oferta principal
 
 - Produto: `Clareza Urgente`
-- Preco: `R$19,90`
+- Preco: `R$22,90`
 - Tipo: pagamento avulso
 - Entrega: acesso imediato a leitura premium no `Meu Universo`
 - Promessa: transformar urgencia emocional em eixo, limite e proximo passo
@@ -37,6 +37,26 @@ STRIPE_CUSTOMER_PORTAL_VERIFIED=false
 Nao colocar `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY` ou
 `STRIPE_WEBHOOK_SECRET` em codigo publico.
 
+## Ensaio interno antes de divulgar
+
+Use o produto oculto `teste_checkout_50` (R$0,50 / £0,50) somente em um
+ambiente local ou preview, com Stripe em modo de teste e um projeto Supabase
+isolado. O produto nao aparece no catalogo publico e o checkout exige
+`PDU_ENABLE_INTERNAL_TEST_CHECKOUT=true`.
+
+Os scripts `npm run prove:checkout-currencies` e
+`npm run prove:stripe-webhook-entitlement` verificam, respectivamente, a
+criacao do Checkout em BRL/GBP e o ciclo Checkout -> webhook -> compra paga ->
+entitlement -> leitura de uso unico. Eles criam dados temporarios e limpam o
+que criaram; nao concluem uma cobranca real automaticamente.
+
+Para um ensaio live temporario, use a rota protegida `/admin/teste-checkout`
+com a conta proprietaria e habilite `PDU_ENABLE_INTERNAL_LIVE_CHECKOUT=true`
+somente durante a janela aprovada. A chave de runtime da aplicacao precisa ter
+permissao para criar Checkout Sessions; uma chave restrita apenas a Webhook
+Endpoints nao serve para esse fim. Depois do ensaio, desabilite a flag e faca
+um novo deploy.
+
 ## Stripe live
 
 1. Ativar o modo live na Stripe.
@@ -61,7 +81,7 @@ customer.subscription.deleted
 
 5. Copiar o `Signing secret` do webhook para `STRIPE_WEBHOOK_SECRET`.
 
-## Teste antes de divulgar
+## Validacao de producao apos o ensaio interno
 
 1. Fazer deploy.
 2. Abrir a home em producao.

@@ -90,6 +90,28 @@ Successful one-time checkouts update `purchases` and create active
 and create active entitlements for `circulo_do_universo` plus its included
 products.
 
+### Internal checkout proof
+
+The catalog also contains `teste_checkout_50`, a hidden BRL 0.50 / GBP 0.50
+one-time product for controlled payment-flow validation. It is intentionally
+excluded from public product cards and cannot be checked out unless all three
+conditions are true:
+
+- `PDU_ENABLE_INTERNAL_TEST_CHECKOUT=true`
+- `STRIPE_SECRET_KEY` uses Stripe test mode (`sk_test_` or `rk_test_`)
+- the runtime is not production
+
+Keep this flag out of production. The proof scripts create a temporary test
+user, verify Checkout, webhook idempotency, entitlement delivery and one-use
+reading access, then remove their temporary rows. They do not complete a real
+payment automatically.
+
+For an explicitly approved live smoke test, the hidden owner-only route
+`/admin/teste-checkout` can use `PDU_ENABLE_INTERNAL_LIVE_CHECKOUT=true` with a
+live application runtime key that has Checkout Sessions permission. This flag
+must be disabled again after the test. The restricted key used only to manage
+Webhook Endpoints must never be copied into `STRIPE_SECRET_KEY`.
+
 ## Apply Remote Migration
 
 Confirm the linked project first:

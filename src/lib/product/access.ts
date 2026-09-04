@@ -55,6 +55,12 @@ export const PAID_READING_PRODUCTS = new Set([
   "o_paradoxo",
 ]);
 
+export const INTERNAL_TEST_PRODUCT_KEY = "teste_checkout_50";
+
+export function isInternalTestProduct(productKey: string) {
+  return productKey === INTERNAL_TEST_PRODUCT_KEY;
+}
+
 export const CIRCLE_PRODUCT_KEY = "circulo_do_universo";
 
 export const CIRCLE_INCLUDED_PRODUCTS = new Set([

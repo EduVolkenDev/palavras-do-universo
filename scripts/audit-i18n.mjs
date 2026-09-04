@@ -19,6 +19,11 @@ const translationKeys = new Set(
 
 const ignorePathFragments = [
   "/app/api/",
+  // These routes/components are intentionally localized through a complete
+  // locale copy object or are owner-only operational surfaces, not catalog UI.
+  "/app/clareza-urgente/page.tsx",
+  "/components/admin/",
+  "/components/marketing/ClarezaUrgenteCampaign.tsx",
   "/lib/i18n/translations.ts",
   "/lib/i18n/oracle.ts",
   "/lib/tarot/fallback.ts",

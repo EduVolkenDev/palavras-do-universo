@@ -4,11 +4,15 @@ import { ArrowLeft, ArrowRight, CircleCheck, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cookies, headers } from "next/headers";
 import { normalizeLocale } from "@/lib/i18n/config";
 import { translations } from "@/lib/i18n/translations";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { getProductCardPrice, productCards } from "@/lib/product/catalog";
-import { resolveProductCurrency } from "@/lib/product/pricing";
+import {
+  PRODUCT_CURRENCY_COOKIE_NAME,
+  resolveProductCurrency,
+} from "@/lib/product/pricing";
 import { SPREADS, type SpreadType } from "@/lib/tarot/spreads";
 
 const PREMIUM_SPREAD_TYPES = [
@@ -169,8 +173,13 @@ export default async function SpreadExperiencePage({
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
   const locale = normalizeLocale(resolvedSearchParams?.lang);
+  const cookieStore = await cookies();
+  const requestHeaders = await headers();
   const productCurrency = resolveProductCurrency({
-    currency: resolvedSearchParams?.currency,
+    currency:
+      resolvedSearchParams?.currency ??
+      cookieStore.get(PRODUCT_CURRENCY_COOKIE_NAME)?.value,
+    country: requestHeaders.get("x-vercel-ip-country"),
     locale,
   });
   const t = (value: string) => translateText(value, locale);
