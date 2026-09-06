@@ -29,6 +29,20 @@ function jsonError(error: string, status = 400) {
   return NextResponse.json({ error }, { status });
 }
 
+function isProductionRuntime() {
+  return process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
+}
+
+function unavailableMarketplace() {
+  return {
+    ok: false as const,
+    error: "Professional marketplace is temporarily unavailable.",
+    professionals: [] as PublicProfessionalProfile[],
+    total: 0,
+    source: "unavailable" as const,
+  };
+}
+
 function asRecord(value: unknown) {
   return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
 }
@@ -104,6 +118,7 @@ function normalizeFilters(url: URL): ProfessionalMarketplaceFilters {
 
 async function readPublicMarketplace(filters: ProfessionalMarketplaceFilters) {
   if (!hasSupabaseConfig()) {
+    if (isProductionRuntime()) return unavailableMarketplace();
     return {
       ok: true as const,
       professionals: applyMarketplaceFilters(PROFESSIONAL_MARKETPLACE_SEED, filters).slice(
@@ -135,6 +150,7 @@ async function readPublicMarketplace(filters: ProfessionalMarketplaceFilters) {
     ]);
 
   if (profileError || offerError || !profiles) {
+    if (isProductionRuntime()) return unavailableMarketplace();
     return {
       ok: true as const,
       professionals: applyMarketplaceFilters(PROFESSIONAL_MARKETPLACE_SEED, filters).slice(
@@ -186,7 +202,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const filters = normalizeFilters(url);
   const result = await readPublicMarketplace(filters);
-  return NextResponse.json(result);
+  return NextResponse.json(result, { status: result.ok ? 200 : 503 });
 }
 
 type MarketplaceManageBody = {
@@ -209,6 +225,8 @@ function normalizeProfileDraft(value: unknown): ProfessionalProfileDraft {
     modalities: toStringList(record?.modalities, 6),
     availability: normalizeAvailability(record?.availability),
     isPublished: toBool(record?.isPublished),
+    // Verification is a staff-controlled state. It is intentionally ignored
+    // by the write path below and retained only for legacy draft shape parity.
     isVerified: toBool(record?.isVerified),
     responseTime: trimText(record?.responseTime, 80),
   };
@@ -263,7 +281,7 @@ export async function PUT(request: Request) {
 
   const { data: existingProfile, error: profileLookupError } = await supabase
     .from("professional_profiles")
-    .select("id")
+    .select("id, is_verified")
     .eq("user_id", auth.user.id)
     .maybeSingle();
 
@@ -285,7 +303,8 @@ export async function PUT(request: Request) {
     modalities: profile.modalities,
     availability: profile.availability,
     is_published: profile.isPublished,
-    is_verified: profile.isVerified,
+    // A professional may edit their public profile, never self-verify it.
+    is_verified: existingProfile?.is_verified ?? false,
     response_time: profile.responseTime || null,
   };
 

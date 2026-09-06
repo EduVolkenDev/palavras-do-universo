@@ -16,6 +16,8 @@ export type DailyMessage = {
     name: string;
     position: "SITUAÇÃO" | "OBSTÁCULO" | "DIREÇÃO";
     reversed: boolean;
+    coreMeaning?: string;
+    lifeQuestion?: string;
   }[];
   timeZone: string;
 };
@@ -394,6 +396,8 @@ function pickUniqueCards(seed: number): DailyMessage["spread"] {
       reversed,
       keyword: card.keywords[0],
       meaning: reversed ? card.reversed : card.upright,
+      coreMeaning: card.guide.core,
+      lifeQuestion: card.guide.question,
     };
   });
 }

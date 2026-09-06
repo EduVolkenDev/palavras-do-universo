@@ -28,9 +28,13 @@ type DailyCard = {
     reversed: boolean;
     assetPath: string;
     keywords: string[];
+    coreMeaning: string;
+    lifeQuestion: string;
   };
   reading: {
     keyword: string;
+    coreMeaning: string;
+    lifeQuestion: string;
     meaning: string;
     counsel: string;
     reflection_prompt: string;
@@ -121,6 +125,8 @@ export function DailyCardExperience() {
           reversed: daily.card.reversed,
           asset_path: daily.card.assetPath,
           keywords: daily.card.keywords,
+          core_meaning: daily.card.coreMeaning,
+          life_question: daily.card.lifeQuestion,
         },
         reading: daily.reading,
         daily_context: daily.daily_context,
@@ -290,6 +296,18 @@ export function DailyCardExperience() {
 
               {daily ? (
                 <div className="mt-6 space-y-4 text-sm leading-7 text-[#d8ccc0]">
+                  <div className="rounded-[8px] border border-[#f4d58d]/20 bg-[#f4d58d]/[0.06] p-4">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#f5d896]">
+                      {t("O que representa")}
+                    </p>
+                    <p>{daily.reading.coreMeaning}</p>
+                    <p className="mt-3 italic text-[#a7d7c5]">
+                      <span className="not-italic font-semibold">
+                        {t("Pergunta para levar:")}{" "}
+                      </span>
+                      {daily.reading.lifeQuestion}
+                    </p>
+                  </div>
                   <p>
                     <span className="font-semibold text-[#f5d896]">
                       {t("Conselho:")}

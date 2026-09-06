@@ -21,9 +21,13 @@ type DailyCardPayload = {
     reversed: boolean;
     asset_path: string;
     keywords: string[];
+    core_meaning?: string;
+    life_question?: string;
   };
   reading: {
     keyword: string;
+    coreMeaning?: string;
+    lifeQuestion?: string;
     meaning: string;
     counsel: string;
     reflection_prompt: string;

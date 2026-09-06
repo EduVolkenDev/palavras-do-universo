@@ -106,6 +106,17 @@ function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function getCampaignAttribution(params: Record<string, string | string[] | undefined>) {
+  const attribution: Record<string, string> = {};
+
+  for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]) {
+    const value = firstParam(params[key])?.trim();
+    if (value) attribution[key] = value.slice(0, 120);
+  }
+
+  return attribution;
+}
+
 async function getCampaignContext(searchParams: SearchParams) {
   const params = await searchParams;
   const cookieStore = await cookies();
@@ -121,7 +132,7 @@ async function getCampaignContext(searchParams: SearchParams) {
     locale,
   });
 
-  return { locale, currency };
+  return { locale, currency, attribution: getCampaignAttribution(params) };
 }
 
 export async function generateMetadata({
@@ -155,8 +166,16 @@ export default async function ClarezaUrgentePage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { locale, currency } = await getCampaignContext(searchParams);
+  const { locale, currency, attribution } = await getCampaignContext(searchParams);
   const price = formatProductPrice("clareza_urgente", currency);
 
-  return <ClarezaUrgenteCampaign copy={COPY[locale]} locale={locale} currency={currency} price={price} />;
+  return (
+    <ClarezaUrgenteCampaign
+      copy={COPY[locale]}
+      locale={locale}
+      currency={currency}
+      price={price}
+      attribution={attribution}
+    />
+  );
 }

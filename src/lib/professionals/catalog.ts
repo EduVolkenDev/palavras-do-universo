@@ -101,6 +101,12 @@ export type ProfessionalMarketplaceResponse = {
   professionals: PublicProfessionalProfile[];
   total: number;
   source: "database" | "seed";
+} | {
+  ok: false;
+  error: string;
+  professionals: PublicProfessionalProfile[];
+  total: number;
+  source: "unavailable";
 };
 
 export type ProfessionalMarketplaceFilters = {

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { buildLoginPath } from "@/lib/auth/redirect";
 import {
@@ -61,6 +62,11 @@ import {
   normalizeReadingProfile,
   type ReadingProfile,
 } from "@/lib/personalization/reading-context";
+import {
+  getLabPracticeContinuity,
+  isLabPracticePayload,
+  LAB_PRACTICE_LABELS,
+} from "@/lib/lab/practice";
 import {
   buildJourneySnapshot,
   getJourneyRecommendations,
@@ -113,6 +119,8 @@ type ReadingSpreadCard = {
   name: string;
   reversed: boolean;
   meaning: string;
+  coreMeaning?: string;
+  lifeQuestion?: string;
   assetPath: string;
 };
 
@@ -227,7 +235,7 @@ function normalizeSpreadCards(value: unknown): ReadingSpreadCard[] {
   if (!Array.isArray(value)) return [];
 
   return value
-    .map((item) => {
+    .map((item): ReadingSpreadCard | null => {
       if (!isRecord(item)) return null;
       const name = asString(item.name);
       const position = asString(item.position);
@@ -240,6 +248,8 @@ function normalizeSpreadCards(value: unknown): ReadingSpreadCard[] {
         name,
         reversed: item.reversed === true,
         meaning: asString(item.meaning),
+        coreMeaning: asString(item.coreMeaning),
+        lifeQuestion: asString(item.lifeQuestion),
         assetPath: normalizeAssetPath(item.assetPath || item.asset_path),
       };
     })
@@ -291,13 +301,18 @@ function isDailyCardPayload(value: unknown): value is {
   date_label?: string;
   opening_key?: string;
   card?: {
+    key?: string;
     name?: string;
     reversed?: boolean;
     asset_path?: string;
     keywords?: string[];
+    core_meaning?: string;
+    life_question?: string;
   };
   reading?: {
     keyword?: string;
+    coreMeaning?: string;
+    lifeQuestion?: string;
     meaning?: string;
     counsel?: string;
     reflection_prompt?: string;
@@ -366,6 +381,10 @@ function getSavedTitle(message: SavedMessage) {
     return name ? `Carta do Dia: ${name}` : "Carta do Dia";
   }
 
+  if (message.message_type === "practice" && isLabPracticePayload(message.payload)) {
+    return message.payload.locale === "en" ? "Clarity practice" : "Prática de clareza";
+  }
+
   if (message.message_type === "reading" && isSavedReadingPayload(message.payload)) {
     const question = asString(message.payload.question);
     return question || "Leitura salva";
@@ -379,6 +398,10 @@ function getSavedTitle(message: SavedMessage) {
 function getSavedPreview(message: SavedMessage) {
   if (message.message_type === "daily_card" && isDailyCardPayload(message.payload)) {
     return asString(message.payload.reading?.meaning);
+  }
+
+  if (message.message_type === "practice" && isLabPracticePayload(message.payload)) {
+    return message.payload.nextStep || message.payload.signal;
   }
 
   if (message.message_type === "reading" && isSavedReadingPayload(message.payload)) {
@@ -547,7 +570,9 @@ function localizePosition(position: string, locale: Locale) {
 
 function localizeHistoryCards(cards: ReadingSpreadCard[], locale: Locale) {
   return cards.map((card) => {
-    const sourceCard = CARDS.find((item) => item.key === card.cardKey);
+    const sourceCard = CARDS.find(
+      (item) => item.key === card.cardKey || item.name === card.name
+    );
     const localizedCard = sourceCard ? localizeTarotCard(sourceCard, locale) : null;
 
     return {
@@ -561,6 +586,8 @@ function localizeHistoryCards(cards: ReadingSpreadCard[], locale: Locale) {
           ? localizedCard.reversed
           : localizedCard.upright
         : card.meaning,
+      coreMeaning: localizedCard?.guide.core ?? card.coreMeaning,
+      lifeQuestion: localizedCard?.guide.question ?? card.lifeQuestion,
     };
   });
 }
@@ -573,7 +600,9 @@ function buildLocalizedHistorySummary(cards: ReadingSpreadCard[], locale: Locale
     heading,
     ...cards.map(
       (card) =>
-        `${card.position}: ${card.name}${card.reversed ? reversedSuffix : ""}. ${card.meaning}`
+        `${card.position}: ${card.name}${card.reversed ? reversedSuffix : ""}. ${
+          card.coreMeaning ?? card.meaning
+        } ${card.meaning}`
     ),
   ].join("\n\n");
 }
@@ -589,6 +618,7 @@ function formatDate(value: string, locale: Locale) {
 
 export default function MeuUniversoPage() {
   const { locale, t } = useI18n();
+  const router = useRouter();
   const { currency: productCurrency, setCurrency: setProductCurrency } =
     useProductCurrency(locale);
   const [userId, setUserId] = useState("");
@@ -804,6 +834,15 @@ export default function MeuUniversoPage() {
     () => messages.filter((message) => message.message_type !== "reading"),
     [messages]
   );
+  const labContinuity = useMemo(
+    () =>
+      getLabPracticeContinuity(
+        messages
+          .filter((message) => message.message_type === "practice")
+          .map((message) => message.payload)
+      ),
+    [messages]
+  );
   const readingHistoryCount = readings.length + savedReadingMessages.length;
   const profileCompletion = getProfileCompletion(profileDraft);
   const profileComplete = getProfileCompletion(readingProfile) >= 4;
@@ -852,6 +891,12 @@ export default function MeuUniversoPage() {
     () => buildJourneySnapshot(readings, messages, readingProfile, commitments),
     [commitments, messages, readingProfile, readings]
   );
+  const labLatestTitle = labContinuity.latest
+    ? LAB_PRACTICE_LABELS[labContinuity.latest.practiceKey][locale === "en" ? "en" : "pt"]
+    : "";
+  const labNextTitle = labContinuity.recommendedPracticeKey
+    ? LAB_PRACTICE_LABELS[labContinuity.recommendedPracticeKey][locale === "en" ? "en" : "pt"]
+    : "";
   const journeyRecommendations = useMemo(
     () => getJourneyRecommendations(journeySnapshot),
     [journeySnapshot]
@@ -1003,17 +1048,18 @@ export default function MeuUniversoPage() {
     const product = productCards.find((item) => item.productKey === productKey);
     if (product?.href && productKey !== "carta_do_dia") {
       const separator = product.href.includes("?") ? "&" : "?";
-      window.location.href = `${product.href}${separator}currency=${encodeURIComponent(
+      router.push(`${product.href}${separator}currency=${encodeURIComponent(
         productCurrency
-      )}`;
+      )}`);
       return;
     }
 
-    window.location.href =
+    router.push(
       product?.href ??
       `/?product=${encodeURIComponent(productKey)}&currency=${encodeURIComponent(
         productCurrency
-      )}`;
+      )}`
+    );
   }
 
   function toggleProfileList(key: "focusAreas" | "boundaries", value: string) {
@@ -1945,6 +1991,65 @@ export default function MeuUniversoPage() {
                 </div>
               </div>
             </div>
+        </section>
+       ) : null}
+
+        {labContinuity.latest ? (
+          <section className="mt-8 overflow-hidden rounded-[28px] border border-[#a9cdbf] bg-[#f3f8f3] shadow-[0_24px_70px_rgba(49,93,86,0.08)]">
+            <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="p-6 sm:p-7 lg:p-8">
+                <p className="inline-flex items-center gap-2 rounded-full bg-[#315d56] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-white">
+                  <Sparkles size={13} />
+                  {locale === "en" ? "Lab continuity" : "Continuidade do Lab"}
+                </p>
+                <h2 className="brand-serif mt-4 max-w-2xl text-4xl font-semibold leading-tight text-[#27453d]">
+                  {locale === "en" ? "Your last gesture still has a next step." : "Seu último gesto ainda tem um próximo passo."}
+                </h2>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-[#52705c]">
+                  {locale === "en"
+                    ? `Your latest practice was “${labLatestTitle}”. Keep its next gesture close, then choose whether to revisit it or open another door.`
+                    : `Sua última prática foi “${labLatestTitle}”. Mantenha o próximo gesto por perto e escolha se quer revisitá-lo ou abrir outra porta.`}
+                </p>
+                <div className="mt-6 rounded-2xl border border-[#c7ddd0] bg-white/65 p-4">
+                  <p className="text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#52705c]">
+                    {locale === "en" ? "The gesture you kept" : "O gesto que ficou"}
+                  </p>
+                  <p className="mt-2 text-base leading-7 text-[#315d56]">{labContinuity.latest.nextStep}</p>
+                  {labContinuity.repeatedPracticeKey ? (
+                    <p className="mt-3 text-xs leading-5 text-[#52705c]">
+                      {locale === "en"
+                        ? "A door has appeared more than once in your history. The suggestion below offers a different angle without erasing what returned."
+                        : "Uma porta apareceu mais de uma vez no seu histórico. A sugestão abaixo oferece outro ângulo sem apagar o que retornou."}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+              <div className="flex flex-col justify-between gap-6 bg-[#315d56] p-6 text-white sm:p-7 lg:p-8">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#cde2d2]">
+                    {locale === "en" ? "Next door" : "Próxima porta"}
+                  </p>
+                  <h3 className="brand-serif mt-3 text-3xl font-semibold">{labNextTitle}</h3>
+                  <p className="mt-3 text-sm leading-6 text-[#e1eee3]">
+                    {locale === "en"
+                      ? "A new starting point can reveal what the first practice could not."
+                      : "Um novo ponto de partida pode revelar o que a primeira prática ainda não alcançou."}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <Link href="/lab?retomar=1#pratica" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#2b211c] hover:bg-[#f8e4b1]">
+                    {locale === "en" ? "Resume this practice" : "Retomar esta prática"}
+                    <ArrowRight size={16} />
+                  </Link>
+                  {labContinuity.recommendedPracticeKey ? (
+                    <Link href={`/lab?porta=${encodeURIComponent(labContinuity.recommendedPracticeKey)}#pratica`} className="inline-flex items-center justify-center gap-2 rounded-full border border-white/25 bg-white/[0.08] px-5 py-3 text-sm font-semibold text-white hover:bg-white/[0.15]">
+                      {locale === "en" ? "Open next door" : "Abrir próxima porta"}
+                      <ArrowRight size={16} />
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </div>
           </section>
         ) : null}
 
@@ -2644,9 +2749,28 @@ function ReadingArticle({ reading }: { reading: Reading }) {
                       {card.name}
                       {card.reversed ? reversedSuffix : ""}
                     </p>
+                    {card.coreMeaning ? (
+                      <p className="mt-2 text-left text-[0.72rem] leading-4 text-[#5c4b42]">
+                        <span className="font-semibold text-[#8a6b3f]">
+                          {locale === "en" ? "Represents: " : "Representa: "}
+                        </span>
+                        {card.coreMeaning}
+                      </p>
+                    ) : null}
                     {card.meaning ? (
-                      <p className="mt-1 line-clamp-3 text-[0.72rem] leading-4 text-[#6f615a]">
+                      <p className="mt-2 line-clamp-3 text-left text-[0.72rem] leading-4 text-[#6f615a]">
+                        <span className="font-semibold text-[#8a6b3f]">
+                          {locale === "en" ? "Here: " : "Aqui: "}
+                        </span>
                         {card.meaning}
+                      </p>
+                    ) : null}
+                    {card.lifeQuestion ? (
+                      <p className="mt-2 text-left text-[0.7rem] italic leading-4 text-[#8a6b3f]">
+                        <b className="not-italic">
+                          {locale === "en" ? "Question to carry: " : "Pergunta para levar: "}
+                        </b>
+                        {card.lifeQuestion}
                       </p>
                     ) : null}
                   </div>
@@ -2759,16 +2883,98 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
     );
   }
 
-  if (
-    message.message_type === "daily_card" &&
-    isDailyCardPayload(message.payload)
-  ) {
-    const cardName = asString(message.payload.card?.name);
-    const assetPath = normalizeAssetPath(message.payload.card?.asset_path);
-    const keyword = asString(message.payload.reading?.keyword);
-    const meaning = asString(message.payload.reading?.meaning);
-    const counsel = asString(message.payload.reading?.counsel);
-    const reversed = Boolean(message.payload.card?.reversed);
+  const dailyPayload = message.payload;
+  if (message.message_type === "practice" && isLabPracticePayload(message.payload)) {
+    const practice = message.payload;
+    const arrivalLabels = locale === "en"
+      ? {
+          unclear: "I arrive without a name for it",
+          transition: "I am moving through a change",
+          overloaded: "I need to lower the noise",
+          ready: "I want to move with intention",
+        }
+      : {
+          unclear: "Chego sem conseguir nomear",
+          transition: "Estou atravessando uma mudança",
+          overloaded: "Preciso diminuir o ruído",
+          ready: "Quero me mover com intenção",
+        };
+    const practiceLabels = locale === "en"
+      ? {
+          clarity_checkin: "Name the moment",
+          decision_pause: "Make room to decide",
+          transition_anchor: "Move through a change",
+          quiet_the_noise: "Lower the noise",
+          self_care_reset: "Return to care",
+        }
+      : {
+          clarity_checkin: "Dar nome ao momento",
+          decision_pause: "Abrir espaço para decidir",
+          transition_anchor: "Atravessar uma mudança",
+          quiet_the_noise: "Diminuir o ruído",
+          self_care_reset: "Voltar para o cuidado",
+        };
+
+    return (
+      <article className="overflow-hidden rounded-lg border border-[#d8cfb9] bg-[#f3f5ec]">
+        <div className="p-4">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[#59705a]">
+            <span className="rounded-full bg-[#e0e8dc] px-2 py-1">
+              {locale === "en" ? "Lab · clarity practice" : "Lab · prática de clareza"}
+            </span>
+            <span className="rounded-full bg-[#e0e8dc] px-2 py-1">
+              {arrivalLabels[practice.arrivalKey]}
+            </span>
+            <span className="rounded-full bg-[#e0e8dc] px-2 py-1">
+              {practiceLabels[practice.practiceKey]}
+            </span>
+            {message.local_only ? (
+              <span className="rounded-full bg-[#e4eadf] px-2 py-1">
+                {locale === "en" ? "On this device" : "Neste dispositivo"}
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-3 text-xs text-[#6d776b]">
+            {formatDate(message.created_at, locale)}
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            {([
+              [locale === "en" ? "What was alive" : "O que estava vivo", practice.signal],
+              [locale === "en" ? "What asked for care" : "O que pedia cuidado", practice.care],
+              [locale === "en" ? "Next gesture" : "Próximo gesto", practice.nextStep],
+            ] as const).map(([label, value]) => (
+              <div key={label}>
+                <p className="text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#59705a]">{label}</p>
+                <p className="mt-2 text-sm leading-6 text-[#405344]">{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </article>
+    );
+  }
+  if (message.message_type === "daily_card" && isDailyCardPayload(dailyPayload)) {
+    const cardName = asString(dailyPayload.card?.name);
+    const dailySourceCard = CARDS.find(
+      (card) =>
+        card.key === asString(dailyPayload.card?.key) || card.name === cardName
+    );
+    const dailyLocalizedCard = dailySourceCard
+      ? localizeTarotCard(dailySourceCard, locale)
+      : null;
+    const assetPath = normalizeAssetPath(dailyPayload.card?.asset_path);
+    const keyword = asString(dailyPayload.reading?.keyword);
+    const meaning = asString(dailyPayload.reading?.meaning);
+    const coreMeaning =
+      dailyLocalizedCard?.guide.core ??
+      (asString(dailyPayload.reading?.coreMeaning) ||
+        asString(dailyPayload.card?.core_meaning));
+    const lifeQuestion =
+      dailyLocalizedCard?.guide.question ??
+      (asString(dailyPayload.reading?.lifeQuestion) ||
+        asString(dailyPayload.card?.life_question));
+    const counsel = asString(dailyPayload.reading?.counsel);
+    const reversed = Boolean(dailyPayload.card?.reversed);
 
     return (
       <article className="overflow-hidden rounded-lg border border-[#e4d3ba] bg-[#fbf6ee]">
@@ -2808,12 +3014,28 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
               {formatDate(message.created_at, locale)}
             </p>
             <h3 className="brand-serif mt-1 text-2xl font-semibold text-[#332720]">
-              {cardName}
-              {reversed ? " reversa" : ""}
+              {dailyLocalizedCard?.name ?? cardName}
+              {reversed ? (locale === "en" ? " (reversed)" : " reversa") : ""}
             </h3>
+            {coreMeaning ? (
+              <p className="mt-2 text-sm leading-6 text-[#6f615a]">
+                <span className="font-semibold text-[#8a6b3f]">
+                  {locale === "en" ? "Represents: " : "Representa: "}
+                </span>
+                {coreMeaning}
+              </p>
+            ) : null}
             <p className="mt-2 line-clamp-3 text-sm leading-6 text-[#6f615a]">
               {meaning}
             </p>
+            {lifeQuestion ? (
+              <p className="mt-2 text-sm italic leading-6 text-[#8a6b3f]">
+                <b className="not-italic">
+                  {locale === "en" ? "Question to carry: " : "Pergunta para levar: "}
+                </b>
+                {lifeQuestion}
+              </p>
+            ) : null}
           </div>
         </div>
 

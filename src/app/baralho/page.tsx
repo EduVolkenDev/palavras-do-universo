@@ -347,6 +347,12 @@ export default function BaralhoPage() {
                   </div>
 
                   <div className="mt-4 space-y-3 text-sm leading-6 text-[#d8ccc0]">
+                    <p className="rounded-[8px] border border-[#f4d58d]/18 bg-[#f4d58d]/[0.05] p-3">
+                      <span className="font-semibold text-[#f5d896]">
+                        {t("O que representa:")}
+                      </span>{" "}
+                      {card.detail.guide.core}
+                    </p>
                     <p>
                       <span className="font-semibold text-[#f5d896]">
                         {t("Direta:")}
@@ -435,6 +441,18 @@ export default function BaralhoPage() {
                 ))}
               </div>
               <div className="mt-5 space-y-4 text-sm leading-7 text-[#d8ccc0]">
+                <div className="rounded-[8px] border border-[#f4d58d]/20 bg-[#f4d58d]/[0.06] p-4">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#f5d896]">
+                    {t("O que representa")}
+                  </p>
+                  <p>{selectedCard.detail.guide.core}</p>
+                  <p className="mt-3 text-sm italic text-[#a7d7c5]">
+                    <span className="not-italic font-semibold">
+                      {t("Pergunta para levar:")}{" "}
+                    </span>
+                    {selectedCard.detail.guide.question}
+                  </p>
+                </div>
                 <div className="rounded-[8px] border border-[#f4d58d]/20 bg-[#f4d58d]/[0.06] p-4">
                   <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#f5d896]">{t("Direta")}</p>
                   <p>{selectedCard.detail.upright}</p>

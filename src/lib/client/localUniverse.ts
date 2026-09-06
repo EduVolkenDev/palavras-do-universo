@@ -1,5 +1,7 @@
 "use client";
 
+import type { LabPracticePayload } from "@/lib/lab/practice";
+
 export type LocalSavedMessage = {
   id: string;
   reading_id: string | null;
@@ -59,6 +61,8 @@ export type LocalActiveReading = {
     name: string;
     reversed: boolean;
     meaning?: string;
+    coreMeaning?: string;
+    lifeQuestion?: string;
     assetPath: string;
   }[];
   result: string;
@@ -79,11 +83,20 @@ export type LocalReadingMessagePayload = {
   result: string;
 };
 
+export type LocalPracticeMessagePayload = LabPracticePayload;
+
 const USER_ID_KEY = "pdu_user_id";
 const SAVED_MESSAGES_KEY = "pdu_saved_messages";
 const IMPACT_COMMITMENTS_KEY = "pdu_impact_commitments";
 const READING_DRAFT_KEY = "pdu_reading_draft";
 const ACTIVE_READING_KEY = "pdu_active_reading";
+const JOURNEY_UPDATE_EVENT = "pdu:journey-updated";
+
+function notifyJourneyUpdated() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(JOURNEY_UPDATE_EVENT));
+  }
+}
 
 export function getOrCreateLocalUserId() {
   const existing = localStorage.getItem(USER_ID_KEY);
@@ -114,6 +127,7 @@ export function removeLocalSavedMessages(ids: string[]) {
     (message) => !removed.has(message.id)
   );
   localStorage.setItem(SAVED_MESSAGES_KEY, JSON.stringify(remaining));
+  notifyJourneyUpdated();
 }
 
 export function saveLocalMessage(params: {
@@ -138,6 +152,7 @@ export function saveLocalMessage(params: {
     SAVED_MESSAGES_KEY,
     JSON.stringify([next, ...messages].slice(0, 50))
   );
+  notifyJourneyUpdated();
 
   return next;
 }
@@ -179,10 +194,44 @@ export function saveLocalReadingMessage(params: {
     SAVED_MESSAGES_KEY,
     JSON.stringify([next, ...messages.filter((message) => message.id !== id)].slice(0, 50))
   );
+  notifyJourneyUpdated();
 
   return next;
 }
 
+export function saveLocalPracticeMessage(
+  payload: LocalPracticeMessagePayload
+) {
+  const messages = getLocalSavedMessages();
+  const identity = [
+    payload.practiceKey,
+    payload.arrivalKey,
+    payload.signal,
+    payload.care,
+    payload.nextStep,
+  ].join("::");
+  const id = `local_practice${hashLocalValue(identity)}`;
+  const existing = messages.find((message) => message.id === id);
+  const next: LocalSavedMessage = {
+    id,
+    reading_id: null,
+    message_type: "practice",
+    payload,
+    created_at: existing?.created_at ?? payload.savedAt,
+    local_only: true,
+  };
+
+  localStorage.setItem(
+    SAVED_MESSAGES_KEY,
+    JSON.stringify([
+      next,
+      ...messages.filter((message) => message.id !== id),
+    ].slice(0, 50))
+  );
+  notifyJourneyUpdated();
+
+  return next;
+}
 export function hasLocalDailyCard(savedKey: string) {
   return getLocalSavedMessages().some((message) => {
     if (message.message_type !== "daily_card") return false;
@@ -327,11 +376,13 @@ export function saveLocalActiveReading(params: {
   };
 
   localStorage.setItem(ACTIVE_READING_KEY, JSON.stringify(reading));
+  notifyJourneyUpdated();
   return reading;
 }
 
 export function clearLocalActiveReading() {
   localStorage.removeItem(ACTIVE_READING_KEY);
+  notifyJourneyUpdated();
 }
 
 export function saveLocalImpactCommitment(params: {
@@ -385,6 +436,7 @@ export function saveLocalImpactCommitment(params: {
     IMPACT_COMMITMENTS_KEY,
     JSON.stringify([next, ...remaining].slice(0, 100))
   );
+  notifyJourneyUpdated();
 
   return next;
 }
@@ -400,6 +452,7 @@ export function updateLocalImpactCommitment(
     return updated;
   });
   localStorage.setItem(IMPACT_COMMITMENTS_KEY, JSON.stringify(commitments));
+  notifyJourneyUpdated();
   return updated;
 }
 
@@ -416,6 +469,7 @@ export function completeLocalImpactCommitment(id: string, reflection: string) {
       : commitment
   );
   localStorage.setItem(IMPACT_COMMITMENTS_KEY, JSON.stringify(commitments));
+  notifyJourneyUpdated();
   return commitments.find((commitment) => commitment.id === id) ?? null;
 }
 
@@ -426,4 +480,5 @@ export function removeLocalImpactCommitments(ids: string[]) {
     (commitment) => !removed.has(commitment.id)
   );
   localStorage.setItem(IMPACT_COMMITMENTS_KEY, JSON.stringify(remaining));
+  notifyJourneyUpdated();
 }

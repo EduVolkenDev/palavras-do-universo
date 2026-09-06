@@ -22,6 +22,7 @@ const ignorePathFragments = [
   // These routes/components are intentionally localized through a complete
   // locale copy object or are owner-only operational surfaces, not catalog UI.
   "/app/clareza-urgente/page.tsx",
+ "/app/lab/page.tsx",
   "/components/admin/",
   "/components/marketing/ClarezaUrgenteCampaign.tsx",
   "/lib/i18n/translations.ts",

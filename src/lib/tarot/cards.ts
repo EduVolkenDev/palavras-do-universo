@@ -1,4 +1,5 @@
 import { getTarotShellByName } from "./cardCatalog";
+import { CARD_GUIDES, type TarotCardGuide } from "./card-guides";
 
 export type TarotCard = {
   id: number;
@@ -8,6 +9,7 @@ export type TarotCard = {
   upright: string;
   reversed: string;
   assetPath: string;
+  guide: TarotCardGuide;
 };
 
 function card(
@@ -23,6 +25,11 @@ function card(
     throw new Error(`Carta sem cadastro no catálogo: ${name}`);
   }
 
+  const guide = CARD_GUIDES[shell.key]?.pt;
+  if (!guide) {
+    throw new Error(`Carta sem guia de leitura: ${shell.key}`);
+  }
+
   return {
     id,
     key: shell.key,
@@ -31,6 +38,7 @@ function card(
     upright,
     reversed,
     assetPath: shell.assetPath,
+    guide,
   };
 }
 

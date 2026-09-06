@@ -31,7 +31,11 @@ type MarketplaceResponse =
       source: "database" | "seed";
     }
   | {
+      ok: false;
       error: string;
+      professionals: PublicProfessionalProfile[];
+      total: number;
+      source: "unavailable";
     };
 
 type InquiryDraft = {

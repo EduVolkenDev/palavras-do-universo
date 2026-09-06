@@ -1,5 +1,6 @@
 import type { DailyMessage } from "@/lib/daily/message";
 import { CARDS, type TarotCard } from "@/lib/tarot/cards";
+import { getCardGuide } from "@/lib/tarot/card-guides";
 import { normalizeLocale, type Locale } from "./config";
 import {
   CARD_ENGLISH_MEANINGS,
@@ -392,6 +393,7 @@ export function localizeTarotCard<T extends TarotCard>(card: T, localeInput: str
     reversed:
       meaning?.reversed ??
       `Reversed, this card asks you to examine where ${lead} may be blocked, rushed, or shaped by fear. Pause before choosing your next move.`,
+    guide: getCardGuide(card.key, locale) ?? card.guide,
   };
 }
 
@@ -413,6 +415,8 @@ export function localizeDailyMessage(message: DailyMessage, localeInput: string)
           ? localizedCard.reversed
           : localizedCard.upright
         : translateDailyOracleText(item.meaning),
+      coreMeaning: localizedCard?.guide.core ?? item.coreMeaning,
+      lifeQuestion: localizedCard?.guide.question ?? item.lifeQuestion,
     };
   });
 

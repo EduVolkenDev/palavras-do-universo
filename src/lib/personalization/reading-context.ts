@@ -1,4 +1,5 @@
 import type { JourneySnapshot } from "./journey";
+import type { LabPracticeContinuity } from "@/lib/lab/practice";
 
 export const READING_PROFILE_VERSION = "pdu-reading-profile-v2";
 
@@ -27,11 +28,38 @@ export type PersonalizationSignals = {
   contextNote: string;
 };
 
+export type ActiveReadingCardContext = {
+  cardKey: string;
+  position: string;
+  name: string;
+  reversed: boolean;
+  keyword: string;
+  meaning: string;
+  coreMeaning: string;
+  lifeQuestion: string;
+};
+
+export type ActiveReadingContext = {
+  readingId: string | null;
+  locale: string;
+  theme: string;
+  productKey: string;
+  spreadType: string;
+  spreadLabel: string;
+  question: string;
+  spreadLine: string;
+  cards: ActiveReadingCardContext[];
+  result: string;
+  updatedAt: string;
+};
+
 export type UserContext = {
   readingProfile: ReadingProfile;
   personalizationSignals: PersonalizationSignals;
   source: "remote" | "local" | "none";
   journey?: JourneySnapshot;
+  practiceContinuity?: LabPracticeContinuity;
+  activeReading?: ActiveReadingContext;
 };
 
 export type PersistedReadingProfile = ReadingProfile & {
@@ -56,6 +84,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function trimText(value: unknown, max: number) {
   return typeof value === "string"
     ? value.trim().replace(/\s+/g, " ").slice(0, max)
+    : "";
+}
+
+function trimReadingResult(value: unknown, max: number) {
+  return typeof value === "string"
+    ? value
+        .replace(/\r\n?/g, "\n")
+        .split("\n")
+        .map((line) => line.trim().replace(/\s+/g, " "))
+        .join("\n")
+        .trim()
+        .slice(0, max)
     : "";
 }
 
@@ -93,6 +133,56 @@ export function normalizeReadingProfile(value: unknown): ReadingProfile {
     desiredShift: firstString(source.desiredShift).slice(0, 140),
     boundaries: stringList(source.boundaries, MAX_BOUNDARIES),
     contextNote: firstString(source.contextNote).slice(0, 500),
+  };
+}
+
+function normalizeActiveReadingCard(value: unknown): ActiveReadingCardContext | null {
+  if (!isRecord(value)) return null;
+
+  const name = trimText(value.name, 120);
+  const position = trimText(value.position, 120);
+  if (!name || !position) return null;
+
+  return {
+    cardKey: trimText(value.cardKey ?? value.card_key, 120) || name,
+    position,
+    name,
+    reversed: value.reversed === true,
+    keyword: trimText(value.keyword, 120),
+    meaning: trimText(value.meaning, 700),
+    coreMeaning: trimText(value.coreMeaning ?? value.core_meaning, 700),
+    lifeQuestion: trimText(value.lifeQuestion ?? value.life_question, 400),
+  };
+}
+
+export function normalizeActiveReading(value: unknown): ActiveReadingContext | null {
+  if (!isRecord(value)) return null;
+
+  const cardSource = value.spreadCards ?? value.spread_cards;
+  const cards = Array.isArray(cardSource)
+    ? cardSource
+        .flatMap((card) => {
+          const normalized = normalizeActiveReadingCard(card);
+          return normalized ? [normalized] : [];
+        })
+        .slice(0, 12)
+    : [];
+  const question = trimText(value.question, 600);
+  const result = trimReadingResult(value.result ?? value.interpretation, 8000);
+  if (!question && !result && !cards.length) return null;
+
+  return {
+    readingId: trimText(value.readingId ?? value.reading_id, 120) || null,
+    locale: trimText(value.locale, 32) || "pt-BR",
+    theme: trimText(value.theme, 120),
+    productKey: trimText(value.productKey ?? value.product_key, 120),
+    spreadType: trimText(value.spreadType ?? value.spread_type, 120),
+    spreadLabel: trimText(value.spreadLabel ?? value.spread_label, 180),
+    question,
+    spreadLine: trimText(value.spreadLine ?? value.spread_line, 1200),
+    cards,
+    result,
+    updatedAt: trimText(value.updatedAt ?? value.updated_at ?? value.savedAt, 80),
   };
 }
 
@@ -135,7 +225,9 @@ export function getPersonalizationSignals(
 export function createUserContext(
   value: unknown,
   source: UserContext["source"] = "none",
-  journey?: JourneySnapshot
+  journey?: JourneySnapshot,
+  practiceContinuity?: LabPracticeContinuity,
+  activeReading?: ActiveReadingContext
 ): UserContext {
   const readingProfile = normalizeReadingProfile(value);
 
@@ -144,6 +236,8 @@ export function createUserContext(
     personalizationSignals: getPersonalizationSignals(readingProfile),
     source,
     journey,
+    practiceContinuity,
+    activeReading,
   };
 }
 

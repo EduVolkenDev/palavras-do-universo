@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Compass, Sparkles } from "lucide-react";
@@ -49,6 +50,7 @@ type Props = {
   locale: Locale;
   currency: ProductCurrency;
   price: string;
+  attribution: Record<string, string>;
 };
 
 const CAMPAIGN = "clareza-urgente";
@@ -65,6 +67,25 @@ function readAttribution() {
   }
 
   return attribution;
+}
+
+function buildCampaignHref(
+  path: string,
+  hash: string,
+  params: Record<string, string> = {},
+  attribution: Record<string, string> = {}
+) {
+  const query = new URLSearchParams({ campaign: CAMPAIGN });
+
+  for (const [key, value] of Object.entries(attribution)) {
+    query.set(key, value);
+  }
+
+  for (const [key, value] of Object.entries(params)) {
+    query.set(key, value);
+  }
+
+  return `${path}?${query.toString()}#${hash}`;
 }
 
 function trackCampaignEvent(eventType: string, destination: string) {
@@ -84,11 +105,22 @@ export default function ClarezaUrgenteCampaign({
   locale,
   currency,
   price,
+  attribution,
 }: Props) {
-  const freeHref = "/?campaign=clareza-urgente#leitura";
-  const checkoutHref = `/?product=clareza_urgente&currency=${encodeURIComponent(
-    currency
-  )}&resume=checkout#produtos`;
+  const landingTracked = useRef(false);
+  const freeHref = buildCampaignHref("/", "leitura", {}, attribution);
+  const checkoutHref = buildCampaignHref("/", "produtos", {
+    product: "clareza_urgente",
+    currency,
+    resume: "checkout",
+  }, attribution);
+
+  useEffect(() => {
+    if (landingTracked.current) return;
+    landingTracked.current = true;
+
+    trackCampaignEvent("marketing.landing_view", "campaign_landing");
+  }, []);
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#0a0911] text-[#f7efdc] selection:bg-[#f2cb76] selection:text-[#1a1420]">

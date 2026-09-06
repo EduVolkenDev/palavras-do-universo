@@ -1,5 +1,12 @@
 import type { Locale } from "@/lib/i18n/config";
-import type { UserContext } from "@/lib/personalization/reading-context";
+import {
+  type ActiveReadingContext,
+  type ActiveReadingCardContext,
+  type UserContext,
+} from "@/lib/personalization/reading-context";
+import { LAB_PRACTICE_LABELS } from "@/lib/lab/practice";
+import { localizeTarotCard } from "@/lib/i18n/oracle";
+import { CARDS } from "@/lib/tarot/cards";
 
 export const LUME_NAME = "Lume";
 
@@ -33,7 +40,8 @@ export type LumeSurface =
   | "universe"
   | "deck"
   | "professionals"
-  | "account";
+  | "account"
+  | "lab";
 
 export type LumeAction = {
   label: string;
@@ -87,6 +95,11 @@ const copy: Record<Locale, Record<LumeSurface, LocalizedReply>> = {
       action: { label: "Conhecer profissionais", href: "/profissionais" },
       suggestions: ["Como escolher um profissional?", "Existem opções sociais?"],
     },
+    lab: {
+      text: "O Lab é uma pausa sem cartas para organizar o que está vivo e escolher um gesto possível. Se você já praticou, posso ajudar a retomar ou abrir outra porta.",
+      action: { label: "Entrar no Lab", href: "/lab#pratica" },
+      suggestions: ["Retomar minha prática", "Abrir uma próxima porta"],
+    },
     account: {
       text: "Sua conta dá a Lume um lugar para guardar somente o contexto que você escolher compartilhar, proteger seu histórico e continuar sua jornada em outros acessos.",
       action: { label: "Voltar ao início", href: "/" },
@@ -129,6 +142,11 @@ const copy: Record<Locale, Record<LumeSurface, LocalizedReply>> = {
       action: { label: "Meet professionals", href: "/profissionais" },
       suggestions: ["How do I choose a professional?", "Are social options available?"],
     },
+    lab: {
+      text: "The Lab is a card-free pause to organize what is alive and choose one possible gesture. If you have practiced before, I can help you return or open another door.",
+      action: { label: "Enter the Lab", href: "/lab#pratica" },
+      suggestions: ["Resume my practice", "Open a next door"],
+    },
     account: {
       text: "Your account gives Lume a place to keep only the context you choose to share, protect your history, and continue your journey across devices.",
       action: { label: "Back to the beginning", href: "/" },
@@ -139,6 +157,7 @@ const copy: Record<Locale, Record<LumeSurface, LocalizedReply>> = {
 
 export function getLumeSurface(pathname: string): LumeSurface {
   if (pathname.startsWith("/meu-universo")) return "universe";
+  if (pathname.startsWith("/lab")) return "lab";
   if (pathname.startsWith("/tiradas/")) return "spread";
   if (pathname.startsWith("/tiradas")) return "readings";
   if (pathname.startsWith("/carta-do-dia")) return "daily";
@@ -156,10 +175,13 @@ export function getLumeWelcome(
   const base = copy[locale][surface];
   const signals = userContext?.personalizationSignals;
   const journey = userContext?.journey;
+  const activeReading = userContext?.activeReading;
   if (
     !signals?.hasExplicitContext &&
     !journey?.hasHistory &&
-    !journey?.actionCount
+    !journey?.actionCount &&
+    !userContext?.practiceContinuity?.latest &&
+    !activeReading
   ) {
     return base;
   }
@@ -171,6 +193,38 @@ export function getLumeWelcome(
   const recurringPattern = journey?.recurringThemes[0] ?? journey?.recurringCards[0];
   const recentTheme = journey?.recentThemes[0];
   const openActionCount = journey?.openActionCount ?? 0;
+  const latestPractice = userContext?.practiceContinuity?.latest;
+  const latestPracticeLabel = latestPractice
+    ? LAB_PRACTICE_LABELS[latestPractice.practiceKey][locale === "en" ? "en" : "pt"]
+    : "";
+  const nextPracticeLabel = userContext?.practiceContinuity?.recommendedPracticeKey
+    ? LAB_PRACTICE_LABELS[userContext.practiceContinuity.recommendedPracticeKey][locale === "en" ? "en" : "pt"]
+    : "";
+  const practiceNote = latestPractice
+    ? locale === "en"
+      ? ` Your latest Lab practice was “${latestPracticeLabel}”; its next gesture was “${latestPractice.nextStep}”.`
+      : ` Sua última prática no Lab foi “${latestPracticeLabel}”; o próximo gesto foi “${latestPractice.nextStep}”.`
+    : "";
+  const readingNote = activeReading?.question
+    ? locale === "en"
+      ? " Your active reading is centred on “" + activeReading.question + "”."
+      : " Sua leitura ativa está centrada em “" + activeReading.question + "”."
+    : "";
+
+  if (surface === "lab" && latestPractice) {
+    return {
+      ...base,
+      text:
+        locale === "en"
+          ? `You have already moved through “${latestPracticeLabel}”. The gesture you kept was “${latestPractice.nextStep}”. I can help you return to it or open “${nextPracticeLabel}” as another angle.`
+          : `Você já passou por “${latestPracticeLabel}”. O gesto que ficou foi “${latestPractice.nextStep}”. Posso ajudar você a retomá-lo ou abrir “${nextPracticeLabel}” como outro ângulo.`,
+      action: {
+        label: locale === "en" ? "Resume this practice" : "Retomar esta prática",
+        href: "/lab?retomar=1#pratica",
+      },
+      suggestions: base.suggestions,
+    };
+  }
 
   if (locale === "en") {
     return {
@@ -187,12 +241,12 @@ export function getLumeWelcome(
               openActionCount
                 ? ` You have ${openActionCount} open gesture${openActionCount === 1 ? "" : "s"} waiting to be revisited.`
                 : ""
-            } I can use what you chose to share to connect your next reading with this moment, without turning it into a fixed identity.`
+            }${practiceNote}${readingNote} I can use what you chose to share to connect your next reading with this moment, without turning it into a fixed identity.`
           : `I can keep this moment in view${focus ? `, especially around ${focus.toLowerCase()}` : ""}.${
               openActionCount
                 ? ` You also have ${openActionCount} open gesture${openActionCount === 1 ? "" : "s"} to revisit.`
                 : ""
-            } ${base.text}`,
+            }${practiceNote}${readingNote} ${base.text}`,
     };
   }
 
@@ -210,12 +264,12 @@ export function getLumeWelcome(
             openActionCount
               ? ` Você tem ${openActionCount} gesto${openActionCount === 1 ? "" : "s"} em aberto para revisitar.`
               : ""
-          } Posso usar o que você escolheu compartilhar para conectar a próxima leitura com este momento, sem transformar isso em uma identidade fixa.`
+          }${practiceNote}${readingNote} Posso usar o que você escolheu compartilhar para conectar a próxima leitura com este momento, sem transformar isso em uma identidade fixa.`
         : `Posso manter este momento em vista${focus ? `, especialmente em torno de ${focus.toLowerCase()}` : ""}.${
             openActionCount
               ? ` Você também tem ${openActionCount} gesto${openActionCount === 1 ? "" : "s"} em aberto para revisitar.`
               : ""
-          } ${base.text}`,
+          }${practiceNote}${readingNote} ${base.text}`,
   };
 }
 
@@ -227,6 +281,71 @@ function normalize(value: string) {
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function localizeActiveReadingCard(
+  card: ActiveReadingCardContext,
+  locale: Locale
+): ActiveReadingCardContext {
+  const sourceCard = CARDS.find(
+    (item) => item.key === card.cardKey || item.name === card.name
+  );
+  if (!sourceCard) return card;
+
+  const localizedCard = localizeTarotCard(sourceCard, locale);
+  return {
+    ...card,
+    name: localizedCard.name,
+    keyword: localizedCard.keywords[0] ?? card.keyword,
+    meaning: card.reversed ? localizedCard.reversed : localizedCard.upright,
+    coreMeaning: localizedCard.guide.core,
+    lifeQuestion: localizedCard.guide.question,
+  };
+}
+
+function getActiveReadingCards(
+  activeReading: ActiveReadingContext,
+  locale: Locale
+) {
+  return activeReading.cards.map((card) => localizeActiveReadingCard(card, locale));
+}
+
+function getActiveReadingExcerpt(result: string) {
+  const lines = result
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines.length) return "";
+
+  const heading = /^(?:\d+[).]\s*)?(?:RESPOSTA DIRETA|DIRECT ANSWER|CARTAS|CARDS|CONSELHO|ADVICE|MANTRA|TR[IÍ]ADE|THE THREE THREADS)$/i;
+  const directIndex = lines.findIndex((line) => /^(?:\d+[).]\s*)?(?:RESPOSTA DIRETA|DIRECT ANSWER)$/i.test(line));
+  const source = directIndex >= 0 ? lines.slice(directIndex + 1) : lines;
+  return source
+    .filter((line) => !heading.test(line))
+    .slice(0, 2)
+    .join(" ")
+    .slice(0, 460);
+}
+
+function findActiveReadingCard(cards: ActiveReadingCardContext[], text: string) {
+  return cards.find((card) => {
+    const candidates = [card.name, card.cardKey.replaceAll("-", " ")];
+    return candidates.some((candidate) => {
+      const normalizedCandidate = normalize(candidate);
+      const bareCandidate = normalizedCandidate.replace(/^(a|o|as|os|the)\s+/, "");
+      return [normalizedCandidate, bareCandidate].some(
+        (value) => value.length > 2 && text.includes(value)
+      );
+    });
+  });
+}
+
+function asksAboutActiveReading(text: string) {
+  if (/(como faco uma leitura|how do i get a reading|abrir carta do dia|open card of the day)/.test(text)) {
+    return false;
+  }
+
+  return /(signific|represent|interpret|explic|explain|resum|summary|entend|understand|resultado|result|esta leitura|essa leitura|this reading|current reading|carta|card|arcano|tirada|spread)/.test(text);
 }
 
 export function replyToLume(
@@ -241,6 +360,145 @@ export function replyToLume(
   const focus = signals?.focusAreas[0];
   const phase = signals?.currentPhase;
   const journey = userContext?.journey;
+  const practiceContinuity = userContext?.practiceContinuity;
+  const latestPractice = practiceContinuity?.latest;
+  const latestPracticeLabel = latestPractice
+    ? LAB_PRACTICE_LABELS[latestPractice.practiceKey][isEnglish ? "en" : "pt"]
+    : "";
+  const nextPracticeKey = practiceContinuity?.recommendedPracticeKey;
+  const nextPracticeLabel = nextPracticeKey
+    ? LAB_PRACTICE_LABELS[nextPracticeKey][isEnglish ? "en" : "pt"]
+    : "";
+  const activeReading = userContext?.activeReading;
+  const activeReadingCards = activeReading
+    ? getActiveReadingCards(activeReading, locale)
+    : [];
+  const activeReadingExcerpt =
+    activeReading && activeReading.locale === locale
+      ? getActiveReadingExcerpt(activeReading.result)
+      : "";
+
+  if (activeReading && asksAboutActiveReading(text)) {
+    const mentionedCard = findActiveReadingCard(activeReadingCards, text);
+    if (mentionedCard) {
+      const orientation = mentionedCard.reversed
+        ? isEnglish
+          ? "as a point of resistance or revision"
+          : "como um ponto de resistência ou revisão"
+        : isEnglish
+          ? "as a resource you can use now"
+          : "como um recurso que você pode usar agora";
+      const coreMeaning =
+        mentionedCard.coreMeaning ||
+        (isEnglish
+          ? "a symbol that invites an honest look at your present situation"
+          : "um símbolo que convida a olhar com honestidade para o seu momento");
+      const representation = /represent(a|s)\b/i.test(coreMeaning)
+        ? coreMeaning
+        : isEnglish
+          ? mentionedCard.name + " represents " + coreMeaning + "."
+          : mentionedCard.name + " representa " + coreMeaning + ".";
+      const directMeaning =
+        mentionedCard.meaning && mentionedCard.meaning !== mentionedCard.coreMeaning
+          ? mentionedCard.meaning
+          : "";
+      const cardText = isEnglish
+        ? [
+            representation,
+            activeReading.question
+              ? "In your question — “" + activeReading.question + "” — it appears " + orientation + "."
+              : "In this spread, it appears " + orientation + ".",
+            directMeaning,
+          ]
+        : [
+            representation,
+            activeReading.question
+              ? "Na sua pergunta — “" + activeReading.question + "” — ela aparece " + orientation + "."
+              : "Nesta tirada, ela aparece " + orientation + ".",
+            directMeaning,
+          ];
+      return isEnglish
+        ? {
+            text: cardText.filter(Boolean).join(" "),
+            action: { label: "Return to this reading", href: "/#leitura" },
+            suggestions: ["What does this ask of me?", "Show the cards again"],
+          }
+        : {
+            text: cardText.filter(Boolean).join(" "),
+            action: { label: "Voltar à leitura", href: "/#leitura" },
+            suggestions: ["O que isso pede de mim?", "Mostrar as cartas novamente"],
+          };
+    }
+
+    const cardNames = activeReadingCards.map((card) => card.name).join(", ");
+    const readingParts = isEnglish
+      ? [
+          activeReading.question ? "Your question is “" + activeReading.question + "”." : "",
+          cardNames ? "The cards in this spread are: " + cardNames + "." : "",
+          activeReadingExcerpt ? "The direct thread of the interpretation is: " + activeReadingExcerpt : "",
+          "Read the cards together as a lens for choice, not as a fixed answer.",
+        ]
+      : [
+          activeReading.question ? "Sua pergunta é “" + activeReading.question + "”." : "",
+          cardNames ? "As cartas desta tirada são: " + cardNames + "." : "",
+          activeReadingExcerpt ? "O fio direto da interpretação é: " + activeReadingExcerpt : "",
+          "Leia as cartas juntas como uma lente para escolher, não como uma resposta fixa.",
+        ];
+    return isEnglish
+      ? {
+          text: readingParts.filter(Boolean).join(" "),
+          action: { label: "Return to this reading", href: "/#leitura" },
+          suggestions: ["What does this ask of me?", "What should I revisit?"],
+        }
+      : {
+          text: readingParts.filter(Boolean).join(" "),
+          action: { label: "Voltar à leitura", href: "/#leitura" },
+          suggestions: ["O que isso pede de mim?", "O que devo revisitar?"],
+        };
+  }
+
+  if (/(lab|pratic|practice|retom|resume|next door|proxima porta|outra porta|another door)/.test(text)) {
+    const asksNext = /(proxim|next|outra|another|nova|new)/.test(text);
+    if (latestPractice && asksNext && nextPracticeKey) {
+      return isEnglish
+        ? {
+            text: `The next door I would suggest is “${nextPracticeLabel}”. It gives you another angle while keeping what you already noticed.`,
+            action: {
+              label: "Open next door",
+              href: `/lab?porta=${encodeURIComponent(nextPracticeKey)}#pratica`,
+            },
+          }
+        : {
+            text: `A próxima porta que eu sugeriria é “${nextPracticeLabel}”. Ela oferece outro ângulo sem apagar o que você já percebeu.`,
+            action: {
+              label: "Abrir próxima porta",
+              href: `/lab?porta=${encodeURIComponent(nextPracticeKey)}#pratica`,
+            },
+          };
+    }
+
+    if (latestPractice) {
+      return isEnglish
+        ? {
+            text: `Your last Lab practice was “${latestPracticeLabel}”. You kept this gesture: “${latestPractice.nextStep}”. You can return to it and revise what changed.`,
+            action: { label: "Resume this practice", href: "/lab?retomar=1#pratica" },
+          }
+        : {
+            text: `Sua última prática no Lab foi “${latestPracticeLabel}”. Você guardou este gesto: “${latestPractice.nextStep}”. Dá para voltar a ele e perceber o que mudou.`,
+            action: { label: "Retomar esta prática", href: "/lab?retomar=1#pratica" },
+          };
+    }
+
+    return isEnglish
+      ? {
+          text: "The Lab gives you a card-free pause to name what is alive and choose one possible gesture.",
+          action: { label: "Enter the Lab", href: "/lab#pratica" },
+        }
+      : {
+          text: "O Lab oferece uma pausa sem cartas para nomear o que está vivo e escolher um gesto possível.",
+          action: { label: "Entrar no Lab", href: "/lab#pratica" },
+        };
+  }
 
   if (/(acao|acoes|gesto|concluir|complete|action|gesture|reflex|reflection)/.test(text)) {
     if (journey?.openActionCount) {

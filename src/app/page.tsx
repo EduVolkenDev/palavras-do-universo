@@ -86,7 +86,7 @@ import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 import { PduAssetStory } from "@/components/PduAssetStory";
 import { LUME_NAME } from "@/lib/lume/persona";
-import { LumePresence, requestLumeOpen } from "@/components/LumeGuide";
+import { requestLumeOpen } from "@/components/LumeGuide";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   EMPTY_READING_PROFILE,
@@ -111,6 +111,8 @@ type ApiOk = {
     name: string;
     reversed: boolean;
     meaning?: string;
+    coreMeaning?: string;
+    lifeQuestion?: string;
     assetPath: string;
   }[];
   interpretation: string;
@@ -121,6 +123,80 @@ type ReadingTextBlock = {
   lines: string[];
   title: string | null;
 };
+
+function formatReadingDate(value: string, locale: Locale) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function ReadingHistoryNotice({
+  locale,
+  updatedAt,
+  compact = false,
+  onStartNew,
+}: {
+  locale: Locale;
+  updatedAt: string;
+  compact?: boolean;
+  onStartNew?: () => void;
+}) {
+  const isEnglish = locale === "en";
+  const dateLabel = formatReadingDate(updatedAt, locale);
+
+  if (compact) {
+    return (
+      <div className="pdu-reading-history-notice pdu-reading-history-notice--compact" role="status">
+        <History size={16} aria-hidden="true" />
+        <span>
+          <strong>{isEnglish ? "Previous reading" : "Tirada já lida"}</strong>
+          <small>
+            {dateLabel
+              ? isEnglish
+                ? `Reviewing the cards opened on ${dateLabel}.`
+                : `Revendo as cartas abertas em ${dateLabel}.`
+              : isEnglish
+                ? "Reviewing cards opened in an earlier session."
+                : "Revendo cartas abertas em uma sessão anterior."}
+          </small>
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <aside className="pdu-reading-history-notice" role="status" aria-live="polite">
+      <span className="pdu-reading-history-notice__icon" aria-hidden="true">
+        <History size={18} />
+      </span>
+      <div className="pdu-reading-history-notice__copy">
+        <p>{isEnglish ? "Reading history" : "Histórico de leitura"}</p>
+        <strong>{isEnglish ? "This is a previous reading" : "Esta é uma tirada já lida"}</strong>
+        <span>
+          {isEnglish
+            ? "These cards were opened earlier. You are reviewing this reading, not starting a new one."
+            : "Estas cartas foram abertas antes. Você está revendo esta leitura, não iniciando uma nova."}
+        </span>
+        {dateLabel ? (
+          <small>
+            {isEnglish ? `Opened on ${dateLabel}.` : `Aberta em ${dateLabel}.`}
+          </small>
+        ) : null}
+      </div>
+      {onStartNew ? (
+        <button type="button" onClick={onStartNew} className="pdu-reading-history-notice__action">
+          {isEnglish ? "Start a new reading" : "Começar nova leitura"}
+          <ArrowRight size={14} aria-hidden="true" />
+        </button>
+      ) : null}
+    </aside>
+  );
+}
 
 const IMPACT_ACTION_VISUALS: Record<
   string,
@@ -340,17 +416,24 @@ const PT_POSITION_LABELS: Record<string, string> = {
   DIRECTION: "DIREÇÃO",
 };
 
-const ritualPrompts = [
-  "Respire antes de perguntar",
-  "Escolha um tema com honestidade",
-  "Leia como espelho, não sentença",
-];
+const ritualPrompts: Record<Locale, readonly string[]> = {
+  "pt-BR": [
+    "Respire antes de perguntar",
+    "Escolha um tema com honestidade",
+    "Leia como espelho, não sentença",
+  ],
+  en: [
+    "Breathe before asking",
+    "Choose a theme honestly",
+    "Read it as a mirror, not a verdict",
+  ],
+};
 
 const readingOutcomeSteps = [
   { label: "Cartas", text: "Observe o símbolo antes de procurar resposta." },
   { label: "Direção", text: "Leia o que pede atenção neste momento." },
   { label: "Gesto", text: "Escolha uma atitude possível para as próximas 24h." },
-];
+] as const;
 
 const ptCardInsightTemplates = [
   [
@@ -917,6 +1000,8 @@ function localizeReadingSpreadCard(
     name: localizedCard?.name ?? card.name,
     keyword: localizedCard?.keywords[0] ?? card.keyword,
     meaning,
+    coreMeaning: localizedCard?.guide.core ?? card.coreMeaning,
+    lifeQuestion: localizedCard?.guide.question ?? card.lifeQuestion,
     assetPath: localizedCard?.assetPath ?? card.assetPath,
   };
 }
@@ -953,6 +1038,12 @@ function normalizeReadingSpreadCards(value: unknown): ApiOk["spread"] {
           typeof item.meaning === "string"
             ? item.meaning
             : sourceCard?.upright ?? "",
+        coreMeaning:
+          sourceCard?.guide.core ??
+          (typeof item.coreMeaning === "string" ? item.coreMeaning : undefined),
+        lifeQuestion:
+          sourceCard?.guide.question ??
+          (typeof item.lifeQuestion === "string" ? item.lifeQuestion : undefined),
         assetPath,
       },
     ];
@@ -977,7 +1068,19 @@ function buildLocalizedReadingText(params: {
     : "Escolha uma ação pequena e visível hoje antes de tentar resolver todo o caminho.";
   const cardLines = params.cards.map((card) => {
     const name = `${card.name}${card.reversed ? reversedSuffix : ""}`;
-    return `- ${card.position}: ${name} — ${card.meaning ?? ""}`;
+    const guide = card.coreMeaning
+      ? isEnglish
+        ? `Represents: ${card.coreMeaning}`
+        : `Representa: ${card.coreMeaning}`
+      : "";
+    const application = card.meaning
+      ? isEnglish
+        ? `In this question: ${card.meaning}`
+        : `Nesta pergunta: ${card.meaning}`
+      : "";
+    return `- ${card.position}: ${name} — ${[guide, application]
+      .filter(Boolean)
+      .join(" ")}`;
   });
 
   return [
@@ -1214,6 +1317,8 @@ export default function Home() {
   const [saved, setSaved] = useState(false);
   const [saveNotice, setSaveNotice] = useState("");
   const [readingNotice, setReadingNotice] = useState("");
+  const [readingOrigin, setReadingOrigin] = useState<"new" | "restored">("new");
+  const [restoredReadingAt, setRestoredReadingAt] = useState("");
   const [paywall, setPaywall] = useState<ApiPaywall | null>(null);
   const [repeat, setRepeat] = useState<ApiRepeat | null>(null);
   const [error, setError] = useState("");
@@ -1248,9 +1353,11 @@ export default function Home() {
   const [heroMarkIndex, setHeroMarkIndex] = useState(0);
   const [selectedHeroMark, setSelectedHeroMark] =
     useState<HeroMarkCandidate>(fallbackHeroMark);
+  const [portalTransitioning, setPortalTransitioning] = useState(false);
   const hasRestoredReadingStateRef = useRef(false);
   const lastAppliedSuggestedQuestionRef = useRef("");
   const shouldScrollToOpenedReadingRef = useRef(false);
+  const portalTransitionTimerRef = useRef<number | null>(null);
   const startCheckoutRef = useRef<(productKey: string) => Promise<void>>(
     async () => undefined
   );
@@ -1258,6 +1365,14 @@ export default function Home() {
   usePduAtmosphere();
   usePduScrollRecovery();
   const push = usePushNotifications();
+
+  useEffect(() => {
+    return () => {
+      if (portalTransitionTimerRef.current !== null) {
+        window.clearTimeout(portalTransitionTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
@@ -1448,6 +1563,8 @@ export default function Home() {
         setResult(storedReading.result);
         setResultLocale(normalizeLocale(storedReading.locale));
         setReadingId(storedReading.reading_id);
+        setReadingOrigin("restored");
+        setRestoredReadingAt(storedReading.updated_at);
         if (
           portalIntentOptions.some(
             (option) => option.id === storedReading.portal_intent_id
@@ -1707,11 +1824,14 @@ export default function Home() {
     () => readingStateHydrated && !loading,
     [loading, readingStateHydrated]
   );
+  const openReadingButtonDisabled = readingStateHydrated ? loading : undefined;
 
   function restoreActiveReading(
     storedReading: LocalActiveReading,
     notice?: string
   ) {
+    setReadingOrigin("restored");
+    setRestoredReadingAt(storedReading.updated_at);
     setTheme(storedReading.theme);
     setReadingProductKey(storedReading.product_key);
     setSuggestedQuestionSource(storedReading.suggested_question_source);
@@ -1764,6 +1884,8 @@ export default function Home() {
     setSaved(false);
     setSaveNotice("");
     setReadingNotice("");
+    setReadingOrigin("new");
+    setRestoredReadingAt("");
   }
 
   function openDailyMessage() {
@@ -1780,7 +1902,7 @@ export default function Home() {
     if (q.length < 8) {
       setPaywall(null);
       setRepeat(null);
-      setError("Escreva uma pergunta com pelo menos 8 caracteres para abrir a leitura.");
+      setError(t("Escreva uma pergunta com pelo menos 8 caracteres para abrir a leitura."));
       return;
     }
 
@@ -1864,7 +1986,7 @@ export default function Home() {
           message:
             typeof data.message === "string"
               ? data.message
-              : "Vamos mudar o ângulo da pergunta.",
+              : t("Vamos mudar o ângulo da pergunta."),
           suggestedRephrase:
             typeof data.suggestedRephrase === "string"
               ? data.suggestedRephrase
@@ -1910,6 +2032,8 @@ export default function Home() {
       setResult(ok.interpretation);
       setResultLocale(locale);
       setReadingId(ok.readingId);
+      setReadingOrigin("new");
+      setRestoredReadingAt("");
       saveLocalActiveReading({
         locale,
         theme,
@@ -1987,11 +2111,23 @@ export default function Home() {
   }
 
   function openPortalIntent(intent: (typeof portalIntentOptions)[number]) {
+    if (intent.id === portalIntentId) return;
+
+    if (portalTransitionTimerRef.current !== null) {
+      window.clearTimeout(portalTransitionTimerRef.current);
+    }
+
+    setPortalTransitioning(true);
     setPortalIntentId(intent.id);
     setReadingProductKey("free_daily");
     setTheme(intent.theme);
     setSuggestedQuestionSource(intent.question);
     setQuestion(t(intent.question));
+
+    portalTransitionTimerRef.current = window.setTimeout(() => {
+      setPortalTransitioning(false);
+      portalTransitionTimerRef.current = null;
+    }, 860);
   }
 
   async function saveReading() {
@@ -2342,7 +2478,7 @@ export default function Home() {
   const urgentClarityPrice = formatProductPrice("clareza_urgente", productCurrency);
   const circleMonthlyPrice = formatProductPrice("circulo_do_universo", productCurrency);
   const circleCadenceSuffix = locale === "en" ? "month" : "mês";
-  const activeSpreadLabel = selectedSpreadConfig.shortLabel;
+  const activeSpreadLabel = t(selectedSpreadConfig.shortLabel);
   const reversedSuffix = locale === "en" ? " (reversed)" : " reversa";
   const activeReading = Boolean(result);
   const hasSelectedPremiumSpread = readingProductKey !== "free_daily";
@@ -2382,9 +2518,9 @@ export default function Home() {
   const openingTitle = loading
     ? t("Lume está abrindo uma nova leitura.")
     : activeReading
-      ? readingQuestion || "Sua leitura foi aberta."
+      ? readingQuestion || t("Sua leitura foi aberta.")
       : hasSelectedPremiumSpread
-        ? selectedSpreadConfig.promise
+        ? t(selectedSpreadConfig.promise)
         : dailyOpening.message;
   const openingAdvice = loading
     ? t("Lume recolheu as cartas anteriores e está formando um caminho novo para esta pergunta.")
@@ -2393,26 +2529,41 @@ export default function Home() {
         ? `Choose one small action from the ${shownSpread.length} cards and test it today.`
         : `Escolha uma ação pequena a partir das ${shownSpread.length} cartas e teste hoje.`
       : activeReading
-        ? getReadingAction(result, `Leia primeiro o conjunto das ${shownSpread.length} cartas; depois escolha uma ação pequena para hoje.`)
-      : hasSelectedPremiumSpread
-        ? `Prepare uma pergunta central. Esta experiência conecta ${selectedSpreadConfig.positions.length} posições para formar um único mapa.`
-        : dailyOpening.advice;
+        ? getReadingAction(
+            result,
+            locale === "en"
+              ? "Read the " +
+                shownSpread.length +
+                " cards first, then choose one small action for today."
+              : "Leia primeiro o conjunto das " +
+                shownSpread.length +
+                " cartas; depois escolha uma ação pequena para hoje."
+          )
+        : hasSelectedPremiumSpread
+          ? t(
+              "Prepare uma pergunta central. Esta experiência conecta " +
+                selectedSpreadConfig.positions.length +
+                " posições para formar um único mapa."
+            )
+          : dailyOpening.advice;
   const openingAffirmation = loading
     ? t("Eu deixo Lume abrir a leitura nova antes de concluir.")
     : activeReading && readingNeedsLocaleSurface
       ? dailyOpening.affirmation
       : activeReading
         ? getReadingMantra(result, dailyOpening.affirmation)
-      : hasSelectedPremiumSpread
-        ? "Eu posso olhar o mapa inteiro antes de transformar uma carta em conclusão."
-        : dailyOpening.affirmation;
+        : hasSelectedPremiumSpread
+          ? locale === "en"
+            ? "I can look at the whole map before turning one card into a conclusion."
+            : "Eu posso olhar o mapa inteiro antes de transformar uma carta em conclusão."
+          : dailyOpening.affirmation;
   const openingEyebrow = loading
     ? t("Lume em movimento")
     : activeReading
-      ? "Leitura desta pergunta"
+      ? t("Leitura desta pergunta")
       : hasSelectedPremiumSpread
-        ? "Tirada selecionada"
-        : "Sua energia de hoje";
+        ? t("Tirada selecionada")
+        : t("Sua energia de hoje");
   const cardMeanings = shownSpread.map((card, index) => {
     const dailyCard = dailyOpening.spread.find(
       (item) => item.position === card.position && item.name === card.name
@@ -2421,6 +2572,8 @@ export default function Home() {
       position: card.position,
       name: card.name,
       reversed: card.reversed,
+      coreMeaning: card.coreMeaning || dailyCard?.coreMeaning,
+      lifeQuestion: card.lifeQuestion || dailyCard?.lifeQuestion,
       insight: getCardInsightFromReading(
         result,
         { ...card, keyword: card.keyword || dailyCard?.keyword },
@@ -2848,11 +3001,14 @@ export default function Home() {
             <Link href="/tiradas" className="hover:text-white">
               {t("Tiradas")}
             </Link>
-            <Link href="/baralho" className="hover:text-white">
-              {t("Baralho")}
+           <Link href="/baralho" className="hover:text-white">
+             {t("Baralho")}
+           </Link>
+            <Link href="/lab" className="hover:text-white">
+              {t("Laboratório")}
             </Link>
-            <Link href="/profissionais" className="hover:text-white">
-              {t("Profissionais")}
+           <Link href="/profissionais" className="hover:text-white">
+             {t("Profissionais")}
             </Link>
             <Link href="/profissionais/me" className="hover:text-white">
               {t("Sou profissional")}
@@ -2916,11 +3072,14 @@ export default function Home() {
               <Link href="/tiradas" onClick={() => setMobileMenuOpen(false)}>
                 {t("Tiradas")}
               </Link>
-              <Link href="/baralho" onClick={() => setMobileMenuOpen(false)}>
-                {t("Baralho")}
+             <Link href="/baralho" onClick={() => setMobileMenuOpen(false)}>
+               {t("Baralho")}
+             </Link>
+              <Link href="/lab" onClick={() => setMobileMenuOpen(false)}>
+                {t("Laboratório")}
               </Link>
-              <Link href="/profissionais" onClick={() => setMobileMenuOpen(false)}>
-                {t("Profissionais")}
+             <Link href="/profissionais" onClick={() => setMobileMenuOpen(false)}>
+               {t("Profissionais")}
               </Link>
               <Link href="/profissionais/me" onClick={() => setMobileMenuOpen(false)}>
                 {t("Sou profissional")}
@@ -2976,25 +3135,25 @@ export default function Home() {
               </h1>
 
               <p className="pdu-hero-body">
-                {t("Palavras do Universo é um ritual diário para escutar os sinais da vida com tarot, mensagens e ciclos. Uma pausa bonita para lembrar que o invisível também acompanha o seu caminho.")}
+                {locale === "en"
+                  ? "Choose a focus, write one honest question, and receive a reading with cards, context, and a possible next step."
+                  : "Escolha um foco, escreva uma pergunta honesta e receba uma leitura com cartas, contexto e um próximo passo possível."}
               </p>
-
-              <LumePresence />
 
               <div className="pdu-hero-actions">
                 <button
                   type="button"
-                  onClick={openDailyMessage}
+                  onClick={() => scrollToId("leitura")}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#1c1308] shadow-[0_18px_50px_rgba(244,213,141,0.24)] hover:bg-[#ffe3a3] sm:w-auto"
                 >
-                  <Sparkles size={18} />
-                  {t("Receber minha mensagem de hoje")}
+                  <Feather size={18} />
+                  {locale === "en" ? "Start a reading" : "Começar uma leitura"}
                 </button>
                 <a
                   href="#produtos"
                   className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/14 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-[#f8efe2] backdrop-blur hover:border-[#f4d58d]/45 hover:bg-white/[0.1] sm:w-auto"
                 >
-                  {t("Conhecer as leituras")}
+                  {locale === "en" ? "See reading options" : "Ver opções de leitura"}
                   <ArrowRight size={17} />
                 </a>
               </div>
@@ -3109,6 +3268,37 @@ export default function Home() {
             </div>
           </div>
 
+          <div className="pdu-reveal pdu-hero-reading-bridge">
+            <div className="pdu-hero-reading-bridge__copy">
+              <p>
+                {locale === "en" ? "Start here" : "Comece aqui"}
+              </p>
+              <h2 className="brand-serif">
+                {locale === "en"
+                  ? "Your question is the way in."
+                  : "A sua pergunta é a porta de entrada."}
+              </h2>
+              <span>
+                {locale === "en"
+                  ? "Lume organizes your question and the symbols. You only need to begin with what you are living now."
+                  : "A Lume organiza sua pergunta e os símbolos. Você só precisa começar pelo que está vivendo agora."}
+              </span>
+            </div>
+            <div className="pdu-hero-reading-bridge__actions">
+              <button
+                type="button"
+                onClick={() => scrollToId("leitura")}
+                className="pdu-hero-reading-bridge__primary"
+              >
+                {locale === "en" ? "Open a reading" : "Abrir uma leitura"}
+                <ArrowRight size={17} />
+              </button>
+              <a href="#produtos" className="pdu-hero-reading-bridge__secondary">
+                {locale === "en" ? "Compare readings" : "Comparar leituras"}
+              </a>
+            </div>
+          </div>
+
           <PduAssetStory {...PDU_ASSET_STORIES.home} />
 
           <div
@@ -3136,7 +3326,11 @@ export default function Home() {
           </div>
 
           <div className="pdu-reveal pdu-mobile-deferred pdu-portal-entry">
-            <div className="pdu-portal-entry__art" aria-hidden="true">
+            <div
+              className="pdu-portal-entry__art"
+              data-portal-changing={portalTransitioning ? "true" : undefined}
+              aria-hidden="true"
+            >
               <div className="pdu-portal-entry__art-glow" />
               <Image
                 key={selectedPortalIntent.id}
@@ -3196,7 +3390,7 @@ export default function Home() {
                 onClick={() => scrollToId("leitura")}
                 className="pdu-portal-console__cta"
               >
-                Abrir leitura com esta intenção
+                {t("Abrir leitura com esta intenção")}
                 <Sparkles size={16} />
               </button>
             </div>
@@ -3207,6 +3401,13 @@ export default function Home() {
             className="pdu-reveal pdu-mobile-deferred pdu-hero-reading relative z-10 mx-auto w-full max-w-6xl scroll-mt-28"
           >
             <div className="pdu-oracle-shell p-4 sm:p-5">
+                {readingOrigin === "restored" ? (
+                  <ReadingHistoryNotice
+                    locale={locale}
+                    updatedAt={restoredReadingAt}
+                    compact
+                  />
+                ) : null}
                 <div
                   className="pdu-lume-reading-signature"
                   aria-label={locale === "en" ? "Reading guided by Lume" : "Leitura guiada por Lume"}
@@ -3222,15 +3423,15 @@ export default function Home() {
                     />
                   </span>
                   <span className="pdu-lume-reading-signature__copy">
-                    <strong>{locale === "en" ? "A reading with Lume" : "Uma leitura com Lume"}</strong>
+                    <strong>{locale === "en" ? "Guided by Lume" : "Guiada pela Lume"}</strong>
                     <span>
                       {locale === "en"
-                        ? "Interpretation with context, possibility and choice."
-                        : "Interpretação com contexto, possibilidade e escolha."}
+                        ? "Lume organizes the question and the symbols; you choose what to do with the clarity."
+                        : "A Lume organiza a pergunta e os símbolos; você escolhe o que fazer com a clareza."}
                     </span>
                   </span>
                   <button type="button" onClick={requestLumeOpen} className="pdu-lume-reading-signature__button">
-                    {locale === "en" ? "Meet Lume" : "Conhecer Lume"}
+                    {locale === "en" ? "How Lume works" : "Como a Lume funciona"}
                     <ArrowRight size={13} />
                   </button>
                 </div>
@@ -3264,8 +3465,9 @@ export default function Home() {
                         <Feather size={15} />
                       </span>
                       <span>
-                        Antes da carta, uma pausa. O oráculo responde melhor
-                        quando a pergunta vem inteira.
+                        {t(
+                          "Antes da carta, uma pausa. O oráculo responde melhor quando a pergunta vem inteira."
+                        )}
                       </span>
                     </div>
                     <p className="brand-serif text-xl leading-8 text-[#fff3df]">
@@ -3293,7 +3495,7 @@ export default function Home() {
                         <span>
                           <Sparkles size={17} />
                         </span>
-                        <strong>Escreva sua pergunta para revelar as cartas.</strong>
+                        <strong>{t("Escreva sua pergunta para revelar as cartas.")}</strong>
                         <p>
                           {locale === "en"
                             ? `The ${selectedSpreadConfig.positions.length} cards appear here only after the reading begins, so the daily message is not confused with the answer to your question.`
@@ -3334,10 +3536,33 @@ export default function Home() {
                               {card.name}
                               {card.reversed ? reversedSuffix : ""}
                             </strong>
+                            {card.coreMeaning ? (
+                              <p>
+                                <b className="font-semibold text-[#f5d896]">
+                                  {locale === "en" ? "Represents:" : "Representa:"}
+                                </b>{" "}
+                                {card.coreMeaning}
+                              </p>
+                            ) : null}
                             <p>
+                              <b className="font-semibold text-[#a7d7c5]">
+                                {locale === "en" ? "In your question:" : "Na sua pergunta:"}
+                              </b>{" "}
                               {card.insight ||
-                                "Leia esta carta junto da resposta direta e da tríade abaixo."}
+                                (locale === "en"
+                                  ? "Read this card alongside the direct answer and the spread below."
+                                  : "Leia esta carta junto da resposta direta e da tirada abaixo.")}
                             </p>
+                            {card.lifeQuestion ? (
+                              <p className="italic text-[#a7d7c5]/90">
+                                <b className="not-italic">
+                                  {locale === "en"
+                                    ? "Question to carry:"
+                                    : "Pergunta para levar:"}
+                                </b>{" "}
+                                {card.lifeQuestion}
+                              </p>
+                            ) : null}
                           </div>
                         ))}
                       </div>
@@ -3352,25 +3577,25 @@ export default function Home() {
                         </p>
                         <p className="mt-1 text-sm text-[#cfc4b9]">
                           {readingProductKey === "free_daily"
-                            ? "Situação, sombra e direção."
-                            : `${selectedSpreadConfig.positions.length} posições conectadas à sua pergunta.`}
+                            ? t("Situação, sombra e direção.")
+                            : t(`${selectedSpreadConfig.positions.length} posições conectadas à sua pergunta.`)}
                         </p>
                       </div>
                       {SelectedThemeIcon ? (
                         <div className="inline-flex items-center gap-2 rounded-full border border-white/12 px-3 py-1 text-xs text-[#efe2d2]">
                           <SelectedThemeIcon size={14} />
-                          {selectedTheme?.label}
+                          {selectedTheme ? t(selectedTheme.label) : null}
                         </div>
                       ) : null}
                     </div>
 
                     {readingProductKey !== "free_daily" ? (
                       <div className="mb-4 rounded-[8px] border border-[#a7d7c5]/24 bg-[#a7d7c5]/10 p-3 text-sm leading-6 text-[#d8fff0]">
-                        Experiência selecionada:{" "}
+                        {t("Experiência selecionada:")}{" "}
                         <span className="font-semibold text-[#fff7e8]">
-                          {getProductName(readingProductKey)}
+                          {t(getProductName(readingProductKey))}
                         </span>
-                        . O acesso será confirmado ao abrir a leitura.
+                        {t(". O acesso será confirmado ao abrir a leitura.")}
                       </div>
                     ) : null}
 
@@ -3390,7 +3615,7 @@ export default function Home() {
                           } pdu-touch-choice relative z-[1] touch-manipulation select-none disabled:cursor-wait disabled:opacity-50`}
                         >
                           <option.icon size={15} />
-                          {option.label}
+                          {t(option.label)}
                         </button>
                       ))}
                     </div>
@@ -3409,17 +3634,55 @@ export default function Home() {
                       </div>
                     ) : null}
 
+                    <div
+                      className="mb-5 grid gap-2 sm:grid-cols-3"
+                      aria-label={locale === "en" ? "How to open the reading" : "Como abrir a leitura"}
+                    >
+                      {[
+                        {
+                          number: "01",
+                          title: locale === "en" ? "Choose a focus" : "Escolha um foco",
+                          text: locale === "en" ? "Name what is alive today." : "Nomeie o que está vivo hoje.",
+                        },
+                        {
+                          number: "02",
+                          title: locale === "en" ? "Ask simply" : "Pergunte com simplicidade",
+                          text: locale === "en" ? "Write one honest question." : "Escreva uma pergunta honesta.",
+                        },
+                        {
+                          number: "03",
+                          title: locale === "en" ? "Read and connect" : "Leia e conecte",
+                          text: locale === "en" ? "Meet the cards in your life." : "Encontre as cartas na sua vida.",
+                        },
+                      ].map((step) => (
+                        <div
+                          key={step.number}
+                          className="rounded-[8px] border border-white/10 bg-white/[0.035] px-3 py-2.5"
+                        >
+                          <span className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
+                            {step.number}
+                          </span>
+                          <p className="mt-1 text-xs font-semibold text-[#fff7e8]">
+                            {step.title}
+                          </p>
+                          <p className="mt-0.5 text-[0.7rem] leading-5 text-[#a99d91]">
+                            {step.text}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
                     <label
                       htmlFor="question"
                       className="mt-4 block text-sm font-semibold text-[#fff3df]"
                     >
-                      Sua pergunta
+                      {t("Sua pergunta")}
                     </label>
                     <div
                       className="pdu-ritual-prompts"
                       aria-label={t("Como abrir a leitura")}
                     >
-                      {ritualPrompts.map((prompt) => (
+                      {ritualPrompts[locale].map((prompt) => (
                         <span key={prompt}>{prompt}</span>
                       ))}
                     </div>
@@ -3432,22 +3695,26 @@ export default function Home() {
                       }}
                       disabled={loading}
                       className="mt-2 min-h-28 w-full resize-none rounded-[8px] border border-white/12 bg-black/24 p-3 text-base leading-6 text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/70 focus:ring-2 focus:ring-[#f4d58d]/10 sm:text-sm"
-                      placeholder="O que eu preciso enxergar sobre este momento?"
+                      placeholder={t("O que eu preciso enxergar sobre este momento?")}
                     />
 
                     <button
                       type="button"
-                      onClick={() => run()}
-                      disabled={!canRun}
+                      onClick={() => {
+                        if (!canRun) return;
+                        run();
+                      }}
+                      disabled={openReadingButtonDisabled}
+                      aria-disabled={!canRun}
                       data-testid="open-reading-button"
                       className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#a7d7c5] px-5 py-3 text-sm font-semibold text-[#07120e] shadow-[0_18px_46px_rgba(167,215,197,0.18)] hover:bg-[#c1ecdc] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <Sparkles size={18} />
-                      {!readingStateHydrated
-                        ? "Preparando leitura..."
-                        : loading
-                          ? "Abrindo a leitura..."
-                          : "Fazer minha leitura"}
+                     <Sparkles size={18} />
+                     {!readingStateHydrated
+                        ? t("Preparando leitura...")
+                       : loading
+                        ? t("Abrindo a leitura...")
+                        : t("Fazer minha leitura")}
                     </button>
 
                     {paywall ? (
@@ -3497,7 +3764,7 @@ export default function Home() {
                     {repeat ? (
                       <div className="mt-4 rounded-[8px] border border-[#f4d58d]/24 bg-[#f4d58d]/8 p-4">
                         <h3 className="font-semibold text-[#fff3df]">
-                          {repeat.title ?? "Vamos mudar o ângulo."}
+                          {repeat.title ?? t("Vamos mudar o ângulo.")}
                         </h3>
                         <p className="mt-2 text-sm leading-6 text-[#d8ccc0]">
                           {repeat.message}
@@ -3530,7 +3797,7 @@ export default function Home() {
                     {error ? (
                       <StatusPanel
                         tone="rose"
-                        title="A leitura não abriu"
+                        title={t("A leitura não abriu")}
                         message={error}
                       />
                     ) : null}
@@ -3544,12 +3811,26 @@ export default function Home() {
       {result || loading ? (
       <section
         id="reading-opened"
+        data-reading-origin={readingOrigin}
         className="pdu-mobile-deferred pdu-depth-section relative overflow-hidden border-y border-white/10 px-4 py-14 text-[#f8efe2] scroll-mt-28 sm:px-6 lg:px-8"
       >
+        {readingOrigin === "restored" ? (
+          <ReadingHistoryNotice
+            locale={locale}
+            updatedAt={restoredReadingAt}
+            onStartNew={openDailyMessage}
+          />
+        ) : null}
         <div className="pdu-open-reading-layout pdu-reveal is-visible mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.56fr_1.44fr] lg:items-start">
           <div className="order-2 lg:order-1">
             <SectionEyebrow dark>
-              {loading ? t("Lume está abrindo") : t("Leitura aberta")}
+              {loading
+                ? t("Lume está abrindo")
+               : readingOrigin === "restored"
+                 ? locale === "en"
+                   ? "Previous reading"
+                   : "Tirada já lida"
+                 : t("Leitura aberta")}
             </SectionEyebrow>
             <h2 className="brand-serif max-w-xl text-4xl font-semibold leading-tight sm:text-5xl">
               {loading
@@ -3566,8 +3847,8 @@ export default function Home() {
                 {readingOutcomeSteps.map((step, index) => (
                   <div key={step.label}>
                     <span>0{index + 1}</span>
-                    <strong>{step.label}</strong>
-                    <p>{step.text}</p>
+                    <strong>{t(step.label)}</strong>
+                    <p>{t(step.text)}</p>
                   </div>
                 ))}
               </div>
@@ -3583,7 +3864,7 @@ export default function Home() {
               >
                 <span className="pdu-save-action__content inline-flex items-center gap-2">
                   <Bookmark size={16} />
-                  {saved ? "Mensagem salva" : "Salvar mensagem"}
+                  {saved ? t("Mensagem salva") : t("Salvar mensagem")}
                 </span>
               </button>
               <button
@@ -3592,7 +3873,7 @@ export default function Home() {
                 className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/30 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-[#fff3df] hover:border-[#f4d58d]/65"
               >
                 <Share2 size={16} />
-                Compartilhar
+                {t("Compartilhar")}
               </button>
               <FeedbackDialog source="reading" readingId={readingId} locale={locale} />
               </div>
@@ -3611,7 +3892,7 @@ export default function Home() {
                   href="/meu-universo"
                   className="font-semibold text-[#f5d896]"
                 >
-                  Ver no Meu Universo
+                  {t("Ver no Meu Universo")}
                 </a>
               </p>
             ) : null}
@@ -3744,7 +4025,7 @@ export default function Home() {
                 {t("Leitura individual")}
               </span>
               <span className="brand-serif mt-2 text-xl font-semibold leading-snug">
-                Clareza Urgente
+                {t("Clareza Urgente")}
               </span>
               <span className="mt-2 text-sm leading-6 text-[#d8ccc0]">
                 {t("Uma leitura premium para respirar, entender o que pesa e escolher o próximo passo hoje.")}
@@ -3764,7 +4045,7 @@ export default function Home() {
                 {t("Assinatura")}
               </span>
               <span className="brand-serif mt-2 text-xl font-semibold leading-snug">
-                Círculo do Universo
+                {t("Círculo do Universo")}
               </span>
               <span className="mt-2 text-sm leading-6 text-[#d8ccc0]">
                 {t("Histórico vivo, rituais semanais e leituras premium para transformar orientação em jornada.")}
@@ -4219,10 +4500,47 @@ export default function Home() {
               Suas perguntas são privadas e nunca compartilhadas
             </span>
           </div>
+       </div>
+     </section>
+
+      <section
+        id="lab"
+        className="pdu-mobile-deferred relative overflow-hidden bg-[#efe7d9] px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
+      >
+        <div className="pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full border border-[#c6a86b]/35" aria-hidden="true" />
+        <div className="pointer-events-none absolute -bottom-40 left-1/4 h-96 w-96 rounded-full border border-[#8cae9d]/30" aria-hidden="true" />
+        <div className="pdu-reveal relative z-10 mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-20">
+          <div className="max-w-2xl">
+            <SectionEyebrow>{t("Laboratório")}</SectionEyebrow>
+            <h2 className="brand-serif mt-4 text-4xl font-semibold leading-tight sm:text-6xl">
+              {t("Nem todo momento pede uma carta.")}
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-7 text-[#6f615a]">
+              {t("No Laboratório do Agora, você organiza o que sente, encontra um ponto de cuidado e escolhe um gesto possível — sem previsão e sem resposta pronta.")}
+            </p>
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <Link href="/lab" className="inline-flex items-center gap-2 rounded-full bg-[#2b211c] px-5 py-3 text-sm font-semibold text-[#fff8eb] shadow-[0_16px_36px_rgba(43,33,28,0.16)] transition hover:-translate-y-0.5 hover:bg-[#45342a]">
+                {t("Entrar no Laboratório")}
+                <ArrowRight size={16} />
+              </Link>
+              <a href="#leitura" className="inline-flex items-center gap-2 rounded-full border border-[#bda77f] px-5 py-3 text-sm font-semibold text-[#5c4635] hover:bg-[#f7efdf]">
+                {t("Prefiro começar com uma carta")}
+              </a>
+            </div>
+          </div>
+          <div className="relative min-h-[18rem] overflow-hidden rounded-[1.75rem] border border-[#d3bea0] bg-[#2a2140] p-5 shadow-[0_24px_60px_rgba(57,40,31,0.16)] sm:min-h-[23rem] sm:p-7">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(244,213,141,0.26),transparent_32%),linear-gradient(140deg,rgba(25,19,46,0.25),rgba(42,28,57,0.98))]" />
+            <div className="relative flex h-full min-h-[16rem] flex-col items-center justify-center text-center sm:min-h-[20rem]">
+              <div className="relative h-44 w-44 sm:h-56 sm:w-56">
+                <Image src={PDU_ASSETS.ambient.mandala} alt="" fill sizes="14rem" className="object-contain opacity-90 drop-shadow-[0_0_38px_rgba(244,213,141,0.32)]" />
+              </div>
+              <p className="-mt-3 max-w-xs text-sm leading-6 text-[#fff7e8]/80">{t("Sem cartas. Sem respostas prontas.")}</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="pdu-mobile-deferred pdu-universe-preview px-4 py-28 sm:px-6 lg:px-8">
+     <section className="pdu-mobile-deferred pdu-universe-preview px-4 py-28 sm:px-6 lg:px-8">
         <div className="pdu-reveal mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
           <div className="pdu-universe-preview__copy">
             <SectionEyebrow dark>Meu Universo</SectionEyebrow>

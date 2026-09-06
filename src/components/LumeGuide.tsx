@@ -3,10 +3,11 @@
 import { ArrowRight, Send, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/I18nProvider";
+import { getLumeVisualAsset } from "@/lib/lume/assets";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import {
   getLumeSurface,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/lume/persona";
 import {
   createUserContext,
+  normalizeActiveReading,
   type UserContext,
 } from "@/lib/personalization/reading-context";
 import {
@@ -25,6 +27,7 @@ import {
   type JourneyMessageRecord,
   type JourneyReadingRecord,
 } from "@/lib/personalization/journey";
+import { getLabPracticeContinuity } from "@/lib/lab/practice";
 import {
   getLocalActiveReading,
   getLocalImpactCommitments,
@@ -41,6 +44,7 @@ type LumeMessage = {
 };
 
 const LUME_OPEN_EVENT = "pdu-open-lume";
+const LUME_JOURNEY_UPDATE_EVENT = "pdu:journey-updated";
 
 export function requestLumeOpen() {
   if (typeof window !== "undefined") {
@@ -61,18 +65,22 @@ export default function LumeGuide() {
   const pathname = usePathname();
   const { locale } = useI18n();
   const surface = getLumeSurface(pathname);
+  const isHome = pathname === "/";
   const scope = `${locale}:${surface}`;
+  const contextScope = `${locale}:${pathname}`;
   const [userContext, setUserContext] = useState<UserContext | null>(null);
-  const [contextLoaded, setContextLoaded] = useState(false);
+  const [loadedContextScope, setLoadedContextScope] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [conversation, setConversation] = useState<{
     scope: string;
     messages: LumeMessage[];
   }>(() => ({ scope, messages: [initialMessage(surface, locale)] }));
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!open || contextLoaded) return;
+    if (!open || loadedContextScope === contextScope) return;
 
     let cancelled = false;
     Promise.all(
@@ -125,9 +133,11 @@ export default function LumeGuide() {
           actionsData && typeof actionsData === "object" && actionsData !== null
             ? (actionsData as { commitments?: unknown }).commitments
             : [];
+        const localActiveReadingRecord = getLocalActiveReading();
         const localActiveReading = localActiveReadingAsSavedMessage(
-          getLocalActiveReading()
+          localActiveReadingRecord
         );
+        const activeReading = normalizeActiveReading(localActiveReadingRecord);
         const messages = [
           ...(Array.isArray(remoteMessages) ? remoteMessages : []),
           ...(localActiveReading ? [localActiveReading] : []),
@@ -138,6 +148,11 @@ export default function LumeGuide() {
           ...(Array.isArray(remoteActions) ? remoteActions : []),
           ...getLocalImpactCommitments(),
         ];
+        const practiceContinuity = getLabPracticeContinuity(
+          messages
+            .filter((message) => message.message_type === "practice")
+            .map((message) => message.payload)
+        );
         const baseContext = createUserContext(profile, source);
         const journey = buildJourneySnapshot(
           readings,
@@ -146,22 +161,37 @@ export default function LumeGuide() {
           actions
         );
 
-        if (!cancelled && (profile || journey.hasHistory || journey.actionCount > 0)) {
-          setUserContext(createUserContext(profile, source, journey));
+        if (!cancelled) {
+          setUserContext(
+            profile ||
+              journey.hasHistory ||
+              journey.actionCount > 0 ||
+              practiceContinuity.latest ||
+              activeReading
+              ? createUserContext(
+                  profile,
+                  source,
+                  journey,
+                  practiceContinuity,
+                  activeReading ?? undefined
+                )
+              : null
+          );
         }
       })
       .catch(() => null)
       .finally(() => {
-        if (!cancelled) setContextLoaded(true);
+        if (!cancelled) setLoadedContextScope(contextScope);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [contextLoaded, open]);
+  }, [contextScope, loadedContextScope, open, pathname]);
 
   useEffect(() => {
     function handleOpen() {
+      setLoadedContextScope(null);
       setOpen(true);
     }
 
@@ -169,7 +199,32 @@ export default function LumeGuide() {
     return () => window.removeEventListener(LUME_OPEN_EVENT, handleOpen);
   }, []);
 
-  if (pathname.startsWith("/admin")) return null;
+  useEffect(() => {
+    const refreshContext = () => setLoadedContextScope(null);
+    window.addEventListener(LUME_JOURNEY_UPDATE_EVENT, refreshContext);
+    return () => window.removeEventListener(LUME_JOURNEY_UPDATE_EVENT, refreshContext);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previousFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const frameId = window.requestAnimationFrame(() => closeButtonRef.current?.focus());
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("keydown", closeOnEscape);
+      previousFocus?.focus?.();
+    };
+  }, [open]);
+
+  if (pathname.startsWith("/admin") || pathname === "/clareza-urgente") return null;
 
   const welcome = getLumeWelcome(surface, locale, userContext);
   const messages = conversation.scope === scope
@@ -182,6 +237,7 @@ export default function LumeGuide() {
   const latestSuggestions = visibleMessages.length === 1
     ? welcome.suggestions ?? []
     : visibleMessages[visibleMessages.length - 1]?.suggestions ?? [];
+  const visual = getLumeVisualAsset(surface, locale, userContext);
 
   function submit(event?: FormEvent) {
     event?.preventDefault();
@@ -215,8 +271,13 @@ export default function LumeGuide() {
     setInput("");
   }
 
+  function toggleLume() {
+    if (!open) setLoadedContextScope(null);
+    setOpen(!open);
+  }
+
   return (
-    <div className="pdu-lume-ambient">
+    <div className={`pdu-lume-ambient ${isHome ? "pdu-lume-ambient--home" : ""}`}>
       {open ? (
         <>
           <div className="pdu-lume-presence-field" aria-hidden="true" />
@@ -225,16 +286,19 @@ export default function LumeGuide() {
             className="pdu-lume-guide-panel fixed right-[5.5rem] top-1/2 z-[111] flex max-h-[min(75vh,38rem)] w-[min(23rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[26px] border border-[#f4d58d]/30 bg-[#111019] text-[#fff7e8] shadow-[0_28px_90px_rgba(0,0,0,0.46)]"
             aria-label={`${LUME_NAME} — ${locale === "en" ? "guidance" : "orientação"}`}
             role="dialog"
+            aria-modal="true"
+            data-lume-visual-state={visual.state}
           >
           <header className="pdu-lume-guide-panel__header flex items-center gap-3 border-b border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(244,213,141,0.2),transparent_44%),#16131d] p-4">
-            <span className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl border border-[#f4d58d]/35 bg-[#090811]">
+            <span className="pdu-lume-guide-panel__portrait relative grid h-[4.25rem] w-[3.35rem] shrink-0 place-items-center overflow-hidden rounded-[1.15rem] border border-[#f4d58d]/40 bg-[#090811]">
               <Image
-                src={PDU_ASSETS.symbolic.wingOracle}
+                src={visual.src}
                 alt=""
                 fill
-                sizes="48px"
+                sizes="54px"
                 quality={88}
-                className="object-contain p-1"
+                className="object-cover"
+                style={{ objectPosition: visual.objectPosition }}
               />
             </span>
             <div className="min-w-0 flex-1">
@@ -251,6 +315,7 @@ export default function LumeGuide() {
             <button
               type="button"
               onClick={() => setOpen(false)}
+              ref={closeButtonRef}
               className="rounded-full p-2 text-[#cfc4b9] transition hover:bg-white/10 hover:text-white"
               aria-label={locale === "en" ? "Close Lume" : "Fechar Lume"}
             >
@@ -321,7 +386,8 @@ export default function LumeGuide() {
 
       <button
         type="button"
-        onClick={() => setOpen((current) => !current)}
+        onClick={toggleLume}
+        ref={triggerRef}
         className={`pdu-lume-ambient__button group inline-flex max-w-[calc(100vw-1.5rem)] items-center gap-2 text-left text-[#fff7e8] transition ${
           open ? "pdu-lume-ambient__button--open" : ""
         }`}
@@ -355,20 +421,26 @@ export default function LumeGuide() {
 export function LumePresence() {
   const { locale } = useI18n();
   const isEnglish = locale === "en";
+  const visual = getLumeVisualAsset("home", locale);
 
   return (
-    <section className="pdu-lume-presence" aria-labelledby="lume-presence-title">
+    <section
+      className="pdu-lume-presence"
+      aria-labelledby="lume-presence-title"
+      data-lume-visual-state={visual.state}
+    >
       <div className="pdu-lume-presence__halo" aria-hidden="true" />
       <div className="pdu-lume-presence__seal" aria-hidden="true">
         <span className="pdu-lume-presence__seal-ring" />
         <span className="pdu-lume-presence__seal-art relative">
           <Image
-            src={PDU_ASSETS.symbolic.wingOracle}
+            src={visual.src}
             alt=""
             fill
-            sizes="88px"
+            sizes="112px"
             quality={90}
-            className="object-contain"
+            className="object-cover"
+            style={{ objectPosition: visual.objectPosition }}
           />
         </span>
       </div>

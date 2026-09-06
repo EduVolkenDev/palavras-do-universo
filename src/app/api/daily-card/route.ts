@@ -177,9 +177,13 @@ function buildDailyPayload(
       reversed: opening.reversed,
       assetPath: card.assetPath,
       keywords: card.keywords,
+      coreMeaning: card.guide.core,
+      lifeQuestion: card.guide.question,
     },
     reading: {
       keyword,
+      coreMeaning: card.guide.core,
+      lifeQuestion: card.guide.question,
       meaning,
       counsel,
       reflection_prompt: reflectionPrompt,

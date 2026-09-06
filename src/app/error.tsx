@@ -3,6 +3,7 @@
 import { AlertTriangle, ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
+import { recordSiteEvent } from "@/lib/client/siteEvents";
 
 export default function GlobalError({
   error,
@@ -13,6 +14,14 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("Palavras do Universo runtime error:", error);
+    recordSiteEvent({
+      eventType: "react.error_boundary",
+      severity: "fatal",
+      message: error.message,
+      errorName: error.name,
+      stack: error.stack,
+      context: { digest: error.digest ?? null },
+    });
   }, [error]);
 
   return (

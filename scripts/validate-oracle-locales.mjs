@@ -3,10 +3,12 @@ import fs from "node:fs";
 const dailyPath = "src/lib/daily/message.ts";
 const oraclePath = "src/lib/i18n/oracle.ts";
 const contentPath = "src/lib/i18n/oracle-content.ts";
+const guidesPath = "src/lib/tarot/card-guides.ts";
 
 const dailySource = fs.readFileSync(dailyPath, "utf8");
 const oracleSource = fs.readFileSync(oraclePath, "utf8");
 const contentSource = fs.readFileSync(contentPath, "utf8");
+const guidesSource = fs.readFileSync(guidesPath, "utf8");
 
 function unique(values) {
   return [...new Set(values)];
@@ -92,13 +94,33 @@ const legacyDailyFallback = [
   "Choose one small action that puts this message into practice today",
   "Take three slow breaths, write down one honest sentence",
 ].some((text) => oracleSource.includes(text));
+const guidesBlock = guidesSource.slice(
+  guidesSource.indexOf("export const CARD_GUIDES"),
+  guidesSource.indexOf("export function getCardGuide")
+);
+const guideEntries = [...guidesBlock.matchAll(/^\s+"([^"]+)": \{\s*$/gm)];
+const guideKeys = guideEntries.map((match) => match[1]);
+const missingGuides = cardKeys.filter((key) => !guideKeys.includes(key));
+const incompleteGuides = guideEntries.flatMap((match, index) => {
+  const nextStart = guideEntries[index + 1]?.index ?? guidesBlock.length;
+  const entry = guidesBlock.slice(match.index, nextStart);
+  const key = match[1];
+  return entry.match(/\bpt:\s*\{/)
+    && entry.match(/\ben:\s*\{/)
+    && (entry.match(/^\s+core:/gm) ?? []).length === 2
+    && (entry.match(/^\s+question:/gm) ?? []).length === 2
+    ? []
+    : [key];
+});
 
 if (
   missingDaily.length ||
   missingCards.length ||
   duplicateDaily ||
   duplicateCards ||
-  legacyDailyFallback
+  legacyDailyFallback ||
+  missingGuides.length ||
+  incompleteGuides.length
 ) {
   console.error(
     JSON.stringify(
@@ -112,6 +134,9 @@ if (
         duplicateDaily,
         duplicateCards,
         legacyDailyFallback,
+        guides: guideKeys.length,
+        missingGuides,
+        incompleteGuides,
       },
       null,
       2
@@ -126,5 +151,5 @@ if (!contentSource.includes("Canonical oracle translations")) {
 }
 
 console.log(
-  `Oracle locale coverage OK: ${dailyTextKeys.length} daily texts and ${cardKeys.length} cards.`
+  `Oracle locale coverage OK: ${dailyTextKeys.length} daily texts, ${cardKeys.length} cards, and ${guideKeys.length} human card guides.`
 );

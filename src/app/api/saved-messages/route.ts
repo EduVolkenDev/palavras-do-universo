@@ -21,7 +21,7 @@ function asClientKey(value: unknown) {
 }
 
 function isAllowedMessageType(value: string) {
-  return value === "daily_card" || value === "reading";
+  return value === "daily_card" || value === "reading" || value === "practice";
 }
 
 function isPayloadAllowed(payload: unknown) {

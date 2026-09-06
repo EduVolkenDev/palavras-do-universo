@@ -49,6 +49,12 @@ export async function checkRateLimit(params: {
   scope: string;
   limit: number;
   windowMs: number;
+  /**
+   * Cost-bearing anonymous endpoints must fail closed in production when the
+   * distributed limiter is unavailable. A per-instance memory bucket is not
+   * sufficient protection for serverless traffic.
+   */
+  strict?: boolean;
 }) {
   const ip = getClientIp(params.request);
   const key = createHash("sha256").update(`${params.scope}:${ip}`).digest("hex");
@@ -62,9 +68,13 @@ export async function checkRateLimit(params: {
       });
       if (!error && typeof data === "boolean") return data;
     } catch {
-      // Fall back locally so a transient database failure does not break the route.
+      // The decision below determines whether this endpoint may use a local fallback.
     }
   }
+
+  const isProduction =
+    process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
+  if (params.strict && isProduction) return false;
 
   return checkMemoryRateLimit(key, params.limit, params.windowMs);
 }

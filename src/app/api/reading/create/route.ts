@@ -35,6 +35,7 @@ import {
   translateOraclePosition,
 } from "@/lib/i18n/oracle";
 import { readJsonBody } from "@/lib/http/request";
+import { checkRateLimit } from "@/lib/security/rateLimit";
 import { LUME_AI_INSTRUCTIONS } from "@/lib/lume/persona";
 import {
   createUserContext,
@@ -74,6 +75,8 @@ type ReadingSpreadPayload = {
   name: string;
   reversed: boolean;
   meaning: string;
+  coreMeaning: string;
+  lifeQuestion: string;
   assetPath: string;
 };
 
@@ -309,10 +312,6 @@ function buildSpreadCardMeaning(params: {
   return `${params.cardName}${params.reversed ? " reversa" : ""} fala a partir da posição ${position}: observe como ${params.keyword} muda a forma de sustentar sua pergunta${suffix}.`;
 }
 
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function isProductionRuntime() {
   const siteUrl = String(process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
   return (
@@ -350,8 +349,7 @@ function createAnonymousUserId() {
 
 function getRequestUserId(
   req: Request,
-  authenticatedUserId: string | null,
-  rawUserId: unknown
+  authenticatedUserId: string | null
 ): ReadingIdentity {
   const cookies = parseCookieHeader(req.headers.get("cookie"));
   const cookieUserId = cookies.get(ANONYMOUS_READING_COOKIE) ?? "";
@@ -367,10 +365,10 @@ function getRequestUserId(
     return { userId: cookieUserId, anonymousUserId: cookieUserId };
   }
 
-  const bodyUserId = typeof rawUserId === "string" ? rawUserId.trim() : "";
-  const anonymousUserId = isSafeAnonymousUserId(bodyUserId)
-    ? bodyUserId
-    : createAnonymousUserId();
+  // Never trust a browser-provided identity for usage or generation limits.
+  // Local client ids remain useful for UI continuity, but server access is
+  // bound only to an authenticated user or to this HTTP-only cookie.
+  const anonymousUserId = createAnonymousUserId();
 
   return { userId: anonymousUserId, anonymousUserId };
 }
@@ -843,12 +841,28 @@ export async function POST(req: Request) {
   if (question.length < 8) {
     return NextResponse.json({ error: "Question too short" }, { status: 400 });
   }
-  const { userId, anonymousUserId } = getRequestUserId(
-    req,
-    authenticatedUser?.id ?? null,
-    body?.userId
-  );
+  const { userId, anonymousUserId } = getRequestUserId(req, authenticatedUser?.id ?? null);
   const paidProduct = isPaidReadingProduct(productKey) || isInternalTestProduct(productKey);
+
+  const rateAllowed = await checkRateLimit({
+    request: req,
+    scope: paidProduct ? "reading.paid" : "reading.free",
+    limit: paidProduct ? 20 : 6,
+    windowMs: 60 * 60 * 1000,
+    strict: !paidProduct,
+  });
+  if (!rateAllowed) {
+    return withAnonymousCookie(
+      NextResponse.json(
+        {
+          error: "Too many reading attempts. Please pause and try again shortly.",
+          code: "RATE_LIMITED",
+        },
+        { status: 429 }
+      ),
+      anonymousUserId
+    );
+  }
   if (paidProduct && !authenticatedUser) {
     return withAnonymousCookie(
       NextResponse.json(
@@ -883,7 +897,8 @@ export async function POST(req: Request) {
   }
 
   // Free limit (1 por dia). Paid/unlocked readings are controlled by entitlements.
-  const day = todayISO();
+  const dailyDay = getZonedDay(normalizeTimeZone(String(body?.timeZone ?? "")));
+  const day = dailyDay.key;
   const freeReadingClaimed = paidProduct
     ? true
     : await claimFreeReading({
@@ -937,30 +952,40 @@ export async function POST(req: Request) {
   const mode = routeMode(question);
   const spreadConfig = productSpread;
   const spread = drawSpread(CARDS, spreadType);
-  const spreadPayload = spread.map((d) => ({
-    position: translateOraclePosition(d.position, locale),
-    cardKey: d.card.key,
-    keyword: localizeTarotCard(d.card, locale).keywords[0],
-    name: localizeTarotCard(d.card, locale).name,
-    reversed: d.reversed,
-    meaning: buildSpreadCardMeaning({
-      locale,
-      question,
-      position: translateOraclePosition(d.position, locale),
-      cardName: localizeTarotCard(d.card, locale).name,
-      keyword: localizeTarotCard(d.card, locale).keywords[0],
+  const spreadPayload = spread.map((d) => {
+    const card = localizeTarotCard(d.card, locale);
+    const position = translateOraclePosition(d.position, locale);
+    const keyword = card.keywords[0];
+
+    return {
+      position,
+      cardKey: d.card.key,
+      keyword,
+      name: card.name,
       reversed: d.reversed,
-    }),
-    assetPath: d.card.assetPath,
-  }));
+      meaning: buildSpreadCardMeaning({
+        locale,
+        question,
+        position,
+        cardName: card.name,
+        keyword,
+        reversed: d.reversed,
+      }),
+      coreMeaning: card.guide.core,
+      lifeQuestion: card.guide.question,
+      assetPath: d.card.assetPath,
+    };
+  });
 
   const spreadText = spread
     .map((d) => {
       const card = localizeTarotCard(d.card, locale);
       const meaning = d.reversed ? card.reversed : card.upright;
+      const simpleGuide = card.guide.core;
+      const projectionQuestion = card.guide.question;
       return `${translateOraclePosition(d.position, locale)}: ${card.name}${
         d.reversed ? (locale === "en" ? " (reversed)" : " (reversa)") : ""
-      } — keyword: ${card.keywords[0]} — ${meaning}`;
+      } — keyword: ${card.keywords[0]} — simple meaning: ${simpleGuide} — question to carry: ${projectionQuestion} — application: ${meaning}`;
     })
     .join("\n");
   const experience =
@@ -980,7 +1005,7 @@ export async function POST(req: Request) {
 		1) DIRECT ANSWER (2-3 short sentences that answer the question without circling around it)
 		2) SPREAD MAP (1 short paragraph connecting all ${spreadConfig.positions.length} positions as one movement)
 		3) CARDS
-		   One bullet per position. Each bullet must include: position, card, and one practical meaning for this question.
+		   One bullet per position. Each bullet must briefly explain what the card represents in everyday language and then apply that lens to this question.
 		4) ACTIONS
 		   3 concrete micro-steps. One line each. Simple enough to do today.
 		5) CLOSING
@@ -991,7 +1016,7 @@ export async function POST(req: Request) {
 		1) RESPOSTA DIRETA (2-3 frases curtas que respondem sem rodeio)
 		2) MAPA DA TIRADA (1 parágrafo curto conectando as ${spreadConfig.positions.length} posições como um movimento só)
 		3) CARTAS
-		   Um bullet por posição. Cada bullet deve trazer: posição, carta e um significado prático para esta pergunta.
+		   Um bullet por posição. Cada bullet deve explicar brevemente o que a carta representa em linguagem cotidiana e depois aplicar essa lente a esta pergunta.
 		4) AÇÕES
 		   3 micro-passos concretos. Uma linha cada. Simples o bastante para fazer hoje.
 		5) FECHAMENTO
@@ -1002,7 +1027,7 @@ export async function POST(req: Request) {
 		Required format for free reading:
 		1) DIRECT ANSWER (2 short sentences)
 		2) CARDS
-		   3 bullets only: one for each card, with practical meaning for this question.
+		   3 bullets only: one for each card, first saying what it represents in everyday language, then applying it to this question.
 		3) ACTIONS
 		   3 objective micro-steps. One line each.
 		4) CLOSING
@@ -1012,7 +1037,7 @@ export async function POST(req: Request) {
 		Formato obrigatório para leitura gratuita:
 		1) RESPOSTA DIRETA (2 frases curtas)
 		2) CARTAS
-		   3 bullets apenas: um para cada carta, com significado prático para esta pergunta.
+		   3 bullets apenas: um para cada carta, primeiro dizendo o que ela representa em linguagem cotidiana e depois aplicando isso à pergunta.
 		3) AÇÕES
 		   3 micro-passos objetivos. Uma linha cada.
 		4) FECHAMENTO
@@ -1038,7 +1063,6 @@ export async function POST(req: Request) {
           .filter(Boolean)
           .join("\n")
       : "";
-  const dailyDay = getZonedDay(normalizeTimeZone(String(body?.timeZone ?? "")));
   const dailyOpening = localizeDailyMessage(
     getDailyMessage({
       dateKey: dailyDay.key,
@@ -1106,6 +1130,10 @@ export async function POST(req: Request) {
 	Obrigatório:
 	- A primeira seção deve responder diretamente a pergunta feita, com base na combinação de todas as cartas.
 	- Cada carta precisa ser interpretada como parte da situação perguntada, não como significado genérico de baralho.
+	- Nunca presuma que a pessoa conhece Tarot. Primeiro traduza o símbolo da carta para uma ideia simples e observável; depois mostre como essa lente conversa com a pergunta.
+	- Diferencie significado essencial e aplicação: explique o que a carta representa e, em seguida, onde isso pode aparecer na vida da pessoa.
+	- Não se esconda atrás de "energia", "campo", "vibração", "arquétipo", "frequência", "sombra" ou "bloqueio"; quando usar uma dessas ideias, traduza para sentimento, escolha, comportamento ou situação concreta.
+	- Use possibilidades e convites ("pode", "talvez", "convida"), nunca certezas sobre o futuro.
 	- Se existir perfil do usuário na memória, adapte tom, foco, limites e ação sem dizer que está usando dados de cadastro.
 	
 	${outputFormat}
@@ -1122,12 +1150,12 @@ export async function POST(req: Request) {
 	- Limite editorial absoluto: no máximo ${outputLimits.maxCharacters} caracteres, incluindo títulos e espaços.
 	- Complete todas as seções dentro do limite; corte explicações secundárias antes de aumentar o texto.
 	- Nenhum parágrafo pode ter mais de 2 frases curtas ou mais de 220 caracteres.
-	- Bullets devem ter no máximo 26 palavras.
+	- Bullets devem ter no máximo 34 palavras.
 	- Use palavras simples, de conversa adulta e clara. Evite termos raros, místicos demais ou acadêmicos.
 	- Não repita a mesma ideia com outras palavras. Se algo já foi dito, avance.
 	- Não use aberturas genéricas como "as cartas mostram que" em todas as seções.
 	- Varie ritmo e vocabulário; não reutilize frases prontas de leituras anteriores quando a memória indicar recorrência.
-	- Explique a carta dentro da pergunta da pessoa; não liste significado genérico de baralho.
+	- Explique primeiro a carta em linguagem humana e depois conecte esse sentido à pergunta da pessoa; não entregue uma lista técnica de palavras-chave.
 	- Escreva toda a resposta em ${locale === "en" ? "inglês claro e natural" : "português brasileiro claro e natural"}.
 	- Sem fatalismo, sem datas e sem promessas absolutas.
 	- Não diga que sabe o que outra pessoa sente ou fará.

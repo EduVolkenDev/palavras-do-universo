@@ -272,6 +272,39 @@ export async function syncStripeRefund(charge: Stripe.Charge) {
     return { ok: false as const, reason: "purchase_not_found" };
   }
 
+  const totalAmount = typeof charge.amount === "number" ? charge.amount : 0;
+  const refundedAmount =
+    typeof charge.amount_refunded === "number" ? charge.amount_refunded : 0;
+  const isFullyRefunded = totalAmount > 0 && refundedAmount >= totalAmount;
+
+  if (!isFullyRefunded) {
+    const { error: partialRefundError } = await supabase
+      .from("purchases")
+      .update({ status: "partially_refunded", updated_at: new Date().toISOString() })
+      .eq("id", purchase.id);
+    if (partialRefundError) {
+      throw new Error(`Could not mark purchase as partially refunded: ${partialRefundError.message}`);
+    }
+
+    return {
+      ok: true as const,
+      userId: purchase.user_id,
+      productKey: purchase.product_key,
+      action: "partial_refund" as const,
+    };
+  }
+
+  // Stripe can redeliver an event. Never remove another entitlement unit after
+  // this purchase has already completed its full-refund reversal.
+  if (purchase.status === "refunded") {
+    return {
+      ok: true as const,
+      userId: purchase.user_id,
+      productKey: purchase.product_key,
+      action: "already_refunded" as const,
+    };
+  }
+
   const { error: purchaseError } = await supabase
     .from("purchases")
     .update({ status: "refunded", updated_at: new Date().toISOString() })
@@ -307,5 +340,10 @@ export async function syncStripeRefund(charge: Stripe.Charge) {
     }
   }
 
-  return { ok: true as const, userId: purchase.user_id, productKey: purchase.product_key };
+  return {
+    ok: true as const,
+    userId: purchase.user_id,
+    productKey: purchase.product_key,
+    action: "full_refund" as const,
+  };
 }

@@ -40,7 +40,11 @@ function normalizeMessage(value: unknown) {
   if (!/^local_[a-z0-9]+$/i.test(clientKey) || clientKey.length > 80) {
     return null;
   }
-  if (messageType !== "daily_card" && messageType !== "reading") return null;
+  if (
+    messageType !== "daily_card" &&
+    messageType !== "reading" &&
+    messageType !== "practice"
+  ) return null;
   if (typeof message.payload !== "object" || message.payload === null) return null;
   if (JSON.stringify(message.payload).length > MAX_MESSAGE_BYTES) return null;
 

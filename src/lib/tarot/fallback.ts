@@ -578,6 +578,9 @@ export function generateFallbackReading(params: FallbackReadingParams) {
   const contextualMeaning = (draw: (typeof localizedSpread)[number], index: number) => {
     const cardMeaning = meaning(draw).replace(/\s+/g, " ").replace(/[.!?]\s.*$/, "").trim();
     const keyword = draw.card.keywords[0] ?? (isEnglish ? "presence" : "presença");
+    const simpleMeaning = (draw.card.guide?.core || cardMeaning || keyword)
+      .replace(/\s+/g, " ")
+      .trim();
     const questionPart = shortQuestion
       ? isEnglish
         ? `your question "${shortQuestion}"`
@@ -598,9 +601,13 @@ export function generateFallbackReading(params: FallbackReadingParams) {
       meaning: cardMeaning || keyword,
       question: questionPart,
     });
-    const practicalMeaning = limitWords(cardMeaning || keyword, 16);
-    const bridge = isEnglish ? "In practice:" : "Na prática:";
-    return `${positionLine} ${bridge} ${practicalMeaning}.`;
+    const practicalMeaning = limitWords(cardMeaning || keyword, 7);
+    const bridge = isEnglish ? "In simple terms:" : "Em termos simples:";
+    const application = isEnglish ? "Here:" : "Aqui:";
+    return `${bridge} ${limitWords(simpleMeaning, 13)} ${application} ${limitWords(
+      positionLine,
+      12
+    )} ${isEnglish ? "In practice:" : "Na prática:"} ${practicalMeaning}.`;
   };
 
   const contextualOpening = isEnglish
@@ -623,9 +630,12 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     : hasExtendedSpread
       ? `Este mapa de ${localizedSpread.length} posições começa em ${label(situation)}, atravessa ${label(midpoint)} e aponta para ${label(direction)}.`
       : `A resposta é ler a situação por ${label(situation)}, perceber a tensão em ${label(obstacle)} e agir pela direção de ${label(direction)}.`;
+  const questionOpening = isEnglish
+    ? `For "${shortQuestion}",`
+    : `Para "${shortQuestion}",`;
   const directAnswer = compactPresenceLine
-    ? `${compactPresenceLine} ${directCore}`
-    : directCore;
+    ? `${questionOpening} ${compactPresenceLine} ${directCore}`
+    : `${questionOpening} ${directCore}`;
   const memoryLine = hasPortalMemory
     ? isEnglish
       ? "Something in your saved journey repeats here; notice the pattern without rushing the conclusion."

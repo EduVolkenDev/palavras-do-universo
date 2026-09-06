@@ -1,11 +1,15 @@
 "use client";
 
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
 
 export function LanguageSwitcher() {
   const { locale, setLocale } = useI18n();
+  const pathname = usePathname();
+  const isCampaignPage = pathname === "/clareza-urgente";
+  const isHome = pathname === "/";
 
   const handleLocaleClick = (nextLocale: Locale) => {
     if (nextLocale === locale) return;
@@ -14,7 +18,7 @@ export function LanguageSwitcher() {
 
   return (
     <div
-      className="pdu-language-switcher fixed right-2.5 top-[calc(.55rem+env(safe-area-inset-top))] z-[100] flex max-w-[calc(100vw-2rem)] items-center gap-1 rounded-full border border-white/15 bg-[#111019]/92 p-1 text-xs font-semibold text-[#fff7e8] shadow-[0_18px_54px_rgba(0,0,0,0.34)] backdrop-blur-xl sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:right-4 sm:top-auto"
+      className={`pdu-language-switcher fixed right-2.5 top-[calc(.55rem+env(safe-area-inset-top))] z-[100] flex max-w-[calc(100vw-2rem)] items-center gap-1 rounded-full border border-white/15 bg-[#111019]/92 p-1 text-xs font-semibold text-[#fff7e8] shadow-[0_18px_54px_rgba(0,0,0,0.34)] backdrop-blur-xl sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:right-4 sm:top-auto ${isCampaignPage ? "pdu-language-switcher--campaign" : ""} ${isHome ? "pdu-language-switcher--home" : ""}`}
       aria-label={locale === "en" ? "Language" : "Idioma"}
       data-i18n-ignore
     >

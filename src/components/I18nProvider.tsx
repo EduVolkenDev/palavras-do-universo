@@ -27,6 +27,12 @@ const I18nContext = createContext<I18nValue | null>(null);
 const reverseEn = Object.fromEntries(
   Object.entries(translations.en).map(([pt, translated]) => [translated, pt])
 );
+const NON_TRANSLATABLE_TAGS = new Set([
+  "SCRIPT",
+  "STYLE",
+  "NOSCRIPT",
+  "TEMPLATE",
+]);
 
 function translateText(value: string, locale: Locale) {
   const normalized = value.replace(/\s+/g, " ").trim();
@@ -48,6 +54,7 @@ function translateNode(node: Node, locale: Locale) {
 
   if (!(node instanceof HTMLElement)) return;
   if (node.dataset.i18nIgnore !== undefined) return;
+  if (NON_TRANSLATABLE_TAGS.has(node.tagName) || node.isContentEditable) return;
 
   for (const attribute of ["placeholder", "aria-label", "title"]) {
     const value = node.getAttribute(attribute);
@@ -135,12 +142,24 @@ export function I18nProvider({
       locale === "en" ? "Palavras do Universo | Daily clarity ritual" : "Palavras do Universo";
     translateNode(document.body, locale);
 
+    const pendingNodes = new Set<Node>();
+    let frameId: number | null = null;
+    const scheduleTranslation = (node: Node) => {
+      pendingNodes.add(node);
+      if (frameId !== null) return;
+      frameId = window.requestAnimationFrame(() => {
+        for (const pendingNode of pendingNodes) translateNode(pendingNode, locale);
+        pendingNodes.clear();
+        frameId = null;
+      });
+    };
+
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (mutation.type === "characterData") {
-          translateNode(mutation.target, locale);
+          scheduleTranslation(mutation.target);
         }
-        for (const node of mutation.addedNodes) translateNode(node, locale);
+        for (const node of mutation.addedNodes) scheduleTranslation(node);
       }
     });
     observer.observe(document.body, {
@@ -148,7 +167,10 @@ export function I18nProvider({
       childList: true,
       subtree: true,
     });
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (frameId !== null) window.cancelAnimationFrame(frameId);
+    };
   }, [locale]);
 
   const value = useMemo<I18nValue>(
