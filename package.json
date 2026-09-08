@@ -22,6 +22,7 @@
     "prove:checkout-currencies": "node scripts/prove-checkout-currencies-live.mjs",
     "validate:commerce-access": "node scripts/validate-commerce-access.mjs",
     "validate:fallback": "node scripts/validate-fallback.mjs",
+    "validate:lume-assets": "node scripts/validate-lume-assets.mjs",
     "validate:oracle-locales": "node scripts/validate-oracle-locales.mjs",
     "validate:reading-quality": "node scripts/validate-reading-quality.mjs",
     "validate:tarot-assets": "node scripts/validate-tarot-assets.mjs",

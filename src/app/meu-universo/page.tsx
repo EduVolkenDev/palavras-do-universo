@@ -50,13 +50,23 @@ import {
 } from "@/lib/product/access";
 import { useI18n } from "@/components/I18nProvider";
 import { normalizeLocale, type Locale } from "@/lib/i18n/config";
+import {
+  localizeReadingProfileValue,
+  READING_PROFILE_BOUNDARIES,
+  READING_PROFILE_DESIRED_SHIFTS,
+  READING_PROFILE_FOCUS_AREAS,
+  READING_PROFILE_GUIDANCE_TONES,
+  READING_PROFILE_PHASES,
+} from "@/lib/i18n/reading-profile";
 import { localizeTarotCard, translateOraclePosition } from "@/lib/i18n/oracle";
 import { CARDS } from "@/lib/tarot/cards";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { PduAssetStory } from "@/components/PduAssetStory";
+import { LumePresence } from "@/components/LumeGuide";
 import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 import {
   EMPTY_READING_PROFILE,
+  createUserContext,
   getProfileCompletion,
   hasProfileSignal,
   normalizeReadingProfile,
@@ -129,80 +139,6 @@ type UniverseStat = {
   value: string | number;
   visual: string;
 };
-
-const focusAreaOptions = [
-  "Amor e vínculos",
-  "Carreira",
-  "Dinheiro",
-  "Família",
-  "Propósito",
-  "Espiritualidade",
-];
-
-const phaseOptions = [
-  "Começando um ciclo",
-  "Encerrando algo",
-  "Esperando uma resposta",
-  "Reorganizando a vida",
-  "Tomando uma decisão",
-  "Cuidando da energia",
-];
-
-const toneOptions = [
-  "Direta e prática",
-  "Acolhedora",
-  "Profunda e simbólica",
-  "Calma e objetiva",
-];
-
-const shiftOptions = [
-  "Clareza para decidir",
-  "Coragem para agir",
-  "Calma para atravessar",
-  "Fechamento de ciclo",
-  "Mais honestidade comigo",
-];
-
-const boundaryOptions = [
-  "Sem fatalismo",
-  "Sem respostas longas",
-  "Sem romantizar ansiedade",
-  "Sem tom duro",
-  "Sem jargão esotérico",
-];
-
-const profileSignalLabels: Record<string, Record<Locale, string>> = {
-  "Amor e vínculos": { "pt-BR": "Amor e vínculos", en: "Love and bonds" },
-  Carreira: { "pt-BR": "Carreira", en: "Career" },
-  Dinheiro: { "pt-BR": "Dinheiro", en: "Money" },
-  Família: { "pt-BR": "Família", en: "Family" },
-  Propósito: { "pt-BR": "Propósito", en: "Purpose" },
-  Espiritualidade: { "pt-BR": "Espiritualidade", en: "Spirituality" },
-  "Começando um ciclo": { "pt-BR": "Começando um ciclo", en: "Starting a cycle" },
-  "Encerrando algo": { "pt-BR": "Encerrando algo", en: "Closing something" },
-  "Esperando uma resposta": {
-    "pt-BR": "Esperando uma resposta",
-    en: "Waiting for an answer",
-  },
-  "Reorganizando a vida": {
-    "pt-BR": "Reorganizando a vida",
-    en: "Reorganizing life",
-  },
-  "Tomando uma decisão": { "pt-BR": "Tomando uma decisão", en: "Making a decision" },
-  "Cuidando da energia": { "pt-BR": "Cuidando da energia", en: "Caring for your energy" },
-  "Clareza para decidir": { "pt-BR": "Clareza para decidir", en: "Clarity to decide" },
-  "Coragem para agir": { "pt-BR": "Coragem para agir", en: "Courage to act" },
-  "Calma para atravessar": { "pt-BR": "Calma para atravessar", en: "Calm to move through" },
-  "Fechamento de ciclo": { "pt-BR": "Fechamento de ciclo", en: "Closing a cycle" },
-  "Mais honestidade comigo": {
-    "pt-BR": "Mais honestidade comigo",
-    en: "More honesty with myself",
-  },
-};
-
-function localizeProfileSignal(value: string, locale: Locale) {
-  return profileSignalLabels[value]?.[locale] ?? value;
-}
 
 const paidReadingProducts = productCards.filter((product) => product.mode === "paid");
 
@@ -467,17 +403,17 @@ function getInitialMapNextSteps(
           "Escolha um gesto pequeno que deixe o dia mais claro, mesmo sem resolver tudo.",
       };
   const focus = profile.focusAreas[0]
-    ? localizeProfileSignal(profile.focusAreas[0], locale).toLowerCase()
+    ? localizeReadingProfileValue(profile.focusAreas[0], locale).toLowerCase()
     : isEnglish
       ? "your main energy"
       : "sua energia principal";
   const phase = profile.currentPhase
-    ? localizeProfileSignal(profile.currentPhase, locale).toLowerCase()
+    ? localizeReadingProfileValue(profile.currentPhase, locale).toLowerCase()
     : isEnglish
       ? "the phase you are moving through"
       : "a fase que você está atravessando";
   const desiredShift = profile.desiredShift
-    ? localizeProfileSignal(profile.desiredShift, locale).toLowerCase()
+    ? localizeReadingProfileValue(profile.desiredShift, locale).toLowerCase()
     : "";
 
   return [
@@ -966,7 +902,7 @@ export default function MeuUniversoPage() {
           title: locale === "en" ? "First signal" : "Primeiro sinal",
           text:
             locale === "en"
-              ? `Open a reading about ${localizeProfileSignal(readingProfile.focusAreas[0] ?? "your main energy", locale).toLowerCase()} so the map can begin recognizing recurrences.`
+              ? `Open a reading about ${localizeReadingProfileValue(readingProfile.focusAreas[0] ?? "your main energy", locale).toLowerCase()} so the map can begin recognizing recurrences.`
               : `Abra uma leitura sobre ${(readingProfile.focusAreas[0] ?? "sua energia principal").toLowerCase()} para o mapa começar a reconhecer recorrências.`,
           href: "/#leitura",
         };
@@ -1085,7 +1021,9 @@ export default function MeuUniversoPage() {
         setReadingProfile(normalizedDraft);
         setProfileDraft(normalizedDraft);
         setProfileNotice(
+        t(
           "Mapa guardado neste dispositivo. Entre para proteger o histórico e continuar em outros acessos."
+        )
         );
         return;
       }
@@ -1104,20 +1042,20 @@ export default function MeuUniversoPage() {
         throw new Error(
           isRecord(data) && typeof data.error === "string"
             ? data.error
-            : "Não foi possível salvar seu Mapa Inicial."
+            : t("Não foi possível salvar seu Mapa Inicial.")
         );
       }
       const nextProfile = normalizeReadingProfile(data.profile);
       setReadingProfile(nextProfile);
       setProfileDraft(nextProfile);
       setProfileNotice(
-        "Mapa Inicial calibrado. Suas próximas leituras já podem usar esse contexto."
+        t("Mapa Inicial calibrado. Suas próximas leituras já podem usar esse contexto.")
       );
     } catch (caught) {
       setProfileNotice(
         caught instanceof Error
           ? caught.message
-          : "Não foi possível salvar seu Mapa Inicial."
+          : t("Não foi possível salvar seu Mapa Inicial.")
       );
     } finally {
       setProfileSaving(false);
@@ -1366,9 +1304,24 @@ export default function MeuUniversoPage() {
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 {[
-                  ["Fase", readingProfile.currentPhase || "A calibrar"],
-                  ["Tom", readingProfile.guidanceTone || "A escolher"],
-                  ["Limites", readingProfile.boundaries.length ? `${readingProfile.boundaries.length}` : "Sem fatalismo"],
+                  [
+                    t("Fase"),
+                    readingProfile.currentPhase
+                      ? localizeReadingProfileValue(readingProfile.currentPhase, locale)
+                      : t("A calibrar"),
+                  ],
+                  [
+                    t("Tom"),
+                    readingProfile.guidanceTone
+                      ? localizeReadingProfileValue(readingProfile.guidanceTone, locale)
+                      : t("A escolher"),
+                  ],
+                  [
+                    t("Limites"),
+                    readingProfile.boundaries.length
+                      ? `${readingProfile.boundaries.length}`
+                      : localizeReadingProfileValue("Sem fatalismo", locale),
+                  ],
                 ].map(([label, value]) => (
                   <div
                     key={label}
@@ -1385,6 +1338,18 @@ export default function MeuUniversoPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="mt-8 flex justify-end">
+          <LumePresence
+            surface="universe"
+            userContext={createUserContext(
+              readingProfile,
+              accountEmail ? "remote" : "local",
+              journeySnapshot,
+              labContinuity
+            )}
+          />
         </div>
 
         <PduAssetStory {...PDU_ASSET_STORIES.universe} tone="light" />
@@ -1556,22 +1521,26 @@ export default function MeuUniversoPage() {
                 <div className="relative">
                   <p className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/22 bg-white/[0.05] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
                     <Sparkles size={13} />
-                    Mapa Inicial
+                    {t("Mapa Inicial")}
                   </p>
                   <h2 className="brand-serif mt-5 text-4xl font-semibold leading-tight">
-                    Calibre o jeito que o Universo fala com você.
+                    {t("Calibre o jeito que o Universo fala com você.")}
                   </h2>
                   <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
                     {accountEmail
-                      ? "Este mapa virou contexto real para as leituras. Lume entende fase, tom, limites e foco sem você repetir tudo a cada pergunta."
-                      : "Este mapa já personaliza a prévia neste dispositivo. Ao criar sua conta, você protege o contexto e transforma leituras soltas em continuidade."}
+                      ? t(
+                          "Este mapa virou contexto real para as leituras. Lume entende fase, tom, limites e foco sem você repetir tudo a cada pergunta."
+                        )
+                      : t(
+                          "Este mapa já personaliza a prévia neste dispositivo. Ao criar sua conta, você protege o contexto e transforma leituras soltas em continuidade."
+                        )}
                   </p>
 
                   <div className="mt-6 grid gap-3 text-sm">
                     {[
-                      ["Contexto", `${profileCompletion}/5 sinais essenciais`],
-                      ["Status", profileComplete ? "Calibrado" : "Em aberto"],
-                      ["Uso", "Aplicado nas próximas leituras"],
+                      [t("Contexto"), `${profileCompletion}/5 ${t("sinais essenciais")}`],
+                      [t("Status"), profileComplete ? t("Calibrado") : t("Em aberto")],
+                      [t("Uso"), t("Aplicado nas próximas leituras")],
                     ].map(([label, value]) => (
                       <div
                         key={label}
@@ -1589,7 +1558,7 @@ export default function MeuUniversoPage() {
                 <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
                   <label className="block">
                     <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
-                      Nome de leitura
+                      {t("Nome de leitura")}
                     </span>
                     <input
                       value={profileDraft.displayName}
@@ -1600,13 +1569,13 @@ export default function MeuUniversoPage() {
                         }))
                       }
                       className="mt-2 w-full rounded-2xl border border-[#dfccb0] bg-white px-4 py-3 text-sm outline-none focus:border-[#8a6b3f]"
-                      placeholder="Como quer ser chamado?"
+                      placeholder={t("Como quer ser chamado?")}
                     />
                   </label>
 
                   <label className="block">
                     <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
-                      Fase atual
+                      {t("Fase atual")}
                     </span>
                     <select
                       value={profileDraft.currentPhase}
@@ -1618,10 +1587,10 @@ export default function MeuUniversoPage() {
                       }
                       className="mt-2 w-full rounded-2xl border border-[#dfccb0] bg-white px-4 py-3 text-sm outline-none focus:border-[#8a6b3f]"
                     >
-                      <option value="">Escolha uma fase</option>
-                      {phaseOptions.map((option) => (
+                      <option value="">{t("Escolha uma fase")}</option>
+                      {READING_PROFILE_PHASES.map((option) => (
                         <option key={option} value={option}>
-                          {option}
+                          {localizeReadingProfileValue(option, locale)}
                         </option>
                       ))}
                     </select>
@@ -1630,16 +1599,16 @@ export default function MeuUniversoPage() {
 
                 <div className="mt-6 grid gap-6 lg:grid-cols-2">
                   <ProfileChoiceGroup
-                    title="O que mais ocupa sua energia?"
+                    title={t("O que mais ocupa sua energia?")}
                     icon={Compass}
-                    options={focusAreaOptions}
+                    options={READING_PROFILE_FOCUS_AREAS}
                     selected={profileDraft.focusAreas}
                     onToggle={(value) => toggleProfileList("focusAreas", value)}
                   />
                   <ProfileChoiceGroup
-                    title="O que você não quer receber?"
+                    title={t("O que você não quer receber?")}
                     icon={ShieldCheck}
-                    options={boundaryOptions}
+                    options={READING_PROFILE_BOUNDARIES}
                     selected={profileDraft.boundaries}
                     onToggle={(value) => toggleProfileList("boundaries", value)}
                   />
@@ -1648,7 +1617,7 @@ export default function MeuUniversoPage() {
                 <div className="mt-6 grid gap-5 xl:grid-cols-2">
                   <label className="block">
                     <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
-                      Tom da orientação
+                      {t("Tom da orientação")}
                     </span>
                     <select
                       value={profileDraft.guidanceTone}
@@ -1660,10 +1629,10 @@ export default function MeuUniversoPage() {
                       }
                       className="mt-2 w-full rounded-2xl border border-[#dfccb0] bg-white px-4 py-3 text-sm outline-none focus:border-[#8a6b3f]"
                     >
-                      <option value="">Escolha um tom</option>
-                      {toneOptions.map((option) => (
+                      <option value="">{t("Escolha um tom")}</option>
+                      {READING_PROFILE_GUIDANCE_TONES.map((option) => (
                         <option key={option} value={option}>
-                          {option}
+                          {localizeReadingProfileValue(option, locale)}
                         </option>
                       ))}
                     </select>
@@ -1671,7 +1640,7 @@ export default function MeuUniversoPage() {
 
                   <label className="block">
                     <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
-                      O que você busca agora?
+                      {t("O que você busca agora?")}
                     </span>
                     <select
                       value={profileDraft.desiredShift}
@@ -1683,10 +1652,10 @@ export default function MeuUniversoPage() {
                       }
                       className="mt-2 w-full rounded-2xl border border-[#dfccb0] bg-white px-4 py-3 text-sm outline-none focus:border-[#8a6b3f]"
                     >
-                      <option value="">Escolha uma intenção</option>
-                      {shiftOptions.map((option) => (
+                      <option value="">{t("Escolha uma intenção")}</option>
+                      {READING_PROFILE_DESIRED_SHIFTS.map((option) => (
                         <option key={option} value={option}>
-                          {option}
+                          {localizeReadingProfileValue(option, locale)}
                         </option>
                       ))}
                     </select>
@@ -1695,7 +1664,7 @@ export default function MeuUniversoPage() {
 
                 <label className="mt-6 block">
                   <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
-                    Contexto que vale lembrar
+                    {t("Contexto que vale lembrar")}
                   </span>
                   <textarea
                     value={profileDraft.contextNote}
@@ -1707,7 +1676,9 @@ export default function MeuUniversoPage() {
                     }
                     rows={3}
                     className="mt-2 w-full resize-none rounded-2xl border border-[#dfccb0] bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-[#8a6b3f]"
-                    placeholder="Ex.: estou numa transição de trabalho, quero respostas práticas e não quero alimentar ansiedade."
+                    placeholder={t(
+                      "Ex.: estou numa transição de trabalho, quero respostas práticas e não quero alimentar ansiedade."
+                    )}
                   />
                 </label>
 
@@ -1716,9 +1687,11 @@ export default function MeuUniversoPage() {
                     {profileNotice ||
                       (profileCanSave
                         ? profileCompletion >= 4
-                          ? "Seu Mapa Inicial já pode ser calibrado e salvo."
-                          : "Você já pode salvar este perfil. Com 4 sinais, Lume calibra melhor as próximas leituras."
-                        : "Preencha pelo menos um sinal para criar seu perfil de leitura.")}
+                          ? t("Seu Mapa Inicial já pode ser calibrado e salvo.")
+                          : t(
+                              "Você já pode salvar este perfil. Com 4 sinais, Lume calibra melhor as próximas leituras."
+                            )
+                        : t("Preencha pelo menos um sinal para criar seu perfil de leitura."))}
                   </p>
                   <button
                     type="button"
@@ -1728,12 +1701,12 @@ export default function MeuUniversoPage() {
                   >
                     <UserRound size={16} />
                     {profileSaving
-                      ? "Salvando..."
+                      ? t("Salvando...")
                       : !accountEmail
-                        ? "Guardar neste dispositivo"
-                      : profileCompletion >= 4
-                        ? "Salvar Mapa Inicial"
-                        : "Salvar perfil de leitura"}
+                        ? t("Guardar neste dispositivo")
+                        : profileCompletion >= 4
+                        ? t("Salvar Mapa Inicial")
+                        : t("Salvar perfil de leitura")}
                   </button>
                 </div>
               </div>
@@ -1884,29 +1857,37 @@ export default function MeuUniversoPage() {
             <div className="grid gap-0 lg:grid-cols-[0.86fr_1.14fr]">
               <div className="bg-[#241b18] p-6 text-[#fff7e8] sm:p-7">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
-                  Progressão simbólica
+                  {t("Progressão simbólica")}
                 </p>
                 <h2 className="brand-serif mt-3 text-4xl font-semibold leading-tight">
                   {journeySnapshot.totalSignals
-                    ? "Seu mapa já começou a reconhecer padrões."
-                    : "Seu mapa não começa vazio."}
+                    ? t("Seu mapa já começou a reconhecer padrões.")
+                    : t("Seu mapa não começa vazio.")}
                 </h2>
                 <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
                   {journeySnapshot.totalSignals
-                    ? "Cada leitura salva, carta do dia e ação registrada aumenta o contexto das próximas respostas."
-                    : "Mesmo antes do histórico, o Mapa Inicial transforma fase, foco e intenção em um ponto de partida pessoal."}
+                    ? t(
+                        "Cada leitura salva, carta do dia e ação registrada aumenta o contexto das próximas respostas."
+                      )
+                    : t(
+                        "Mesmo antes do histórico, o Mapa Inicial transforma fase, foco e intenção em um ponto de partida pessoal."
+                      )}
                 </p>
 
                 <div className="mt-6 grid gap-3">
                   {[
-                    ["Sinais registrados", String(journeySnapshot.totalSignals)],
+                    [t("Sinais registrados"), String(journeySnapshot.totalSignals)],
                     [
-                      "Fase atual",
-                      readingProfile.currentPhase || "A calibrar no Mapa Inicial",
+                      t("Fase atual"),
+                      readingProfile.currentPhase
+                        ? localizeReadingProfileValue(readingProfile.currentPhase, locale)
+                        : t("A calibrar no Mapa Inicial"),
                     ],
                     [
-                      "Busca atual",
-                      readingProfile.desiredShift || "Escolher uma intenção",
+                      t("Busca atual"),
+                      readingProfile.desiredShift
+                        ? localizeReadingProfileValue(readingProfile.desiredShift, locale)
+                        : t("Escolher uma intenção"),
                     ],
                   ].map(([label, value]) => (
                     <div
@@ -1926,26 +1907,26 @@ export default function MeuUniversoPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="rounded-2xl border border-[#e4d3ba] bg-white/60 p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
-                      Temas que retornam
+                      {t("Temas que retornam")}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {(journeyThemes.length
                         ? journeyThemes
                         : readingProfile.focusAreas.length
                           ? readingProfile.focusAreas.slice(0, 3)
-                          : ["Ainda sem histórico"]).map((item) => (
+                          : [t("Ainda sem histórico")]).map((item) => (
                         <span
                           key={item}
                           className="rounded-full bg-[#241b18] px-3 py-1 text-xs font-semibold text-[#fff7e8]"
                         >
-                          {item}
+                          {localizeReadingProfileValue(item, locale)}
                         </span>
                       ))}
                     </div>
                   </div>
                   <div className="rounded-2xl border border-[#e4d3ba] bg-white/60 p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
-                      Cartas e símbolos
+                      {t("Cartas e símbolos")}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {(journeyCards.length
@@ -2239,10 +2220,11 @@ export default function MeuUniversoPage() {
 function ProfileChoiceGroup(props: {
   title: string;
   icon: LucideIcon;
-  options: string[];
+  options: readonly string[];
   selected: string[];
   onToggle: (value: string) => void;
 }) {
+  const { locale } = useI18n();
   const Icon = props.icon;
   return (
     <div className="rounded-2xl border border-[#dfccb0] bg-white/70 p-4">
@@ -2267,7 +2249,7 @@ function ProfileChoiceGroup(props: {
                   : "border-[#dfccb0] bg-[#fbf6ee] text-[#5b4d45] hover:border-[#8a6b3f]"
               }`}
             >
-              {option}
+              {localizeReadingProfileValue(option, locale)}
             </button>
           );
         })}

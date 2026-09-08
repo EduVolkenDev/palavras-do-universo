@@ -60,3 +60,27 @@ test("the language bridge avoids scripts and batches live DOM updates", async ()
   assert.match(lume, /pdu:journey-updated/);
   assert.match(lume, /aria-modal="true"/);
 });
+
+test("passwordless access uses OTPs without creating accounts or relying on email links", async () => {
+  const login = await source("src/app/entrar/page.tsx");
+
+  assert.match(login, /authMode === "access-code"/);
+  assert.match(login, /supabase\.auth\.signInWithOtp/);
+  assert.match(login, /shouldCreateUser: false/);
+  assert.match(login, /setAuthMode\("verify-access-code"\)/);
+  assert.match(login, /authMode === "verify-access-code"/);
+});
+
+test("reading-profile choices keep stable values and localize every visible label", async () => {
+  const profileI18n = await source("src/lib/i18n/reading-profile.ts");
+  const home = await source("src/app/page.tsx");
+  const universe = await source("src/app/meu-universo/page.tsx");
+
+  assert.match(profileI18n, /READING_PROFILE_FOCUS_AREAS/);
+  assert.match(profileI18n, /READING_PROFILE_BOUNDARIES/);
+  assert.match(profileI18n, /function localizeReadingProfileValue/);
+  assert.match(home, /localizeReadingProfileValue\(option, locale\)/);
+  assert.match(universe, /localizeReadingProfileValue\(option, locale\)/);
+  assert.doesNotMatch(home, /const readingProfileFocusOptions/);
+  assert.doesNotMatch(universe, /const focusAreaOptions/);
+});

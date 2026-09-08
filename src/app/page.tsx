@@ -66,6 +66,14 @@ import { usePduAtmosphere } from "@/lib/ui/usePduAtmosphere";
 import { usePduScrollRecovery } from "@/lib/ui/usePduScrollRecovery";
 import { usePushNotifications } from "@/lib/push/usePushNotifications";
 import { useI18n } from "@/components/I18nProvider";
+import {
+  localizeReadingProfileValue,
+  READING_PROFILE_BOUNDARIES,
+  READING_PROFILE_DESIRED_SHIFTS,
+  READING_PROFILE_FOCUS_AREAS,
+  READING_PROFILE_GUIDANCE_TONES,
+  READING_PROFILE_PHASES,
+} from "@/lib/i18n/reading-profile";
 import FeedbackDialog from "@/components/FeedbackDialog";
 import { normalizeLocale, type Locale } from "@/lib/i18n/config";
 import {
@@ -86,7 +94,7 @@ import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 import { PduAssetStory } from "@/components/PduAssetStory";
 import { LUME_NAME } from "@/lib/lume/persona";
-import { requestLumeOpen } from "@/components/LumeGuide";
+import { LumePresence, requestLumeOpen } from "@/components/LumeGuide";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   EMPTY_READING_PROFILE,
@@ -634,47 +642,6 @@ const onboardingOptions: {
     assetPath: PDU_ASSETS.symbolic.meditation,
     icon: MoonStar,
   },
-];
-
-const readingProfileFocusOptions = [
-  "Amor e vínculos",
-  "Carreira",
-  "Dinheiro",
-  "Família",
-  "Propósito",
-  "Espiritualidade",
-];
-
-const readingProfilePhaseOptions = [
-  "Começando um ciclo",
-  "Encerrando algo",
-  "Esperando uma resposta",
-  "Reorganizando a vida",
-  "Tomando uma decisão",
-  "Cuidando da energia",
-];
-
-const readingProfileToneOptions = [
-  "Direta e prática",
-  "Acolhedora",
-  "Profunda e simbólica",
-  "Calma e objetiva",
-];
-
-const readingProfileShiftOptions = [
-  "Clareza para decidir",
-  "Coragem para agir",
-  "Calma para atravessar",
-  "Fechamento de ciclo",
-  "Mais honestidade comigo",
-];
-
-const readingProfileBoundaryOptions = [
-  "Sem fatalismo",
-  "Sem respostas longas",
-  "Sem romantizar ansiedade",
-  "Sem tom duro",
-  "Sem jargão esotérico",
 ];
 
 const marketplaceSignals = [
@@ -1248,6 +1215,7 @@ function OnboardingIconOption({
   option: (typeof onboardingOptions)[number];
   onSelect: () => void;
 }) {
+  const { t } = useI18n();
   const Icon = option.icon;
 
   return (
@@ -1277,15 +1245,15 @@ function OnboardingIconOption({
             />
           </span>
           <span className="rounded-full border border-white/10 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-[#a7d7c5]">
-            {option.signal}
+            {t(option.signal)}
           </span>
         </div>
         <div>
           <h3 className="text-base font-semibold leading-tight text-[#fff7e8]">
-            {option.label}
+            {t(option.label)}
           </h3>
           <p className="mt-2 text-sm leading-6 text-[#bfb5ad]">
-            {option.description}
+            {t(option.description)}
           </p>
         </div>
       </div>
@@ -2652,7 +2620,7 @@ export default function Home() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Qual fase você está vivendo?"
+          aria-label={t("Qual fase você está vivendo?")}
           className="pdu-onboarding-overlay fixed inset-0 z-[220] flex items-start justify-center overflow-y-auto overscroll-contain bg-[#03030a]/82 px-4 py-8 backdrop-blur-xl sm:items-center"
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(244,213,141,0.2),transparent_28%),radial-gradient(circle_at_82%_22%,rgba(167,215,197,0.16),transparent_30%),linear-gradient(135deg,rgba(255,247,232,0.08),transparent_38%)]" />
@@ -2665,7 +2633,7 @@ export default function Home() {
                 <div className="absolute -right-16 top-10 h-48 w-48 rounded-full border border-[#f4d58d]/14 bg-[#f4d58d]/5" />
                 <span className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/24 bg-[#f4d58d]/8 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
                   <Sparkles size={13} />
-                  Antes de começar
+                  {t("Antes de começar")}
                 </span>
                 <div className="pdu-onboarding-lume" aria-label={locale === "en" ? "Lume is guiding this beginning" : "Lume guia este começo"}>
                   <span className="pdu-onboarding-lume__seal relative">
@@ -2679,23 +2647,24 @@ export default function Home() {
                     />
                   </span>
                   <span>
-                    <strong>Lume</strong>
+                    <strong>{LUME_NAME}</strong>
                     <small>{locale === "en" ? "is shaping this beginning" : "está guiando este começo"}</small>
                   </span>
                 </div>
                 <h2 className="pdu-onboarding-title brand-serif mt-5 text-4xl font-semibold leading-[1.02] text-[#fff7e8] sm:text-5xl">
-                  Qual energia está mais presente agora?
+                  {t("Qual energia está mais presente agora?")}
                 </h2>
                 <p className="mt-4 max-w-md text-sm leading-7 text-[#d8ccc0]">
-                  Escolha um ponto de partida. A leitura fica mais precisa sem
-                  presumir gênero, crença ou jeito de viver espiritualidade.
+                  {t(
+                    "Escolha um ponto de partida. A leitura fica mais precisa sem presumir gênero, crença ou jeito de viver espiritualidade."
+                  )}
                 </p>
                 <div className="pdu-onboarding-points mt-7 grid gap-3 text-sm text-[#d8ccc0]">
                   {["Linguagem neutra", "Sem fatalismo", "Contexto imediato"].map(
                     (item) => (
                       <div key={item} className="flex items-center gap-3">
                         <span className="h-2 w-2 rounded-full bg-[#a7d7c5] shadow-[0_0_18px_rgba(167,215,197,0.65)]" />
-                        {item}
+                        {t(item)}
                       </div>
                     )
                   )}
@@ -2707,12 +2676,12 @@ export default function Home() {
                   <>
                     <div className="mb-5 flex items-center justify-between gap-4">
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
-                        Selecione uma fase
+                        {t("Selecione uma fase")}
                       </p>
                       <button
                         type="button"
                         onClick={() => completeOnboarding()}
-                        aria-label="Pular"
+                        aria-label={t("Pular")}
                         className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-[#8d837b] transition hover:border-[#f4d58d]/40 hover:text-[#d8ccc0]"
                       >
                         <X size={15} />
@@ -2732,7 +2701,7 @@ export default function Home() {
                       onClick={() => completeOnboarding()}
                       className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-[#d8ccc0] transition hover:border-[#f4d58d]/35 hover:text-[#fff7e8]"
                     >
-                      Entrar sem calibrar agora
+                      {t("Entrar sem calibrar agora")}
                       <ArrowRight size={16} />
                     </button>
                   </>
@@ -2791,16 +2760,19 @@ export default function Home() {
                           }
                           className="mt-2 w-full rounded-2xl border border-white/12 bg-[#171522] px-4 py-3 text-sm text-[#fff7e8] outline-none focus:border-[#f4d58d]/70"
                         >
-                          <option value="">Escolha uma fase</option>
-                          {readingProfilePhaseOptions.map((option) => (
+                          <option value="">{t("Escolha uma fase")}</option>
+                          {READING_PROFILE_PHASES.map((option) => (
                             <option key={option} value={option}>
-                              {option}
+                              {localizeReadingProfileValue(option, locale)}
                             </option>
                           ))}
                           {onboardingProfileDraft.currentPhase &&
-                          !readingProfilePhaseOptions.includes(onboardingProfileDraft.currentPhase) ? (
+                          !READING_PROFILE_PHASES.includes(onboardingProfileDraft.currentPhase) ? (
                             <option value={onboardingProfileDraft.currentPhase}>
-                              {onboardingProfileDraft.currentPhase}
+                              {localizeReadingProfileValue(
+                                onboardingProfileDraft.currentPhase,
+                                locale
+                              )}
                             </option>
                           ) : null}
                         </select>
@@ -2811,7 +2783,7 @@ export default function Home() {
 	                          {t("O que está em foco?")}
 	                        </p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          {readingProfileFocusOptions.map((option) => {
+                          {READING_PROFILE_FOCUS_AREAS.map((option) => {
                             const active = onboardingProfileDraft.focusAreas.includes(option);
                             return (
                               <button
@@ -2825,7 +2797,7 @@ export default function Home() {
                                     : "border-white/12 bg-white/[0.04] text-[#d8ccc0] hover:border-[#f4d58d]/45"
                                 }`}
                               >
-                                {option}
+                                {localizeReadingProfileValue(option, locale)}
                               </button>
                             );
                           })}
@@ -2835,7 +2807,7 @@ export default function Home() {
                       <div className="grid gap-4 sm:grid-cols-2">
                         <label className="block">
                           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
-                            Tom da orientação
+                            {t("Tom da orientação")}
                           </span>
                           <select
                             value={onboardingProfileDraft.guidanceTone}
@@ -2847,10 +2819,10 @@ export default function Home() {
                             }
                             className="mt-2 w-full rounded-2xl border border-white/12 bg-[#171522] px-4 py-3 text-sm text-[#fff7e8] outline-none focus:border-[#f4d58d]/70"
                           >
-                            <option value="">Escolha um tom</option>
-                            {readingProfileToneOptions.map((option) => (
+                            <option value="">{t("Escolha um tom")}</option>
+                            {READING_PROFILE_GUIDANCE_TONES.map((option) => (
                               <option key={option} value={option}>
-                                {option}
+                                {localizeReadingProfileValue(option, locale)}
                               </option>
                             ))}
                           </select>
@@ -2858,7 +2830,7 @@ export default function Home() {
 
                         <label className="block">
                           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
-                            O que você busca agora?
+                            {t("O que você busca agora?")}
                           </span>
                           <select
                             value={onboardingProfileDraft.desiredShift}
@@ -2870,10 +2842,10 @@ export default function Home() {
                             }
                             className="mt-2 w-full rounded-2xl border border-white/12 bg-[#171522] px-4 py-3 text-sm text-[#fff7e8] outline-none focus:border-[#f4d58d]/70"
                           >
-                            <option value="">Escolha uma intenção</option>
-                            {readingProfileShiftOptions.map((option) => (
+                            <option value="">{t("Escolha uma intenção")}</option>
+                            {READING_PROFILE_DESIRED_SHIFTS.map((option) => (
                               <option key={option} value={option}>
-                                {option}
+                                {localizeReadingProfileValue(option, locale)}
                               </option>
                             ))}
                           </select>
@@ -2885,7 +2857,7 @@ export default function Home() {
 	                          {t("O que Lume deve respeitar?")}
 	                        </p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          {readingProfileBoundaryOptions.map((option) => {
+                          {READING_PROFILE_BOUNDARIES.map((option) => {
                             const active = onboardingProfileDraft.boundaries.includes(option);
                             return (
                               <button
@@ -2899,7 +2871,7 @@ export default function Home() {
                                     : "border-white/12 bg-white/[0.04] text-[#d8ccc0] hover:border-[#a7d7c5]/55"
                                 }`}
                               >
-                                {option}
+                                {localizeReadingProfileValue(option, locale)}
                               </button>
                             );
                           })}
@@ -3301,6 +3273,11 @@ export default function Home() {
 
           <PduAssetStory {...PDU_ASSET_STORIES.home} />
 
+          <LumePresence
+            intentLabel={t(selectedPortalIntent.label)}
+            intentPurpose={t(selectedPortalIntent.purpose)}
+          />
+
           <div
             id="ritual"
             className="pdu-reveal pdu-mobile-deferred pdu-journey-map"
@@ -3325,13 +3302,29 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="pdu-reveal pdu-mobile-deferred pdu-portal-entry">
+          <div
+            className="pdu-reveal pdu-mobile-deferred pdu-portal-entry"
+            data-portal-changing={portalTransitioning ? "true" : undefined}
+          >
+            <div className="pdu-portal-entry__selection-trail" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
             <div
               className="pdu-portal-entry__art"
               data-portal-changing={portalTransitioning ? "true" : undefined}
               aria-hidden="true"
             >
               <div className="pdu-portal-entry__art-glow" />
+              <div className="pdu-portal-entry__particles" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
               <Image
                 key={selectedPortalIntent.id}
                 src={selectedPortalIntent.assetPath}
@@ -3476,13 +3469,13 @@ export default function Home() {
                     <div className="space-y-3 text-sm leading-6 text-[#cfc4b9]">
                       <p>
                         <span className="font-semibold text-[#f5d896]">
-                          Conselho:
+                          {t("Conselho:")}
                         </span>{" "}
                         {openingAdvice}
                       </p>
                       <p>
                         <span className="font-semibold text-[#f5d896]">
-                          Afirmação:
+                          {t("Afirmação:")}
                         </span>{" "}
                         {openingAffirmation}
                       </p>

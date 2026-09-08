@@ -20,9 +20,11 @@ import { PduAssetStory } from "@/components/PduAssetStory";
 
 type AuthMode =
   | "login"
+  | "access-code"
   | "signup"
   | "forgot"
   | "verify-email"
+  | "verify-access-code"
   | "verify-recovery"
   | "reset-password";
 type FormState = "idle" | "sending" | "sent" | "error" | "success";
@@ -32,6 +34,7 @@ const PASSWORD_MIN_LENGTH = 8;
 type AuthErrorContext =
   | "signup"
   | "signin"
+  | "access-code"
   | "recovery"
   | "reset"
   | "resend"
@@ -167,6 +170,9 @@ function getAuthFailure(
     signin: isEn
       ? "Could not sign in. Check the email and password, or recover access."
       : "Não foi possível entrar. Revise e-mail e senha ou recupere o acesso.",
+    "access-code": isEn
+      ? "We could not send an access code right now. Check the email and try again."
+      : "Não conseguimos enviar um código de acesso agora. Confira o e-mail e tente novamente.",
     recovery: isEn
       ? "Could not send the recovery email. Check the address and try again."
       : "Não foi possível enviar a recuperação. Revise o e-mail e tente novamente.",
@@ -313,6 +319,11 @@ export default function EntrarPage() {
     setResendMessage("");
     setPassword("");
     setConfirmPassword("");
+
+    window.scrollTo({
+      top: 0,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
   }
 
   function validatePasswordPair() {
@@ -374,7 +385,9 @@ export default function EntrarPage() {
     setState("sending");
     setMessage("");
     const isOtpVerification =
-      authMode === "verify-email" || authMode === "verify-recovery";
+      authMode === "verify-email" ||
+      authMode === "verify-access-code" ||
+      authMode === "verify-recovery";
     setCanResendConfirmation(isOtpVerification);
     setExistingAccountHint(false);
     setResendState("idle");
@@ -413,6 +426,40 @@ export default function EntrarPage() {
       return;
     }
 
+    if (authMode === "access-code") {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: cleanEmail,
+        options: {
+          // A code is only an entry method for an existing account.
+          shouldCreateUser: false,
+        },
+      });
+
+      if (error) {
+        console.error("[auth] signInWithOtp failed", {
+          message: error.message,
+          code: error.code,
+          status: error.status,
+        });
+        setState("error");
+        setMessage(getAuthFailure(error, isEn, "access-code").message);
+        return;
+      }
+
+      setAuthMode("verify-access-code");
+      setEmail(cleanEmail);
+      setOtpCode("");
+      setLastConfirmationEmail(cleanEmail);
+      setCanResendConfirmation(true);
+      setState("sent");
+      setMessage(
+        isEn
+          ? "We sent an access code. Enter it here to open your Universe."
+          : "Enviamos um código de acesso. Digite-o aqui para abrir seu Universo."
+      );
+      return;
+    }
+
     if (isOtpVerification) {
       if (!validateOtpCode()) return;
 
@@ -447,6 +494,17 @@ export default function EntrarPage() {
           locale === "en"
             ? "Email confirmed. Choose your new password below."
             : "E-mail confirmado. Escolha sua nova senha abaixo."
+        );
+        return;
+      }
+
+      if (authMode === "verify-access-code" && !data.session) {
+        setState("error");
+        setCanResendConfirmation(true);
+        setMessage(
+          isEn
+            ? "The code was confirmed, but the session could not be opened. Request a new code and try again."
+            : "O código foi confirmado, mas não foi possível abrir a sessão. Peça outro código e tente novamente."
         );
         return;
       }
@@ -607,6 +665,7 @@ export default function EntrarPage() {
     setResendMessage("");
 
     const isRecovery = authMode === "verify-recovery";
+    const isAccessCode = authMode === "verify-access-code";
     const { error } = isRecovery
       ? await supabase.auth.resetPasswordForEmail(cleanEmail, {
           redirectTo: buildAuthCallbackUrl(
@@ -614,17 +673,24 @@ export default function EntrarPage() {
             `/entrar?mode=reset-password&next=${encodeURIComponent(getNextPath())}`
           ),
         })
-      : await supabase.auth.resend({
-          type: "signup",
-          email: cleanEmail,
-          options: {
-            emailRedirectTo: buildAuthCallbackUrl(window.location.origin, getNextPath()),
-          },
-        });
+      : isAccessCode
+        ? await supabase.auth.signInWithOtp({
+            email: cleanEmail,
+            options: {
+              shouldCreateUser: false,
+            },
+          })
+        : await supabase.auth.resend({
+            type: "signup",
+            email: cleanEmail,
+            options: {
+              emailRedirectTo: buildAuthCallbackUrl(window.location.origin, getNextPath()),
+            },
+          });
 
     if (error) {
-      const failure = getAuthFailure(error, isEn, "resend");
-      console.error("[auth] resend confirmation failed", {
+      const failure = getAuthFailure(error, isEn, isAccessCode ? "access-code" : "resend");
+      console.error("[auth] resend authentication email failed", {
         message: error.message,
         code: error.code,
         status: error.status,
@@ -639,29 +705,40 @@ export default function EntrarPage() {
     setOtpCode("");
     setCanResendConfirmation(true);
     setExistingAccountHint(false);
-    setAuthMode(isRecovery ? "verify-recovery" : "verify-email");
+    setAuthMode(
+      isRecovery ? "verify-recovery" : isAccessCode ? "verify-access-code" : "verify-email"
+    );
     setResendState("sent");
     setResendMessage(
       isEn
-        ? `${isRecovery ? "Recovery code" : "Confirmation code"} resent. Check inbox, spam, and promotions.`
-        : `${isRecovery ? "Código de recuperação" : "Código de confirmação"} reenviado. Confira entrada, spam e promoções.`
+        ? `${isRecovery ? "Recovery code" : isAccessCode ? "Access code" : "Confirmation code"} resent. Check inbox, spam, and promotions.`
+        : `${isRecovery ? "Código de recuperação" : isAccessCode ? "Código de acesso" : "Código de confirmação"} reenviado. Confira entrada, spam e promoções.`
     );
   }
 
   const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "suporte@palavrasdouniverso.com";
   const isSubmitting = state === "sending";
   const isResending = resendState === "sending";
-  const isOtpMode = authMode === "verify-email" || authMode === "verify-recovery";
+  const isOtpMode =
+    authMode === "verify-email" ||
+    authMode === "verify-access-code" ||
+    authMode === "verify-recovery";
+  const isAccessCodeRequest = authMode === "access-code";
+  const isAccessCodeVerification = authMode === "verify-access-code";
   const needsEmail = authMode !== "reset-password";
-  const needsPassword = authMode !== "forgot" && !isOtpMode;
+  const needsPassword = authMode !== "forgot" && !isOtpMode && !isAccessCodeRequest;
   const needsConfirmPassword = authMode === "signup" || authMode === "reset-password";
   const modeTitle =
     authMode === "signup"
       ? isEn ? "Create your account." : "Crie sua conta."
+      : authMode === "access-code"
+        ? isEn ? "Access with a code." : "Acesse com um código."
       : authMode === "forgot"
         ? isEn ? "Recover access." : "Recupere o acesso."
         : authMode === "verify-email"
           ? isEn ? "Confirm your email." : "Confirme seu e-mail."
+          : authMode === "verify-access-code"
+            ? isEn ? "Confirm your access." : "Confirme seu acesso."
           : authMode === "verify-recovery"
             ? isEn ? "Confirm recovery." : "Confirme a recuperação."
         : authMode === "reset-password"
@@ -672,6 +749,10 @@ export default function EntrarPage() {
       ? isEn
         ? "Confirm your email once. After that, your password keeps the path open on this page."
         : "Confirme seu e-mail uma vez. Depois disso, sua senha mantém o caminho aberto nesta página."
+      : authMode === "access-code"
+        ? isEn
+          ? "Use the email for your existing account. We will send a one-time code, not a tracked link."
+          : "Use o e-mail da sua conta existente. Enviaremos um código único, não um link rastreável."
       : authMode === "forgot"
         ? isEn
           ? "Enter your email and we will send a recovery code."
@@ -680,6 +761,10 @@ export default function EntrarPage() {
           ? isEn
             ? "Enter the code from the latest email to confirm your account."
             : "Digite o código do e-mail mais recente para confirmar sua conta."
+        : authMode === "verify-access-code"
+          ? isEn
+            ? "Enter the code from the latest email to enter your account."
+            : "Digite o código do e-mail mais recente para entrar na sua conta."
         : authMode === "verify-recovery"
           ? isEn
             ? "Enter the code from the latest email to continue recovering access."
@@ -694,6 +779,8 @@ export default function EntrarPage() {
   const submitLabel =
     authMode === "signup"
       ? isEn ? "Create account" : "Criar conta"
+      : authMode === "access-code"
+        ? isEn ? "Send access code" : "Enviar código de acesso"
       : authMode === "forgot"
         ? isEn ? "Send recovery code" : "Enviar código"
         : isOtpMode
@@ -909,14 +996,23 @@ export default function EntrarPage() {
         </form>
 
         {authMode === "login" ? (
-          <button
-            type="button"
-            onClick={() => switchMode("forgot")}
-            className="mt-3 text-sm font-semibold text-[#5f462f] underline-offset-4 hover:underline"
-          >
-            {isEn ? "Forgot your password?" : "Esqueceu sua senha?"}
-          </button>
-        ) : authMode === "forgot" || authMode === "verify-email" || authMode === "verify-recovery" || authMode === "reset-password" ? (
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+            <button
+              type="button"
+              onClick={() => switchMode("access-code")}
+              className="text-sm font-semibold text-[#5f462f] underline-offset-4 hover:underline"
+            >
+              {isEn ? "Use an access code" : "Usar código de acesso"}
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode("forgot")}
+              className="text-sm font-semibold text-[#5f462f] underline-offset-4 hover:underline"
+            >
+              {isEn ? "Forgot your password?" : "Esqueceu sua senha?"}
+            </button>
+          </div>
+        ) : authMode === "access-code" || authMode === "forgot" || authMode === "verify-email" || authMode === "verify-access-code" || authMode === "verify-recovery" || authMode === "reset-password" ? (
           <button
             type="button"
             onClick={() => switchMode("login")}
@@ -945,7 +1041,7 @@ export default function EntrarPage() {
                 ? "For an existing account, no new confirmation email is sent. Sign in with the password you created or recover access now."
                 : "Para uma conta já existente, nenhum novo e-mail de confirmação é enviado. Entre com a senha criada ou recupere o acesso agora."}
             </p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
               <button
                 type="button"
                 onClick={() => switchMode("login")}
@@ -953,6 +1049,14 @@ export default function EntrarPage() {
               >
                 <KeyRound size={16} />
                 {isEn ? "Sign in" : "Entrar com senha"}
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode("access-code")}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#8a6b3f] px-4 py-2.5 text-sm font-semibold text-[#5f462f] hover:bg-[#f6ead6]"
+              >
+                <KeyRound size={16} />
+                {isEn ? "Use access code" : "Usar código"}
               </button>
               <button
                 type="button"
@@ -971,8 +1075,12 @@ export default function EntrarPage() {
             <p className="text-sm leading-6 text-[#6f615a]">
               {isOtpMode
                 ? isEn
-                  ? "Use the latest code. If needed, request another one and check spam and promotions."
-                  : "Use o código mais recente. Se necessário, peça outro e confira também spam e promoções."
+                  ? isAccessCodeVerification
+                    ? "Use the latest access code. If needed, request another one and check spam and promotions."
+                    : "Use the latest code. If needed, request another one and check spam and promotions."
+                  : isAccessCodeVerification
+                    ? "Use o código de acesso mais recente. Se necessário, peça outro e confira também spam e promoções."
+                    : "Use o código mais recente. Se necessário, peça outro e confira também spam e promoções."
                 : isEn
                   ? "If it does not arrive in a minute, resend the confirmation. Also check spam and promotions."
                   : "Se não chegar em um minuto, reenvie a confirmação. Confira também spam e promoções."}
@@ -986,8 +1094,12 @@ export default function EntrarPage() {
               {isResending ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
               {isOtpMode
                 ? isEn
-                  ? "Resend code"
-                  : "Reenviar código"
+                  ? isAccessCodeVerification
+                    ? "Resend access code"
+                    : "Resend code"
+                  : isAccessCodeVerification
+                    ? "Reenviar código de acesso"
+                    : "Reenviar código"
                 : isEn
                   ? "Resend confirmation"
                   : "Reenviar confirmação"}

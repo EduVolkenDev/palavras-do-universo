@@ -418,10 +418,20 @@ export default function LumeGuide() {
   );
 }
 
-export function LumePresence() {
+export function LumePresence({
+  surface = "home",
+  userContext = null,
+  intentLabel,
+  intentPurpose,
+}: {
+  surface?: LumeSurface;
+  userContext?: UserContext | null;
+  intentLabel?: string;
+  intentPurpose?: string;
+}) {
   const { locale } = useI18n();
   const isEnglish = locale === "en";
-  const visual = getLumeVisualAsset("home", locale);
+  const visual = getLumeVisualAsset(surface, locale, userContext);
 
   return (
     <section
@@ -459,6 +469,13 @@ export function LumePresence() {
             ? "Lume connects your question, the cards and the context you choose to share — turning symbolism into a clear next step."
             : "Lume conecta sua pergunta, as cartas e o contexto que você escolhe compartilhar — transformando símbolo em um próximo passo claro."}
         </p>
+        {intentLabel && intentPurpose ? (
+          <div key={intentLabel} className="pdu-lume-presence__intent" aria-live="polite">
+            <span>{isEnglish ? "Opening" : "Abrindo"}</span>
+            <strong>{intentLabel}</strong>
+            <small>{intentPurpose}</small>
+          </div>
+        ) : null}
         <button type="button" onClick={requestLumeOpen} className="pdu-lume-presence__cta">
           {isEnglish ? "Enter Lume's presence" : "Entrar na presença da Lume"}
           <ArrowRight size={16} />

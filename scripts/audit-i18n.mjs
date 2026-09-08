@@ -164,6 +164,11 @@ function isInTranslatedExpression(node) {
   return false;
 }
 
+function jsxElementTagName(node) {
+  if (!ts.isJsxElement(node)) return null;
+  return node.openingElement.tagName.getText(node.getSourceFile());
+}
+
 function isInLocaleConditional(node) {
   let current = node.parent;
   while (current) {
@@ -233,6 +238,24 @@ function auditFile(file) {
       ) {
         report("hardcoded-jsx-text", file, node, `Visible JSX text is not translated: "${value}"`);
       }
+    }
+
+    // Choice controls often persist a stable value while showing a localized label.
+    // Rendering {option} directly inside a button or native select makes that label
+    // depend on the DOM mutation fallback, which is not reliable after state updates.
+    if (
+      ts.isJsxExpression(node) &&
+      node.expression &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "option" &&
+      ["button", "option"].includes(jsxElementTagName(node.parent) ?? "")
+    ) {
+      report(
+        "unlocalized-choice-label",
+        file,
+        node.expression,
+        "Choice labels must use t(option) or an explicit locale display helper."
+      );
     }
 
     if (ts.isJsxAttribute(node)) {
