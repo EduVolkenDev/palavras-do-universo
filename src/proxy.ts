@@ -5,6 +5,7 @@ const MAX_MUTATION_BODY_BYTES = 128 * 1024;
 const LARGE_MUTATION_BODY_BYTES = 600 * 1024;
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const DEFAULT_AUTH_TIMEOUT_MS = 8_000;
+const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 function mutationBodyLimit(pathname: string) {
   return pathname === "/api/account/sync-local"
@@ -43,7 +44,23 @@ async function withAuthTimeout<T>(promise: Promise<T>) {
 }
 
 function allowedOrigins(request: NextRequest) {
-  const origins = new Set([request.nextUrl.origin]);
+  const origins = new Set([request.nextUrl.origin, new URL(request.url).origin]);
+  const requestHost = request.headers.get("host");
+
+  // Next can retain NEXT_PUBLIC_SITE_URL in request.nextUrl during a local
+  // production run. Admit only loopback hosts from the request header so the
+  // same-origin guard remains strict for every public hostname.
+  if (requestHost) {
+    try {
+      const localOrigin = new URL(`http://${requestHost}`);
+      if (LOOPBACK_HOSTNAMES.has(localOrigin.hostname)) {
+        origins.add(localOrigin.origin);
+      }
+    } catch {
+      // An invalid host never expands the allowlist.
+    }
+  }
+
   const configured = process.env.NEXT_PUBLIC_SITE_URL;
   const currentUrl = new URL(request.nextUrl.origin);
 

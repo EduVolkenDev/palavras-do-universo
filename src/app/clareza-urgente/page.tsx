@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { normalizeLocale, LOCALE_COOKIE_NAME, type Locale } from "@/lib/i18n/config";
+import { normalizeMarketingAttribution } from "@/lib/marketing/attribution";
 import ClarezaUrgenteCampaign from "@/components/marketing/ClarezaUrgenteCampaign";
 import {
   formatProductPrice,
@@ -107,14 +108,7 @@ function firstParam(value: string | string[] | undefined) {
 }
 
 function getCampaignAttribution(params: Record<string, string | string[] | undefined>) {
-  const attribution: Record<string, string> = {};
-
-  for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]) {
-    const value = firstParam(params[key])?.trim();
-    if (value) attribution[key] = value.slice(0, 120);
-  }
-
-  return attribution;
+  return normalizeMarketingAttribution(params);
 }
 
 async function getCampaignContext(searchParams: SearchParams) {
@@ -142,6 +136,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await getCampaignContext(searchParams);
   const copy = COPY[locale];
+  const socialImageUrl = `/api/social-cards/clareza-urgente?lang=${locale}`;
 
   return {
     title: `${copy.eyebrow} | Palavras do Universo`,
@@ -152,11 +147,20 @@ export async function generateMetadata({
       description: copy.lead,
       type: "website",
       url: "https://palavrasdouniverso.com/clareza-urgente",
+      images: [
+        {
+          url: socialImageUrl,
+          width: 1200,
+          height: 630,
+          alt: copy.imageAlt,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: `${copy.eyebrow} | Palavras do Universo`,
       description: copy.lead,
+      images: [{ url: socialImageUrl, alt: copy.imageAlt }],
     },
   };
 }
@@ -172,6 +176,7 @@ export default async function ClarezaUrgentePage({
   return (
     <ClarezaUrgenteCampaign
       copy={COPY[locale]}
+      copies={COPY}
       locale={locale}
       currency={currency}
       price={price}

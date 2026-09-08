@@ -5,7 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Compass, Sparkles } from "lucide-react";
 import { recordSiteEvent } from "@/lib/client/siteEvents";
-import type { Locale } from "@/lib/i18n/config";
+import { normalizeLocale, type Locale } from "@/lib/i18n/config";
+import { useI18n } from "@/components/I18nProvider";
+import {
+  appendMarketingAttribution,
+  normalizeMarketingAttribution,
+  type MarketingAttribution,
+} from "@/lib/marketing/attribution";
 import type { ProductCurrency } from "@/lib/product/pricing";
 
 type CampaignCopy = {
@@ -47,39 +53,29 @@ type CampaignCopy = {
 
 type Props = {
   copy: CampaignCopy;
+  copies: Record<Locale, CampaignCopy>;
   locale: Locale;
   currency: ProductCurrency;
   price: string;
-  attribution: Record<string, string>;
+  attribution: MarketingAttribution;
 };
 
 const CAMPAIGN = "clareza-urgente";
 
-function readAttribution() {
+function readAttribution(): MarketingAttribution {
   if (typeof window === "undefined") return {};
-
-  const params = new URLSearchParams(window.location.search);
-  const attribution: Record<string, string> = {};
-
-  for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]) {
-    const value = params.get(key)?.trim();
-    if (value) attribution[key] = value.slice(0, 120);
-  }
-
-  return attribution;
+  return normalizeMarketingAttribution(new URLSearchParams(window.location.search));
 }
 
 function buildCampaignHref(
   path: string,
   hash: string,
   params: Record<string, string> = {},
-  attribution: Record<string, string> = {}
+  attribution: MarketingAttribution = {}
 ) {
-  const query = new URLSearchParams({ campaign: CAMPAIGN });
-
-  for (const [key, value] of Object.entries(attribution)) {
-    query.set(key, value);
-  }
+  const query = new URLSearchParams();
+  appendMarketingAttribution(query, attribution);
+  query.set("campaign", CAMPAIGN);
 
   for (const [key, value] of Object.entries(params)) {
     query.set(key, value);
@@ -101,13 +97,23 @@ function trackCampaignEvent(eventType: string, destination: string) {
 }
 
 export default function ClarezaUrgenteCampaign({
-  copy,
-  locale,
+  copy: initialCopy,
+  copies,
+  locale: initialLocale,
   currency,
   price,
   attribution,
 }: Props) {
+  const { locale: selectedLocale } = useI18n();
   const landingTracked = useRef(false);
+  const locale =
+    typeof window === "undefined"
+      ? initialLocale
+      : normalizeLocale(
+          new URLSearchParams(window.location.search).get("lang") ?? selectedLocale
+        );
+  const copy = copies[locale] ?? initialCopy;
+
   const freeHref = buildCampaignHref("/", "leitura", {}, attribution);
   const checkoutHref = buildCampaignHref("/", "produtos", {
     product: "clareza_urgente",
@@ -123,7 +129,10 @@ export default function ClarezaUrgenteCampaign({
   }, []);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#0a0911] text-[#f7efdc] selection:bg-[#f2cb76] selection:text-[#1a1420]">
+    <main
+      lang={locale}
+      className="min-h-screen overflow-hidden bg-[#0a0911] text-[#f7efdc] selection:bg-[#f2cb76] selection:text-[#1a1420]"
+    >
       <header className="border-b border-white/10 bg-[#0a0911]/90 px-5 py-5 backdrop-blur-xl sm:px-8">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <Link

@@ -27,6 +27,10 @@ import {
   resolveProductCurrency,
   type ProductPrice,
 } from "@/lib/product/pricing";
+import {
+  normalizeMarketingAttribution,
+  toStripeMarketingMetadata,
+} from "@/lib/marketing/attribution";
 
 type CheckoutBody = {
   productKey?: unknown;
@@ -35,6 +39,7 @@ type CheckoutBody = {
   voucherCode?: unknown;
   currency?: unknown;
   market?: unknown;
+  attribution?: unknown;
 };
 
 type OracleProduct = {
@@ -337,6 +342,8 @@ export async function POST(req: Request) {
       ? body.email.trim()
       : auth.user.email;
   const ownerAccess = isOwnerAccessUser(auth.user);
+  const marketingAttribution = normalizeMarketingAttribution(body.attribution);
+  const stripeMarketingMetadata = toStripeMarketingMetadata(marketingAttribution);
 
   if (!productKey) return jsonError("Missing productKey", 400);
 
@@ -496,6 +503,7 @@ export async function POST(req: Request) {
         voucher_code: voucherResult?.ok ? voucherResult.voucher.code : "",
         voucher_discount_percent:
           voucherResult?.ok ? String(voucherResult.voucher.discount_percent ?? "") : "",
+        ...stripeMarketingMetadata,
       },
       subscription_data:
         mode === "subscription"
@@ -505,6 +513,7 @@ export async function POST(req: Request) {
                 product_key: product.product_key,
                 currency: checkoutPrice.currency,
                 market: marketForProductCurrency(checkoutPrice.currency),
+                ...stripeMarketingMetadata,
               },
             }
           : undefined,
@@ -516,6 +525,7 @@ export async function POST(req: Request) {
                 product_key: product.product_key,
                 currency: checkoutPrice.currency,
                 market: marketForProductCurrency(checkoutPrice.currency),
+                ...stripeMarketingMetadata,
               },
             }
           : undefined,
@@ -551,6 +561,7 @@ export async function POST(req: Request) {
           discount_percent: discountPercent,
           market: marketForProductCurrency(checkoutPrice.currency),
           base_currency: product.currency,
+          attribution: marketingAttribution,
         },
       });
 
@@ -573,6 +584,7 @@ export async function POST(req: Request) {
         discount_percent: discountPercent,
         market: marketForProductCurrency(checkoutPrice.currency),
         base_currency: product.currency,
+        attribution: marketingAttribution,
       },
     });
 

@@ -17,6 +17,7 @@ const routes = [
   "/profissionais",
   "/profissionais/me",
   "/meu-universo",
+  "/clareza-urgente",
   "/entrar",
   "/termos",
   "/privacidade",
@@ -131,6 +132,29 @@ try {
         )
       ) {
         problems.push("visible Portuguese leakage");
+      }
+
+      if (route === "/clareza-urgente") {
+        const targetLocale = scenario.locale === "en" ? "pt-BR" : "en";
+        const toggleLabel = targetLocale === "en" ? "EN" : "PT";
+        const expectedHeading =
+          targetLocale === "en"
+            ? "When the noise gets loud, return to your centre."
+            : "Quando o ruído aperta, volte ao seu eixo.";
+
+        await page.getByRole("button", { name: toggleLabel, exact: true }).click();
+        await page.waitForFunction(
+          ({ locale, heading }) =>
+            document.documentElement.lang === locale &&
+            document.querySelector("h1")?.textContent?.trim() === heading,
+          { locale: targetLocale, heading: expectedHeading },
+          { timeout: 10_000 }
+        );
+
+        const toggledLocale = await page.evaluate(() => document.documentElement.lang);
+        if (toggledLocale !== targetLocale) {
+          problems.push(`toggle lang ${toggledLocale}`);
+        }
       }
 
       results.push({

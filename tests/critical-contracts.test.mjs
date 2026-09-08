@@ -61,6 +61,17 @@ test("the language bridge avoids scripts and batches live DOM updates", async ()
   assert.match(lume, /aria-modal="true"/);
 });
 
+test("same-origin telemetry accepts only loopback request hosts outside public origins", async () => {
+  const proxy = await source("src/proxy.ts");
+
+  assert.match(proxy, /new URL\(request\.url\)\.origin/);
+  assert.match(proxy, /LOOPBACK_HOSTNAMES/);
+  assert.match(proxy, /LOOPBACK_HOSTNAMES\.has\(localOrigin\.hostname\)/);
+  assert.match(proxy, /NEXT_PUBLIC_SITE_URL/);
+  assert.doesNotMatch(proxy, /x-forwarded-proto/);
+  assert.match(proxy, /Cross-origin request blocked/);
+});
+
 test("passwordless access uses OTPs without creating accounts or relying on email links", async () => {
   const login = await source("src/app/entrar/page.tsx");
 
@@ -69,6 +80,42 @@ test("passwordless access uses OTPs without creating accounts or relying on emai
   assert.match(login, /shouldCreateUser: false/);
   assert.match(login, /setAuthMode\("verify-access-code"\)/);
   assert.match(login, /authMode === "verify-access-code"/);
+});
+
+test("campaign attribution survives authentication and checkout without collecting search terms", async () => {
+  const attribution = await source("src/lib/marketing/attribution.ts");
+  const home = await source("src/app/page.tsx");
+  const checkout = await source("src/app/api/checkout/create/route.ts");
+  const fulfillment = await source("src/lib/product/fulfillment.ts");
+
+  assert.match(attribution, /MARKETING_ATTRIBUTION_KEYS/);
+  assert.match(attribution, /"utm_campaign"/);
+  assert.doesNotMatch(attribution, /utm_term/);
+  assert.match(home, /appendMarketingAttribution\(/);
+  assert.match(home, /attribution: normalizeMarketingAttribution/);
+  assert.match(home, /window\.location\.href = buildLoginPath\(resumePath/);
+  assert.match(checkout, /toStripeMarketingMetadata\(marketingAttribution\)/);
+  assert.match(checkout, /attribution: marketingAttribution/);
+  assert.match(fulfillment, /getMarketingAttributionFromStripeMetadata/);
+});
+
+test("the campaign ships an accessible, shareable social preview", async () => {
+  const campaign = await source("src/components/marketing/ClarezaUrgenteCampaign.tsx");
+  const campaignPage = await source("src/app/clareza-urgente/page.tsx");
+  const socialPreview = await source("src/app/api/social-cards/clareza-urgente/route.tsx");
+
+  assert.match(campaign, /<main\s+lang=\{locale\}/);
+  assert.match(campaign, /useI18n/);
+  assert.match(campaign, /copies\[locale\] \?\? initialCopy/);
+  assert.match(campaign, /new URLSearchParams\(window\.location\.search\)/);
+  assert.match(campaignPage, /socialImageUrl/);
+  assert.match(campaignPage, /images: \[/);
+  assert.match(socialPreview, /ImageResponse/);
+  assert.match(socialPreview, /width: 1200/);
+  assert.match(socialPreview, /height: 630/);
+  assert.match(socialPreview, /clareza-urgente-social\.png/);
+  assert.match(socialPreview, /"pt-BR"/);
+  assert.match(socialPreview, /en:/);
 });
 
 test("reading-profile choices keep stable values and localize every visible label", async () => {

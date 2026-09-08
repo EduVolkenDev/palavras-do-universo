@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { finalizeVoucherCheckoutSession } from "@/lib/vouchers/service";
+import { getMarketingAttributionFromStripeMetadata } from "@/lib/marketing/attribution";
 
 type EntitlementProduct = {
   product_key: string;
@@ -101,6 +102,7 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
   const supabase = getSupabaseAdmin();
   const userId = session.metadata?.user_id;
   const productKey = session.metadata?.product_key;
+  const marketingAttribution = getMarketingAttributionFromStripeMetadata(session.metadata);
 
   if (!userId || !productKey) {
     return { ok: false as const, reason: "missing_metadata" };
@@ -139,6 +141,7 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
         stripe_subscription_id: subscriptionId,
         currency: getString(session.metadata?.currency),
         market: getString(session.metadata?.market),
+        attribution: marketingAttribution,
       },
     });
 
@@ -185,6 +188,7 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
       payment_intent_id: getString(session.payment_intent),
       currency: getString(session.metadata?.currency),
       market: getString(session.metadata?.market),
+      attribution: marketingAttribution,
     },
   });
 

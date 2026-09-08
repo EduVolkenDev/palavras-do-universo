@@ -67,6 +67,10 @@ import { usePduScrollRecovery } from "@/lib/ui/usePduScrollRecovery";
 import { usePushNotifications } from "@/lib/push/usePushNotifications";
 import { useI18n } from "@/components/I18nProvider";
 import {
+  appendMarketingAttribution,
+  normalizeMarketingAttribution,
+} from "@/lib/marketing/attribution";
+import {
   localizeReadingProfileValue,
   READING_PROFILE_BOUNDARIES,
   READING_PROFILE_DESIRED_SHIFTS,
@@ -2303,9 +2307,16 @@ export default function Home() {
   }
 
   function buildCheckoutNextPath(productKey: string) {
-    return `/?product=${encodeURIComponent(
-      productKey
-    )}&currency=${encodeURIComponent(productCurrency)}&resume=checkout#produtos`;
+    const params = new URLSearchParams({
+      product: productKey,
+      currency: productCurrency,
+      resume: "checkout",
+    });
+    appendMarketingAttribution(
+      params,
+      normalizeMarketingAttribution(new URLSearchParams(window.location.search))
+    );
+    return `/?${params.toString()}#produtos`;
   }
 
   async function startCheckout(productKey: string) {
@@ -2319,7 +2330,14 @@ export default function Home() {
       const res = await fetch("/api/checkout/create", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ productKey, locale, currency: productCurrency }),
+        body: JSON.stringify({
+          productKey,
+          locale,
+          currency: productCurrency,
+          attribution: normalizeMarketingAttribution(
+            new URLSearchParams(window.location.search)
+          ),
+        }),
       });
       const data = (await res.json()) as unknown;
 
@@ -2399,7 +2417,25 @@ export default function Home() {
         data: { session },
       } = await client.auth.getSession();
 
-      if (cancelled || started || !session) return;
+      if (cancelled || started) return;
+
+      if (!session) {
+        started = true;
+        const currentUrl = new URL(window.location.href);
+        const resumeParams = new URLSearchParams({
+          product: productKey,
+          currency: currentUrl.searchParams.get("currency") ?? "BRL",
+          resume: "checkout",
+        });
+        appendMarketingAttribution(
+          resumeParams,
+          normalizeMarketingAttribution(currentUrl.searchParams)
+        );
+        const resumePath = `/?${resumeParams.toString()}#produtos`;
+        const redirectLocale = document.documentElement.lang === "en" ? "en" : null;
+        window.location.href = buildLoginPath(resumePath, { lang: redirectLocale });
+        return;
+      }
 
       started = true;
       const cleanUrl = new URL(window.location.href);
