@@ -205,6 +205,13 @@ export default function BaralhoPage() {
               <p className="mt-5 max-w-2xl text-base leading-7 text-[#d8ccc0]">
                 {t("Explore as 78 cartas, seus símbolos, palavras-chave e leituras direta e reversa. Use esta biblioteca como um espelho antes ou depois de abrir uma leitura.")}
               </p>
+              <Link
+                href="/significados/tarot"
+                className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/35 bg-[#f4d58d]/[0.08] px-4 py-2.5 text-sm font-semibold text-[#fff3df] transition hover:border-[#f4d58d]/70 hover:bg-[#f4d58d]/[0.14]"
+              >
+                {locale === "en" ? "Read the tarot meanings as a guide" : "Ler os significados como um guia"}
+                <ArrowLeft className="rotate-180" size={15} aria-hidden="true" />
+              </Link>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
