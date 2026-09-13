@@ -7,6 +7,7 @@ import { ArrowRight, Check, ChevronDown, Compass, Sparkles } from "lucide-react"
 import { recordSiteEvent } from "@/lib/client/siteEvents";
 import { normalizeLocale, type Locale } from "@/lib/i18n/config";
 import { useI18n } from "@/components/I18nProvider";
+import { PDU_ASSETS } from "@/lib/pdu-assets";
 import {
   appendMarketingAttribution,
   normalizeMarketingAttribution,
@@ -133,15 +134,22 @@ export default function ClarezaUrgenteCampaign({
       lang={locale}
       className="min-h-screen overflow-hidden bg-[#0a0911] text-[#f7efdc] selection:bg-[#f2cb76] selection:text-[#1a1420]"
     >
-      <header className="border-b border-white/10 bg-[#0a0911]/90 px-5 py-5 backdrop-blur-xl sm:px-8">
+      <header className="border-b border-white/10 bg-[#0a0911]/90 px-5 py-5 pr-44 backdrop-blur-xl sm:px-8 sm:pr-52">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <Link
             href="/"
             onClick={() => trackCampaignEvent("marketing.cta_click", "portal")}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/15 px-4 text-xs font-semibold uppercase tracking-[0.18em] text-[#f7efdc] transition hover:border-[#f2cb76]/70 hover:text-[#f2cb76] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f2cb76]"
+            aria-label="Palavras do Universo"
+            className="inline-flex min-h-11 items-center rounded-full border border-white/15 px-3 transition hover:border-[#f2cb76]/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f2cb76] sm:px-4"
           >
-            <span aria-hidden="true">←</span>
-            {copy.navBack}
+            <Image
+              src={PDU_ASSETS.brand.headerWordmark}
+              alt="Palavras do Universo"
+              width={160}
+              height={50}
+              priority
+              className="h-auto w-[8.75rem] object-contain sm:w-[10rem]"
+            />
           </Link>
           <span className="hidden text-right text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-[#c7b78f] sm:block">
             {copy.navLabel}
@@ -211,21 +219,45 @@ export default function ClarezaUrgenteCampaign({
         </div>
       </section>
 
-      <section className="border-b border-white/10 bg-[#f7efdc] px-5 py-16 text-[#241923] sm:px-8 sm:py-24">
-        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:gap-20">
+      <section className="relative isolate overflow-hidden border-b border-white/10 bg-[#f7efdc] px-5 py-16 text-[#241923] sm:px-8 sm:py-24">
+        <div className="pointer-events-none absolute -left-32 top-24 -z-10 h-80 w-80 rounded-full bg-[#8ec9ff]/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-40 bottom-0 -z-10 h-96 w-96 rounded-full bg-[#a994ff]/15 blur-3xl" />
+        <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:gap-20">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#8f7146]">{copy.stepsEyebrow}</p>
             <h2 className="mt-5 max-w-lg font-serif text-5xl leading-[0.95] tracking-[-0.04em] sm:text-6xl">
               {copy.stepsTitle}
             </h2>
+
+            <div className="pdu-campaign-steps-visual mt-10" aria-hidden="true">
+              <div className="pdu-campaign-steps-visual__halo" />
+              <div className="pdu-campaign-steps-visual__orbit pdu-campaign-steps-visual__orbit--one">
+                <span />
+              </div>
+              <div className="pdu-campaign-steps-visual__orbit pdu-campaign-steps-visual__orbit--two">
+                <span />
+              </div>
+              <Image
+                src={PDU_ASSETS.symbolic.bigGem}
+                alt=""
+                width={420}
+                height={720}
+                sizes="(max-width: 1024px) 70vw, 320px"
+                className="pdu-campaign-steps-visual__crystal"
+              />
+              <div className="pdu-campaign-steps-visual__caption">
+                <Sparkles size={15} aria-hidden="true" />
+                <span>{copy.stepsEyebrow}</span>
+              </div>
+            </div>
           </div>
           <div className="grid divide-y divide-[#241923]/15 border-y border-[#241923]/15">
             {copy.steps.map((step) => (
-              <div key={step.number} className="grid gap-4 py-7 sm:grid-cols-[5rem_1fr] sm:gap-8">
-                <span className="font-mono text-sm font-semibold tracking-[0.2em] text-[#9e7b46]">
+              <div key={step.number} className="pdu-campaign-step group grid gap-4 py-7 sm:grid-cols-[5rem_1fr] sm:gap-8">
+                <span className="pdu-campaign-step__number font-mono text-sm font-semibold tracking-[0.2em] text-[#9e7b46]">
                   {step.number}
                 </span>
-                <div>
+                <div className="relative">
                   <h3 className="text-xl font-bold">{step.title}</h3>
                   <p className="mt-2 max-w-xl text-base leading-7 text-[#655a52]">{step.copy}</p>
                 </div>

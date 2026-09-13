@@ -1119,7 +1119,45 @@ export default function MeuUniversoPage() {
   }
 
   return (
-    <main className="min-h-screen ritual-texture text-[#241b18]">
+    <main className="pdu-universe-page min-h-screen text-[#241b18]">
+      <div className="pdu-universe-page__backdrop" aria-hidden="true">
+        <span className="pdu-universe-page__stars" />
+        <span className="pdu-universe-page__glow pdu-universe-page__glow--gold" />
+        <span className="pdu-universe-page__glow pdu-universe-page__glow--violet" />
+        <Image
+          src={PDU_ASSETS.symbolic.zodiac}
+          alt=""
+          width={720}
+          height={720}
+          sizes="(max-width: 640px) 72vw, 42vw"
+          className="pdu-universe-page__art pdu-universe-page__art--zodiac"
+        />
+        <Image
+          src={PDU_ASSETS.symbolic.butterfly}
+          alt=""
+          width={520}
+          height={520}
+          sizes="(max-width: 640px) 58vw, 30vw"
+          className="pdu-universe-page__art pdu-universe-page__art--butterfly"
+        />
+        <Image
+          src={PDU_ASSETS.editorial.portal}
+          alt=""
+          width={520}
+          height={680}
+          sizes="(max-width: 640px) 54vw, 25vw"
+          className="pdu-universe-page__art pdu-universe-page__art--portal"
+        />
+        <Image
+          src={PDU_ASSETS.symbolic.bigGem}
+          alt=""
+          width={420}
+          height={580}
+          sizes="(max-width: 640px) 42vw, 20vw"
+          className="pdu-universe-page__art pdu-universe-page__art--gem"
+        />
+      </div>
+
       <header className="pdu-universe-header border-b border-[#e2d3c0] bg-[#fbf6ee]/92 backdrop-blur">
         <div className="pdu-universe-header__inner mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
           <Link
@@ -1180,7 +1218,7 @@ export default function MeuUniversoPage() {
         </div>
       </header>
 
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <section className="pdu-universe-intro mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">
@@ -1352,9 +1390,9 @@ export default function MeuUniversoPage() {
           />
         </div>
 
-        <PduAssetStory {...PDU_ASSET_STORIES.universe} tone="light" />
+        <PduAssetStory {...PDU_ASSET_STORIES.universe} tone="dark" />
 
-        <div className="mt-8 grid gap-3 md:grid-cols-4">
+        <div className="pdu-universe-stats mt-8 grid gap-3 md:grid-cols-4">
           {stats.map((stat) => (
             <div
               key={stat.label}

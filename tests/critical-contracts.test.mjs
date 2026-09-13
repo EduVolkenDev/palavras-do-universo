@@ -131,3 +131,29 @@ test("reading-profile choices keep stable values and localize every visible labe
   assert.doesNotMatch(home, /const readingProfileFocusOptions/);
   assert.doesNotMatch(universe, /const focusAreaOptions/);
 });
+
+test("astrology birth data stays separate, authenticated and consent-gated", async () => {
+  const migration = await source(
+    "supabase/migrations/20260911090000_create_astrology_birth_profiles.sql"
+  );
+  const route = await source("src/app/api/astrology/birth-data/route.ts");
+  const domain = await source("src/lib/astrology/birth-data.ts");
+  const timeResolution = await source("src/lib/astrology/time-resolution.ts");
+
+  assert.match(migration, /create table if not exists public\.astrology_birth_profiles/);
+  assert.match(migration, /alter table public\.astrology_birth_profiles enable row level security/);
+  assert.match(migration, /astrology_birth_profiles_delete_own/);
+  assert.doesNotMatch(route, /reading_profile/);
+  assert.match(route, /requireApiUser/);
+  assert.match(route, /storeBirthData !== true/);
+  assert.match(route, /BIRTH_DATA_CONSENT_REQUIRED/);
+  assert.match(route, /upsert\(/);
+  assert.match(domain, /timeResolution/);
+  assert.match(domain, /iana-timezone-rules/);
+  assert.match(domain, /timeResolution must match the reported local time/);
+  assert.match(domain, /resolveAstrologyBirthTime/);
+  assert.match(domain, /does not match the server IANA resolution/);
+  assert.match(timeResolution, /export function resolveAstrologyBirthTime/);
+  assert.match(timeResolution, /"ambiguous"/);
+  assert.match(timeResolution, /"nonexistent"/);
+});
