@@ -9,6 +9,7 @@ import { localizeTarotCard } from "@/lib/i18n/oracle";
 import { CARDS } from "@/lib/tarot/cards";
 
 export const LUME_NAME = "Lume";
+export const LUME_QUESTION_EVENT = "pdu-lume-question";
 
 export const LUME_AI_INSTRUCTIONS = `
 Você é Lume, a inteligência interpretativa de Palavras do Universo.
@@ -46,6 +47,7 @@ export type LumeSurface =
 export type LumeAction = {
   label: string;
   href: string;
+  question?: string;
 };
 
 export type LumeReply = {
@@ -348,6 +350,222 @@ function asksAboutActiveReading(text: string) {
   return /(signific|represent|interpret|explic|explain|resum|summary|entend|understand|resultado|result|esta leitura|essa leitura|this reading|current reading|carta|card|arcano|tirada|spread)/.test(text);
 }
 
+type LumeQuestionIntent =
+  | "relationship"
+  | "work"
+  | "decision"
+  | "emotional"
+  | "future"
+  | "card"
+  | "humanSupport"
+  | "lab"
+  | "openQuestion";
+
+function stableVariantIndex(value: string, size: number) {
+  if (size <= 1) return 0;
+
+  let hash = 0;
+  for (const character of value) {
+    hash = (hash * 31 + character.charCodeAt(0)) | 0;
+  }
+
+  return Math.abs(hash) % size;
+}
+
+function classifyLumeQuestion(text: string): LumeQuestionIntent {
+  // Do not classify generic "atendimento" or "sessão" language as human
+  // support: those words also describe using a reading. Require an explicit
+  // professional/therapy signal before sending someone to the marketplace.
+  if (/(terapeut|terapia|psicolog|profission|escuta humana|apoio humano|acompanhamento humano|falar com alguem|talk to someone|therapist|therapy|human support)/.test(text)) {
+    return "humanSupport";
+  }
+
+  if (/(carta|arcano|tarot|baralho|significad|morte|mago|sacerdotisa|card|deck|meaning)/.test(text)) {
+    return "card";
+  }
+
+  if (/(lab|pratic|exercicio|exercise|organizar o que|organize what)/.test(text)) {
+    return "lab";
+  }
+
+  if (/(amor|relacion|namor|marid|espos|ex |vinculo|afeto|love|relationship|partner)/.test(text)) {
+    return "relationship";
+  }
+
+  if (/(trabalh|empreg|carreir|chefe|projet|dinheir|salari|negoci|negocio|vend|financ|career|job|money|work)/.test(text)) {
+    return "work";
+  }
+
+  if (/(futur|acontec|vai dar|destin|previs|quando|will |future|happen|destiny)/.test(text)) {
+    return "future";
+  }
+
+  if (/(decid|escolh|devo|vale a pena|termin|aceit|comec|mudar|sair|ficar|o que faco|should i|decide|choice)/.test(text)) {
+    return "decision";
+  }
+
+  if (/(ansio|ansied|medo|confus|perdid|trist|cansad|sobrecar|angusti|solidao|bloque|nao sei|afraid|anxious|confused|lost|overwhelm|sad)/.test(text)) {
+    return "emotional";
+  }
+
+  return "openQuestion";
+}
+
+function getContextCue(userContext: UserContext | null | undefined, isEnglish: boolean) {
+  const signals = userContext?.personalizationSignals;
+  if (!signals?.hasExplicitContext) return "";
+
+  const focus = signals.focusAreas[0];
+  const phase = signals.currentPhase;
+  if (isEnglish) {
+    if (focus) return ` Since you chose to keep ${focus.toLowerCase()} in view, we can use that as a lens without turning it into a label.`;
+    if (phase) return ` You told me you are in ${phase.toLowerCase()}; we can let that context shape the next step without treating it as a fixed identity.`;
+    return " I can also use the context you chose to share, without treating it as a fixed identity.";
+  }
+
+  if (focus) return ` Como você escolheu manter ${focus.toLowerCase()} em vista, podemos usar isso como lente sem transformar o tema em rótulo.`;
+  if (phase) return ` Você me contou que está em ${phase.toLowerCase()}; podemos deixar esse contexto orientar o próximo passo sem transformá-lo em identidade fixa.`;
+  return " Também posso usar o contexto que você escolheu compartilhar, sem transformá-lo em identidade fixa.";
+}
+
+function getQuestionAction(input: string, isEnglish: boolean): LumeAction {
+  return {
+    label: isEnglish
+      ? "Open this question in a reading"
+      : "Levar esta pergunta para uma leitura",
+    href: "/#leitura",
+    question: input.trim(),
+  };
+}
+
+function replyToOpenQuestion(
+  input: string,
+  text: string,
+  locale: Locale,
+  userContext?: UserContext | null
+): LumeReply {
+  const isEnglish = locale === "en";
+  const intent = classifyLumeQuestion(text);
+  const contextCue = getContextCue(userContext, isEnglish);
+
+  if (intent === "humanSupport") {
+    return isEnglish
+      ? {
+          text: "This sounds like a moment where human listening may help. I cannot choose someone for you, but I can take you to professionals so you can compare approach, language, and access before reaching out.",
+          action: { label: "Meet professionals", href: "/profissionais" },
+          suggestions: ["Are there reduced-fee options?", "I want a reading first"],
+        }
+      : {
+          text: "Isso parece pedir escuta humana. Eu não escolho alguém por você, mas posso levar você aos profissionais para comparar abordagem, idioma e faixa de acesso antes de entrar em contato.",
+          action: { label: "Conhecer profissionais", href: "/profissionais" },
+          suggestions: ["Existem opções sociais?", "Quero fazer uma leitura primeiro"],
+        };
+  }
+
+  if (intent === "card") {
+    return isEnglish
+      ? {
+          text: "If you are trying to understand a card, start with its image, central movement, and life question — not a single good-or-bad label. The Deck gives you that context before you bring the card back to your own question.",
+          action: { label: "Explore the Deck", href: "/baralho" },
+          suggestions: ["I want to ask a personal question", "What does this card invite?"],
+        }
+      : {
+          text: "Se você está tentando entender uma carta, comece pela imagem, pelo movimento central e pela pergunta que ela provoca — não por um rótulo de boa ou ruim. O Baralho oferece esse contexto antes de você levar a carta para a sua própria pergunta.",
+          action: { label: "Explorar o Baralho", href: "/baralho" },
+          suggestions: ["Quero fazer uma pergunta pessoal", "O que esta carta me convida a olhar?"],
+        };
+  }
+
+  if (intent === "lab") {
+    return isEnglish
+      ? {
+          text: "You do not need to solve everything before beginning. The Lab helps you name what is alive and turn it into one possible gesture, without requiring a card or a perfect question.",
+          action: { label: "Enter the Lab", href: "/lab#pratica" },
+          suggestions: ["I want to open a reading", "Help me choose a small gesture"],
+        }
+      : {
+          text: "Você não precisa resolver tudo antes de começar. O Lab ajuda a nomear o que está vivo e transformar isso em um gesto possível, sem exigir carta nem pergunta perfeita.",
+          action: { label: "Entrar no Lab", href: "/lab#pratica" },
+          suggestions: ["Quero abrir uma leitura", "Ajude-me a escolher um gesto pequeno"],
+        };
+  }
+
+  const variants: Record<Exclude<LumeQuestionIntent, "humanSupport" | "card" | "lab">, string[]> = isEnglish
+    ? {
+        relationship: [
+          "There is a living bond at the centre of your question. A reading can help you look at reciprocity, boundaries, and what you need to say — without inventing what the other person thinks.",
+          "Your question asks for emotional clarity, not a sentence about someone else. We can separate what was said, what you felt, and what you are accepting to keep this bond alive.",
+          "When another person is involved, I will not promise control over them. I can help you look at your position, your limits, and the next honest gesture.",
+        ],
+        work: [
+          "There is a practical choice inside your question. A reading can help separate opportunity, fear, cost, and the resource you already have before you choose.",
+          "This question asks for a criterion, not more urgency. We can look at what deserves your energy, what needs checking, and what first step fits real life.",
+          "Work and money can make every option feel definitive. Let us turn this into a clear question about priorities and the next move you can actually test.",
+        ],
+        decision: [
+          "Your question already contains a choice. A reading can help separate fear, desire, facts, and the part that is still yours to decide.",
+          "Instead of forcing a yes-or-no answer, let us look at what each direction asks of you and which small sign would make the next step clearer.",
+          "This is a good question for a spread because there is movement underneath it. The cards can organise the tension without taking your choice away.",
+        ],
+        emotional: [
+          "Before looking for a ready-made answer, it may help to name what is pressing on you now. The Lab can organise the feeling, and a reading can deepen the question when it has a shape.",
+          "I can hear that this is not only about information. It is also about finding a steadier place to choose from. We can begin with one honest question and one possible next step.",
+          "When the mind is loud, clarity begins by making the question smaller. Let us bring it to what you can observe, choose, or care for today.",
+        ],
+        future: [
+          "I cannot promise what the future will do, but I can help you look at the forces, choices, and signals shaping this moment. A reading is a useful place to begin.",
+          "Rather than turn uncertainty into a fixed prediction, we can ask what is asking for attention now and what remains within your reach.",
+          "The future is not a verdict waiting to be discovered. Let us use the cards as a lens for preparing your next choice with more presence.",
+        ],
+        openQuestion: [
+          "There is something real behind this question, even if it is not fully named yet. Bring it exactly as it is to a reading and let the cards help organise the next layer.",
+          "You do not need a perfect formulation. I can take this question as a starting point and help you look for the part that is observable, possible, and yours to choose.",
+          "Let us give this question a useful shape: what is happening, what matters most, and what could become one small next step? A reading can hold that with you.",
+        ],
+      }
+    : {
+        relationship: [
+          "Há um vínculo vivo no centro da sua pergunta. Uma leitura pode ajudar a observar reciprocidade, limites e o que você precisa dizer — sem inventar o que a outra pessoa pensa.",
+          "Sua pergunta pede clareza afetiva, não uma sentença sobre alguém. Podemos separar o que foi dito, o que você sentiu e o que está aceitando para manter esse vínculo.",
+          "Quando existe outra pessoa envolvida, eu não vou prometer controle sobre ela. Posso ajudar você a olhar sua posição, seus limites e o próximo gesto honesto.",
+        ],
+        work: [
+          "Há uma escolha prática dentro da sua pergunta. Uma leitura pode ajudar a separar oportunidade, medo, custo e o recurso que você já tem antes de escolher.",
+          "Essa pergunta pede critério, não mais pressa. Podemos olhar o que merece sua energia, o que precisa ser verificado e qual primeiro passo cabe na vida real.",
+          "Trabalho e dinheiro podem fazer toda opção parecer definitiva. Vamos transformar isso em uma pergunta clara sobre prioridades e sobre o próximo movimento que você consegue testar.",
+        ],
+        decision: [
+          "Sua pergunta já contém uma escolha. Uma leitura pode ajudar a separar medo, desejo, fatos e aquilo que ainda cabe a você decidir.",
+          "Em vez de forçar uma resposta de sim ou não, podemos olhar o que cada direção pede de você e qual pequeno sinal deixaria o próximo passo mais claro.",
+          "Essa é uma boa pergunta para uma tirada porque existe movimento por baixo dela. As cartas podem organizar a tensão sem tirar sua escolha.",
+        ],
+        emotional: [
+          "Antes de procurar uma resposta pronta, talvez seja importante nomear o que está apertando agora. O Lab organiza o sentimento; uma leitura aprofunda a pergunta quando ela ganha forma.",
+          "Percebo que isso não é apenas uma busca por informação. É também uma busca por um lugar mais firme para escolher. Podemos começar com uma pergunta honesta e um próximo passo possível.",
+          "Quando a mente faz barulho, a clareza começa diminuindo a pergunta. Vamos trazê-la para o que você pode observar, escolher ou cuidar hoje.",
+        ],
+        future: [
+          "Eu não posso prometer o que o futuro fará, mas posso ajudar você a olhar forças, escolhas e sinais que estão moldando este momento. Uma leitura é um bom lugar para começar.",
+          "Em vez de transformar incerteza em previsão fixa, podemos perguntar o que pede atenção agora e o que ainda está ao seu alcance.",
+          "O futuro não é uma sentença escondida esperando ser descoberta. Vamos usar as cartas como lente para preparar sua próxima escolha com mais presença.",
+        ],
+        openQuestion: [
+          "Existe algo real por trás dessa pergunta, mesmo que ainda não esteja totalmente nomeado. Leve-a exatamente assim para uma leitura e deixe as cartas organizarem a próxima camada.",
+          "Você não precisa encontrar a formulação perfeita. Posso tomar essa pergunta como começo e ajudar a olhar para a parte observável, possível e que cabe a você escolher.",
+          "Vamos dar uma forma útil a essa pergunta: o que está acontecendo, o que importa mais e o que pode virar um pequeno próximo passo? Uma leitura pode sustentar esse processo.",
+        ],
+      };
+
+  const variant = variants[intent][stableVariantIndex(text, variants[intent].length)];
+  return {
+    text: `${variant}${contextCue}`,
+    action: getQuestionAction(input, isEnglish),
+    suggestions: isEnglish
+      ? ["Open the question in a reading", "Help me make this question clearer"]
+      : ["Levar esta pergunta para uma leitura", "Ajude-me a deixar a pergunta mais clara"],
+  };
+}
+
 export function replyToLume(
   input: string,
   surface: LumeSurface,
@@ -637,12 +855,5 @@ export function replyToLume(
         };
   }
 
-  const fallback = copy[locale][surface];
-  return {
-    text: isEnglish
-      ? `${fallback.text} If you tell me what you are trying to do, I can point you to the next step.`
-      : `${fallback.text} Se você me disser o que está tentando fazer, eu aponto o próximo passo.`,
-    action: fallback.action,
-    suggestions: fallback.suggestions,
-  };
+  return replyToOpenQuestion(input, text, locale, userContext);
 }

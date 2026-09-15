@@ -13,6 +13,7 @@ import {
   getLumeSurface,
   getLumeWelcome,
   LUME_NAME,
+  LUME_QUESTION_EVENT,
   replyToLume,
   type LumeAction,
   type LumeSurface,
@@ -72,6 +73,7 @@ export default function LumeGuide() {
   const [loadedContextScope, setLoadedContextScope] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [aiPending, setAiPending] = useState(false);
   const [conversation, setConversation] = useState<{
     scope: string;
     messages: LumeMessage[];
@@ -239,41 +241,85 @@ export default function LumeGuide() {
     : visibleMessages[visibleMessages.length - 1]?.suggestions ?? [];
   const visual = getLumeVisualAsset(surface, locale, userContext);
 
+  async function askLume(question: string) {
+    const cleanQuestion = question.trim();
+    if (!cleanQuestion || aiPending) return;
+
+    const currentMessages = visibleMessages;
+    const userMessageId = currentMessages.length + 1;
+    setConversation({
+      scope,
+      messages: [
+        ...currentMessages,
+        { id: userMessageId, role: "user", text: cleanQuestion },
+      ],
+    });
+    setInput("");
+    setAiPending(true);
+
+    const localReply = replyToLume(cleanQuestion, surface, locale, userContext);
+    let reply = localReply;
+    try {
+      const response = await fetch("/api/lume", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          question: cleanQuestion,
+          surface,
+          locale,
+          context: userContext,
+        }),
+      });
+      const data = (await response.json().catch(() => null)) as
+        | { reply?: { text?: unknown } }
+        | null;
+      const aiText = typeof data?.reply?.text === "string" ? data.reply.text.trim() : "";
+      if (response.ok && aiText) {
+        reply = { ...localReply, text: aiText };
+      }
+    } catch {
+      // The deterministic persona remains available when the provider is unavailable.
+    } finally {
+      setConversation({
+        scope,
+        messages: [
+          ...currentMessages,
+          { id: userMessageId, role: "user", text: cleanQuestion },
+          { id: userMessageId + 1, role: "lume", ...reply },
+        ],
+      });
+      setAiPending(false);
+    }
+  }
+
   function submit(event?: FormEvent) {
     event?.preventDefault();
     const question = input.trim();
     if (!question) return;
-
-    const reply = replyToLume(question, surface, locale, userContext);
-    const nextId = visibleMessages.length + 1;
-    setConversation({
-      scope,
-      messages: [
-        ...visibleMessages,
-        { id: nextId, role: "user", text: question },
-        { id: nextId + 1, role: "lume", ...reply },
-      ],
-    });
-    setInput("");
+    void askLume(question);
   }
 
   function askSuggestion(question: string) {
-    const reply = replyToLume(question, surface, locale, userContext);
-    const nextId = visibleMessages.length + 1;
-    setConversation({
-      scope,
-      messages: [
-        ...visibleMessages,
-        { id: nextId, role: "user", text: question },
-        { id: nextId + 1, role: "lume", ...reply },
-      ],
-    });
-    setInput("");
+    void askLume(question);
   }
 
   function toggleLume() {
     if (!open) setLoadedContextScope(null);
     setOpen(!open);
+  }
+
+  function handleLumeAction(action: LumeAction) {
+    if (action.question) {
+      try {
+        window.sessionStorage.setItem("pdu_lume_question", action.question);
+      } catch {
+        // The route remains useful even when session storage is unavailable.
+      }
+      window.dispatchEvent(
+        new CustomEvent<string>(LUME_QUESTION_EVENT, { detail: action.question })
+      );
+    }
+    setOpen(false);
   }
 
   return (
@@ -323,7 +369,7 @@ export default function LumeGuide() {
             </button>
           </header>
 
-          <div className="pdu-lume-guide-panel__body min-h-0 flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
+          <div className="pdu-lume-guide-panel__body min-h-0 flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite" aria-busy={aiPending}>
             {visibleMessages.map((message) => (
               <div key={message.id} className={message.role === "user" ? "ml-8" : "mr-4"}>
                 <div
@@ -338,7 +384,7 @@ export default function LumeGuide() {
                 {message.action ? (
                   <Link
                     href={message.action.href}
-                    onClick={() => setOpen(false)}
+                    onClick={() => handleLumeAction(message.action!)}
                     className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#f4d58d]/35 px-3 py-2 text-xs font-semibold text-[#f5d896] transition hover:border-[#f4d58d] hover:bg-[#f4d58d]/10"
                   >
                     {message.action.label}
@@ -347,7 +393,12 @@ export default function LumeGuide() {
                 ) : null}
               </div>
             ))}
-            {latestSuggestions.length ? (
+            {aiPending ? (
+              <div className="mr-4 rounded-2xl border border-white/10 bg-white/[0.06] px-3.5 py-3 text-sm text-[#cfc4b9]" aria-label={locale === "en" ? "Lume is thinking" : "Lume está pensando"}>
+                {locale === "en" ? "Lume is considering your question…" : "A Lume está considerando sua pergunta…"}
+              </div>
+            ) : null}
+            {!aiPending && latestSuggestions.length ? (
               <div className="flex flex-wrap gap-2 pt-1">
                 {latestSuggestions.map((suggestion) => (
                   <button
@@ -374,7 +425,7 @@ export default function LumeGuide() {
             <button
               type="submit"
               className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#a7d7c5] text-[#07120e] transition hover:bg-[#c1ecdc] disabled:opacity-45"
-              disabled={!input.trim()}
+              disabled={!input.trim() || aiPending}
               aria-label={locale === "en" ? "Send question" : "Enviar pergunta"}
             >
               <Send size={16} />

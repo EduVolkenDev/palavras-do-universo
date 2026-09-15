@@ -571,6 +571,9 @@ export default function MeuUniversoPage() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileNotice, setProfileNotice] = useState("");
   const [purchaseLoading, setPurchaseLoading] = useState("");
+  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+  const [checkoutReady, setCheckoutReady] = useState(false);
+  const [checkoutProductKey, setCheckoutProductKey] = useState("");
   const [checkoutNotice, setCheckoutNotice] = useState("");
   const [syncNotice, setSyncNotice] = useState("");
   const [loading, setLoading] = useState(true);
@@ -596,6 +599,8 @@ export default function MeuUniversoPage() {
     }
     const params = new URLSearchParams(window.location.search);
     if (params.get("checkout") === "success") {
+      setCheckoutSuccess(true);
+      setCheckoutProductKey(params.get("product") ?? "");
       setCheckoutNotice(
         "Pagamento recebido. Estamos confirmando seu acesso agora."
       );
@@ -635,6 +640,7 @@ export default function MeuUniversoPage() {
           const confirmData = (await confirmRes.json()) as unknown;
 
           if (confirmRes.ok) {
+            setCheckoutReady(true);
             setCheckoutNotice("Acesso liberado. Sua leitura já pode ser aberta abaixo.");
             if (isRecord(confirmData) && Array.isArray(confirmData.entitlements)) {
               setEntitlements(confirmData.entitlements as Entitlement[]);
@@ -979,6 +985,14 @@ export default function MeuUniversoPage() {
     .trim()
     .charAt(0)
     .toLocaleUpperCase(locale);
+  const checkoutProduct = productCards.find(
+    (product) => product.productKey === checkoutProductKey
+  );
+  const checkoutProductTitle = checkoutProduct
+    ? t(checkoutProduct.title)
+    : locale === "en"
+      ? "your new experience"
+      : "sua nova experiência";
 
   function openReadingProduct(productKey: string) {
     const product = productCards.find((item) => item.productKey === productKey);
@@ -1169,7 +1183,14 @@ export default function MeuUniversoPage() {
           </Link>
           <div className="pdu-universe-header__actions flex min-w-0 flex-wrap items-center justify-end gap-2 text-sm text-[#6f615a]">
             <Sparkles size={16} />
-            Meu Universo
+            <div className="flex flex-col leading-tight">
+              <span className="font-semibold text-[#4d3c31]">Meu Universo</span>
+              <span className="hidden text-[0.65rem] text-[#8a7667] sm:block">
+                {locale === "en"
+                  ? "Your profile, access and history"
+                  : "Seu perfil, acessos e histórico"}
+              </span>
+            </div>
             <ProductCurrencySwitch
               currency={productCurrency}
               locale={locale}
@@ -1219,18 +1240,100 @@ export default function MeuUniversoPage() {
       </header>
 
       <section className="pdu-universe-intro mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        {checkoutSuccess ? (
+          <section
+            id="ativacao-compra"
+            aria-labelledby="ativacao-compra-title"
+            className="mb-8 overflow-hidden rounded-[30px] border border-[#a9cdbf] bg-[#315d56] text-white shadow-[0_28px_90px_rgba(49,93,86,0.2)]"
+          >
+            <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="p-6 sm:p-8 lg:p-10">
+                <p className="inline-flex items-center gap-2 rounded-full border border-[#cde2d2]/30 bg-white/[0.08] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#d7f1df]">
+                  <CheckCircle2 size={14} />
+                  {checkoutReady
+                    ? locale === "en"
+                      ? "Purchase confirmed"
+                      : "Compra confirmada"
+                    : locale === "en"
+                      ? "Confirming your access"
+                      : "Confirmando seu acesso"}
+                </p>
+                <h2
+                  id="ativacao-compra-title"
+                  className="brand-serif mt-5 max-w-2xl text-4xl font-semibold leading-tight sm:text-5xl"
+                >
+                  {checkoutReady
+                    ? locale === "en"
+                      ? `Your access to ${checkoutProductTitle} is ready.`
+                      : `Seu acesso a ${checkoutProductTitle} está pronto.`
+                    : locale === "en"
+                      ? "Your payment went through. We are preparing your access."
+                      : "Seu pagamento foi recebido. Estamos preparando seu acesso."}
+                </h2>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-[#e1eee3] sm:text-base">
+                  {checkoutReady
+                    ? locale === "en"
+                      ? "This is your personal space. Start with the reading below, then return here whenever you want to find your purchases, saved readings and profile."
+                      : "Este é o seu espaço pessoal. Comece pela leitura abaixo e volte aqui sempre que quiser encontrar suas compras, leituras salvas e seu perfil."
+                    : checkoutNotice}
+                </p>
+              </div>
+              <div className="flex flex-col justify-between gap-6 bg-[#274b45] p-6 sm:p-8 lg:p-10">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#cde2d2]">
+                    {locale === "en" ? "Start here" : "Comece por aqui"}
+                  </p>
+                  <ol className="mt-4 space-y-3 text-sm leading-6 text-[#e1eee3]">
+                    <li className="flex gap-3">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#f4d58d] text-xs font-bold text-[#2b211c]">1</span>
+                      {locale === "en" ? "Click Start reading." : "Clique em Começar leitura."}
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#f4d58d] text-xs font-bold text-[#2b211c]">2</span>
+                      {locale === "en" ? "Write what is happening." : "Escreva o que está acontecendo."}
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#f4d58d] text-xs font-bold text-[#2b211c]">3</span>
+                      {locale === "en" ? "Meet your cards and next step." : "Conheça suas cartas e seu próximo passo."}
+                    </li>
+                  </ol>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={() => openReadingProduct(checkoutProductKey || "caminho_3_cartas")}
+                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#2b211c] transition hover:bg-[#f8e4b1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f4d58d]"
+                  >
+                    {locale === "en" ? "Start reading" : "Começar leitura"}
+                    <ArrowRight size={16} />
+                  </button>
+                  <a
+                    href="#acessos"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/25 bg-white/[0.08] px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.15] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  >
+                    {locale === "en" ? "See what is included" : "Ver o que está incluído"}
+                    <ArrowRight size={16} />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">
-              Histórico pessoal
+              {locale === "en" ? "Your personal space" : "Seu espaço pessoal"}
             </p>
             <h1 className="brand-serif mt-2 text-5xl font-semibold leading-none text-[#241b18] sm:text-6xl">
-              Suas mensagens começam a formar um mapa.
+              {locale === "en"
+                ? "Your profile, access and journey in one place."
+                : "Seu perfil, seus acessos e sua jornada em um só lugar."}
             </h1>
             <p className="mt-5 text-base leading-7 text-[#6f615a]">
-              Leituras, cartas salvas, decisões e ações viram um arquivo vivo:
-              um lugar para voltar, perceber padrões e abrir respostas com mais
-              contexto.
+              {locale === "en"
+                ? "Find what you bought, open the readings available to you, return to saved messages and adjust the context Lume uses to guide you."
+                : "Veja o que você comprou, abra as leituras liberadas, volte às mensagens salvas e ajuste o contexto que a Lume usa para acompanhar você."}
             </p>
             {!accountEmail ? (
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -1239,7 +1342,7 @@ export default function MeuUniversoPage() {
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-[#241b18] px-5 py-3 text-sm font-semibold text-[#fff7e8] shadow-[0_18px_50px_rgba(36,27,24,0.18)]"
                 >
                   <LogIn size={16} />
-                  Criar meu universo
+                  Entrar ou criar conta
                 </Link>
                 <Link
                   href="/#leitura"
@@ -1424,7 +1527,7 @@ export default function MeuUniversoPage() {
         ) : null}
 
         {checkoutNotice ? (
-          <div className="mt-6 rounded-lg border border-[#a9cdbf] bg-[#eef8f2] p-4 text-sm leading-6 text-[#315d56]">
+          <div className="mt-6 rounded-lg border border-[#a9cdbf] bg-[#eef8f2] p-4 text-sm leading-6 text-[#315d56] lg:hidden">
             {checkoutNotice}
           </div>
         ) : null}
@@ -1440,15 +1543,14 @@ export default function MeuUniversoPage() {
             <div className="grid gap-0 md:grid-cols-[1fr_auto] md:items-center">
               <div className="p-5 sm:p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">
-                  Próximo desbloqueio
+                  Seu espaço pessoal
                 </p>
                 <h2 className="brand-serif mt-2 text-3xl font-semibold text-[#332720]">
-                  Proteja seu histórico e abra o Mapa Inicial.
+                  Entre para encontrar seu perfil, suas compras e suas leituras.
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6f615a]">
-                  A conta transforma leituras soltas em continuidade: histórico
-                  remoto, compras, preferências e contexto para respostas mais
-                  pessoais.
+                  Depois de entrar, este espaço mostra o que está liberado para
+                  você e guarda sua jornada para não precisar recomeçar.
                 </p>
               </div>
               <div className="flex h-full flex-col justify-center gap-3 border-t border-[#e6d8c3] bg-[#f8efe2] p-5 md:border-l md:border-t-0">
@@ -1457,7 +1559,7 @@ export default function MeuUniversoPage() {
                   className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#241b18] px-5 py-3 text-sm font-semibold text-[#fff7e8]"
                 >
                   <LogIn size={16} />
-                  Entrar com e-mail
+                  Entrar ou criar conta
                 </Link>
                 <p className="text-center text-xs leading-5 text-[#8a7667]">
                   Leva menos de um minuto.
@@ -1492,25 +1594,25 @@ export default function MeuUniversoPage() {
                   {[
                     {
                       visual: PDU_ASSETS.surfaces.profile,
-                      title: locale === "en" ? "1. Calibrate" : "1. Calibrar",
+                      title: locale === "en" ? "1. Tell Lume" : "1. Conte à Lume",
                       text:
                         locale === "en"
-                          ? "Fill four signals in the Initial Map so readings stop feeling generic."
-                          : "Preencha quatro sinais no Mapa Inicial para as leituras deixarem de parecer genéricas.",
+                          ? "Share what you are living so readings can feel more personal."
+                          : "Conte o que você está vivendo para as leituras ficarem mais pessoais.",
                       href: "#mapa-inicial",
                     },
                     {
                       visual: PDU_ASSETS.surfaces.readings,
-                      title: locale === "en" ? "2. Open" : "2. Abrir",
+                      title: locale === "en" ? "2. Read" : "2. Fazer uma leitura",
                       text:
                         locale === "en"
-                          ? "Ask one real question and let three cards become your first record."
-                          : "Faça uma pergunta real e deixe três cartas virarem seu primeiro registro.",
+                          ? "Write one real question and meet your first cards."
+                          : "Escreva uma pergunta real e conheça suas primeiras cartas.",
                       href: "/#leitura",
                     },
                     {
                       visual: PDU_ASSETS.surfaces.action,
-                      title: locale === "en" ? "3. Act" : "3. Agir",
+                      title: locale === "en" ? "3. Choose a gesture" : "3. Escolher um gesto",
                       text:
                         locale === "en"
                           ? "Turn one sentence from the reading into a small action in real life."
@@ -1562,7 +1664,9 @@ export default function MeuUniversoPage() {
                     {t("Mapa Inicial")}
                   </p>
                   <h2 className="brand-serif mt-5 text-4xl font-semibold leading-tight">
-                    {t("Calibre o jeito que o Universo fala com você.")}
+                    {locale === "en"
+                      ? "Tell Lume how you are living."
+                      : "Conte à Lume como você está vivendo."}
                   </h2>
                   <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
                     {accountEmail
@@ -1577,7 +1681,16 @@ export default function MeuUniversoPage() {
                   <div className="mt-6 grid gap-3 text-sm">
                     {[
                       [t("Contexto"), `${profileCompletion}/5 ${t("sinais essenciais")}`],
-                      [t("Status"), profileComplete ? t("Calibrado") : t("Em aberto")],
+                      [
+                        t("Status"),
+                        profileComplete
+                          ? locale === "en"
+                            ? "Ready"
+                            : "Pronto"
+                          : locale === "en"
+                            ? "To complete"
+                            : "Para completar",
+                      ],
                       [t("Uso"), t("Aplicado nas próximas leituras")],
                     ].map(([label, value]) => (
                       <div
@@ -2072,15 +2185,23 @@ export default function MeuUniversoPage() {
           </section>
         ) : null}
 
-        <section className="mt-8 rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-5">
+        <section
+          id="acessos"
+          className="mt-8 scroll-mt-28 rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-5"
+        >
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
-                Acessos ativos
+                {locale === "en" ? "Available to you" : "Liberado para você"}
               </p>
               <h2 className="brand-serif mt-1 text-3xl font-semibold">
-                O que você pode abrir agora
+                {locale === "en" ? "Start with what you bought" : "Comece pelo que você comprou"}
               </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6f615a]">
+                {locale === "en"
+                  ? "Your subscriptions and one-off purchases appear here with the next action clearly marked."
+                  : "Suas assinaturas e compras avulsas aparecem aqui com o próximo passo indicado com clareza."}
+              </p>
             </div>
             <CheckCircle2 size={22} className="text-[#607464]" />
           </div>
@@ -2132,7 +2253,7 @@ export default function MeuUniversoPage() {
                     )}`}
                     className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#111019] px-4 py-2 text-sm font-semibold text-[#fff7e8] hover:bg-[#242130]"
                   >
-                    Abrir leitura
+                    {locale === "en" ? "Start reading" : "Começar leitura"}
                     <ArrowRight size={15} />
                   </Link>
                 </article>
@@ -2608,13 +2729,13 @@ function UniverseEmptyState({
       visual: PDU_ASSETS.surfaces.access,
       title:
         locale === "en"
-          ? "No active unlocks yet."
-          : "Nenhum desbloqueio ativo ainda.",
+          ? "Nothing is available here yet."
+          : "Ainda não há nada liberado aqui.",
       text:
         locale === "en"
-          ? "Paid readings and Circle access appear here after checkout. You can still calibrate your map and open the free reading first."
-          : "Leituras pagas e acesso ao Círculo aparecem aqui depois do checkout. Você ainda pode calibrar o mapa e abrir a leitura grátis primeiro.",
-      cta: locale === "en" ? "See experiences" : "Ver experiências",
+          ? "This is where your purchases and subscriptions will appear. You can start with a free reading while you decide."
+          : "É aqui que suas compras e assinaturas vão aparecer. Enquanto decide, você pode começar com uma leitura gratuita.",
+      cta: locale === "en" ? "Start a free reading" : "Começar leitura gratuita",
       href: "/#produtos",
     },
     actions: {

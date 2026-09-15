@@ -7,6 +7,7 @@ import {
   Bookmark,
   Check,
   CircleDollarSign,
+  ChevronDown,
   Compass,
   Ear,
   ExternalLink,
@@ -97,7 +98,7 @@ import { getSpreadForProduct } from "@/lib/tarot/spreads";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 import { PduAssetStory } from "@/components/PduAssetStory";
-import { LUME_NAME } from "@/lib/lume/persona";
+import { LUME_NAME, LUME_QUESTION_EVENT } from "@/lib/lume/persona";
 import { LumePresence, requestLumeOpen } from "@/components/LumeGuide";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
@@ -438,6 +439,19 @@ const ritualPrompts: Record<Locale, readonly string[]> = {
     "Breathe before asking",
     "Choose a theme honestly",
     "Read it as a mirror, not a verdict",
+  ],
+};
+
+const questionExamples: Record<Locale, readonly string[]> = {
+  "pt-BR": [
+    "O que eu preciso enxergar sobre esta decisão?",
+    "Por que continuo voltando a esse assunto?",
+    "Como posso atravessar melhor esta fase?",
+  ],
+  en: [
+    "What do I need to see about this decision?",
+    "Why do I keep returning to this subject?",
+    "How can I move through this phase better?",
   ],
 };
 
@@ -1318,6 +1332,7 @@ export default function Home() {
     useState<ReadingProfile>(EMPTY_READING_PROFILE);
   const [readingStateHydrated, setReadingStateHydrated] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [exploreMenuOpen, setExploreMenuOpen] = useState(false);
   const [headerCondensed, setHeaderCondensed] = useState(false);
   const [heroMarks, setHeroMarks] = useState<HeroMarkCandidate[]>([
     fallbackHeroMark,
@@ -1347,15 +1362,18 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!mobileMenuOpen) return;
+    if (!mobileMenuOpen && !exploreMenuOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMobileMenuOpen(false);
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+        setExploreMenuOpen(false);
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [mobileMenuOpen]);
+  }, [exploreMenuOpen, mobileMenuOpen]);
 
   useEffect(() => {
     let frame = 0;
@@ -1494,13 +1512,19 @@ export default function Home() {
     hasRestoredReadingStateRef.current = true;
 
     const params = new URLSearchParams(window.location.search);
+    const pendingLumeQuestion = window.sessionStorage.getItem("pdu_lume_question")?.trim() ?? "";
     const hasRouteOverride =
       params.has("product") ||
       params.has("acao") ||
       params.has("corrente") ||
-      params.has("continuar");
+      params.has("continuar") ||
+      Boolean(pendingLumeQuestion);
 
-    if (!hasRouteOverride) {
+    if (pendingLumeQuestion) {
+      setSuggestedQuestionSource("");
+      setQuestion(pendingLumeQuestion);
+      window.sessionStorage.removeItem("pdu_lume_question");
+    } else if (!hasRouteOverride) {
       const storedDraft = getLocalReadingDraft();
       if (storedDraft) {
         setTheme(storedDraft.theme);
@@ -1549,6 +1573,21 @@ export default function Home() {
 
     setReadingStateHydrated(true);
   }, [locale, t]);
+
+  useEffect(() => {
+    const applyLumeQuestion = (event: Event) => {
+      const value = (event as CustomEvent<string>).detail?.trim();
+      if (!value) return;
+
+      setSuggestedQuestionSource("");
+      setQuestion(value);
+      clearReadingView();
+      window.requestAnimationFrame(() => scrollToId("leitura"));
+    };
+
+    window.addEventListener(LUME_QUESTION_EVENT, applyLumeQuestion);
+    return () => window.removeEventListener(LUME_QUESTION_EVENT, applyLumeQuestion);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -2993,56 +3032,132 @@ export default function Home() {
             </span>
           </a>
 
-          <nav className="pdu-site-header__nav hidden items-center text-sm text-[#cfc4b9] md:flex">
-            <a href="#leitura" className="hover:text-white">
-              {t("Leitura")}
-            </a>
-            <Link href="/carta-do-dia" className="hover:text-white">
-              {t("Carta do Dia")}
+          <nav
+            className="pdu-site-header__nav hidden items-center text-sm text-[#cfc4b9] md:flex"
+            aria-label={t("Navegação principal")}
+          >
+            <div className="pdu-site-header__explore relative">
+              <button
+                type="button"
+                className="pdu-site-header__explore-trigger"
+                aria-expanded={exploreMenuOpen}
+                aria-controls="pdu-explore-menu"
+                onClick={() => setExploreMenuOpen((open) => !open)}
+              >
+                <Compass size={15} aria-hidden="true" />
+                {t("Explorar")}
+                <ChevronDown
+                  size={14}
+                  aria-hidden="true"
+                  className={exploreMenuOpen ? "rotate-180" : ""}
+                />
+              </button>
+              {exploreMenuOpen ? (
+                <div
+                  id="pdu-explore-menu"
+                  className="pdu-site-header__explore-menu"
+                  role="menu"
+                  aria-label={t("Explorar")}
+                >
+                  <p className="pdu-site-header__explore-kicker">
+                    {t("Escolha uma porta")}
+                  </p>
+                  <a
+                    href="#produtos"
+                    role="menuitem"
+                    onClick={() => setExploreMenuOpen(false)}
+                  >
+                    <BookOpen size={16} aria-hidden="true" />
+                    <span>
+                      <strong>{t("Leituras")}</strong>
+                      <small>{t("Escolha uma leitura para o seu momento")}</small>
+                    </span>
+                  </a>
+                  <Link
+                    href="/carta-do-dia"
+                    role="menuitem"
+                    onClick={() => setExploreMenuOpen(false)}
+                  >
+                    <Star size={16} aria-hidden="true" />
+                    <span>
+                      <strong>{t("Carta do Dia")}</strong>
+                      <small>{t("Um símbolo para começar o dia")}</small>
+                    </span>
+                  </Link>
+                  <Link
+                    href="/tiradas"
+                    role="menuitem"
+                    onClick={() => setExploreMenuOpen(false)}
+                  >
+                    <Compass size={16} aria-hidden="true" />
+                    <span>
+                      <strong>{t("Tiradas")}</strong>
+                      <small>{t("Jogos para perguntas diferentes")}</small>
+                    </span>
+                  </Link>
+                  <Link
+                    href="/baralho"
+                    role="menuitem"
+                    onClick={() => setExploreMenuOpen(false)}
+                  >
+                    <Bookmark size={16} aria-hidden="true" />
+                    <span>
+                      <strong>{t("Baralho")}</strong>
+                      <small>{t("Conheça as cartas antes da leitura")}</small>
+                    </span>
+                  </Link>
+                  <Link
+                    href="/lab"
+                    role="menuitem"
+                    onClick={() => setExploreMenuOpen(false)}
+                  >
+                    <Sparkles size={16} aria-hidden="true" />
+                    <span>
+                      <strong>{t("Laboratório")}</strong>
+                      <small>{t("Organize o que você está vivendo")}</small>
+                    </span>
+                  </Link>
+                </div>
+              ) : null}
+            </div>
+            <Link href="/profissionais" className="pdu-site-header__nav-link">
+              {t("Profissionais")}
             </Link>
-            <a href="#ritual" className="hover:text-white">
-              {t("Ritual")}
-            </a>
-            <a href="#produtos" className="hover:text-white">
-              {t("Leituras")}
-            </a>
-            <Link href="/tiradas" className="hover:text-white">
-              {t("Tiradas")}
-            </Link>
-           <Link href="/baralho" className="hover:text-white">
-             {t("Baralho")}
-           </Link>
-            <Link href="/lab" className="hover:text-white">
-              {t("Laboratório")}
-            </Link>
-           <Link href="/profissionais" className="hover:text-white">
-             {t("Profissionais")}
-            </Link>
-            <Link href="/profissionais/me" className="hover:text-white">
-              {t("Sou profissional")}
-            </Link>
-            <Link href="/meu-universo" className="hover:text-white">
-              {t("Meu Universo")}
+            <Link
+              href="/meu-universo"
+              className="pdu-site-header__profile"
+              aria-label={t("Meu espaço")}
+            >
+              <span className="pdu-site-header__profile-avatar" aria-hidden="true">
+                <UserRound size={17} />
+              </span>
+              <span className="pdu-site-header__profile-copy">
+                <strong>{t("Meu espaço")}</strong>
+                <small>{t("Perfil e acessos")}</small>
+              </span>
             </Link>
           </nav>
 
           <button
             type="button"
-            onClick={() => scrollToId("leitura")}
+            onClick={() => {
+              setExploreMenuOpen(false);
+              scrollToId("leitura");
+            }}
             className="pdu-site-header__cta hidden items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1c1308] shadow-[0_14px_38px_rgba(244,213,141,0.22)] hover:bg-[#ffe3a3] sm:inline-flex"
           >
-            <Sun size={16} />
-            {t("Mensagem de hoje")}
+            <ArrowRight size={16} />
+            {t("Começar uma leitura")}
           </button>
 
           <div className="pdu-site-header__mobile-actions flex items-center gap-2 md:hidden">
             <Link
-              href={buildLoginPath("/meu-universo")}
+              href="/meu-universo"
               className="pdu-site-header__mobile-account inline-flex items-center gap-1.5 rounded-full border border-[#f4d58d]/45 bg-[#f4d58d]/12 px-3 py-2 text-xs font-semibold text-[#fff7e8]"
-              aria-label={t("Entrar ou criar conta")}
+              aria-label={t("Meu espaço")}
             >
               <UserRound size={15} />
-              <span>{t("Entrar")}</span>
+              <span>{t("Perfil")}</span>
             </Link>
             <button
               type="button"
@@ -3050,7 +3165,10 @@ export default function Home() {
               aria-label={mobileMenuOpen ? t("Fechar menu") : t("Abrir menu")}
               aria-controls="pdu-mobile-menu"
               aria-expanded={mobileMenuOpen}
-              onClick={() => setMobileMenuOpen((open) => !open)}
+              onClick={() => {
+                setExploreMenuOpen(false);
+                setMobileMenuOpen((open) => !open);
+              }}
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -3064,38 +3182,83 @@ export default function Home() {
             role="dialog"
             aria-label={t("Navegação principal")}
           >
-            <nav className="grid gap-1" aria-label={t("Navegação principal")}>
-              <a href="#leitura" onClick={() => setMobileMenuOpen(false)}>
-                {t("Leitura")}
+            <div className="pdu-mobile-menu__welcome">
+              <p>{t("O que você quer fazer?")}</p>
+              <strong>{t("Escolha um próximo passo")}</strong>
+            </div>
+            <nav className="pdu-mobile-menu__primary" aria-label={t("Ações principais")}>
+              <a
+                href="#leitura"
+                className="pdu-mobile-menu__featured"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="pdu-mobile-menu__featured-icon">
+                  <ArrowRight size={17} aria-hidden="true" />
+                </span>
+                <span>
+                  <strong>{t("Fazer uma leitura")}</strong>
+                  <small>{t("Escreva uma pergunta e abra suas cartas")}</small>
+                </span>
+                <ArrowRight size={16} aria-hidden="true" />
               </a>
-              <Link href="/carta-do-dia" onClick={() => setMobileMenuOpen(false)}>
-                {t("Carta do Dia")}
-              </Link>
-              <a href="#ritual" onClick={() => setMobileMenuOpen(false)}>
-                {t("Ritual")}
-              </a>
-              <a href="#produtos" onClick={() => setMobileMenuOpen(false)}>
-                {t("Leituras")}
-              </a>
-              <Link href="/tiradas" onClick={() => setMobileMenuOpen(false)}>
-                {t("Tiradas")}
-              </Link>
-             <Link href="/baralho" onClick={() => setMobileMenuOpen(false)}>
-               {t("Baralho")}
-             </Link>
-              <Link href="/lab" onClick={() => setMobileMenuOpen(false)}>
-                {t("Laboratório")}
-              </Link>
-             <Link href="/profissionais" onClick={() => setMobileMenuOpen(false)}>
-               {t("Profissionais")}
-              </Link>
-              <Link href="/profissionais/me" onClick={() => setMobileMenuOpen(false)}>
-                {t("Sou profissional")}
-              </Link>
-              <Link href="/meu-universo" onClick={() => setMobileMenuOpen(false)}>
-                {t("Meu Universo")}
+              <button
+                type="button"
+                className="pdu-mobile-menu__featured pdu-mobile-menu__featured--soft"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  openDailyMessage();
+                }}
+              >
+                <span className="pdu-mobile-menu__featured-icon">
+                  <Sun size={17} aria-hidden="true" />
+                </span>
+                <span>
+                  <strong>{t("Mensagem de hoje")}</strong>
+                  <small>{t("Uma pausa curta para o agora")}</small>
+                </span>
+                <ArrowRight size={16} aria-hidden="true" />
+              </button>
+              <Link
+                href="/meu-universo"
+                className="pdu-mobile-menu__profile-card"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="pdu-site-header__profile-avatar" aria-hidden="true">
+                  <UserRound size={17} />
+                </span>
+                <span>
+                  <strong>{t("Meu espaço")}</strong>
+                  <small>{t("Perfil, compras e leituras")}</small>
+                </span>
+                <ArrowRight size={16} aria-hidden="true" />
               </Link>
             </nav>
+            <div className="pdu-mobile-menu__group">
+              <p>{t("Explorar")}</p>
+              <nav className="grid gap-1" aria-label={t("Explorar")}>
+                <a href="#produtos" onClick={() => setMobileMenuOpen(false)}>
+                  {t("Leituras")}
+                </a>
+                <Link href="/carta-do-dia" onClick={() => setMobileMenuOpen(false)}>
+                  {t("Carta do Dia")}
+                </Link>
+                <Link href="/tiradas" onClick={() => setMobileMenuOpen(false)}>
+                  {t("Tiradas")}
+                </Link>
+                <Link href="/baralho" onClick={() => setMobileMenuOpen(false)}>
+                  {t("Baralho")}
+                </Link>
+                <Link href="/lab" onClick={() => setMobileMenuOpen(false)}>
+                  {t("Laboratório")}
+                </Link>
+              </nav>
+            </div>
+            <div className="pdu-mobile-menu__group pdu-mobile-menu__group--last">
+              <p>{t("Apoio humano")}</p>
+              <Link href="/profissionais" onClick={() => setMobileMenuOpen(false)}>
+                {t("Conhecer profissionais")}
+              </Link>
+            </div>
             <Link
               href={buildLoginPath("/meu-universo")}
               onClick={() => setMobileMenuOpen(false)}
@@ -3705,14 +3868,43 @@ export default function Home() {
                       htmlFor="question"
                       className="mt-4 block text-sm font-semibold text-[#fff3df]"
                     >
-                      {t("Sua pergunta")}
+                      {locale === "en"
+                        ? "2. Write what is happening"
+                        : "2. Escreva o que está acontecendo"}
                     </label>
+                    <p className="mt-1 text-sm leading-6 text-[#cfc4b9]">
+                      {locale === "en"
+                        ? "You do not need the perfect words. Choose an example or write it in your own way."
+                        : "Você não precisa encontrar as palavras perfeitas. Escolha um exemplo ou escreva do seu jeito."}
+                    </p>
                     <div
                       className="pdu-ritual-prompts"
                       aria-label={t("Como abrir a leitura")}
                     >
                       {ritualPrompts[locale].map((prompt) => (
                         <span key={prompt}>{prompt}</span>
+                      ))}
+                    </div>
+                    <div
+                      className="mt-3 grid gap-2"
+                      aria-label={
+                        locale === "en"
+                          ? "Question examples"
+                          : "Exemplos de perguntas"
+                      }
+                    >
+                      {questionExamples[locale].map((example) => (
+                        <button
+                          key={example}
+                          type="button"
+                          onClick={() => {
+                            setSuggestedQuestionSource("example");
+                            setQuestion(example);
+                          }}
+                          className="rounded-[8px] border border-[#f4d58d]/20 bg-[#f4d58d]/[0.06] px-3 py-2.5 text-left text-sm leading-5 text-[#efe2d2] transition hover:border-[#f4d58d]/60 hover:bg-[#f4d58d]/[0.12] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f4d58d]"
+                        >
+                          {example}
+                        </button>
                       ))}
                     </div>
                     <textarea
@@ -3724,7 +3916,11 @@ export default function Home() {
                       }}
                       disabled={loading}
                       className="mt-2 min-h-28 w-full resize-none rounded-[8px] border border-white/12 bg-black/24 p-3 text-base leading-6 text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/70 focus:ring-2 focus:ring-[#f4d58d]/10 sm:text-sm"
-                      placeholder={t("O que eu preciso enxergar sobre este momento?")}
+                      placeholder={
+                        locale === "en"
+                          ? "Or write your own question here..."
+                          : "Ou escreva sua própria pergunta aqui..."
+                      }
                     />
 
                     <button

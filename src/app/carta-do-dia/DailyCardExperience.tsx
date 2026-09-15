@@ -289,43 +289,49 @@ export function DailyCardExperience() {
                 )}
               </div>
 
-              <p className="brand-serif mt-6 text-2xl leading-9 text-[#fff3df]">
-                {daily?.reading.meaning ??
-                  t("Respire por um instante. A carta do dia fica guardada para você até a meia-noite.")}
-              </p>
+              <div className="mt-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#f5d896]">
+                  {t("Leitura de hoje")}
+                </p>
+                <p className="brand-serif mt-2 text-2xl leading-9 text-[#fff3df]">
+                  {daily?.reading.meaning ??
+                    t("Respire por um instante. A carta do dia fica guardada para você até a meia-noite.")}
+                </p>
+              </div>
 
               {daily ? (
-                <div className="mt-6 space-y-4 text-sm leading-7 text-[#d8ccc0]">
+                <div className="mt-6 space-y-3 text-sm leading-7 text-[#d8ccc0]">
                   <div className="rounded-[8px] border border-[#f4d58d]/20 bg-[#f4d58d]/[0.06] p-4">
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#f5d896]">
-                      {t("O que representa")}
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#f5d896]">
+                      {t("A palavra, em linguagem simples")}
                     </p>
-                    <p>{daily.reading.coreMeaning}</p>
-                    <p className="mt-3 italic text-[#a7d7c5]">
-                      <span className="not-italic font-semibold">
-                        {t("Pergunta para levar:")}{" "}
-                      </span>
-                      {daily.reading.lifeQuestion}
+                    <p className="mt-2">
+                      <span className="font-semibold text-[#fff3df]">
+                        {daily.reading.keyword}:
+                      </span>{" "}
+                      {daily.reading.coreMeaning}
                     </p>
                   </div>
-                  <p>
-                    <span className="font-semibold text-[#f5d896]">
-                      {t("Conselho:")}
-                    </span>{" "}
-                    {daily.reading.counsel}
-                  </p>
-                  <p>
-                    <span className="font-semibold text-[#f5d896]">
-                      {t("Pergunta:")}
-                    </span>{" "}
-                    {daily.reading.reflection_prompt}
-                  </p>
-                  <p>
-                    <span className="font-semibold text-[#f5d896]">
-                      {t("Ritual:")}
-                    </span>{" "}
-                    {daily.reading.ritual}
-                  </p>
+                  <section className="rounded-[8px] border border-[#a7d7c5]/20 bg-[#a7d7c5]/[0.055] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#a7d7c5]">
+                      {t("Pergunta para o seu momento")}
+                    </p>
+                    <p className="mt-2 text-base italic text-[#e6f4ec]">
+                      {daily.reading.lifeQuestion}
+                    </p>
+                  </section>
+                  <section className="rounded-[8px] border border-white/10 bg-white/[0.045] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#f5d896]">
+                      {t("O que fazer agora")}
+                    </p>
+                    <p className="mt-2">{daily.reading.counsel}</p>
+                  </section>
+                  <section className="rounded-[8px] border border-white/10 bg-black/10 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#f5d896]">
+                      {t("Faça agora · 5 minutos")}
+                    </p>
+                    <p className="mt-2">{daily.reading.ritual}</p>
+                  </section>
                 </div>
               ) : null}
 

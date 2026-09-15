@@ -61,6 +61,41 @@ test("the language bridge avoids scripts and batches live DOM updates", async ()
   assert.match(lume, /aria-modal="true"/);
 });
 
+test("Lume AI stays server-side and keeps a deterministic fallback", async () => {
+  const route = await source("src/app/api/lume/route.ts");
+  const provider = await source("src/lib/ai/anthropic.ts");
+  const lume = await source("src/components/LumeGuide.tsx");
+
+  assert.match(route, /checkRateLimit/);
+  assert.match(route, /strict: true/);
+  assert.match(route, /generateAnthropicText/);
+  assert.match(route, /ALLOWED_SURFACES/);
+  assert.match(route, /claude-haiku-4-5-20251001/);
+  assert.doesNotMatch(route, /NEXT_PUBLIC_.*ANTHROPIC/);
+  assert.match(provider, /server-only/);
+  assert.match(provider, /process\.env\.ANTHROPIC_API_KEY/);
+  assert.match(lume, /fetch\("\/api\/lume"/);
+  assert.match(lume, /const localReply = replyToLume/);
+  assert.match(lume, /The deterministic persona remains available/);
+});
+
+test("PDU gateway remains opt-in and capability-scoped", async () => {
+  const adapter = await source("src/lib/ai/anthropic.ts");
+  assert.match(adapter, /PDU_AI_GATEWAY_URL/);
+  assert.match(adapter, /PDU_AI_GATEWAY_TOKEN/);
+  assert.match(adapter, /product: "pdu"/);
+  assert.match(adapter, /capability/);
+  assert.match(await source(".env.example"), /PDU_AI_GATEWAY_URL=/);
+  assert.match(await source(".env.example"), /PDU_AI_GATEWAY_TOKEN=/);
+});
+
+test("Lume only opens professionals for explicit human-support language", async () => {
+  const persona = await source("src/lib/lume/persona.ts");
+  assert.match(persona, /Require an explicit/);
+  assert.match(persona, /terapeut\|terapia\|psicolog\|profission/);
+  assert.doesNotMatch(persona, /if \(\/\(terapeut\|profission\|atend\|sessao/);
+});
+
 test("same-origin telemetry accepts only loopback request hosts outside public origins", async () => {
   const proxy = await source("src/proxy.ts");
 

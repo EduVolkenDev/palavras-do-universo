@@ -1,10 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
-
-const DEFAULT_MODEL = "claude-sonnet-4-6";
-// Long spreads need enough time to interpret every position without silently
-// falling back before the provider has finished generating the response.
-const DEFAULT_TIMEOUT_MS = 45_000;
-const DEFAULT_MAX_RETRIES = 0;
+import { generateAnthropicText } from "@/lib/ai/anthropic";
 
 type ReadingGenerationLimits = {
   maxTokens: number;
@@ -33,53 +27,27 @@ function normalizeReadingText(text: string) {
     .trim();
 }
 
-function readBoundedNumber(value: string | undefined, fallback: number, min: number, max: number) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return fallback;
-  return Math.min(Math.max(Math.trunc(parsed), min), max);
-}
-
 export async function generateReadingAI(
   prompt: string,
   limits: ReadingGenerationLimits
 ) {
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY is not configured");
+  let text: string;
+  try {
+    text = normalizeReadingText(
+      await generateAnthropicText({
+        user: prompt,
+        maxTokens: limits.maxTokens,
+        temperature: 0.7,
+        model: process.env.ANTHROPIC_MODEL,
+        capability: "reading",
+      })
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("output token limit")) {
+      throw new Error("Anthropic reading exceeded the output token limit");
+    }
+    throw error;
   }
-
-  const client = new Anthropic({
-    apiKey,
-    timeout: readBoundedNumber(
-      process.env.ANTHROPIC_TIMEOUT_MS,
-      DEFAULT_TIMEOUT_MS,
-      5_000,
-      45_000
-    ),
-    maxRetries: readBoundedNumber(
-      process.env.ANTHROPIC_MAX_RETRIES,
-      DEFAULT_MAX_RETRIES,
-      0,
-      1
-    ),
-  });
-  const response = await client.messages.create({
-    model: process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL,
-    max_tokens: limits.maxTokens,
-    temperature: 0.7,
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  if (response.stop_reason === "max_tokens") {
-    throw new Error("Anthropic reading exceeded the output token limit");
-  }
-
-  const text = normalizeReadingText(
-    response.content
-      .filter((block) => block.type === "text")
-      .map((block) => block.text)
-      .join("\n")
-  );
 
   if (!text) {
     throw new Error("Anthropic returned an empty reading");
