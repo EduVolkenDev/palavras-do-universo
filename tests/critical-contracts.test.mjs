@@ -205,6 +205,7 @@ test("voucher invitations validate delivery and keep a recovery path", async () 
   assert.match(email, /no-reply@palavrasdouniverso\.com/);
   assert.match(email, /MAX_SEND_ATTEMPTS/);
   assert.match(email, /recipient_name/);
+  assert.match(email, /voucher\.kind === "discount"/);
   assert.match(service, /recipientName/);
   assert.match(route, /action === "resend"/);
   assert.match(admin, /Reenviar voucher por e-mail/);
