@@ -20,6 +20,7 @@ type AdminVoucherBody = {
   voucher?: unknown;
   status?: unknown;
   targetEmail?: unknown;
+  targetName?: unknown;
   targetUserId?: unknown;
   transferGrantedAccess?: unknown;
 };
@@ -77,7 +78,11 @@ export async function POST(req: Request) {
     if (!voucherId) return badRequest("Missing voucher id");
 
     if (action === "resend") {
-      const resent = await resendVoucherEmail(auth.user, voucherId);
+      const resent = await resendVoucherEmail(
+        auth.user,
+        voucherId,
+        typeof body.targetName === "string" ? body.targetName : null
+      );
       return NextResponse.json({ ok: true, ...resent });
     }
 

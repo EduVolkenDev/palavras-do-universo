@@ -13,15 +13,17 @@ export type VoucherEmailInput = {
   code: string;
   label: string;
   description: string | null;
+  kind: "invite" | "discount" | "hybrid";
   share_url: string;
   primary_title: string | null;
   target_email: string | null;
+  recipient_name: string | null;
   grant_expires_days: number | null;
 };
 
 export type VoucherEmailDelivery =
   | { status: "sent" }
-  | { status: "skipped"; reason: "missing_recipient" }
+  | { status: "skipped"; reason: "missing_recipient" | "missing_recipient_name" }
   | {
       status: "failed";
       reason: "not_configured" | "invalid_sender" | "send_failed";
@@ -80,19 +82,46 @@ function getAccessDuration(days: number | null) {
   return days === 1 ? "1 dia" : `${days} dias`;
 }
 
+function getRecipientName(value: string | null) {
+  return value?.replace(/[\r\n]+/g, " ").trim().slice(0, 120) || null;
+}
+
 function buildVoucherEmail(voucher: VoucherEmailInput) {
   const title = (voucher.primary_title || "Meu Universo")
     .replace(/[\r\n]+/g, " ")
     .trim()
     .slice(0, 120);
   const duration = getAccessDuration(voucher.grant_expires_days);
-  const subject = `Seu convite para o ${title}`;
+  const recipientName = getRecipientName(voucher.recipient_name);
+  const isDiscount = voucher.kind === "discount";
+  const isHybrid = voucher.kind === "hybrid";
+  const benefit = isHybrid
+    ? "um convite com desconto especial"
+    : isDiscount
+      ? "um desconto especial"
+      : "um convite especial";
+  const benefitLabel = isHybrid ? "Acesso e desconto" : isDiscount ? "Desconto" : "Acesso";
+  const actionLabel = isHybrid
+    ? "Ativar meu convite e desconto"
+    : isDiscount
+      ? "Ativar meu desconto"
+      : "Resgatar meu convite";
+  const recipientSuffix = recipientName ? `, ${recipientName}` : "";
+  const subject = isHybrid
+    ? `Seu convite e desconto chegaram${recipientSuffix}`
+    : isDiscount
+      ? `Seu desconto chegou${recipientSuffix}`
+      : `Seu convite chegou${recipientSuffix}`;
+  const durationLine = voucher.grant_expires_days
+    ? `Validade: ${duration} a partir do resgate`
+    : null;
   const text = [
-    "Olá,",
+    recipientName
+      ? `Olá ${recipientName}, você recebeu ${benefit} do Palavras do Universo.`
+      : `Olá, você recebeu ${benefit} do Palavras do Universo.`,
     "",
-    "Você recebeu um convite especial do Palavras do Universo.",
-    `Acesso: ${title}`,
-    `Validade: ${duration} a partir do resgate`,
+    `${benefitLabel}: ${title}`,
+    ...(durationLine ? [durationLine] : []),
     "",
     `Código: ${voucher.code}`,
     `Resgate seu convite: ${voucher.share_url}`,
@@ -107,16 +136,16 @@ function buildVoucherEmail(voucher: VoucherEmailInput) {
     <div style="margin:0;background:#120f16;padding:32px 16px;font-family:Arial,sans-serif;color:#f3eadf">
       <div style="max-width:560px;margin:0 auto;border:1px solid #4e473f;border-radius:24px;background:#1b171f;padding:32px">
         <p style="margin:0 0 20px;color:#f4d58d;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Palavras do Universo</p>
-        <h1 style="margin:0 0 16px;font-size:28px;line-height:1.2;color:#fff7e8">Você recebeu um convite</h1>
+        <h1 style="margin:0 0 16px;font-size:28px;line-height:1.2;color:#fff7e8">${escapeHtml(recipientName ? `Olá ${recipientName}, você recebeu ${benefit}` : `Você recebeu ${benefit}`)}</h1>
         <p style="margin:0 0 24px;font-size:16px;line-height:1.7;color:#dbcfc1">Um acesso especial foi preparado para você.</p>
         <div style="margin:0 0 24px;border:1px solid #5e5137;border-radius:16px;background:#231d18;padding:20px">
-          <p style="margin:0 0 8px;color:#cdbfae;font-size:13px">Acesso</p>
+          <p style="margin:0 0 8px;color:#cdbfae;font-size:13px">${escapeHtml(benefitLabel)}</p>
           <p style="margin:0;color:#fff7e8;font-size:18px;font-weight:700">${escapeHtml(title)}</p>
-          <p style="margin:10px 0 0;color:#f4d58d;font-size:14px">${escapeHtml(duration)} a partir do resgate</p>
+          ${durationLine ? `<p style="margin:10px 0 0;color:#f4d58d;font-size:14px">${escapeHtml(durationLine.replace("Validade: ", ""))}</p>` : ""}
         </div>
         <p style="margin:0 0 8px;color:#cdbfae;font-size:13px">Seu código</p>
         <p style="margin:0 0 24px;color:#fff7e8;font-size:22px;font-weight:700;letter-spacing:1px">${escapeHtml(voucher.code)}</p>
-        <a href="${escapeHtml(voucher.share_url)}" style="display:inline-block;border-radius:999px;background:#f4d58d;padding:13px 20px;color:#211a14;font-size:15px;font-weight:700;text-decoration:none">Resgatar meu convite</a>
+        <a href="${escapeHtml(voucher.share_url)}" style="display:inline-block;border-radius:999px;background:#f4d58d;padding:13px 20px;color:#211a14;font-size:15px;font-weight:700;text-decoration:none">${escapeHtml(actionLabel)}</a>
         <p style="margin:24px 0 0;color:#cdbfae;font-size:13px;line-height:1.7">Use o mesmo e-mail para o qual esta mensagem foi enviada ao criar ou acessar sua conta.</p>
         <p style="margin:24px 0 0;color:#cdbfae;font-size:14px;line-height:1.7">${escapeHtml(voucher.description || "Com carinho, Palavras do Universo")}</p>
       </div>
@@ -131,6 +160,10 @@ export async function sendVoucherEmail(
 ): Promise<VoucherEmailDelivery> {
   const targetEmail = clean(voucher.target_email ?? undefined).toLowerCase();
   if (!targetEmail) return { status: "skipped", reason: "missing_recipient" };
+  if (!getRecipientName(voucher.recipient_name)) {
+    console.error("[voucher-email] recipient name is missing", { voucherId: voucher.id });
+    return { status: "skipped", reason: "missing_recipient_name" };
+  }
 
   const mailer = getTransporter();
   if (!mailer) {

@@ -41,6 +41,7 @@ type VoucherView = {
   grant_usage_limit: number | null;
   grant_expires_days: number | null;
   discount_percent: number | null;
+  metadata: Record<string, unknown> | null;
   share_url: string;
   primary_title: string | null;
   created_at: string;
@@ -48,7 +49,7 @@ type VoucherView = {
 
 type VoucherEmailDelivery =
   | { status: "sent" }
-  | { status: "skipped"; reason: "missing_recipient" }
+  | { status: "skipped"; reason: "missing_recipient" | "missing_recipient_name" }
   | {
       status: "failed";
       reason: "not_configured" | "invalid_sender" | "send_failed";
@@ -74,6 +75,7 @@ type VoucherFormState = {
   maxUses: string;
   expiresAt: string;
   targetEmail: string;
+  targetName: string;
   transferable: boolean;
 };
 
@@ -99,6 +101,7 @@ const DEFAULT_FORM: VoucherFormState = {
   maxUses: "1",
   expiresAt: "",
   targetEmail: "",
+  targetName: "",
   transferable: false,
 };
 
@@ -165,6 +168,7 @@ export default function VoucherAdminPage({
   const [form, setForm] = useState<VoucherFormState>(DEFAULT_FORM);
   const [transferEmail, setTransferEmail] = useState<Record<string, string>>({});
   const [transferAccess, setTransferAccess] = useState<Record<string, boolean>>({});
+  const [resendName, setResendName] = useState<Record<string, string>>({});
 
   const summary = useMemo(
     () => ({
@@ -245,6 +249,7 @@ export default function VoucherAdminPage({
           maxUses: Number(form.maxUses || "1"),
           expiresAt: fromDateTimeLocal(form.expiresAt),
           targetEmail: form.targetEmail || null,
+          targetName: form.targetName || null,
           transferable: form.transferable,
         },
       });
@@ -320,7 +325,11 @@ export default function VoucherAdminPage({
     setMessage("");
     setResendingVoucherId(voucherId);
     try {
-      const result = await postAdmin({ action: "resend", id: voucherId });
+      const result = await postAdmin({
+        action: "resend",
+        id: voucherId,
+        targetName: resendName[voucherId]?.trim() || null,
+      });
       if (result.email?.status === "sent") {
         setMessage(t("E-mail do voucher reenviado."));
       } else {
@@ -686,6 +695,18 @@ export default function VoucherAdminPage({
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2">
+                  <span className="text-sm font-semibold text-[#f3eadf]">{t("Nome do destinatário")}</span>
+                  <input
+                    value={form.targetName}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, targetName: event.target.value }))
+                    }
+                    required={Boolean(form.targetEmail.trim())}
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                    placeholder="Max"
+                  />
+                </label>
+                <label className="space-y-2">
                   <span className="text-sm font-semibold text-[#f3eadf]">{t("Reservado para e-mail")}</span>
                   <input
                     type="email"
@@ -873,15 +894,38 @@ export default function VoucherAdminPage({
                           </button>
 
                           {voucher.target_email ? (
-                            <button
-                              type="button"
-                              onClick={() => void handleResend(voucher.id)}
-                              disabled={resendingVoucherId === voucher.id}
-                              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#8faea3] bg-[#10251f] px-4 py-3 text-sm font-semibold text-[#c6eadb]"
-                            >
-                              <RefreshCw size={15} />
-                              {t("Reenviar voucher por e-mail")}
-                            </button>
+                            <>
+                              <label className="space-y-2">
+                                <span className="text-sm font-semibold text-[#f3eadf]">
+                                  {t("Nome para o e-mail")}
+                                </span>
+                                <input
+                                  value={
+                                    resendName[voucher.id] ??
+                                    (typeof voucher.metadata?.recipient_name === "string"
+                                      ? voucher.metadata.recipient_name
+                                      : "")
+                                  }
+                                  onChange={(event) =>
+                                    setResendName((current) => ({
+                                      ...current,
+                                      [voucher.id]: event.target.value,
+                                    }))
+                                  }
+                                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                                  placeholder="Max"
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => void handleResend(voucher.id)}
+                                disabled={resendingVoucherId === voucher.id}
+                                className="inline-flex items-center justify-center gap-2 rounded-full border border-[#8faea3] bg-[#10251f] px-4 py-3 text-sm font-semibold text-[#c6eadb] disabled:cursor-default disabled:opacity-60"
+                              >
+                                <RefreshCw size={15} />
+                                {t("Reenviar voucher por e-mail")}
+                              </button>
+                            </>
                           ) : null}
 
                           {voucher.status === "active" ? (

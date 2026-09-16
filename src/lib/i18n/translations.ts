@@ -918,6 +918,8 @@ const en: Record<string, string> = {
   "Carregando vouchers...": "Loading vouchers...",
   "Copiar link de resgate": "Copy redemption link",
   "Reenviar voucher por e-mail": "Resend voucher by email",
+  "Nome do destinatário": "Recipient name",
+  "Nome para o e-mail": "Name for the email",
   "Pausar": "Pause",
   "Reativar": "Reactivate",
   "Cancelar": "Cancel",

@@ -70,6 +70,7 @@ export type VoucherRedemptionRow = {
 export type VoucherAudience = {
   targetEmail?: string | null;
   targetUserId?: string | null;
+  targetName?: string | null;
   transferable?: boolean;
 };
 
@@ -198,6 +199,8 @@ function validateVoucherInput(input: VoucherCreateInput | VoucherUpdateInput, st
     "targetEmail" in input
       ? cleanText(input.targetEmail, 320)?.toLowerCase() ?? null
       : null;
+  const targetName =
+    "targetName" in input ? cleanText(input.targetName, 120) : null;
 
   if (strict) {
     if (!label) throw new Error("Label is required");
@@ -231,6 +234,7 @@ function validateVoucherInput(input: VoucherCreateInput | VoucherUpdateInput, st
     expiresAt: "expiresAt" in input ? cleanText(input.expiresAt, 80) : null,
     targetEmail,
     targetUserId: "targetUserId" in input ? cleanText(input.targetUserId, 120) : null,
+    targetName,
     transferable:
       "transferable" in input && typeof input.transferable === "boolean"
         ? input.transferable
@@ -268,7 +272,7 @@ async function resolveProfileByEmail(email: string) {
 
   const { data } = await getSupabaseAdmin()
     .from("profiles")
-    .select("id,email")
+    .select("id,email,display_name")
     .ilike("email", normalized)
     .order("updated_at", { ascending: false })
     .limit(1)
@@ -303,9 +307,21 @@ export async function createVoucher(actor: User, input: VoucherCreateInput) {
   const code = normalizeVoucherCode(input.code) || createCode(parsed.kind as VoucherKind);
 
   let targetUserId = parsed.targetUserId;
-  if (!targetUserId && parsed.targetEmail) {
-    targetUserId = (await resolveProfileByEmail(parsed.targetEmail))?.id ?? null;
+  let targetProfile: { id: string; email: string | null; display_name: string | null } | null = null;
+  if (parsed.targetEmail) {
+    targetProfile = await resolveProfileByEmail(parsed.targetEmail);
+    if (!targetUserId) targetUserId = targetProfile?.id ?? null;
   }
+
+  const recipientName = parsed.targetName || targetProfile?.display_name?.trim() || null;
+  if (parsed.targetEmail && !recipientName) {
+    throw new Error("Enter the recipient name before sending the voucher");
+  }
+
+  const metadata = {
+    ...parsed.metadata,
+    ...(recipientName ? { recipient_name: recipientName } : {}),
+  };
 
   const { data, error } = await getSupabaseAdmin()
     .from("voucher_codes")
@@ -327,7 +343,7 @@ export async function createVoucher(actor: User, input: VoucherCreateInput) {
       grant_usage_limit: parsed.grantUsageLimit,
       grant_expires_days: parsed.grantExpiresDays,
       discount_percent: parsed.discountPercent,
-      metadata: parsed.metadata,
+      metadata,
       created_by: actor.id,
       last_updated_by: actor.id,
     })
@@ -347,11 +363,18 @@ export async function createVoucher(actor: User, input: VoucherCreateInput) {
     primary_title: getProductTitle(data.product_key),
   } satisfies VoucherView;
 
-  const email: VoucherEmailDelivery = await sendVoucherEmail(voucher);
+  const email: VoucherEmailDelivery = await sendVoucherEmail({
+    ...voucher,
+    recipient_name: recipientName,
+  });
   return { voucher, email };
 }
 
-export async function resendVoucherEmail(actor: User, voucherId: string) {
+export async function resendVoucherEmail(
+  actor: User,
+  voucherId: string,
+  requestedName?: string | null
+) {
   await ensureSupabaseProfile(actor.id);
   const { data, error } = await getSupabaseAdmin()
     .from("voucher_codes")
@@ -369,13 +392,39 @@ export async function resendVoucherEmail(actor: User, voucherId: string) {
     throw new Error("Expired vouchers cannot be emailed");
   }
 
+  const metadata =
+    storedVoucher.metadata && typeof storedVoucher.metadata === "object"
+      ? { ...storedVoucher.metadata }
+      : {};
+  let recipientName = cleanText(requestedName, 120) || cleanText(metadata.recipient_name, 120);
+  if (!recipientName && storedVoucher.target_email) {
+    recipientName = (await resolveProfileByEmail(storedVoucher.target_email))?.display_name?.trim() || null;
+  }
+
+  if (recipientName && metadata.recipient_name !== recipientName) {
+    const { data: updated, error: updateError } = await getSupabaseAdmin()
+      .from("voucher_codes")
+      .update({
+        metadata: { ...metadata, recipient_name: recipientName },
+        last_updated_by: actor.id,
+      })
+      .eq("id", voucherId)
+      .select("*")
+      .single();
+    if (updateError) throw updateError;
+    Object.assign(storedVoucher, updated as VoucherRow);
+  }
+
   const voucher = {
     ...storedVoucher,
-    share_url: getShareUrl(data.code),
-    primary_title: getProductTitle(data.product_key),
+    share_url: getShareUrl(storedVoucher.code),
+    primary_title: getProductTitle(storedVoucher.product_key),
   } satisfies VoucherView;
 
-  const email: VoucherEmailDelivery = await sendVoucherEmail(voucher);
+  const email: VoucherEmailDelivery = await sendVoucherEmail({
+    ...voucher,
+    recipient_name: recipientName,
+  });
   return { voucher, email };
 }
 
