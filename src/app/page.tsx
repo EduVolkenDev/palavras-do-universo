@@ -98,6 +98,7 @@ import { getSpreadForProduct } from "@/lib/tarot/spreads";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 import { PduAssetStory } from "@/components/PduAssetStory";
+import VoucherCodeEntry from "@/components/vouchers/VoucherCodeEntry";
 import { LUME_NAME, LUME_QUESTION_EVENT } from "@/lib/lume/persona";
 import { LumePresence, requestLumeOpen } from "@/components/LumeGuide";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -3377,6 +3378,8 @@ export default function Home() {
                   {t("Notificações ativas — clique para desativar")}
                 </button>
               ) : null}
+
+              <VoucherCodeEntry />
 
             </div>
 

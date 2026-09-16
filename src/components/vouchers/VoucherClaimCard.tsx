@@ -4,6 +4,8 @@ import { CheckCircle2, Loader2, Percent, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useI18n } from "@/components/I18nProvider";
+import { buildLoginPath } from "@/lib/auth/redirect";
+import { getVoucherErrorMessage } from "@/lib/vouchers/client";
 
 export default function VoucherClaimCard({
   code,
@@ -43,7 +45,7 @@ export default function VoucherClaimCard({
       };
 
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || t("Não foi possível ativar o código."));
+        throw new Error(data.error || "Voucher redemption failed");
       }
 
       if (data.mode === "discount") {
@@ -65,14 +67,17 @@ export default function VoucherClaimCard({
         router.refresh();
       }, 700);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : t("Não foi possível ativar o código."));
+      setError(getVoucherErrorMessage(caught, t));
     } finally {
       setLoading(false);
     }
   }
 
+  const requiresLogin = !isAuthenticated && kind === "invite";
   const cta =
-    kind === "discount"
+    requiresLogin
+      ? t("Entrar para resgatar")
+      : kind === "discount"
       ? t("Ativar desconto")
       : kind === "hybrid"
         ? t("Resgatar acesso e desconto")
@@ -98,8 +103,14 @@ export default function VoucherClaimCard({
 
       <button
         type="button"
-        onClick={() => void handleRedeem()}
-        disabled={loading || (!isAuthenticated && kind !== "discount")}
+        onClick={() => {
+          if (requiresLogin) {
+            window.location.href = buildLoginPath(`/voucher/${encodeURIComponent(code)}`);
+            return;
+          }
+          void handleRedeem();
+        }}
+        disabled={loading}
         className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#1b1713] disabled:cursor-default disabled:opacity-60"
       >
         {loading ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}

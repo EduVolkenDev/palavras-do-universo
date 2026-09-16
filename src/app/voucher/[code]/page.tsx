@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import VoucherClaimCard from "@/components/vouchers/VoucherClaimCard";
-import { buildLoginPath } from "@/lib/auth/redirect";
 import { getAuthenticatedUser, hasSupabaseConfig } from "@/lib/supabase/server";
 import { getVoucherByCode } from "@/lib/vouchers/service";
 import { pricingPlans, productCards } from "@/lib/product/catalog";
@@ -138,15 +137,7 @@ export default async function VoucherClaimPage(props: {
         )}
 
         <div className="mt-8 flex flex-wrap gap-3">
-          {!user ? (
-            <Link
-              href={buildLoginPath(`/voucher/${encodeURIComponent(code)}`)}
-              className="inline-flex items-center gap-2 rounded-full border border-[#4e473f] bg-[#18141d] px-5 py-3 text-sm font-semibold text-[#efe2d2]"
-            >
-              Entrar para continuar
-              <ArrowRight size={15} />
-            </Link>
-          ) : (
+          {voucher && user ? (
             <Link
               href="/meu-universo"
               className="inline-flex items-center gap-2 rounded-full border border-[#4e473f] bg-[#18141d] px-5 py-3 text-sm font-semibold text-[#efe2d2]"
@@ -154,7 +145,15 @@ export default async function VoucherClaimPage(props: {
               Abrir Meu Universo
               <ArrowRight size={15} />
             </Link>
-          )}
+          ) : voucher ? (
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-full border border-[#4e473f] bg-[#18141d] px-5 py-3 text-sm font-semibold text-[#efe2d2]"
+            >
+              Voltar para a página inicial
+              <ArrowRight size={15} />
+            </Link>
+          ) : null}
         </div>
       </section>
       <PduAssetStory {...PDU_ASSET_STORIES.auth} />
