@@ -64,6 +64,7 @@ import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { PduAssetStory } from "@/components/PduAssetStory";
 import { LumePresence } from "@/components/LumeGuide";
 import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
+import { AstrologyBirthProfileCard } from "@/components/astrology/AstrologyBirthProfileCard";
 import {
   EMPTY_READING_PROFILE,
   createUserContext,
@@ -1571,6 +1572,7 @@ export default function MeuUniversoPage() {
 
         {authChecked ? (
           <>
+          {accountEmail ? <AstrologyBirthProfileCard locale={locale} /> : null}
           {!loading && !hasAnyJourneySignal ? (
             <section className="mt-8 overflow-hidden rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] shadow-[0_30px_90px_rgba(80,57,34,0.1)]">
               <div className="grid gap-0 lg:grid-cols-[0.86fr_1.14fr]">

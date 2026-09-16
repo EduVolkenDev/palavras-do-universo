@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { resolveAstrologyBirthTime, type ServerBirthTimeResolution } from "./time-resolution";
+import { resolveAstrologyBirthTime, type BirthTimeDisambiguation, type ServerBirthTimeResolution } from "./time-resolution";
 
 export const ASTROLOGY_BIRTH_CALCULATION_VERSION = "birth-time-iana-v1";
 
@@ -29,6 +29,8 @@ export interface AstrologyBirthDataPayload {
     utcOffsetMinutes: number;
     utcOffsetLabel: string;
     daylightSaving: DaylightSavingStatus;
+    disambiguation: BirthTimeDisambiguation | null;
+    candidateOffsetsMinutes: number[];
     source: "iana-timezone-rules";
   };
 }
@@ -116,14 +118,20 @@ export function validateAstrologyBirthData(value: unknown): { ok: true; data: As
     if (!Number.isInteger(resolution.utcOffsetMinutes) || resolution.utcOffsetMinutes < -1440 || resolution.utcOffsetMinutes > 1440) errors.push("timeResolution.utcOffsetMinutes is invalid");
     if (typeof resolution.utcOffsetLabel !== "string" || !/^UTC(?:±|[+−])\d{2}:\d{2}$/.test(resolution.utcOffsetLabel)) errors.push("timeResolution.utcOffsetLabel is invalid");
     if (!["active", "inactive", "unknown"].includes(resolution.daylightSaving)) errors.push("timeResolution.daylightSaving is invalid");
+    if (resolution.disambiguation !== null && resolution.disambiguation !== "earlier" && resolution.disambiguation !== "later") errors.push("timeResolution.disambiguation is invalid");
+    if (!Array.isArray(resolution.candidateOffsetsMinutes) || resolution.candidateOffsetsMinutes.some((offset) => !Number.isInteger(offset) || offset < -1440 || offset > 1440)) errors.push("timeResolution.candidateOffsetsMinutes is invalid");
     if (resolution.source !== "iana-timezone-rules") errors.push("timeResolution.source is invalid");
   }
 
   if (isIsoDate(body.localDate) && isLocalTime(body.localTime) && isIanaTimezone(body.timezone)) {
+    const submittedDisambiguation: BirthTimeDisambiguation | undefined = typeof resolution === "object" && resolution !== null && (resolution.disambiguation === "earlier" || resolution.disambiguation === "later")
+      ? resolution.disambiguation
+      : undefined;
     canonicalResolution = resolveAstrologyBirthTime({
       localDate: body.localDate,
       localTime: body.localTime,
       timezone: body.timezone,
+      disambiguation: submittedDisambiguation,
     });
 
     if (canonicalResolution.status !== "resolved") {
@@ -140,6 +148,8 @@ export function validateAstrologyBirthData(value: unknown): { ok: true; data: As
         submittedResolution.utcOffsetMinutes === canonicalResolution.utcOffsetMinutes,
         submittedResolution.utcOffsetLabel === canonicalResolution.utcOffsetLabel,
         submittedResolution.daylightSaving === canonicalResolution.daylightSaving,
+        submittedResolution.disambiguation === canonicalResolution.disambiguation,
+        JSON.stringify(submittedResolution.candidateOffsetsMinutes) === JSON.stringify(canonicalResolution.candidateOffsetsMinutes),
         submittedResolution.source === canonicalResolution.source,
       ].every(Boolean);
 
@@ -170,6 +180,14 @@ export function validateAstrologyBirthData(value: unknown): { ok: true; data: As
 }
 
 export function toAstrologyBirthData(row: BirthRow): AstrologyBirthDataPayload & { metadata: { calculationVersion: string; consentGrantedAt: string; createdAt: string; updatedAt: string } } {
+  const timeResolution = {
+    ...row.time_resolution,
+    disambiguation: row.time_resolution.disambiguation ?? null,
+    candidateOffsetsMinutes: Array.isArray(row.time_resolution.candidateOffsetsMinutes) && row.time_resolution.candidateOffsetsMinutes.length
+      ? row.time_resolution.candidateOffsetsMinutes
+      : [row.time_resolution.utcOffsetMinutes],
+  };
+
   return {
     localDate: row.local_date,
     localTime: row.local_time.slice(0, 5),
@@ -183,7 +201,7 @@ export function toAstrologyBirthData(row: BirthRow): AstrologyBirthDataPayload &
       elevationMeters: row.elevation_meters === null ? null : Number(row.elevation_meters),
     },
     precision: row.precision,
-    timeResolution: row.time_resolution,
+    timeResolution,
     metadata: {
       calculationVersion: row.calculation_version,
       consentGrantedAt: row.consent_granted_at,

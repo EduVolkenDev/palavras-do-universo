@@ -188,9 +188,36 @@ test("astrology birth data stays separate, authenticated and consent-gated", asy
   assert.match(domain, /timeResolution must match the reported local time/);
   assert.match(domain, /resolveAstrologyBirthTime/);
   assert.match(domain, /does not match the server IANA resolution/);
+  assert.match(domain, /candidateOffsetsMinutes: Array\.isArray/);
   assert.match(timeResolution, /export function resolveAstrologyBirthTime/);
   assert.match(timeResolution, /"ambiguous"/);
   assert.match(timeResolution, /"nonexistent"/);
+  assert.match(timeResolution, /disambiguation/);
+  assert.match(timeResolution, /candidateOffsetsMinutes/);
+});
+
+test("astrology client bridge stays same-origin and preserves the server contract", async () => {
+  const client = await source("src/lib/astrology/birth-data-client.ts");
+
+  assert.match(client, /\/api\/astrology\/birth-data/);
+  assert.match(client, /credentials: "include"/);
+  assert.match(client, /cache: "no-store"/);
+  assert.match(client, /storeBirthData: true/);
+  assert.match(client, /astrology-birth-data-invalid-response/);
+  assert.match(client, /timeResolution/);
+  assert.doesNotMatch(client, /SUPABASE|service_role|admin/);
+});
+
+test("astrology location lookup is consent-gated and attribution-aware", async () => {
+  const route = await source("src/app/api/astrology/location/route.ts");
+  const resolver = await source("src/lib/astrology/location.ts");
+
+  assert.match(route, /body\.consent !== true/);
+  assert.match(route, /resolveAstrologyLocation/);
+  assert.match(resolver, /nominatim\.openstreetmap\.org/);
+  assert.match(resolver, /tzLookup/);
+  assert.match(resolver, /OpenStreetMap contributors/);
+  assert.match(resolver, /cache: "no-store"/);
 });
 
 test("voucher invitations validate delivery and keep a recovery path", async () => {

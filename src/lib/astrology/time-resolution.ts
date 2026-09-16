@@ -2,7 +2,10 @@ type LocalCivilInput = {
   localDate: string;
   localTime: string;
   timezone: string;
+  disambiguation?: BirthTimeDisambiguation;
 };
+
+export type BirthTimeDisambiguation = "earlier" | "later";
 
 type LocalParts = {
   year: number;
@@ -23,6 +26,8 @@ export type ServerBirthTimeResolution = {
   utcOffsetMinutes: number | null;
   utcOffsetLabel: string | null;
   daylightSaving: "active" | "inactive" | "unknown";
+  disambiguation: BirthTimeDisambiguation | null;
+  candidateOffsetsMinutes: number[];
   source: "iana-timezone-rules" | "unknown";
 };
 
@@ -132,7 +137,12 @@ function daylightSavingStatus(parts: LocalParts, timezone: string, currentOffset
   return currentOffset === offsets[1] ? "active" as const : "inactive" as const;
 }
 
-function baseResolution(input: LocalCivilInput, status: ServerBirthTimeResolution["status"]): ServerBirthTimeResolution {
+function baseResolution(
+  input: LocalCivilInput,
+  status: ServerBirthTimeResolution["status"],
+  candidateOffsetsMinutes: number[] = [],
+  disambiguation: BirthTimeDisambiguation | null = null,
+): ServerBirthTimeResolution {
   return {
     status,
     inputMode: "local-clock",
@@ -143,6 +153,8 @@ function baseResolution(input: LocalCivilInput, status: ServerBirthTimeResolutio
     utcOffsetMinutes: null,
     utcOffsetLabel: null,
     daylightSaving: "unknown",
+    disambiguation,
+    candidateOffsetsMinutes,
     source: "unknown",
   };
 }
@@ -170,13 +182,20 @@ export function resolveAstrologyBirthTime(input: LocalCivilInput): ServerBirthTi
     })
     .filter(({ utcDate }) => sameLocalTime(parts, partsForInstant(utcDate, input.timezone)));
 
-  if (matches.length !== 1) {
-    return baseResolution(input, matches.length > 1 ? "ambiguous" : "nonexistent");
+  matches.sort((first, second) => first.utcDate.getTime() - second.utcDate.getTime());
+  const candidateOffsetsMinutes = matches.map(({ offsetMinutes }) => offsetMinutes);
+
+  if (matches.length > 1 && !input.disambiguation) {
+    return baseResolution(input, "ambiguous", candidateOffsetsMinutes);
+  }
+  if (matches.length === 0) {
+    return baseResolution(input, "nonexistent");
   }
 
-  const [{ utcDate, offsetMinutes }] = matches;
+  const selectedMatch = matches.length > 1 && input.disambiguation === "later" ? matches[matches.length - 1] : matches[0];
+  const { utcDate, offsetMinutes } = selectedMatch;
   return {
-    ...baseResolution(input, "resolved"),
+    ...baseResolution(input, "resolved", candidateOffsetsMinutes, input.disambiguation ?? null),
     utcISO: utcDate.toISOString(),
     utcOffsetMinutes: offsetMinutes,
     utcOffsetLabel: formatOffsetLabel(offsetMinutes),

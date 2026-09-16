@@ -37,6 +37,8 @@ The `PUT` body must include:
       "utcOffsetMinutes": -180,
       "utcOffsetLabel": "UTC-03:00",
       "daylightSaving": "inactive",
+      "disambiguation": null,
+      "candidateOffsetsMinutes": [-180],
       "source": "iana-timezone-rules"
     }
   }
@@ -50,7 +52,9 @@ interpreted for the selected IANA timezone, including the resulting UTC instant 
 The route requires a signed-in user and explicit storage consent. The table has its own RLS
 policies and is deleted together with the authenticated profile. Before saving, the server
 recomputes the local clock against the IANA timezone rules and rejects a client resolution that
-does not match the canonical UTC instant, offset or daylight-saving status.
+does not match the canonical UTC instant, offset, daylight-saving status or ambiguity choice. If a
+local time occurs twice, the client must resolve it as `earlier` or `later` and preserve both the
+choice and the candidate offsets in `timeResolution`.
 
 This adapter persists and validates the resolved birth-time contract; it does not yet claim to be
 the final natal chart engine. Natal calculations remain a separate server-side provider with its
