@@ -78,8 +78,8 @@ function getReplyTo() {
 }
 
 function getAccessDuration(days: number | null) {
-  if (!days || days <= 0) return "acesso especial";
-  return days === 1 ? "1 dia" : `${days} dias`;
+  if (!days || days <= 0) return "special access";
+  return days === 1 ? "1 day" : `${days} days`;
 }
 
 function getRecipientName(value: string | null) {
@@ -100,49 +100,54 @@ function buildVoucherEmail(voucher: VoucherEmailInput) {
   const isDiscount = voucher.kind === "discount";
   const isHybrid = voucher.kind === "hybrid";
   const benefit = isHybrid
-    ? "um convite com desconto especial"
+    ? "an invitation with a special discount"
     : isDiscount
-      ? "um desconto especial"
-      : "um convite especial";
-  const benefitLabel = isHybrid ? "Acesso e desconto" : isDiscount ? "Desconto" : "Acesso";
+      ? "a special discount"
+      : "a special invitation";
+  const benefitLabel = isHybrid ? "Access and discount" : isDiscount ? "Discount" : "Access";
   const actionLabel = isHybrid
-    ? "Ativar meu convite e desconto"
+    ? "Activate my invitation and discount"
     : isDiscount
-      ? "Ativar meu desconto"
-      : "Resgatar meu convite";
+      ? "Activate my discount"
+      : "Redeem my invitation";
   const manualActionLabel = isHybrid
-    ? "Ative seu convite e desconto"
+    ? "Activate your invitation and discount"
     : isDiscount
-      ? "Ative seu desconto"
-      : "Resgate seu convite";
+      ? "Activate your discount"
+      : "Redeem your invitation";
   const recipientSuffix = recipientName ? `, ${recipientName}` : "";
   const subject = isHybrid
-    ? `Seu convite e desconto chegaram${recipientSuffix}`
+    ? `Your invitation and discount have arrived${recipientSuffix}`
     : isDiscount
-      ? `Seu desconto chegou${recipientSuffix}`
-      : `Seu convite chegou${recipientSuffix}`;
+      ? `Your discount has arrived${recipientSuffix}`
+      : `Your invitation has arrived${recipientSuffix}`;
   const durationLine = voucher.grant_expires_days
-    ? `Validade: ${duration} a partir do resgate`
+    ? `Access lasts for ${duration} after redemption`
     : null;
+  const introLine = isHybrid
+    ? "Your invitation and discount are ready for you."
+    : isDiscount
+      ? "Your discount is ready for you."
+      : "Your invitation is ready for you.";
   const autoActivationUrl = getAutoActivationUrl(voucher.share_url);
   const text = [
     recipientName
-      ? `Olá ${recipientName}, você recebeu ${benefit} do Palavras do Universo.`
-      : `Olá, você recebeu ${benefit} do Palavras do Universo.`,
+      ? `Hi ${recipientName}, you’ve received ${benefit} from Palavras do Universo.`
+      : `Hi, you’ve received ${benefit} from Palavras do Universo.`,
     "",
     `${benefitLabel}: ${title}`,
     ...(durationLine ? [durationLine] : []),
     "",
-    `Código: ${voucher.code}`,
+    `Code: ${voucher.code}`,
     `${manualActionLabel}: ${voucher.share_url}`,
     "",
-    "Ou clique aqui para ativar automaticamente com sua conta:",
+    "Or click here to activate automatically with your account:",
     autoActivationUrl,
-    "Se você ainda não estiver conectado, pediremos seu login e continuaremos o resgate automaticamente.",
+    "If you’re not signed in, we’ll ask you to log in and continue the redemption automatically.",
     "",
-    "Use o mesmo e-mail para o qual esta mensagem foi enviada ao criar ou acessar sua conta.",
+    "Use the same email address that received this message to create or access your account.",
     "",
-    "Com carinho,",
+    "With care,",
     "Palavras do Universo",
   ].join("\n");
 
@@ -150,21 +155,21 @@ function buildVoucherEmail(voucher: VoucherEmailInput) {
     <div style="margin:0;background:#120f16;padding:32px 16px;font-family:Arial,sans-serif;color:#f3eadf">
       <div style="max-width:560px;margin:0 auto;border:1px solid #4e473f;border-radius:24px;background:#1b171f;padding:32px">
         <p style="margin:0 0 20px;color:#f4d58d;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Palavras do Universo</p>
-        <h1 style="margin:0 0 16px;font-size:28px;line-height:1.2;color:#fff7e8">${escapeHtml(recipientName ? `Olá ${recipientName}, você recebeu ${benefit}` : `Você recebeu ${benefit}`)}</h1>
-        <p style="margin:0 0 24px;font-size:16px;line-height:1.7;color:#dbcfc1">Um acesso especial foi preparado para você.</p>
+        <h1 style="margin:0 0 16px;font-size:28px;line-height:1.2;color:#fff7e8">${escapeHtml(recipientName ? `Hi ${recipientName}, you’ve received ${benefit}` : `You’ve received ${benefit}`)}</h1>
+        <p style="margin:0 0 24px;font-size:16px;line-height:1.7;color:#dbcfc1">${introLine}</p>
         <div style="margin:0 0 24px;border:1px solid #5e5137;border-radius:16px;background:#231d18;padding:20px">
           <p style="margin:0 0 8px;color:#cdbfae;font-size:13px">${escapeHtml(benefitLabel)}</p>
           <p style="margin:0;color:#fff7e8;font-size:18px;font-weight:700">${escapeHtml(title)}</p>
-          ${durationLine ? `<p style="margin:10px 0 0;color:#f4d58d;font-size:14px">${escapeHtml(durationLine.replace("Validade: ", ""))}</p>` : ""}
+          ${durationLine ? `<p style="margin:10px 0 0;color:#f4d58d;font-size:14px">${escapeHtml(durationLine)}</p>` : ""}
         </div>
-        <p style="margin:0 0 8px;color:#cdbfae;font-size:13px">Seu código</p>
+        <p style="margin:0 0 8px;color:#cdbfae;font-size:13px">Your code</p>
         <p style="margin:0 0 24px;color:#fff7e8;font-size:22px;font-weight:700;letter-spacing:1px">${escapeHtml(voucher.code)}</p>
         <a href="${escapeHtml(voucher.share_url)}" style="display:inline-block;border-radius:999px;background:#f4d58d;padding:13px 20px;color:#211a14;font-size:15px;font-weight:700;text-decoration:none">${escapeHtml(actionLabel)}</a>
-        <p style="margin:22px 0 8px;color:#cdbfae;font-size:13px;line-height:1.7">Ou prefira o caminho direto:</p>
-        <a href="${escapeHtml(autoActivationUrl)}" style="display:inline-block;border-radius:999px;border:1px solid #8faea3;padding:11px 17px;color:#c6eadb;font-size:14px;font-weight:700;text-decoration:none">Ativar automaticamente com minha conta</a>
-        <p style="margin:12px 0 0;color:#9f9488;font-size:12px;line-height:1.7">Se você ainda não estiver conectado, pediremos seu login e continuaremos o resgate automaticamente.</p>
-        <p style="margin:24px 0 0;color:#cdbfae;font-size:13px;line-height:1.7">Use o mesmo e-mail para o qual esta mensagem foi enviada ao criar ou acessar sua conta.</p>
-        <p style="margin:24px 0 0;color:#cdbfae;font-size:14px;line-height:1.7">${escapeHtml(voucher.description || "Com carinho, Palavras do Universo")}</p>
+        <p style="margin:22px 0 8px;color:#cdbfae;font-size:13px;line-height:1.7">Or choose the direct path:</p>
+        <a href="${escapeHtml(autoActivationUrl)}" style="display:inline-block;border-radius:999px;border:1px solid #8faea3;padding:11px 17px;color:#c6eadb;font-size:14px;font-weight:700;text-decoration:none">Activate automatically with my account</a>
+        <p style="margin:12px 0 0;color:#9f9488;font-size:12px;line-height:1.7">If you’re not signed in, we’ll ask you to log in and continue the redemption automatically.</p>
+        <p style="margin:24px 0 0;color:#cdbfae;font-size:13px;line-height:1.7">Use the same email address that received this message to create or access your account.</p>
+        <p style="margin:24px 0 0;color:#cdbfae;font-size:14px;line-height:1.7">Your invitation is ready whenever you are.</p>
       </div>
     </div>
   `;

@@ -218,4 +218,8 @@ test("voucher invitations validate delivery and keep a recovery path", async () 
   assert.match(claimCard, /api\/vouchers\/redeem/);
   assert.match(claimCard, /buildLoginPath\(loginNextPath\)/);
   assert.match(claimCard, /kind !== "discount" \|\| autoRedeem/);
+  assert.match(email, /Your invitation has arrived/);
+  assert.match(email, /Hi \$\{recipientName\}/);
+  assert.match(email, /Activate automatically with my account/);
+  assert.doesNotMatch(email, /Olá|você recebeu|Resgate seu convite|Seu código/);
 });
