@@ -20,12 +20,12 @@ export async function POST(request: Request) {
   if (label.length < 2 || label.length > 120) {
     return NextResponse.json({ errorCode: "invalid-location", error: "A location is required." }, { status: 400 });
   }
-  if (!/^[a-z]{2}$/.test(countryCode)) {
+  if (countryCode && !/^[a-z]{2}$/.test(countryCode)) {
     return NextResponse.json({ errorCode: "invalid-country", error: "A two-letter country code is required." }, { status: 400 });
   }
 
   try {
-    const candidates = await resolveAstrologyLocation({ label, countryCode });
+    const candidates = await resolveAstrologyLocation({ label, ...(countryCode ? { countryCode } : {}) });
     return NextResponse.json({ candidates }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const errorCode = error instanceof LocationProviderError && error.reason === "rate-limit" ? "rate-limit" : "upstream";

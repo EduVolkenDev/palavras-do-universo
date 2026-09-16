@@ -211,6 +211,7 @@ test("astrology client bridge stays same-origin and preserves the server contrac
 test("astrology location lookup is consent-gated and attribution-aware", async () => {
   const route = await source("src/app/api/astrology/location/route.ts");
   const resolver = await source("src/lib/astrology/location.ts");
+  const card = await source("src/components/astrology/AstrologyBirthProfileCard.tsx");
 
   assert.match(route, /body\.consent !== true/);
   assert.match(route, /resolveAstrologyLocation/);
@@ -218,6 +219,9 @@ test("astrology location lookup is consent-gated and attribution-aware", async (
   assert.match(resolver, /tzLookup/);
   assert.match(resolver, /OpenStreetMap contributors/);
   assert.match(resolver, /cache: "no-store"/);
+  assert.match(resolver, /countryCode\?: string/);
+  assert.match(card, /body: JSON\.stringify\(\{ label: draft\.locationLabel\.trim\(\), consent: true \}\)/);
+  assert.doesNotMatch(card, /copy\.country|copy\.latitude|copy\.longitude|copy\.timezone/);
 });
 
 test("voucher invitations validate delivery and keep a recovery path", async () => {

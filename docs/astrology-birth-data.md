@@ -59,3 +59,8 @@ choice and the candidate offsets in `timeResolution`.
 This adapter persists and validates the resolved birth-time contract; it does not yet claim to be
 the final natal chart engine. Natal calculations remain a separate server-side provider with its
 own fixtures and limitations.
+
+The birth form only asks the person for the date, the local clock time and the birth place in
+ordinary language. A consented server-side location search identifies the country, coordinates
+and historical timezone automatically; those technical values are never presented as fields the
+person needs to understand or fill in.

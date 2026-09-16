@@ -36,7 +36,7 @@ function initialDraft(): BirthDraft {
     localTime: "",
     locationLabel: "",
     countryCode: "",
-    timezone: typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "",
+    timezone: "",
     latitude: "",
     longitude: "",
     precision: "exact",
@@ -77,23 +77,18 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
         date: "Birth date",
         time: "Local clock time",
         place: "Birth place",
-        country: "Country code",
-        timezone: "Historical timezone",
-        latitude: "Latitude",
-        longitude: "Longitude",
         precision: "Time precision",
         exact: "Exact time",
         approximate: "Approximate time",
-        placeHelp: "Use the confirmed place and coordinates for the birth location.",
-        findPlace: "Find this place",
+        placeHelp: "Type the city and country as you know them. We identify the exact place, timezone and coordinates automatically.",
+        findPlace: "Find my place",
         findingPlace: "Searching…",
-        locationConsent: "I allow a one-time search of this place through OpenStreetMap to suggest coordinates and timezone.",
-        consentRequired: "Allow the one-time place search before asking us to find coordinates.",
-        noPlaces: "No matching place was found. Check the spelling and country code.",
-        placeSearchError: "The place search is unavailable. You can still review the coordinates manually.",
+        locationConsent: "I allow a one-time search to identify this place and calculate its historical timezone and coordinates automatically.",
+        consentRequired: "Allow the one-time place search before asking us to identify it.",
+        noPlaces: "No matching place was found. Try adding the city and country.",
+        placeSearchError: "The place search is unavailable right now. Please try again in a moment.",
+        placeConfirmed: "Place identified automatically",
         attribution: "Map data © OpenStreetMap contributors",
-        timezoneHelp: "Example: Europe/London · America/Sao_Paulo",
-        coordinatesHelp: "Coordinates keep the future houses and ascendant calculation tied to the right place.",
         save: "Save my birth context",
         saving: "Saving…",
         saved: "Birth context saved",
@@ -106,8 +101,8 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
         earlier: "First occurrence",
         later: "Second occurrence",
         nonexistent: "This local time did not exist because the clock changed. Choose a different time.",
-        invalid: "Check the date, time and IANA timezone.",
-        missing: "Complete the date, time, place, country, timezone and coordinates before saving.",
+        invalid: "Check the date, time and place selected.",
+        missing: "Complete the date, time and select the place found automatically before saving.",
         saveError: "We could not save this context now. Please try again.",
         introSaved: "Your local birth time stays visible and auditable. The server recalculates the historical offset before accepting it.",
       }
@@ -119,23 +114,18 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
         date: "Data de nascimento",
         time: "Hora local registrada",
         place: "Local de nascimento",
-        country: "Código do país",
-        timezone: "Fuso histórico",
-        latitude: "Latitude",
-        longitude: "Longitude",
         precision: "Precisão da hora",
         exact: "Hora exata",
         approximate: "Hora aproximada",
-        placeHelp: "Use o local confirmado e as coordenadas de onde você nasceu.",
-        findPlace: "Encontrar este local",
+        placeHelp: "Digite a cidade e o país como você conhece. Nós identificamos o local exato e calculamos o fuso e as coordenadas automaticamente.",
+        findPlace: "Encontrar meu local",
         findingPlace: "Buscando…",
-        locationConsent: "Permito uma busca única deste local no OpenStreetMap para sugerir coordenadas e fuso.",
-        consentRequired: "Permita a busca única do local antes de pedir as coordenadas.",
-        noPlaces: "Nenhum local correspondente foi encontrado. Confira a grafia e o código do país.",
-        placeSearchError: "A busca do local está indisponível. Você ainda pode revisar as coordenadas manualmente.",
+        locationConsent: "Permito uma busca única para identificar este local e calcular automaticamente o fuso histórico e as coordenadas.",
+        consentRequired: "Permita a busca única do local antes de pedir que ele seja identificado.",
+        noPlaces: "Nenhum local correspondente foi encontrado. Tente adicionar a cidade e o país.",
+        placeSearchError: "A busca do local está indisponível agora. Tente novamente em instantes.",
+        placeConfirmed: "Local identificado automaticamente",
         attribution: "Dados do mapa © OpenStreetMap contributors",
-        timezoneHelp: "Exemplo: Europe/London · America/Sao_Paulo",
-        coordinatesHelp: "As coordenadas mantêm as futuras casas e o ascendente ligados ao lugar correto.",
         save: "Salvar meu contexto de nascimento",
         saving: "Salvando…",
         saved: "Contexto de nascimento salvo",
@@ -148,8 +138,8 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
         earlier: "Primeira ocorrência",
         later: "Segunda ocorrência",
         nonexistent: "Essa hora local não existiu porque o relógio mudou. Escolha outro horário.",
-        invalid: "Confira a data, a hora e o fuso IANA.",
-        missing: "Preencha data, hora, local, país, fuso e coordenadas antes de salvar.",
+        invalid: "Confira a data, a hora e o local selecionado.",
+        missing: "Preencha data, hora e selecione o local encontrado automaticamente antes de salvar.",
         saveError: "Não foi possível salvar agora. Tente novamente.",
         introSaved: "Sua hora local de nascimento permanece visível e auditável. O servidor recalcula o offset histórico antes de aceitar os dados.",
       };
@@ -195,9 +185,12 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
     setDraft((current) => ({
       ...current,
       [key]: value,
+      ...(key === "locationLabel" ? { countryCode: "", timezone: "", latitude: "", longitude: "" } : {}),
       ...(["localDate", "localTime", "timezone"].includes(key) ? { disambiguation: "" } : {}),
     }));
-    if (key === "locationLabel" || key === "countryCode") setLocationCandidates([]);
+    if (key === "locationLabel") {
+      setLocationCandidates([]);
+    }
     setNotice("");
     setError("");
   };
@@ -210,7 +203,7 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
       setError(copy.consentRequired);
       return;
     }
-    if (!draft.locationLabel.trim() || !/^[A-Za-z]{2}$/.test(draft.countryCode)) {
+    if (!draft.locationLabel.trim()) {
       setError(copy.missing);
       return;
     }
@@ -220,7 +213,7 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
       const response = await fetch("/api/astrology/location", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: draft.locationLabel.trim(), countryCode: draft.countryCode.trim().toUpperCase(), consent: true }),
+        body: JSON.stringify({ label: draft.locationLabel.trim(), consent: true }),
       });
       const payload = (await response.json()) as { candidates?: AstrologyLocationCandidate[]; errorCode?: string };
       if (!response.ok) throw new Error(payload.errorCode ?? "location-search-failed");
@@ -253,7 +246,7 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
     setNotice("");
     setError("");
 
-    if (!draft.localDate || !draft.localTime || !draft.locationLabel || !/^[A-Za-z]{2}$/.test(draft.countryCode) || !draft.timezone || !draft.latitude || !draft.longitude) {
+    if (!draft.localDate || !draft.localTime || !draft.locationLabel || !draft.countryCode || !draft.timezone || !draft.latitude || !draft.longitude) {
       setError(copy.missing);
       return;
     }
@@ -357,15 +350,11 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
                 </label>
               </div>
 
-              <div className="grid gap-5 sm:grid-cols-[1fr_auto]">
+              <div>
                 <label className="block">
                   <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]"><MapPin size={14} />{copy.place}</span>
                   <input className={inputClass} value={draft.locationLabel} onChange={(event) => update("locationLabel", event.target.value)} placeholder={isEnglish ? "London, United Kingdom" : "São Paulo, Brasil"} required />
                   <span className="mt-2 block text-xs leading-5 text-[#8a7667]">{copy.placeHelp}</span>
-                </label>
-                <label className="block sm:w-28">
-                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">{copy.country}</span>
-                  <input className={`${inputClass} uppercase`} maxLength={2} value={draft.countryCode} onChange={(event) => update("countryCode", event.target.value.toUpperCase())} placeholder="BR" required />
                 </label>
               </div>
               <div className="rounded-2xl border border-[#dfccb0] bg-[#f8efe2] p-4">
@@ -382,31 +371,13 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
                     {locationCandidates.map((candidate) => (
                       <button key={candidate.id} type="button" onClick={() => selectLocation(candidate)} className="rounded-xl border border-[#d8c3a6] bg-white p-3 text-left text-sm text-[#4d3c31] transition hover:border-[#8a6b3f] hover:bg-[#fffaf2]">
                         <span className="block font-semibold">{candidate.label}</span>
-                        <span className="mt-1 block text-xs text-[#8a7667]">{candidate.timezone} · {candidate.latitude.toFixed(4)}, {candidate.longitude.toFixed(4)}</span>
+                        <span className="mt-1 block text-xs font-semibold text-[#8a6b3f]">{copy.placeConfirmed}</span>
                       </button>
                     ))}
                     <span className="text-[0.68rem] text-[#8a7667]">{copy.attribution}</span>
                   </div>
                 ) : null}
               </div>
-
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">{copy.timezone}</span>
-                <input className={inputClass} value={draft.timezone} onChange={(event) => update("timezone", event.target.value)} placeholder="America/Sao_Paulo" required />
-                <span className="mt-2 block text-xs leading-5 text-[#8a7667]">{copy.timezoneHelp}</span>
-              </label>
-
-              <div className="grid gap-5 sm:grid-cols-2">
-                <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">{copy.latitude}</span>
-                  <input className={inputClass} type="number" step="any" min="-90" max="90" value={draft.latitude} onChange={(event) => update("latitude", event.target.value)} placeholder="-23.5505" required />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">{copy.longitude}</span>
-                  <input className={inputClass} type="number" step="any" min="-180" max="180" value={draft.longitude} onChange={(event) => update("longitude", event.target.value)} placeholder="-46.6333" required />
-                </label>
-              </div>
-              <p className="-mt-2 text-xs leading-5 text-[#8a7667]">{copy.coordinatesHelp}</p>
 
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">{copy.precision}</span>

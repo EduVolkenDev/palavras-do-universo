@@ -31,7 +31,7 @@ export class LocationProviderError extends Error {
   }
 }
 
-export async function resolveAstrologyLocation(input: { label: string; countryCode: string }): Promise<AstrologyLocationCandidate[]> {
+export async function resolveAstrologyLocation(input: { label: string; countryCode?: string }): Promise<AstrologyLocationCandidate[]> {
   const now = Date.now();
   if (now - lastRequestAt < MIN_REQUEST_INTERVAL_MS) throw new LocationProviderError("rate-limit");
   lastRequestAt = now;
@@ -41,8 +41,8 @@ export async function resolveAstrologyLocation(input: { label: string; countryCo
     format: "jsonv2",
     limit: "3",
     addressdetails: "1",
-    countrycodes: input.countryCode.toLowerCase(),
   });
+  if (input.countryCode) params.set("countrycodes", input.countryCode.toLowerCase());
 
   let response: Response;
   try {
@@ -60,8 +60,8 @@ export async function resolveAstrologyLocation(input: { label: string; countryCo
     const latitude = Number(result.lat);
     const longitude = Number(result.lon);
     const label = typeof result.display_name === "string" ? result.display_name.trim() : "";
-    const countryCode = result.address?.country_code?.toUpperCase() ?? input.countryCode.toUpperCase();
-    if (!result.place_id || !label || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+    const countryCode = result.address?.country_code?.toUpperCase() ?? input.countryCode?.toUpperCase() ?? "";
+    if (!result.place_id || !label || !/^[A-Z]{2}$/.test(countryCode) || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
 
     return {
       id: String(result.place_id),
