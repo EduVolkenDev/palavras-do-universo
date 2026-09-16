@@ -138,7 +138,7 @@ function buildVoucherEmail(voucher: VoucherEmailInput) {
     "",
     "Ou clique aqui para ativar automaticamente com sua conta:",
     autoActivationUrl,
-    "Se você ainda não estiver conectado, entraremos na sua conta e continuaremos o resgate.",
+    "Se você ainda não estiver conectado, pediremos seu login e continuaremos o resgate automaticamente.",
     "",
     "Use o mesmo e-mail para o qual esta mensagem foi enviada ao criar ou acessar sua conta.",
     "",
@@ -162,7 +162,7 @@ function buildVoucherEmail(voucher: VoucherEmailInput) {
         <a href="${escapeHtml(voucher.share_url)}" style="display:inline-block;border-radius:999px;background:#f4d58d;padding:13px 20px;color:#211a14;font-size:15px;font-weight:700;text-decoration:none">${escapeHtml(actionLabel)}</a>
         <p style="margin:22px 0 8px;color:#cdbfae;font-size:13px;line-height:1.7">Ou prefira o caminho direto:</p>
         <a href="${escapeHtml(autoActivationUrl)}" style="display:inline-block;border-radius:999px;border:1px solid #8faea3;padding:11px 17px;color:#c6eadb;font-size:14px;font-weight:700;text-decoration:none">Ativar automaticamente com minha conta</a>
-        <p style="margin:12px 0 0;color:#9f9488;font-size:12px;line-height:1.7">Se você ainda não estiver conectado, entraremos na sua conta e continuaremos o resgate.</p>
+        <p style="margin:12px 0 0;color:#9f9488;font-size:12px;line-height:1.7">Se você ainda não estiver conectado, pediremos seu login e continuaremos o resgate automaticamente.</p>
         <p style="margin:24px 0 0;color:#cdbfae;font-size:13px;line-height:1.7">Use o mesmo e-mail para o qual esta mensagem foi enviada ao criar ou acessar sua conta.</p>
         <p style="margin:24px 0 0;color:#cdbfae;font-size:14px;line-height:1.7">${escapeHtml(voucher.description || "Com carinho, Palavras do Universo")}</p>
       </div>
