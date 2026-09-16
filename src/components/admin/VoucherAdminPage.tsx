@@ -46,6 +46,20 @@ type VoucherView = {
   created_at: string;
 };
 
+type VoucherEmailDelivery =
+  | { status: "sent" }
+  | { status: "skipped"; reason: "missing_recipient" }
+  | {
+      status: "failed";
+      reason: "not_configured" | "invalid_sender" | "send_failed";
+    };
+
+type AdminPostData = {
+  error?: string;
+  voucher?: VoucherView;
+  email?: VoucherEmailDelivery;
+};
+
 type VoucherFormState = {
   code: string;
   label: string;
@@ -145,6 +159,7 @@ export default function VoucherAdminPage({
   const [vouchers, setVouchers] = useState<VoucherView[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [resendingVoucherId, setResendingVoucherId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState<VoucherFormState>(DEFAULT_FORM);
@@ -190,7 +205,7 @@ export default function VoucherAdminPage({
       },
       body: JSON.stringify(body),
     });
-    const data = (await res.json()) as { error?: string; voucher?: VoucherView };
+    const data = (await res.json()) as AdminPostData;
     if (!res.ok) {
       throw new Error(data.error || t("Não foi possível concluir a ação."));
     }
@@ -205,7 +220,7 @@ export default function VoucherAdminPage({
     setMessage("");
 
     try {
-      await postAdmin({
+      const result = await postAdmin({
         action: "create",
         voucher: {
           code: form.code || null,
@@ -234,7 +249,13 @@ export default function VoucherAdminPage({
         },
       });
       setForm(DEFAULT_FORM);
-      setMessage(t("Voucher criado e pronto para compartilhar."));
+      if (result.email?.status === "sent") {
+        setMessage(t("Voucher criado e enviado por e-mail."));
+      } else if (result.email?.status === "failed") {
+        setError(t("Voucher criado, mas o e-mail não foi enviado."));
+      } else {
+        setMessage(t("Voucher criado e pronto para compartilhar."));
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("Não foi possível criar o voucher."));
     } finally {
@@ -290,6 +311,29 @@ export default function VoucherAdminPage({
       setTransferEmail((current) => ({ ...current, [voucherId]: "" }));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("Não foi possível transferir o voucher."));
+    }
+  }
+
+  async function handleResend(voucherId: string) {
+    if (resendingVoucherId) return;
+    setError("");
+    setMessage("");
+    setResendingVoucherId(voucherId);
+    try {
+      const result = await postAdmin({ action: "resend", id: voucherId });
+      if (result.email?.status === "sent") {
+        setMessage(t("E-mail do voucher reenviado."));
+      } else {
+        setError(t("Não foi possível enviar o e-mail do voucher."));
+      }
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : t("Não foi possível enviar o e-mail do voucher.")
+      );
+    } finally {
+      setResendingVoucherId(null);
     }
   }
 
@@ -810,7 +854,9 @@ export default function VoucherAdminPage({
                               <dd className="mt-2 text-sm text-[#fff7e8]">
                                 {voucher.expires_at
                                   ? new Date(voucher.expires_at).toLocaleString()
-                                  : t("Sem data limite")}
+                                  : voucher.grant_expires_days
+                                    ? `${voucher.grant_expires_days} dias após o resgate`
+                                    : t("Sem data limite")}
                               </dd>
                             </div>
                           </dl>
@@ -825,6 +871,18 @@ export default function VoucherAdminPage({
                             <Copy size={15} />
                             {t("Copiar link de resgate")}
                           </button>
+
+                          {voucher.target_email ? (
+                            <button
+                              type="button"
+                              onClick={() => void handleResend(voucher.id)}
+                              disabled={resendingVoucherId === voucher.id}
+                              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#8faea3] bg-[#10251f] px-4 py-3 text-sm font-semibold text-[#c6eadb]"
+                            >
+                              <RefreshCw size={15} />
+                              {t("Reenviar voucher por e-mail")}
+                            </button>
+                          ) : null}
 
                           {voucher.status === "active" ? (
                             <button

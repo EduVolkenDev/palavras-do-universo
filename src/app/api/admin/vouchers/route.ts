@@ -5,6 +5,7 @@ import { readJsonBody } from "@/lib/http/request";
 import {
   createVoucher,
   listVouchers,
+  resendVoucherEmail,
   softDeleteVoucher,
   transferVoucher,
   updateVoucher,
@@ -69,11 +70,16 @@ export async function POST(req: Request) {
       if (!body.voucher || typeof body.voucher !== "object") {
         return badRequest("Missing voucher payload");
       }
-      const voucher = await createVoucher(auth.user, body.voucher as VoucherCreateInput);
-      return NextResponse.json({ ok: true, voucher });
+      const created = await createVoucher(auth.user, body.voucher as VoucherCreateInput);
+      return NextResponse.json({ ok: true, ...created });
     }
 
     if (!voucherId) return badRequest("Missing voucher id");
+
+    if (action === "resend") {
+      const resent = await resendVoucherEmail(auth.user, voucherId);
+      return NextResponse.json({ ok: true, ...resent });
+    }
 
     if (action === "update") {
       if (!body.voucher || typeof body.voucher !== "object") {

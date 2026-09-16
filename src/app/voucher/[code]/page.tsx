@@ -100,7 +100,9 @@ export default async function VoucherClaimPage(props: {
                 <strong className="mt-2 block text-lg text-[#fff7e8]">
                   {voucher.expires_at
                     ? new Date(voucher.expires_at).toLocaleDateString()
-                    : "Sem prazo"}
+                    : voucher.grant_expires_days
+                      ? `${voucher.grant_expires_days} dias após o resgate`
+                      : "Sem prazo"}
                 </strong>
               </div>
             </div>

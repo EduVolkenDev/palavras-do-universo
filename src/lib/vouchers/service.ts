@@ -1,5 +1,9 @@
 import type { User } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import {
+  sendVoucherEmail,
+  type VoucherEmailDelivery,
+} from "@/lib/email/transactional";
 import { pricingPlans, productCards } from "@/lib/product/catalog";
 import { getSiteUrl } from "@/lib/stripe/server";
 import {
@@ -121,6 +125,7 @@ const KIND_PREFIX: Record<VoucherKind, string> = {
   discount: "DISC",
   hybrid: "CIRCLE",
 };
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeList(values: string[] | null | undefined) {
   return Array.from(
@@ -189,6 +194,10 @@ function validateVoucherInput(input: VoucherCreateInput | VoucherUpdateInput, st
     "grantProductKeys" in input ? normalizeList(input.grantProductKeys) : [];
   const discountPercent =
     "discountPercent" in input ? cleanNumber(input.discountPercent, 1, 100) : null;
+  const targetEmail =
+    "targetEmail" in input
+      ? cleanText(input.targetEmail, 320)?.toLowerCase() ?? null
+      : null;
 
   if (strict) {
     if (!label) throw new Error("Label is required");
@@ -199,6 +208,10 @@ function validateVoucherInput(input: VoucherCreateInput | VoucherUpdateInput, st
     if ((kind === "discount" || kind === "hybrid") && !discountPercent) {
       throw new Error("Discount vouchers need a percentage");
     }
+  }
+
+  if (targetEmail && !EMAIL_PATTERN.test(targetEmail)) {
+    throw new Error("Enter a valid target email");
   }
 
   return {
@@ -216,10 +229,7 @@ function validateVoucherInput(input: VoucherCreateInput | VoucherUpdateInput, st
     maxUses: "maxUses" in input ? cleanNumber(input.maxUses, 1, 5000) : null,
     startsAt: "startsAt" in input ? cleanText(input.startsAt, 80) : null,
     expiresAt: "expiresAt" in input ? cleanText(input.expiresAt, 80) : null,
-    targetEmail:
-      "targetEmail" in input
-        ? cleanText(input.targetEmail, 320)?.toLowerCase() ?? null
-        : null,
+    targetEmail,
     targetUserId: "targetUserId" in input ? cleanText(input.targetUserId, 120) : null,
     transferable:
       "transferable" in input && typeof input.transferable === "boolean"
@@ -331,11 +341,42 @@ export async function createVoucher(actor: User, input: VoucherCreateInput) {
     throw error;
   }
 
-  return {
+  const voucher = {
     ...(data as VoucherRow),
     share_url: getShareUrl(data.code),
     primary_title: getProductTitle(data.product_key),
   } satisfies VoucherView;
+
+  const email: VoucherEmailDelivery = await sendVoucherEmail(voucher);
+  return { voucher, email };
+}
+
+export async function resendVoucherEmail(actor: User, voucherId: string) {
+  await ensureSupabaseProfile(actor.id);
+  const { data, error } = await getSupabaseAdmin()
+    .from("voucher_codes")
+    .select("*")
+    .eq("id", voucherId)
+    .single();
+
+  if (error || !data) throw error ?? new Error("Voucher not found");
+
+  const storedVoucher = data as VoucherRow;
+  if (storedVoucher.status !== "active") {
+    throw new Error("Only active vouchers can be emailed");
+  }
+  if (storedVoucher.expires_at && new Date(storedVoucher.expires_at).getTime() <= Date.now()) {
+    throw new Error("Expired vouchers cannot be emailed");
+  }
+
+  const voucher = {
+    ...storedVoucher,
+    share_url: getShareUrl(data.code),
+    primary_title: getProductTitle(data.product_key),
+  } satisfies VoucherView;
+
+  const email: VoucherEmailDelivery = await sendVoucherEmail(voucher);
+  return { voucher, email };
 }
 
 export async function updateVoucher(actor: User, voucherId: string, input: VoucherUpdateInput) {

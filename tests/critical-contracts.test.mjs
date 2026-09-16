@@ -192,3 +192,19 @@ test("astrology birth data stays separate, authenticated and consent-gated", asy
   assert.match(timeResolution, /"ambiguous"/);
   assert.match(timeResolution, /"nonexistent"/);
 });
+
+test("voucher invitations validate delivery and keep a recovery path", async () => {
+  const service = await source("src/lib/vouchers/service.ts");
+  const email = await source("src/lib/email/transactional.ts");
+  const route = await source("src/app/api/admin/vouchers/route.ts");
+  const admin = await source("src/components/admin/VoucherAdminPage.tsx");
+  const claim = await source("src/app/voucher/[code]/page.tsx");
+
+  assert.match(service, /EMAIL_PATTERN/);
+  assert.match(service, /resendVoucherEmail/);
+  assert.match(email, /no-reply@palavrasdouniverso\.com/);
+  assert.match(email, /MAX_SEND_ATTEMPTS/);
+  assert.match(route, /action === "resend"/);
+  assert.match(admin, /Reenviar voucher por e-mail/);
+  assert.match(claim, /grant_expires_days/);
+});
