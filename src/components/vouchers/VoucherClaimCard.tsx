@@ -2,7 +2,7 @@
 
 import { CheckCircle2, Loader2, Percent, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/components/I18nProvider";
 import { buildLoginPath } from "@/lib/auth/redirect";
 import { getVoucherErrorMessage } from "@/lib/vouchers/client";
@@ -12,19 +12,22 @@ export default function VoucherClaimCard({
   kind,
   userEmail,
   isAuthenticated,
+  autoRedeem = false,
 }: {
   code: string;
   kind: "invite" | "discount" | "hybrid";
   userEmail: string;
   isAuthenticated: boolean;
+  autoRedeem?: boolean;
 }) {
   const router = useRouter();
   const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const autoRedeemStarted = useRef(false);
 
-  async function handleRedeem() {
+  const handleRedeem = useCallback(async () => {
     setLoading(true);
     setError("");
     setMessage("");
@@ -71,9 +74,16 @@ export default function VoucherClaimCard({
     } finally {
       setLoading(false);
     }
-  }
+  }, [code, router, t]);
 
-  const requiresLogin = !isAuthenticated && kind === "invite";
+  useEffect(() => {
+    if (!autoRedeem || !isAuthenticated || autoRedeemStarted.current) return;
+    autoRedeemStarted.current = true;
+    void handleRedeem();
+  }, [autoRedeem, handleRedeem, isAuthenticated]);
+
+  const requiresLogin = !isAuthenticated && (kind !== "discount" || autoRedeem);
+  const loginNextPath = `/voucher/${encodeURIComponent(code)}${autoRedeem ? "?auto=1" : ""}`;
   const cta =
     requiresLogin
       ? t("Entrar para resgatar")
@@ -105,7 +115,7 @@ export default function VoucherClaimCard({
         type="button"
         onClick={() => {
           if (requiresLogin) {
-            window.location.href = buildLoginPath(`/voucher/${encodeURIComponent(code)}`);
+            window.location.href = buildLoginPath(loginNextPath);
             return;
           }
           void handleRedeem();

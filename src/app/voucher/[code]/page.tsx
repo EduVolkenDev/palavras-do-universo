@@ -19,8 +19,11 @@ function getProductTitle(productKey: string | null) {
 
 export default async function VoucherClaimPage(props: {
   params: Promise<{ code: string }>;
+  searchParams?: Promise<{ auto?: string }>;
 }) {
   const { code } = await props.params;
+  const searchParams = await props.searchParams;
+  const autoRedeem = searchParams?.auto === "1";
   const user = await getAuthenticatedUser();
   const voucher = hasSupabaseConfig() ? await getVoucherByCode(code) : null;
 
@@ -124,6 +127,7 @@ export default async function VoucherClaimPage(props: {
                 kind={voucher.kind}
                 userEmail={user?.email ?? ""}
                 isAuthenticated={Boolean(user)}
+                autoRedeem={autoRedeem}
               />
             </div>
           </>

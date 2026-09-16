@@ -199,6 +199,7 @@ test("voucher invitations validate delivery and keep a recovery path", async () 
   const route = await source("src/app/api/admin/vouchers/route.ts");
   const admin = await source("src/components/admin/VoucherAdminPage.tsx");
   const claim = await source("src/app/voucher/[code]/page.tsx");
+  const claimCard = await source("src/components/vouchers/VoucherClaimCard.tsx");
 
   assert.match(service, /EMAIL_PATTERN/);
   assert.match(service, /resendVoucherEmail/);
@@ -210,4 +211,11 @@ test("voucher invitations validate delivery and keep a recovery path", async () 
   assert.match(route, /action === "resend"/);
   assert.match(admin, /Reenviar voucher por e-mail/);
   assert.match(claim, /grant_expires_days/);
+  assert.match(email, /auto=1/);
+  assert.match(claim, /searchParams/);
+  assert.match(claim, /autoRedeem/);
+  assert.match(claimCard, /useEffect/);
+  assert.match(claimCard, /api\/vouchers\/redeem/);
+  assert.match(claimCard, /buildLoginPath\(loginNextPath\)/);
+  assert.match(claimCard, /kind !== "discount" \|\| autoRedeem/);
 });
