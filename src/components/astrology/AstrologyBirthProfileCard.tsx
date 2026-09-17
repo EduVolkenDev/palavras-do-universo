@@ -58,14 +58,6 @@ function draftFromRecord(record: AstrologyBirthDataRecord): BirthDraft {
   };
 }
 
-function formatOffset(offset: number | null) {
-  if (offset === null) return "";
-  if (offset === 0) return "UTC±00:00";
-  const sign = offset > 0 ? "+" : "−";
-  const absolute = Math.abs(offset);
-  return `UTC${sign}${String(Math.floor(absolute / 60)).padStart(2, "0")}:${String(absolute % 60).padStart(2, "0")}`;
-}
-
 export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
   const isEnglish = locale === "en";
   const copy = isEnglish
@@ -93,10 +85,7 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
         saving: "Saving…",
         saved: "Birth context saved",
         loading: "Loading your saved context…",
-        resolved: (offset: string, daylight: string) => `Local time understood. Applied ${offset}. Daylight saving: ${daylight}.`,
-        active: "active",
-        inactive: "not active",
-        unknown: "not classified",
+        resolved: "Your local birth time was understood. The daylight-saving rule for that date was considered.",
         ambiguous: "This clock time happened twice on that date. Choose which occurrence matches the record.",
         earlier: "First occurrence",
         later: "Second occurrence",
@@ -104,7 +93,7 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
         invalid: "Check the date, time and place selected.",
         missing: "Complete the date, time and select the place found automatically before saving.",
         saveError: "We could not save this context now. Please try again.",
-        introSaved: "Your local birth time stays visible and auditable. The server recalculates the historical offset before accepting it.",
+        introSaved: "Your birth time is ready to make your map more faithful to the moment you were born.",
       }
     : {
         eyebrow: "ASTROLOGIA · CONTEXTO PRIVADO",
@@ -130,10 +119,7 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
         saving: "Salvando…",
         saved: "Contexto de nascimento salvo",
         loading: "Carregando seu contexto salvo…",
-        resolved: (offset: string, daylight: string) => `Hora local compreendida. Aplicamos ${offset}. Horário de verão: ${daylight}.`,
-        active: "ativo",
-        inactive: "não estava ativo",
-        unknown: "não classificado",
+        resolved: "Sua hora local de nascimento foi compreendida. A regra de horário de verão dessa data foi considerada.",
         ambiguous: "Essa hora aconteceu duas vezes nessa data. Escolha qual ocorrência corresponde ao registro.",
         earlier: "Primeira ocorrência",
         later: "Segunda ocorrência",
@@ -141,7 +127,7 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
         invalid: "Confira a data, a hora e o local selecionado.",
         missing: "Preencha data, hora e selecione o local encontrado automaticamente antes de salvar.",
         saveError: "Não foi possível salvar agora. Tente novamente.",
-        introSaved: "Sua hora local de nascimento permanece visível e auditável. O servidor recalcula o offset histórico antes de aceitar os dados.",
+        introSaved: "Sua hora de nascimento está pronta para deixar seu mapa mais fiel ao momento em que você nasceu.",
       };
 
   const client = useMemo(() => createAstrologyBirthDataClient(), []);
@@ -302,8 +288,6 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
     }
   };
 
-  const daylightLabel = resolution?.daylightSaving === "active" ? copy.active : resolution?.daylightSaving === "inactive" ? copy.inactive : copy.unknown;
-
   return (
     <section id="preparar-meu-mapa" className="mt-8 overflow-hidden rounded-[30px] border border-[#241b18]/10 bg-[#fffaf2] shadow-[0_30px_90px_rgba(80,57,34,0.12)]">
       <div className="grid gap-0 lg:grid-cols-[0.82fr_1.18fr]">
@@ -404,7 +388,7 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
               {resolution?.status === "resolved" ? (
                 <div className="rounded-2xl border border-[#a9cdbf] bg-[#eef8f2] p-4 text-sm leading-6 text-[#315d56]">
                   <CheckCircle2 className="mb-1 inline-block mr-2" size={16} />
-                  {copy.resolved(formatOffset(resolution.utcOffsetMinutes), daylightLabel)}
+                  {copy.resolved}
                 </div>
               ) : null}
               {resolution?.status === "nonexistent" ? <div className="rounded-2xl border border-[#d9aaa8] bg-[#fff1f0] p-4 text-sm leading-6 text-[#7b3330]">{copy.nonexistent}</div> : null}
