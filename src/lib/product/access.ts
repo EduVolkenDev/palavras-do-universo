@@ -62,6 +62,7 @@ export function isInternalTestProduct(productKey: string) {
 }
 
 export const CIRCLE_PRODUCT_KEY = "circulo_do_universo";
+export const ASTROLOGY_FULL_PRODUCT_KEY = "mapa_astral";
 
 export const CIRCLE_INCLUDED_PRODUCTS = new Set([
   "caminho_3_cartas",
@@ -75,6 +76,7 @@ export const CIRCLE_INCLUDED_PRODUCTS = new Set([
   "cruz_celta",
   "relacionar",
   "o_paradoxo",
+  ASTROLOGY_FULL_PRODUCT_KEY,
 ]);
 
 export function circleUnlocksProduct(productKey: string) {

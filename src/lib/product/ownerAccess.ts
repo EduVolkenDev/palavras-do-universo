@@ -1,6 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 import { productCards, pricingPlans } from "@/lib/product/catalog";
-import { PAID_READING_PRODUCTS } from "@/lib/product/access";
+import { ASTROLOGY_FULL_PRODUCT_KEY, PAID_READING_PRODUCTS } from "@/lib/product/access";
 
 type OwnerEntitlement = {
   id: string;
@@ -44,6 +44,7 @@ export function getOwnerEntitlements(user: User): OwnerEntitlement[] {
 
   const ownerProductKeys = [
     "circulo_do_universo",
+    ASTROLOGY_FULL_PRODUCT_KEY,
     ...Array.from(PAID_READING_PRODUCTS),
   ];
   const startsAt = "2026-01-01T00:00:00.000Z";
@@ -80,6 +81,6 @@ export function getOwnerEntitlements(user: User): OwnerEntitlement[] {
 }
 
 export function getOwnerEntitlementForProduct(user: User | null | undefined, productKey: string) {
-  if (!user || !PAID_READING_PRODUCTS.has(productKey)) return null;
+  if (!user || (!PAID_READING_PRODUCTS.has(productKey) && productKey !== ASTROLOGY_FULL_PRODUCT_KEY)) return null;
   return getOwnerEntitlements(user).find((item) => item.product_key === productKey) ?? null;
 }

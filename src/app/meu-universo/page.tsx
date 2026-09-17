@@ -1572,7 +1572,9 @@ export default function MeuUniversoPage() {
 
         {authChecked ? (
           <>
-          {accountEmail ? <AstrologyBirthProfileCard locale={locale} /> : null}
+          {accountEmail ? (
+            <AstrologyBirthProfileCard locale={locale} redirectAfterSave="/astrologia" />
+          ) : null}
           {!loading && !hasAnyJourneySignal ? (
             <section className="mt-8 overflow-hidden rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] shadow-[0_30px_90px_rgba(80,57,34,0.1)]">
               <div className="grid gap-0 lg:grid-cols-[0.86fr_1.14fr]">

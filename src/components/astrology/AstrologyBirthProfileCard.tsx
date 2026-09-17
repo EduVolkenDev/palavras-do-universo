@@ -58,7 +58,13 @@ function draftFromRecord(record: AstrologyBirthDataRecord): BirthDraft {
   };
 }
 
-export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
+export function AstrologyBirthProfileCard({
+  locale,
+  redirectAfterSave,
+}: {
+  locale: Locale;
+  redirectAfterSave?: string;
+}) {
   const isEnglish = locale === "en";
   const copy = isEnglish
     ? {
@@ -281,6 +287,11 @@ export function AstrologyBirthProfileCard({ locale }: { locale: Locale }) {
       setSavedRecord(record);
       setDraft(draftFromRecord(record));
       setNotice(copy.saved);
+      if (redirectAfterSave) {
+        window.setTimeout(() => {
+          window.location.assign(redirectAfterSave);
+        }, 450);
+      }
     } catch (caught) {
       setError(caught instanceof Error && caught.message === "BIRTH_DATA_CONSENT_REQUIRED" ? copy.saveError : copy.saveError);
     } finally {

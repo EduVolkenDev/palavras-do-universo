@@ -30,6 +30,7 @@ export const PRODUCT_PRICE_MATRIX: Record<
   a_chave: { BRL: 2990, GBP: 1400 },
   o_espelho: { BRL: 3490, GBP: 1600 },
   cruz_celta: { BRL: 3490, GBP: 1600 },
+  mapa_astral: { BRL: 3990, GBP: 1700 },
   circulo_do_universo: { BRL: 4990, GBP: 2000 },
   teste_checkout_50: { BRL: 50, GBP: 50 },
 };

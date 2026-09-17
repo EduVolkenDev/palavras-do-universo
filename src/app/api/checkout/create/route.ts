@@ -11,6 +11,7 @@ import { checkRateLimit } from "@/lib/security/rateLimit";
 import { readJsonBody } from "@/lib/http/request";
 import { isOwnerAccessUser } from "@/lib/product/ownerAccess";
 import {
+  ASTROLOGY_FULL_PRODUCT_KEY,
   CIRCLE_PRODUCT_KEY,
   isInternalTestProduct,
 } from "@/lib/product/access";
@@ -130,6 +131,11 @@ const checkoutCopyByLocale: Record<
       description:
         "Histórico simbólico, rituais, ciclos, favoritos e acesso contínuo às principais leituras.",
     },
+    mapa_astral: {
+      title: "Mapa Astral Completo",
+      description:
+        "Seu mapa natal completo, com planetas, casas, aspectos e explicações simbólicas aprofundadas.",
+    },
   },
   en: {
     teste_checkout_50: {
@@ -201,6 +207,11 @@ const checkoutCopyByLocale: Record<
       title: "Circle of the Universe",
       description:
         "Symbolic history, rituals, cycles, favorites, and continued access to the main readings.",
+    },
+    mapa_astral: {
+      title: "Complete Birth Chart",
+      description:
+        "Your complete natal chart, with planets, houses, aspects, and deeper symbolic explanations.",
     },
   },
 };
@@ -308,6 +319,7 @@ function buildLineItem(
 function getUnlockedRedirectPath(productKey: string) {
   if (isInternalTestProduct(productKey)) return "/admin/teste-checkout?checkout=active";
   if (productKey === CIRCLE_PRODUCT_KEY) return "/meu-universo?access=active";
+  if (productKey === ASTROLOGY_FULL_PRODUCT_KEY) return "/astrologia?access=active";
   return `/?product=${encodeURIComponent(productKey)}`;
 }
 
@@ -483,7 +495,7 @@ export async function POST(req: Request) {
       customer_email: email,
       allow_promotion_codes: true,
       billing_address_collection: "auto",
-      success_url: `${siteUrl}${isInternalTest ? "/admin/teste-checkout" : "/meu-universo"}?checkout=success&session_id={CHECKOUT_SESSION_ID}&product=${encodeURIComponent(
+      success_url: `${siteUrl}${isInternalTest ? "/admin/teste-checkout" : product.product_key === ASTROLOGY_FULL_PRODUCT_KEY ? "/astrologia" : "/meu-universo"}?checkout=success&session_id={CHECKOUT_SESSION_ID}&product=${encodeURIComponent(
         product.product_key
       )}&currency=${encodeURIComponent(
         checkoutPrice.currency

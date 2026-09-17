@@ -4768,6 +4768,54 @@ export default function Home() {
         </div>
       </section>
 
+      <section
+        id="astrologia"
+        className="pdu-mobile-deferred relative overflow-hidden bg-[#241b3a] px-4 py-24 text-[#fff7e8] sm:px-6 lg:px-8 lg:py-32"
+      >
+        <div className="pointer-events-none absolute -right-24 -top-24 h-[30rem] w-[30rem] rounded-full bg-[#7049a5]/35 blur-3xl" aria-hidden="true" />
+        <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[#f4d58d]/10 blur-3xl" aria-hidden="true" />
+        <div className="pdu-reveal relative z-10 mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:gap-20">
+          <div className="max-w-2xl">
+            <SectionEyebrow dark>{locale === "en" ? "Astrology" : "Astrologia"}</SectionEyebrow>
+            <h2 className="brand-serif mt-4 text-4xl font-semibold leading-tight sm:text-6xl">
+              {locale === "en" ? "Discover the sky you were born under." : "Descubra o céu sob o qual você nasceu."}
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-7 text-[#d8ccc0]">
+              {locale === "en" ? "Your birth chart becomes a personal map: Sun, Moon, rising sign, planets, houses, and the symbolic conversations between them." : "O seu mapa astral se torna um mapa pessoal: Sol, Lua, Ascendente, planetas, casas e as conversas simbólicas entre eles."}
+            </p>
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <Link href="/astrologia" className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#241b18] shadow-[0_16px_36px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:bg-[#ffe3a3]">
+                {locale === "en" ? "Discover my birth chart" : "Descobrir meu mapa astral"}
+                <ArrowRight size={16} />
+              </Link>
+              <span className="text-xs leading-5 text-[#bfb5ad]">{locale === "en" ? "Start free. Go deeper when you are ready." : "Comece gratuitamente. Aprofunde quando fizer sentido."}</span>
+            </div>
+          </div>
+          <div className="relative overflow-hidden rounded-[30px] border border-[#f4d58d]/25 bg-[#171225] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.24)] sm:p-8">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(244,213,141,0.25),transparent_28%),radial-gradient(circle_at_70%_80%,rgba(112,73,165,0.4),transparent_46%)]" />
+            <div className="relative grid gap-5 sm:grid-cols-[0.8fr_1.2fr] sm:items-center">
+              <div className="relative mx-auto h-52 w-52 sm:h-64 sm:w-64">
+                <Image src={PDU_ASSETS.symbolic.zodiac} alt="" fill sizes="(max-width: 640px) 13rem, 16rem" className="object-contain drop-shadow-[0_0_36px_rgba(244,213,141,0.3)]" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{locale === "en" ? "A clear entrance" : "Uma entrada clara"}</p>
+                <p className="brand-serif mt-3 text-3xl font-semibold">{locale === "en" ? "Three essential placements, then the whole story." : "Três posições essenciais, depois a história inteira."}</p>
+                <div className="mt-5 space-y-3 text-sm text-[#d8ccc0]">
+                  <p className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-[#f4d58d]" />{locale === "en" ? "Sun, Moon, and rising sign free" : "Sol, Lua e Ascendente gratuitos"}</p>
+                  <p className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-[#a7d7c5]" />{locale === "en" ? "Complete map in one purchase" : "Mapa completo em uma compra"}</p>
+                  <p className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-[#c59be9]" />{locale === "en" ? "Included in the Circle" : "Incluído no Círculo"}</p>
+                </div>
+                <div className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-white/10 pt-5">
+                  <span className="text-2xl font-semibold text-[#f5d896]">{formatProductPrice("mapa_astral", productCurrency)}</span>
+                  <span className="text-sm text-[#bfb5ad]">{locale === "en" ? "one-time" : "pagamento único"}</span>
+                  <span className="text-xs text-[#8d837b]">· {locale === "en" ? `Circle ${formatProductPrice("circulo_do_universo", productCurrency)}/month` : `Círculo ${formatProductPrice("circulo_do_universo", productCurrency)}/mês`}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
      <section className="pdu-mobile-deferred pdu-universe-preview px-4 py-28 sm:px-6 lg:px-8">
         <div className="pdu-reveal mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
           <div className="pdu-universe-preview__copy">
