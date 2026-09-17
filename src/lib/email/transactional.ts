@@ -293,7 +293,7 @@ export async function sendVoucherEmail(
           "X-Mailin-Track-Opens": "false",
         },
       });
-      const accepted = delivery.accepted.map((value) => String(value).toLowerCase());
+      const accepted = (delivery.accepted ?? []).map((value) => String(value).toLowerCase());
       if (!accepted.includes(targetEmail)) {
         throw new Error("SMTP did not accept the voucher recipient");
       }
