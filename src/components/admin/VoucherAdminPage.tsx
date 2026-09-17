@@ -21,6 +21,7 @@ import { pricingPlans, productCards } from "@/lib/product/catalog";
 
 type VoucherKind = "invite" | "discount" | "hybrid";
 type VoucherStatus = "draft" | "active" | "paused" | "cancelled" | "deleted";
+type VoucherEmailLocale = "pt-BR" | "en";
 
 type VoucherView = {
   id: string;
@@ -76,6 +77,7 @@ type VoucherFormState = {
   expiresAt: string;
   targetEmail: string;
   targetName: string;
+  emailLocale: VoucherEmailLocale;
   transferable: boolean;
 };
 
@@ -102,6 +104,7 @@ const DEFAULT_FORM: VoucherFormState = {
   expiresAt: "",
   targetEmail: "",
   targetName: "",
+  emailLocale: "pt-BR",
   transferable: false,
 };
 
@@ -250,6 +253,7 @@ export default function VoucherAdminPage({
           expiresAt: fromDateTimeLocal(form.expiresAt),
           targetEmail: form.targetEmail || null,
           targetName: form.targetName || null,
+          emailLocale: form.emailLocale,
           transferable: form.transferable,
         },
       });
@@ -717,6 +721,22 @@ export default function VoucherAdminPage({
                     className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                     placeholder="alguem@exemplo.com"
                   />
+                </label>
+                <label className="space-y-2">
+                  <span className="text-sm font-semibold text-[#f3eadf]">{t("Idioma do e-mail")}</span>
+                  <select
+                    value={form.emailLocale}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        emailLocale: event.target.value as VoucherEmailLocale,
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                  >
+                    <option value="pt-BR">{t("Português")}</option>
+                    <option value="en">English</option>
+                  </select>
                 </label>
                 <label className="space-y-2">
                   <span className="text-sm font-semibold text-[#f3eadf]">{t("Expira em")}</span>

@@ -252,5 +252,11 @@ test("voucher invitations validate delivery and keep a recovery path", async () 
   assert.match(email, /Your invitation has arrived/);
   assert.match(email, /Hi \$\{recipientName\}/);
   assert.match(email, /Activate automatically with my account/);
-  assert.doesNotMatch(email, /Olá|você recebeu|Resgate seu convite|Seu código/);
+  assert.match(email, /email_locale/);
+  assert.match(email, /locale === "pt-BR"/);
+  assert.match(email, /Olá \$\{recipientName\}/);
+  assert.match(email, /Código/);
+  assert.match(service, /emailLocale/);
+  assert.match(admin, /Idioma do e-mail/);
+  assert.match(admin, /value="pt-BR"/);
 });

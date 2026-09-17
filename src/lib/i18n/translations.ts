@@ -7,6 +7,7 @@ const en: Record<string, string> = {
   "Atende pessoas que precisam respirar, entender o que pesa e olhar vínculos com mais honestidade. Trabalha com escuta, leitura simbólica e orientação prática.": "Supports people who need to breathe, understand what feels heavy, and look at relationships with more honesty. Works with listening, symbolic reading, and practical guidance.",
   "Relacionamentos": "Relationships",
   "Português": "Portuguese",
+  "Idioma do e-mail": "Email language",
   "Sessão de clareza afetiva": "Emotional clarity session",
   "Leitura focada em vínculo, limites e próximo passo afetivo.": "A reading focused on connection, boundaries, and the next emotional step.",
   "Afeto": "Affection",

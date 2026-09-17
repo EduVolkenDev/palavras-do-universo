@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import {
   sendVoucherEmail,
   type VoucherEmailDelivery,
+  type VoucherEmailLocale,
 } from "@/lib/email/transactional";
 import { pricingPlans, productCards } from "@/lib/product/catalog";
 import { getSiteUrl } from "@/lib/stripe/server";
@@ -89,6 +90,7 @@ export type VoucherCreateInput = {
   startsAt?: string | null;
   expiresAt?: string | null;
   metadata?: Record<string, unknown>;
+  emailLocale?: VoucherEmailLocale;
 } & VoucherAudience;
 
 export type VoucherUpdateInput = Partial<
@@ -201,6 +203,8 @@ function validateVoucherInput(input: VoucherCreateInput | VoucherUpdateInput, st
       : null;
   const targetName =
     "targetName" in input ? cleanText(input.targetName, 120) : null;
+  const emailLocale: VoucherEmailLocale =
+    "emailLocale" in input && input.emailLocale === "pt-BR" ? "pt-BR" : "en";
 
   if (strict) {
     if (!label) throw new Error("Label is required");
@@ -235,6 +239,7 @@ function validateVoucherInput(input: VoucherCreateInput | VoucherUpdateInput, st
     targetEmail,
     targetUserId: "targetUserId" in input ? cleanText(input.targetUserId, 120) : null,
     targetName,
+    emailLocale,
     transferable:
       "transferable" in input && typeof input.transferable === "boolean"
         ? input.transferable
@@ -320,6 +325,7 @@ export async function createVoucher(actor: User, input: VoucherCreateInput) {
 
   const metadata = {
     ...parsed.metadata,
+    email_locale: parsed.emailLocale,
     ...(recipientName ? { recipient_name: recipientName } : {}),
   };
 
@@ -366,6 +372,7 @@ export async function createVoucher(actor: User, input: VoucherCreateInput) {
   const email: VoucherEmailDelivery = await sendVoucherEmail({
     ...voucher,
     recipient_name: recipientName,
+    email_locale: parsed.emailLocale,
   });
   return { voucher, email };
 }
@@ -424,6 +431,7 @@ export async function resendVoucherEmail(
   const email: VoucherEmailDelivery = await sendVoucherEmail({
     ...voucher,
     recipient_name: recipientName,
+    email_locale: metadata.email_locale === "pt-BR" ? "pt-BR" : "en",
   });
   return { voucher, email };
 }
