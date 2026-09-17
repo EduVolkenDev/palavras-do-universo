@@ -236,6 +236,10 @@ test("voucher invitations validate delivery and keep a recovery path", async () 
   assert.match(service, /resendVoucherEmail/);
   assert.match(email, /no-reply@palavrasdouniverso\.com/);
   assert.match(email, /MAX_SEND_ATTEMPTS/);
+  assert.match(email, /MAX_SEND_ATTEMPTS = 1/);
+  assert.match(email, /X-Mailin-Track-Clicks/);
+  assert.match(email, /X-Mailin-Track-Opens/);
+  assert.match(email, /Se o botão não abrir, copie este endereço/);
   assert.match(email, /recipient_name/);
   assert.match(email, /voucher\.kind === "discount"/);
   assert.match(service, /recipientName/);
