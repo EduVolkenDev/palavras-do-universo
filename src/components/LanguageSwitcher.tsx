@@ -11,6 +11,8 @@ export function LanguageSwitcher() {
   const isCampaignPage = pathname === "/clareza-urgente";
   const isHome = pathname === "/";
 
+  if (pathname === "/lab") return null;
+
   const handleLocaleClick = (nextLocale: Locale) => {
     if (nextLocale === locale) return;
     setLocale(nextLocale);

@@ -81,6 +81,7 @@ const copy = {
     eyebrow: "LABORATÓRIO DO AGORA",
     title: "Nem todo momento pede uma carta.",
     intro: "Às vezes, o que você precisa é de um espaço para organizar o que está vivo, perceber o que merece cuidado e escolher um gesto possível.",
+    heroCardLine: "Um espaço para escutar o que está vivo em você.",
     primaryCta: "Começar minha prática",
     secondaryCta: "Voltar para o portal",
     noCards: "Sem cartas. Sem respostas prontas.",
@@ -147,6 +148,7 @@ const copy = {
     eyebrow: "THE NOW LAB",
     title: "Not every moment needs a card.",
     intro: "Sometimes what you need is a space to organize what is alive, notice what deserves care, and choose one possible gesture.",
+    heroCardLine: "A space to listen to what is alive in you.",
     primaryCta: "Start my practice",
     secondaryCta: "Back to the portal",
     noCards: "No cards. No ready-made answers.",
@@ -212,7 +214,7 @@ const copy = {
 } as const;
 
 export default function LabPage() {
-  const { locale } = useI18n();
+  const { locale, setLocale } = useI18n();
   const language = locale === "en" ? copy.en : copy.pt;
   const [practiceKey, setPracticeKey] = useState<LabPracticeKey | null>(null);
   const [arrivalKey, setArrivalKey] = useState<LabArrivalKey | null>(null);
@@ -354,29 +356,33 @@ export default function LabPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-clip bg-[#f6f0e5] text-[#2b211c]">
+    <main className="pdu-lab-page min-h-screen overflow-x-clip bg-[#f6f0e5] text-[#2b211c]">
       <div className="pointer-events-none fixed inset-0 -z-0 bg-[radial-gradient(circle_at_15%_8%,rgba(244,213,141,0.36),transparent_28%),radial-gradient(circle_at_90%_58%,rgba(177,214,197,0.28),transparent_32%)]" />
       <header className="relative z-10 border-b border-[#2e2018]/10 bg-[#f6f0e5]/85 px-4 py-4 backdrop-blur-md sm:px-8">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+        <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-4">
           <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#2b211c]" aria-label={language.secondaryCta}>
             <ArrowLeft size={17} />
             <span className="hidden sm:inline">{language.secondaryCta}</span>
             <span className="sm:hidden">PDU</span>
           </Link>
-          <div className="relative h-8 w-36 sm:h-10 sm:w-48">
+          <div className="absolute left-1/2 h-8 w-28 -translate-x-1/2 sm:h-10 sm:w-48">
             <Image src={PDU_ASSETS.brand.headerWordmark} alt="Palavras do Universo" fill sizes="12rem" className="object-contain object-right" priority />
+          </div>
+          <div className="ml-auto flex items-center gap-1 rounded-full border border-[#bda77f]/70 bg-[#fffaf2]/80 p-1 text-[0.68rem] font-bold tracking-[0.08em] shadow-[0_8px_24px_rgba(71,49,35,0.08)]" aria-label={locale === "en" ? "Language" : "Idioma"}>
+            <button type="button" onClick={() => setLocale("pt-BR")} aria-pressed={locale === "pt-BR"} className={`rounded-full px-2.5 py-1.5 transition ${locale === "pt-BR" ? "bg-[#2b211c] text-[#fff8eb]" : "text-[#8a6b3f] hover:bg-[#f4eadb]"}`}>PT</button>
+            <button type="button" onClick={() => setLocale("en")} aria-pressed={locale === "en"} className={`rounded-full px-2.5 py-1.5 transition ${locale === "en" ? "bg-[#2b211c] text-[#fff8eb]" : "text-[#8a6b3f] hover:bg-[#f4eadb]"}`}>EN</button>
           </div>
         </div>
       </header>
 
       <section id="lab" className="relative z-10 px-4 pb-16 pt-12 sm:px-8 sm:pb-24 sm:pt-20">
-        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.86fr_1.14fr] lg:items-center lg:gap-16">
+        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.86fr_1.14fr] lg:items-start lg:gap-16">
           <div className="max-w-2xl">
             <p className="mb-5 inline-flex items-center gap-2 text-[0.68rem] font-bold uppercase tracking-[0.28em] text-[#8a6b3f]">
               <span className="h-px w-8 bg-[#c3984b]" aria-hidden="true" />
               {language.eyebrow}
             </p>
-            <h1 className="brand-serif max-w-xl text-5xl font-semibold leading-[0.96] tracking-[-0.04em] sm:text-7xl">{language.title}</h1>
+            <h1 className="brand-serif max-w-xl text-5xl font-semibold leading-[0.96] tracking-[-0.04em] sm:text-7xl lg:pt-1">{language.title}</h1>
             <p className="mt-6 max-w-xl text-base leading-7 text-[#6f615a] sm:text-lg sm:leading-8">{language.intro}</p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <a href="#pratica" className="inline-flex items-center gap-2 rounded-full bg-[#2b211c] px-5 py-3 text-sm font-semibold text-[#fff8eb] shadow-[0_16px_38px_rgba(43,33,28,0.18)] transition hover:-translate-y-0.5 hover:bg-[#45342a]">
@@ -390,21 +396,20 @@ export default function LabPage() {
             </div>
           </div>
 
-          <div className="relative min-h-[22rem] overflow-hidden rounded-[2rem] border border-[#d6c3a7] bg-[#29213b] p-5 shadow-[0_26px_80px_rgba(66,45,35,0.18)] sm:min-h-[31rem] sm:p-8">
+          <div className="relative min-h-[20rem] overflow-hidden rounded-[2rem] border border-[#d6c3a7] bg-[#29213b] p-5 shadow-[0_26px_80px_rgba(66,45,35,0.18)] sm:min-h-[27rem] sm:p-8">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(244,213,141,0.32),transparent_28%),linear-gradient(145deg,rgba(20,15,37,0.4),rgba(42,28,57,0.92))]" />
             <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full border border-[#f4d58d]/30 sm:h-64 sm:w-64" aria-hidden="true" />
             <div className="absolute -bottom-24 -left-16 h-56 w-56 rounded-full border border-[#8dd9ca]/25 sm:h-80 sm:w-80" aria-hidden="true" />
-            <div className="relative flex h-full min-h-[20rem] flex-col justify-between sm:min-h-[28rem]">
+            <div className="relative flex h-full min-h-[18rem] flex-col justify-between sm:min-h-[24rem]">
               <div className="flex items-center justify-between gap-4 text-[#fff7e8]">
                 <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#f4d58d]">{language.eyebrow}</span>
                 <span className="rounded-full border border-[#f4d58d]/35 px-3 py-1 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#fff7e8]/75">{language.noCards}</span>
               </div>
-              <div className="relative mx-auto aspect-square w-[72%] max-w-[22rem]">
-                <Image src={PDU_ASSETS.ambient.mandala} alt="" fill sizes="(max-width: 768px) 70vw, 20rem" className="object-contain opacity-90 drop-shadow-[0_0_44px_rgba(244,213,141,0.34)]" />
-                <div className="absolute inset-[24%] rounded-full border border-[#f4d58d]/45 bg-[#1c1630]/35 backdrop-blur-sm" />
-                <div className="absolute inset-0 flex items-center justify-center text-center">
-                  <span className="max-w-[9rem] text-sm leading-6 text-[#fff7e8]/85">{language.intro}</span>
+              <div className="relative mx-auto flex w-[68%] max-w-[19rem] flex-col items-center gap-3 sm:w-[60%]">
+                <div className="relative aspect-square w-full">
+                  <Image src={PDU_ASSETS.ambient.mandala} alt="" fill sizes="(max-width: 768px) 70vw, 20rem" className="object-contain opacity-90 drop-shadow-[0_0_44px_rgba(244,213,141,0.34)]" />
                 </div>
+                <p className="max-w-[16rem] text-center text-xs leading-5 text-[#fff7e8]/75">{language.heroCardLine}</p>
               </div>
               <p className="max-w-sm text-sm leading-6 text-[#fff7e8]/70">{language.savedAccountHint}</p>
             </div>
@@ -476,7 +481,7 @@ export default function LabPage() {
                       const Icon = practiceIcons[key];
                       const item = language.practices[key];
                       return (
-                        <button key={key} type="button" aria-pressed={false} onClick={() => beginPractice(key)} className="group rounded-2xl border border-[#e4d3ba] bg-[#fffdf8] p-5 text-left transition hover:-translate-y-0.5 hover:border-[#bda77f]">
+                        <button key={key} type="button" aria-pressed={false} onClick={() => beginPractice(key)} className={`group rounded-2xl border border-[#e4d3ba] bg-[#fffdf8] p-5 text-left transition hover:-translate-y-0.5 hover:border-[#bda77f] ${key === "self_care_reset" ? "sm:col-span-2" : ""}`}>
                           <span className="mb-5 inline-flex rounded-full bg-[#f2e8d8] p-2 text-[#8a6b3f]"><Icon size={18} /></span>
                           <span className="block text-base font-semibold text-[#332720]">{item.title}</span>
                           <span className="mt-2 block text-sm leading-5 text-[#6f615a]">{item.text}</span>

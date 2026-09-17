@@ -226,7 +226,7 @@ export default function LumeGuide() {
     };
   }, [open]);
 
-  if (pathname.startsWith("/admin") || pathname === "/clareza-urgente") return null;
+  if (pathname.startsWith("/admin") || pathname === "/clareza-urgente" || pathname === "/lab") return null;
 
   const welcome = getLumeWelcome(surface, locale, userContext);
   const messages = conversation.scope === scope
