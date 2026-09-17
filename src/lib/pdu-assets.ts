@@ -60,6 +60,15 @@ export const PDU_ASSETS = {
     candle: "/assets/candle.webp",
     mandala: "/assets/mandalaspecial.webp",
   },
+  astrology: {
+    skyAtmosphere: "/assets/astrology/sky-atmosphere.webp",
+    moonPortal: "/assets/astrology/moon-portal.webp",
+    orbitalMap: "/assets/astrology/orbital-map.webp",
+    mySky: "/assets/astrology/sections/pdu-meu-ceu.webp",
+    pulse: "/assets/astrology/sections/pdu-meu-pulso.webp",
+    myMap: "/assets/astrology/sections/pdu-meu-mapa.webp",
+    myTime: "/assets/astrology/sections/pdu-meu-tempo.webp",
+  },
   homepage: {
     spreadsShowcase: "/assets/pdu-home-spreads-showcase.webp",
     dailyReadingBookCards: "/assets/pdu-home-daily-reading-book-cards.webp",

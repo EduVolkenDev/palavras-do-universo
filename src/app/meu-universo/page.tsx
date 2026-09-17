@@ -1573,7 +1573,7 @@ export default function MeuUniversoPage() {
         {authChecked ? (
           <>
           {accountEmail ? (
-            <AstrologyBirthProfileCard locale={locale} redirectAfterSave="/astrologia" />
+            <AstrologyBirthProfileCard locale={locale} redirectAfterSave="/astrologia/mapa" />
           ) : null}
           {!loading && !hasAnyJourneySignal ? (
             <section className="mt-8 overflow-hidden rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] shadow-[0_30px_90px_rgba(80,57,34,0.1)]">
@@ -2252,12 +2252,18 @@ export default function MeuUniversoPage() {
                         : "Acesso liberado no seu universo."}
                   </p>
                   <Link
-                    href={`/?product=${encodeURIComponent(
-                      entitlement.product_key
-                    )}`}
+                    href={entitlement.product_key === "mapa_astral"
+                      ? "/astrologia/mapa"
+                      : entitlement.product_key === CIRCLE_PRODUCT_KEY
+                        ? "/astrologia"
+                        : `/?product=${encodeURIComponent(entitlement.product_key)}`}
                     className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#111019] px-4 py-2 text-sm font-semibold text-[#fff7e8] hover:bg-[#242130]"
                   >
-                    {locale === "en" ? "Start reading" : "Começar leitura"}
+                    {entitlement.product_key === "mapa_astral"
+                      ? locale === "en" ? "Open my birth map" : "Abrir meu mapa astral"
+                      : entitlement.product_key === CIRCLE_PRODUCT_KEY
+                        ? locale === "en" ? "Enter astrology" : "Entrar na Astrologia"
+                        : locale === "en" ? "Start reading" : "Começar leitura"}
                     <ArrowRight size={15} />
                   </Link>
                 </article>

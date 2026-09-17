@@ -319,7 +319,7 @@ function buildLineItem(
 function getUnlockedRedirectPath(productKey: string) {
   if (isInternalTestProduct(productKey)) return "/admin/teste-checkout?checkout=active";
   if (productKey === CIRCLE_PRODUCT_KEY) return "/meu-universo?access=active";
-  if (productKey === ASTROLOGY_FULL_PRODUCT_KEY) return "/astrologia?access=active";
+  if (productKey === ASTROLOGY_FULL_PRODUCT_KEY) return "/astrologia/mapa?access=active";
   return `/?product=${encodeURIComponent(productKey)}`;
 }
 
@@ -495,7 +495,7 @@ export async function POST(req: Request) {
       customer_email: email,
       allow_promotion_codes: true,
       billing_address_collection: "auto",
-      success_url: `${siteUrl}${isInternalTest ? "/admin/teste-checkout" : product.product_key === ASTROLOGY_FULL_PRODUCT_KEY ? "/astrologia" : "/meu-universo"}?checkout=success&session_id={CHECKOUT_SESSION_ID}&product=${encodeURIComponent(
+      success_url: `${siteUrl}${isInternalTest ? "/admin/teste-checkout" : product.product_key === ASTROLOGY_FULL_PRODUCT_KEY ? "/astrologia/mapa" : "/meu-universo"}?checkout=success&session_id={CHECKOUT_SESSION_ID}&product=${encodeURIComponent(
         product.product_key
       )}&currency=${encodeURIComponent(
         checkoutPrice.currency

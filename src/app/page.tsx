@@ -3121,6 +3121,13 @@ export default function Home() {
                 </div>
               ) : null}
             </div>
+            <Link
+              href="/astrologia"
+              className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/35 bg-[#f4d58d]/10 px-3 py-2 text-[#f5d896] transition hover:border-[#f4d58d]/70 hover:bg-[#f4d58d]/18"
+            >
+              <MoonStar size={15} aria-hidden="true" />
+              {t("Astrologia")}
+            </Link>
             <Link href="/profissionais" className="pdu-site-header__nav-link">
               {t("Profissionais")}
             </Link>
@@ -3139,17 +3146,14 @@ export default function Home() {
             </Link>
           </nav>
 
-          <button
-            type="button"
-            onClick={() => {
-              setExploreMenuOpen(false);
-              scrollToId("leitura");
-            }}
+          <Link
+            href="/astrologia"
+            onClick={() => setExploreMenuOpen(false)}
             className="pdu-site-header__cta hidden items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1c1308] shadow-[0_14px_38px_rgba(244,213,141,0.22)] hover:bg-[#ffe3a3] sm:inline-flex"
           >
-            <ArrowRight size={16} />
-            {t("Começar uma leitura")}
-          </button>
+            <MoonStar size={16} />
+            {t("Conhecer Astrologia")}
+          </Link>
 
           <div className="pdu-site-header__mobile-actions flex items-center gap-2 md:hidden">
             <Link
@@ -3202,6 +3206,20 @@ export default function Home() {
                 </span>
                 <ArrowRight size={16} aria-hidden="true" />
               </a>
+              <Link
+                href="/astrologia"
+                className="pdu-mobile-menu__featured"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="pdu-mobile-menu__featured-icon">
+                  <MoonStar size={17} aria-hidden="true" />
+                </span>
+                <span>
+                  <strong>{t("Entrar na Astrologia")}</strong>
+                  <small>{t("Meu céu, meu pulso, meu mapa e meu tempo")}</small>
+                </span>
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
               <button
                 type="button"
                 className="pdu-mobile-menu__featured pdu-mobile-menu__featured--soft"
@@ -3237,6 +3255,9 @@ export default function Home() {
             <div className="pdu-mobile-menu__group">
               <p>{t("Explorar")}</p>
               <nav className="grid gap-1" aria-label={t("Explorar")}>
+                <Link href="/astrologia" onClick={() => setMobileMenuOpen(false)}>
+                  {t("Astrologia")}
+                </Link>
                 <a href="#produtos" onClick={() => setMobileMenuOpen(false)}>
                   {t("Leituras")}
                 </a>
@@ -4770,48 +4791,84 @@ export default function Home() {
 
       <section
         id="astrologia"
-        className="pdu-mobile-deferred relative overflow-hidden bg-[#241b3a] px-4 py-24 text-[#fff7e8] sm:px-6 lg:px-8 lg:py-32"
+        className="pdu-mobile-deferred relative overflow-hidden bg-[#171225] px-4 pb-24 pt-32 text-[#fff7e8] sm:px-6 md:py-28 lg:px-8 lg:py-32"
       >
-        <div className="pointer-events-none absolute -right-24 -top-24 h-[30rem] w-[30rem] rounded-full bg-[#7049a5]/35 blur-3xl" aria-hidden="true" />
-        <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[#f4d58d]/10 blur-3xl" aria-hidden="true" />
-        <div className="pdu-reveal relative z-10 mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:gap-20">
-          <div className="max-w-2xl">
-            <SectionEyebrow dark>{locale === "en" ? "Astrology" : "Astrologia"}</SectionEyebrow>
-            <h2 className="brand-serif mt-4 text-4xl font-semibold leading-tight sm:text-6xl">
-              {locale === "en" ? "Discover the sky you were born under." : "Descubra o céu sob o qual você nasceu."}
-            </h2>
-            <p className="mt-5 max-w-xl text-base leading-7 text-[#d8ccc0]">
-              {locale === "en" ? "Your birth chart becomes a personal map: Sun, Moon, rising sign, planets, houses, and the symbolic conversations between them." : "O seu mapa astral se torna um mapa pessoal: Sol, Lua, Ascendente, planetas, casas e as conversas simbólicas entre eles."}
-            </p>
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <Link href="/astrologia" className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#241b18] shadow-[0_16px_36px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:bg-[#ffe3a3]">
-                {locale === "en" ? "Discover my birth chart" : "Descobrir meu mapa astral"}
-                <ArrowRight size={16} />
-              </Link>
-              <span className="text-xs leading-5 text-[#bfb5ad]">{locale === "en" ? "Start free. Go deeper when you are ready." : "Comece gratuitamente. Aprofunde quando fizer sentido."}</span>
+        <Image src={PDU_ASSETS.astrology.skyAtmosphere} alt="" fill sizes="100vw" className="pointer-events-none object-cover opacity-35" aria-hidden="true" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(23,18,37,0.72),rgba(23,18,37,0.86)_42%,#171225_100%)]" aria-hidden="true" />
+        <div className="pointer-events-none absolute -right-24 top-24 h-[28rem] w-[28rem] rounded-full bg-[#7049a5]/30 blur-3xl" aria-hidden="true" />
+        <div className="pdu-reveal relative z-10 mx-auto max-w-7xl">
+          <div className="grid gap-12 lg:grid-cols-[0.84fr_1.16fr] lg:items-center lg:gap-20">
+            <div className="max-w-2xl">
+              <SectionEyebrow dark>{locale === "en" ? "The astrology of Palavras do Universo" : "A astrologia do Palavras do Universo"}</SectionEyebrow>
+              <h2 className="brand-serif mt-4 text-5xl font-semibold leading-[0.98] sm:text-7xl">
+                {locale === "en" ? "Your sky is not a page. It is a living language." : "O seu céu não é uma página. É uma linguagem viva."}
+              </h2>
+              <p className="mt-6 max-w-xl text-base leading-8 text-[#d8ccc0]">
+                {locale === "en" ? "Astrology here is not reduced to a chart. It is a daily space to understand your moment, notice the pulse of the sky, read your birth map, move with time, and connect symbols with the life you are actually living." : "Aqui, astrologia não se resume a um mapa. É um espaço diário para compreender o seu momento, perceber o pulso do céu, ler o seu mapa de nascimento, atravessar o tempo e conectar símbolos com a vida que você realmente está vivendo."}
+              </p>
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <Link href="/astrologia" className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#241b18] shadow-[0_16px_36px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:bg-[#ffe3a3]">
+                  {locale === "en" ? "Enter the astrology experience" : "Entrar na experiência de astrologia"}
+                  <ArrowRight size={16} />
+                </Link>
+                <span className="text-xs leading-5 text-[#bfb5ad]">{locale === "en" ? "A first look is free." : "A primeira camada é gratuita."}</span>
+              </div>
+            </div>
+
+            <div className="relative min-h-[27rem] overflow-hidden rounded-[34px] border border-[#f4d58d]/25 bg-[#171225]/75 p-5 shadow-[0_30px_90px_rgba(0,0,0,0.32)] backdrop-blur-sm sm:min-h-[34rem] sm:p-8">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(244,213,141,0.22),transparent_28%),linear-gradient(135deg,rgba(33,22,58,0.4),rgba(10,8,20,0.72))]" />
+              <div className="relative flex h-full min-h-[25rem] items-center justify-center">
+                <div className="absolute left-0 top-0 rounded-full border border-[#f4d58d]/25 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{locale === "en" ? "A universe in motion" : "Um universo em movimento"}</div>
+                <div className="relative h-[22rem] w-[22rem] sm:h-[28rem] sm:w-[28rem]">
+                  <Image src={PDU_ASSETS.astrology.orbitalMap} alt="" fill sizes="(max-width: 640px) 22rem, 28rem" className="object-contain opacity-90 drop-shadow-[0_0_44px_rgba(244,213,141,0.28)]" />
+                  <div className="absolute inset-[21%] animate-[spin_34s_linear_infinite] rounded-full border border-[#f4d58d]/25" aria-hidden="true" />
+                </div>
+                <div className="absolute bottom-0 right-0 max-w-[15rem] rounded-2xl border border-white/10 bg-[#0d0a17]/75 p-4 backdrop-blur-md">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{locale === "en" ? "Not prediction" : "Não é previsão"}</p>
+                  <p className="mt-2 text-sm leading-6 text-[#d8ccc0]">{locale === "en" ? "A symbolic compass for more presence, context, and choice." : "Uma bússola simbólica para mais presença, contexto e escolha."}</p>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="relative overflow-hidden rounded-[30px] border border-[#f4d58d]/25 bg-[#171225] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.24)] sm:p-8">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(244,213,141,0.25),transparent_28%),radial-gradient(circle_at_70%_80%,rgba(112,73,165,0.4),transparent_46%)]" />
-            <div className="relative grid gap-5 sm:grid-cols-[0.8fr_1.2fr] sm:items-center">
-              <div className="relative mx-auto h-52 w-52 sm:h-64 sm:w-64">
-                <Image src={PDU_ASSETS.symbolic.zodiac} alt="" fill sizes="(max-width: 640px) 13rem, 16rem" className="object-contain drop-shadow-[0_0_36px_rgba(244,213,141,0.3)]" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{locale === "en" ? "A clear entrance" : "Uma entrada clara"}</p>
-                <p className="brand-serif mt-3 text-3xl font-semibold">{locale === "en" ? "Three essential placements, then the whole story." : "Três posições essenciais, depois a história inteira."}</p>
-                <div className="mt-5 space-y-3 text-sm text-[#d8ccc0]">
-                  <p className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-[#f4d58d]" />{locale === "en" ? "Sun, Moon, and rising sign free" : "Sol, Lua e Ascendente gratuitos"}</p>
-                  <p className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-[#a7d7c5]" />{locale === "en" ? "Complete map in one purchase" : "Mapa completo em uma compra"}</p>
-                  <p className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-[#c59be9]" />{locale === "en" ? "Included in the Circle" : "Incluído no Círculo"}</p>
+
+          <div className="mt-20 grid gap-4 md:grid-cols-2">
+            {[
+              { asset: PDU_ASSETS.astrology.mySky, eyebrow: locale === "en" ? "Today" : "Hoje", title: locale === "en" ? "My Sky Today" : "Meu Céu Hoje", description: locale === "en" ? "A personal opening for the emotional weather of this day." : "Uma abertura pessoal para a atmosfera emocional deste dia." },
+              { asset: PDU_ASSETS.astrology.pulse, eyebrow: locale === "en" ? "Atmosphere" : "Atmosfera", title: locale === "en" ? "Cosmic Pulse" : "Pulso Cósmico", description: locale === "en" ? "A clear signal about where your energy is asking for direction." : "Um sinal claro sobre onde a sua energia está pedindo direção." },
+              { asset: PDU_ASSETS.astrology.myMap, eyebrow: locale === "en" ? "Personal map" : "Mapa pessoal", title: locale === "en" ? "My Map" : "Meu Mapa", description: locale === "en" ? "Planets, houses, aspects, and the language of your birth." : "Planetas, casas, aspectos e a linguagem do seu nascimento." },
+              { asset: PDU_ASSETS.astrology.myTime, eyebrow: locale === "en" ? "Timing" : "Ritmo", title: locale === "en" ? "My Time" : "Meu Tempo", description: locale === "en" ? "A softer way to move through the different hours of your day." : "Uma forma mais sensível de atravessar as diferentes horas do seu dia." },
+            ].map((item) => (
+              <Link key={item.title} href="/astrologia" className="group relative min-h-[15rem] overflow-hidden rounded-[28px] border border-white/10 bg-[#201834]/85 p-6 transition duration-500 hover:-translate-y-1 hover:border-[#f4d58d]/40 hover:bg-[#281e43] sm:min-h-[18rem] sm:p-8">
+                <div className="absolute -right-10 -top-8 h-64 w-64 opacity-75 transition duration-500 group-hover:scale-110 group-hover:opacity-100">
+                  <Image src={item.asset} alt="" fill sizes="16rem" className="object-contain" />
                 </div>
-                <div className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-white/10 pt-5">
-                  <span className="text-2xl font-semibold text-[#f5d896]">{formatProductPrice("mapa_astral", productCurrency)}</span>
-                  <span className="text-sm text-[#bfb5ad]">{locale === "en" ? "one-time" : "pagamento único"}</span>
-                  <span className="text-xs text-[#8d837b]">· {locale === "en" ? `Circle ${formatProductPrice("circulo_do_universo", productCurrency)}/month` : `Círculo ${formatProductPrice("circulo_do_universo", productCurrency)}/mês`}</span>
+                <div className="relative z-10 max-w-[58%]">
+                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#f5d896]">{item.eyebrow}</p>
+                  <h3 className="brand-serif mt-3 text-3xl font-semibold sm:text-4xl">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-[#d8ccc0]">{item.description}</p>
+                  <span className="mt-5 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#a7d7c5]">{locale === "en" ? "Explore" : "Explorar"} <ArrowRight size={14} /></span>
                 </div>
-              </div>
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-5 grid gap-5 overflow-hidden rounded-[30px] border border-[#f4d58d]/20 bg-[#0d0a17]/70 p-5 sm:p-7 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
+            <div className="relative min-h-[14rem] overflow-hidden rounded-2xl bg-[#1d1531]">
+              <Image src={PDU_ASSETS.astrology.moonPortal} alt="" fill sizes="(max-width: 1024px) 100vw, 24rem" className="object-cover opacity-90 transition duration-700 hover:scale-105" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0d0a17]/80 via-transparent to-transparent" />
+              <span className="absolute bottom-4 left-4 rounded-full border border-white/15 bg-[#0d0a17]/60 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{locale === "en" ? "Convergence" : "Convergência"}</span>
             </div>
+            <div className="max-w-2xl px-1 sm:px-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]">{locale === "en" ? "The next layer" : "A próxima camada"}</p>
+              <h3 className="brand-serif mt-3 text-3xl font-semibold sm:text-4xl">{locale === "en" ? "When your sky meets your symbols." : "Quando o seu céu encontra os seus símbolos."}</h3>
+              <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">{locale === "en" ? "Your Tarot readings will be able to converse with the movements of your chart — as correspondence, never as fixed destiny. Over time, Lume and your symbolic memory make this experience more personal." : "As suas leituras de Tarot poderão conversar com os movimentos do seu mapa — como correspondência, nunca como destino fixo. Com o tempo, Lume e a sua memória simbólica tornam essa experiência cada vez mais pessoal."}</p>
+              <Link href="/astrologia" className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/40 px-5 py-3 text-sm font-semibold text-[#fff7e8] transition hover:bg-white/10">{locale === "en" ? "Enter my astrology" : "Entrar na minha astrologia"}<ArrowRight size={16} /></Link>
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6 text-xs text-[#bfb5ad]">
+            <span>{locale === "en" ? "Sun, Moon, rising sign, daily sky, pulse, timing, memory, Tarot, and Lume." : "Sol, Lua, Ascendente, céu diário, pulso, ritmo, memória, Tarot e Lume."}</span>
+            <span className="font-semibold uppercase tracking-[0.12em] text-[#f5d896]">{locale === "en" ? "The universe, with context" : "O universo, com contexto"}</span>
           </div>
         </div>
       </section>
