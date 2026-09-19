@@ -224,6 +224,23 @@ test("astrology location lookup is consent-gated and attribution-aware", async (
   assert.doesNotMatch(card, /copy\.country|copy\.latitude|copy\.longitude|copy\.timezone/);
 });
 
+test("astrology placements combine planet, sign, house, degree and real aspects", async () => {
+  const experience = await source(
+    "src/components/astrology/AstrologyChartExperience.tsx"
+  );
+  const interpretation = await source(
+    "src/lib/astrology/placement-interpretation.ts"
+  );
+
+  assert.match(experience, /getPlacementInterpretation/);
+  assert.match(experience, /getBodyAspectReadings/);
+  assert.match(experience, /PersonalizedPlacementReading/);
+  assert.match(interpretation, /getDegreeInterpretation/);
+  assert.match(interpretation, /Isso não resume a sua personalidade inteira/);
+  assert.match(interpretation, /O grau refina a leitura/);
+  assert.match(interpretation, /return aspects[\s\S]*\.filter/);
+});
+
 test("voucher invitations validate delivery and keep a recovery path", async () => {
   const service = await source("src/lib/vouchers/service.ts");
   const email = await source("src/lib/email/transactional.ts");
@@ -239,7 +256,8 @@ test("voucher invitations validate delivery and keep a recovery path", async () 
   assert.match(email, /MAX_SEND_ATTEMPTS = 1/);
   assert.match(email, /X-Mailin-Track-Clicks/);
   assert.match(email, /X-Mailin-Track-Opens/);
-  assert.match(email, /Se o botão não abrir, copie este endereço/);
+  assert.match(email, /Toque no endereço acima ou copie e cole no Safari/);
+  assert.doesNotMatch(email, /<a href=/);
   assert.match(email, /recipient_name/);
   assert.match(email, /voucher\.kind === "discount"/);
   assert.match(service, /recipientName/);
