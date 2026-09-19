@@ -1,0 +1,205 @@
+.coreCard,
+.planetCard {
+  --planet-halo: rgba(169, 127, 203, 0.2);
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  background:
+    radial-gradient(circle at 82% 24%, var(--planet-halo), transparent 48%),
+    linear-gradient(150deg, #fffdf8 0%, #fbf5ec 68%, #f5edf1 100%);
+}
+
+.planetCard {
+  align-self: start;
+}
+
+.pillarArtwork {
+  border-radius: 1rem;
+  background: radial-gradient(circle at center, rgba(234, 208, 235, 0.55), rgba(255, 253, 248, 0) 70%);
+  filter: drop-shadow(0 7px 12px rgba(87, 58, 103, 0.12));
+}
+
+.coreCard[data-body="Sun"],
+.planetCard[data-body="Sun"] {
+  --planet-halo: rgba(245, 183, 76, 0.32);
+}
+
+.coreCard[data-body="Moon"],
+.planetCard[data-body="Moon"] {
+  --planet-halo: rgba(143, 136, 204, 0.3);
+}
+
+.coreCard[data-body="Ascendant"] {
+  --planet-halo: rgba(150, 106, 188, 0.26);
+}
+
+.planetCard[data-body="Mercury"] {
+  --planet-halo: rgba(121, 171, 176, 0.25);
+}
+
+.planetCard[data-body="Venus"] {
+  --planet-halo: rgba(223, 155, 174, 0.28);
+}
+
+.planetCard[data-body="Mars"] {
+  --planet-halo: rgba(211, 120, 95, 0.28);
+}
+
+.planetCard[data-body="Jupiter"] {
+  --planet-halo: rgba(205, 160, 102, 0.28);
+}
+
+.planetCard[data-body="Saturn"] {
+  --planet-halo: rgba(154, 133, 183, 0.25);
+}
+
+.planetCard[data-body="Uranus"] {
+  --planet-halo: rgba(102, 186, 206, 0.25);
+}
+
+.planetCard[data-body="Neptune"] {
+  --planet-halo: rgba(100, 135, 207, 0.27);
+}
+
+.planetCard[data-body="Pluto"] {
+  --planet-halo: rgba(143, 111, 151, 0.26);
+}
+
+.coreArtwork {
+  position: absolute;
+  top: 3.25rem;
+  right: -0.3rem;
+  width: min(54%, 12rem);
+  height: 10.5rem;
+  opacity: 0.86;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 20px rgba(78, 53, 84, 0.12));
+  transition: transform 400ms ease;
+}
+
+.coreHeading {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 7.5rem;
+  max-width: 64%;
+  flex-direction: column;
+  justify-content: center;
+  margin-top: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.planetLead {
+  position: relative;
+  display: flex;
+  min-height: 10rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.planetLead::after {
+  position: absolute;
+  z-index: 1;
+  inset: -1.25rem 12% -0.5rem -1.25rem;
+  content: "";
+  background: linear-gradient(90deg, rgba(255, 253, 248, 0.97), rgba(255, 253, 248, 0.87) 48%, transparent);
+  pointer-events: none;
+}
+
+.planetArtwork {
+  position: absolute;
+  top: -1.3rem;
+  right: -1.3rem;
+  width: min(60%, 14rem);
+  height: 12.5rem;
+  opacity: 0.9;
+  pointer-events: none;
+  filter: drop-shadow(0 14px 24px rgba(80, 54, 101, 0.12));
+  transition: transform 400ms ease;
+}
+
+.planetHeading,
+.planetStatus {
+  position: relative;
+  z-index: 2;
+}
+
+.planetHeading {
+  max-width: 60%;
+  overflow-wrap: anywhere;
+}
+
+.planetStatus {
+  background: rgba(255, 253, 248, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.planetNarrative {
+  position: relative;
+  z-index: 2;
+  margin: 0 -0.25rem -0.25rem;
+  padding: 1rem 0.25rem 0.25rem;
+  border-top: 1px solid rgba(202, 169, 108, 0.28);
+  background: linear-gradient(180deg, rgba(255, 253, 248, 0.84), rgba(255, 253, 248, 0.95));
+}
+
+@media (hover: hover) {
+  .coreCard:hover .coreArtwork,
+  .planetCard:hover .planetArtwork {
+    transform: translateY(-4px) scale(1.035);
+  }
+}
+
+@media (max-width: 380px) {
+  .coreArtwork {
+    width: 48%;
+    opacity: 0.7;
+  }
+
+  .coreHeading {
+    max-width: 68%;
+  }
+
+  .planetArtwork {
+    width: 54%;
+  }
+}
+
+@media (max-width: 640px) {
+  .planetLead {
+    min-height: 0;
+  }
+
+  .planetArtwork {
+    top: -0.5rem;
+    right: -0.5rem;
+    width: min(66%, 11rem);
+    height: 9.5rem;
+  }
+
+  .planetHeading {
+    width: 100%;
+    max-width: none;
+    padding-top: 9rem;
+  }
+
+  .planetHeading > p {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .planetStatus {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coreArtwork,
+  .planetArtwork {
+    transition: none;
+  }
+}
