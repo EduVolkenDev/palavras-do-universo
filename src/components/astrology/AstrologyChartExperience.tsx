@@ -26,6 +26,10 @@ import { useProductCurrency } from "@/lib/product/useProductCurrency";
 import {
   ASTROLOGY_FULL_PRODUCT_KEY,
   type NatalAspectType,
+  type NatalBody,
+  type NatalChart,
+  type NatalPosition,
+  type ZodiacSign,
 } from "@/lib/astrology/natal-chart";
 import {
   getAspectInterpretation,
@@ -43,53 +47,10 @@ import {
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import styles from "./AstrologyChartExperience.module.css";
 
-type ZodiacSign =
-  | "aries"
-  | "taurus"
-  | "gemini"
-  | "cancer"
-  | "leo"
-  | "virgo"
-  | "libra"
-  | "scorpio"
-  | "sagittarius"
-  | "capricorn"
-  | "aquarius"
-  | "pisces";
-
-type NatalBody =
-  | "Sun"
-  | "Moon"
-  | "Mercury"
-  | "Venus"
-  | "Mars"
-  | "Jupiter"
-  | "Saturn"
-  | "Uranus"
-  | "Neptune"
-  | "Pluto";
-
-type Position = {
-  body: NatalBody;
-  sign: ZodiacSign;
-  degreesInSign: number;
-  house: number;
-};
-
 type AstrologySelection = NatalBody | "Ascendant";
 
-type Chart = {
-  locationLabel: string;
-  houseSystem: "whole-sign";
-  ascendant: { sign: ZodiacSign; degreesInSign: number };
-  positions: Position[];
-  aspects: Array<{
-    firstBody: NatalBody;
-    secondBody: NatalBody;
-    type: NatalAspectType;
-    orb: number;
-  }>;
-};
+type Chart = Pick<NatalChart, "locationLabel" | "houseSystem" | "ascendant" | "positions" | "aspects">;
+type ChartLoadFailure = "birth-data-required" | "session-expired" | "unavailable";
 
 const zodiacSigns: ZodiacSign[] = [
   "aries",
@@ -124,14 +85,14 @@ function formatPlacement(sign: ZodiacSign, degreesInSign: number, locale: Astrol
   return `${degreesInSign.toFixed(1)}° ${getSignInterpretation(sign, locale).label}`;
 }
 
-export function AstrologyChartExperience({ previewChart }: { previewChart?: Chart } = {}) {
+export function AstrologyChartExperience() {
   const { locale } = useI18n();
   const isEnglish = locale === "en";
   const { currency } = useProductCurrency(locale);
-  const [chart, setChart] = useState<Chart | null>(previewChart ?? null);
-  const [accessLevel, setAccessLevel] = useState<"preview" | "full">(previewChart ? "full" : "preview");
-  const [loading, setLoading] = useState(!previewChart);
-  const [error, setError] = useState("");
+  const [chart, setChart] = useState<Chart | null>(null);
+  const [accessLevel, setAccessLevel] = useState<"preview" | "full">("preview");
+  const [loading, setLoading] = useState(true);
+  const [loadFailure, setLoadFailure] = useState<ChartLoadFailure | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState("");
   const [checkoutError, setCheckoutError] = useState("");
   const [activeSection, setActiveSection] = useState<"overview" | "planets" | "houses" | "aspects">("overview");
@@ -140,26 +101,33 @@ export function AstrologyChartExperience({ previewChart }: { previewChart?: Char
   const [expandedAspect, setExpandedAspect] = useState<string | null>(null);
 
   useEffect(() => {
-    if (previewChart) return;
     let active = true;
-    void fetch("/api/astrology/natal", { credentials: "include", cache: "no-store" })
+    const controller = new AbortController();
+
+    void fetch("/api/astrology/natal", { credentials: "include", cache: "no-store", signal: controller.signal })
       .then(async (response) => {
-        const payload = (await response.json()) as { chart?: Chart; access?: { level?: "preview" | "full" }; error?: string };
-        if (!response.ok || !payload.chart) throw new Error(payload.error ?? "chart-unavailable");
+        const payload = (await response.json().catch(() => null)) as { chart?: Chart; access?: { level?: "preview" | "full" }; code?: string } | null;
+        if (!response.ok || !payload?.chart) {
+          if (response.status === 401) throw new Error("session-expired");
+          if (response.status === 409 && payload?.code === "ASTROLOGY_BIRTH_DATA_REQUIRED") throw new Error("birth-data-required");
+          throw new Error("unavailable");
+        }
         if (!active) return;
         setChart(payload.chart);
         setAccessLevel(payload.access?.level === "full" ? "full" : "preview");
       })
       .catch((caught) => {
-        if (active) setError(caught instanceof Error ? caught.message : "chart-unavailable");
+        if (!active || (caught instanceof DOMException && caught.name === "AbortError")) return;
+        setLoadFailure(caught instanceof Error && ["birth-data-required", "session-expired"].includes(caught.message) ? caught.message as ChartLoadFailure : "unavailable");
       })
       .finally(() => {
         if (active) setLoading(false);
       });
     return () => {
       active = false;
+      controller.abort();
     };
-  }, [previewChart]);
+  }, []);
 
   const positionMap = useMemo(
     () => new Map((chart?.positions ?? []).map((position) => [position.body, position])),
@@ -196,12 +164,24 @@ export function AstrologyChartExperience({ previewChart }: { previewChart?: Char
     return <div className="mx-auto max-w-6xl px-4 py-24 text-center text-[#6f615a]">{isEnglish ? "Opening your map…" : "Abrindo o seu mapa…"}</div>;
   }
 
-  if (error || !chart) {
+  if (loadFailure || !chart) {
+    const needsBirthData = loadFailure === "birth-data-required";
+    const sessionExpired = loadFailure === "session-expired";
+    const title = needsBirthData
+      ? (isEnglish ? "Your map needs your birth context first." : "Seu mapa precisa do seu contexto de nascimento primeiro.")
+      : sessionExpired
+        ? (isEnglish ? "Your session has ended." : "Sua sessão terminou.")
+        : (isEnglish ? "Your map could not be opened right now." : "Não foi possível abrir o seu mapa agora.");
+    const action = needsBirthData
+      ? { href: "/astrologia/mapa", label: isEnglish ? "Prepare my birth context" : "Preparar meu contexto de nascimento" }
+      : sessionExpired
+        ? { href: buildLoginPath("/astrologia/mapa"), label: isEnglish ? "Sign in again" : "Entrar novamente" }
+        : { href: "/meu-universo#preparar-meu-mapa", label: isEnglish ? "Review my birth context" : "Revisar meu contexto de nascimento" };
     return (
       <div className="mx-auto max-w-3xl px-4 py-24 text-center">
-        <p className="text-sm text-[#8a6b3f]">{isEnglish ? "Your map could not be opened right now." : "Não foi possível abrir o seu mapa agora."}</p>
-        <Link href="/meu-universo#preparar-meu-mapa" className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#241b18] px-5 py-3 text-sm font-semibold text-[#fff7e8]">
-          {isEnglish ? "Review my birth context" : "Revisar meu contexto de nascimento"}
+        <p className="text-sm text-[#8a6b3f]">{title}</p>
+        <Link href={action.href} className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#241b18] px-5 py-3 text-sm font-semibold text-[#fff7e8]">
+          {action.label}
           <ArrowRight size={16} />
         </Link>
       </div>
@@ -486,7 +466,7 @@ function PersonalAspectList({ readings, locale }: { readings: ReturnType<typeof 
   );
 }
 
-function PersonalizedPlacementReading({ position, aspects, locale }: { position: Position; aspects: Chart["aspects"]; locale: AstrologyLocale }) {
+function PersonalizedPlacementReading({ position, aspects, locale }: { position: NatalPosition; aspects: Chart["aspects"]; locale: AstrologyLocale }) {
   const reading = getPlacementInterpretation(position, locale);
   const bodyAspects = getBodyAspectReadings(position.body, aspects, locale);
   return (
@@ -513,7 +493,7 @@ function PersonalizedPlacementReading({ position, aspects, locale }: { position:
   );
 }
 
-function PlanetLibrary({ chart, positionMap, personalizedBodies, locale, expandedBody, onSelect }: { chart: Chart; positionMap: Map<NatalBody, Position>; personalizedBodies: NatalBody[]; locale: AstrologyLocale; expandedBody: AstrologySelection | null; onSelect: (body: NatalBody) => void }) {
+function PlanetLibrary({ chart, positionMap, personalizedBodies, locale, expandedBody, onSelect }: { chart: Chart; positionMap: Map<NatalBody, NatalPosition>; personalizedBodies: NatalBody[]; locale: AstrologyLocale; expandedBody: AstrologySelection | null; onSelect: (body: NatalBody) => void }) {
   const isEnglish = locale === "en";
   return (
     <section className="mt-6 rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] p-6 sm:p-8" role="tabpanel">

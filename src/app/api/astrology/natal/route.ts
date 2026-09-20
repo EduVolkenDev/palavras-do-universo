@@ -20,30 +20,38 @@ export async function GET() {
     );
   }
 
-  await ensureSupabaseProfile(auth.user.id, auth.user.email);
-  const birthData = await readAstrologyBirthData(getSupabaseAdmin(), auth.user.id);
-  if (!birthData) {
+  try {
+    await ensureSupabaseProfile(auth.user.id, auth.user.email);
+    const birthData = await readAstrologyBirthData(getSupabaseAdmin(), auth.user.id);
+    if (!birthData) {
+      return NextResponse.json(
+        { error: "Birth data is required before calculating the chart", code: "ASTROLOGY_BIRTH_DATA_REQUIRED" },
+        { status: 409, headers: { "Cache-Control": "private, no-store" } },
+      );
+    }
+
+    const fullAccess =
+      isOwnerAccessUser(auth.user) ||
+      Boolean(
+        await getAvailableEntitlementForProduct({
+          userId: auth.user.id,
+          productKey: ASTROLOGY_FULL_PRODUCT_KEY,
+        }),
+      );
+
+    return NextResponse.json({
+      ok: true,
+      chart: calculateNatalChart(birthData),
+      access: {
+        level: fullAccess ? "full" : "preview",
+        productKey: ASTROLOGY_FULL_PRODUCT_KEY,
+      },
+    }, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) {
+    console.error("Unable to calculate astrology chart", error);
     return NextResponse.json(
-      { error: "Birth data is required before calculating the chart", code: "ASTROLOGY_BIRTH_DATA_REQUIRED" },
-      { status: 409 },
+      { error: "Astrology chart is unavailable", code: "ASTROLOGY_CHART_UNAVAILABLE" },
+      { status: 500, headers: { "Cache-Control": "private, no-store" } },
     );
   }
-
-  const fullAccess =
-    isOwnerAccessUser(auth.user) ||
-    Boolean(
-      await getAvailableEntitlementForProduct({
-        userId: auth.user.id,
-        productKey: ASTROLOGY_FULL_PRODUCT_KEY,
-      }),
-    );
-
-  return NextResponse.json({
-    ok: true,
-    chart: calculateNatalChart(birthData),
-    access: {
-      level: fullAccess ? "full" : "preview",
-      productKey: ASTROLOGY_FULL_PRODUCT_KEY,
-    },
-  });
 }

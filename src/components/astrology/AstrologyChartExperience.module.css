@@ -67,11 +67,11 @@
 
 .coreArtwork {
   position: absolute;
-  top: 3.25rem;
-  right: -0.3rem;
-  width: min(54%, 12rem);
-  height: 10.5rem;
-  opacity: 0.86;
+  top: 4.8rem;
+  right: 0.2rem;
+  width: min(40%, 9.5rem);
+  height: 9rem;
+  opacity: 0.64;
   pointer-events: none;
   filter: drop-shadow(0 12px 20px rgba(78, 53, 84, 0.12));
   transition: transform 400ms ease;
@@ -81,12 +81,24 @@
   position: relative;
   z-index: 1;
   display: flex;
-  min-height: 7.5rem;
-  max-width: 64%;
+  min-height: 6.25rem;
+  max-width: 100%;
   flex-direction: column;
   justify-content: center;
   margin-top: 1rem;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+.coreHeading h3 {
+  max-width: 100%;
+  font-size: clamp(1.75rem, 2.25vw, 2.25rem);
+  line-height: 1.05;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
+  white-space: nowrap;
 }
 
 .planetLead {
@@ -153,12 +165,16 @@
 
 @media (max-width: 380px) {
   .coreArtwork {
-    width: 48%;
-    opacity: 0.7;
+    width: 38%;
+    opacity: 0.52;
   }
 
   .coreHeading {
-    max-width: 68%;
+    min-height: 5.75rem;
+  }
+
+  .coreHeading h3 {
+    font-size: 1.65rem;
   }
 
   .planetArtwork {
@@ -194,6 +210,12 @@
     position: absolute;
     top: 0;
     right: 0;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+  .coreHeading h3 {
+    font-size: 1.5rem;
   }
 }
 

@@ -241,6 +241,25 @@ test("astrology placements combine planet, sign, house, degree and real aspects"
   assert.match(interpretation, /return aspects[\s\S]*\.filter/);
 });
 
+test("the real astrology map stays private and does not depend on fictional preview data", async () => {
+  const natalRoute = await source("src/app/api/astrology/natal/route.ts");
+  const experience = await source("src/components/astrology/AstrologyChartExperience.tsx");
+  const chartStyles = await source("src/components/astrology/AstrologyChartExperience.module.css");
+  const previewRoute = await source("src/app/preview-mapa-astrologia/page.tsx");
+
+  assert.match(natalRoute, /ASTROLOGY_BIRTH_DATA_REQUIRED/);
+  assert.match(natalRoute, /ASTROLOGY_CHART_UNAVAILABLE/);
+  assert.match(natalRoute, /Cache-Control": "private, no-store/);
+  assert.match(experience, /ASTROLOGY_BIRTH_DATA_REQUIRED/);
+  assert.match(experience, /session-expired/);
+  assert.match(experience, /AbortController/);
+  assert.doesNotMatch(experience, /previewChart/);
+  assert.match(previewRoute, /redirect\("\/astrologia\/mapa"\)/);
+  assert.doesNotMatch(previewRoute, /dados fictícios|Cidade de exemplo/);
+  assert.match(chartStyles, /\.coreHeading h3[\s\S]*white-space: nowrap/);
+  assert.match(chartStyles, /\.coreHeading h3[\s\S]*word-break: keep-all/);
+});
+
 test("voucher invitations validate delivery and keep a recovery path", async () => {
   const service = await source("src/lib/vouchers/service.ts");
   const email = await source("src/lib/email/transactional.ts");
