@@ -61,9 +61,8 @@ import {
 import { localizeTarotCard, translateOraclePosition } from "@/lib/i18n/oracle";
 import { CARDS } from "@/lib/tarot/cards";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
-import { PduAssetStory } from "@/components/PduAssetStory";
 import { LumePresence } from "@/components/LumeGuide";
-import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
+import { UniverseVisualGuide } from "@/components/UniverseVisualGuide";
 import { AstrologyBirthProfileCard } from "@/components/astrology/AstrologyBirthProfileCard";
 import {
   EMPTY_READING_PROFILE,
@@ -1494,7 +1493,16 @@ export default function MeuUniversoPage() {
           />
         </div>
 
-        <PduAssetStory {...PDU_ASSET_STORIES.universe} tone="dark" />
+        <UniverseVisualGuide
+          locale={locale}
+          latestReading={readings[0]}
+          recurringTheme={journeySnapshot.recurringThemes[0]}
+          hasReadingHistory={readingHistoryCount > 0}
+          savedCount={otherSavedMessages.length}
+          activeCommitmentCount={commitments.filter((commitment) =>
+            ["committed", "deferred"].includes(commitment.status)
+          ).length}
+        />
 
         <div className="pdu-universe-stats mt-8 grid gap-3 md:grid-cols-4">
           {stats.map((stat) => (
@@ -2354,7 +2362,7 @@ export default function MeuUniversoPage() {
             )}
           </section>
 
-          <section className="rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-5">
+          <section id="mensagens-salvas" className="scroll-mt-28 rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-5">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
@@ -2843,7 +2851,7 @@ function ReadingArticle({ reading }: { reading: Reading }) {
   const spreadLabel = localizeSpreadLabel(reading.spread_type, undefined, locale);
 
   return (
-    <article className="overflow-hidden rounded-lg border border-[#e4d3ba] bg-[#fbf6ee]">
+    <article id={`leitura-${reading.id}`} className="scroll-mt-28 overflow-hidden rounded-lg border border-[#e4d3ba] bg-[#fbf6ee]">
       <div className="p-4">
         <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
           <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
