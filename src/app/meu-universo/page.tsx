@@ -16,6 +16,7 @@ import {
   Share2,
   Sparkles,
   UserRound,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -140,7 +141,32 @@ type UniverseStat = {
   visual: string;
 };
 
+type SelectedHistoryItem =
+  | { kind: "reading"; reading: Reading }
+  | { kind: "saved-reading"; message: SavedMessage };
+
 const paidReadingProducts = productCards.filter((product) => product.mode === "paid");
+
+function getEntitlementVisual(productKey: string) {
+  const visuals: Record<string, string> = {
+    circulo_do_universo: PDU_ASSETS.astrology.mySky,
+    mapa_astral: PDU_ASSETS.astrology.mapHero,
+    clareza_urgente: PDU_ASSETS.productIcons.urgentClarity,
+    caminho_3_cartas: PDU_ASSETS.productIcons.threeCardPath,
+    sinais_do_amor: PDU_ASSETS.productIcons.loveSignals,
+    energia_da_semana: PDU_ASSETS.productIcons.weekEnergy,
+    mapa_do_momento: PDU_ASSETS.productIcons.momentMap,
+    tirada_diamante: PDU_ASSETS.productIcons.diamond,
+    passaro_voando: PDU_ASSETS.productIcons.flyingBird,
+    a_chave: PDU_ASSETS.productIcons.key,
+    o_espelho: PDU_ASSETS.productIcons.mirror,
+    cruz_celta: PDU_ASSETS.productIcons.celticCross,
+    relacionar: PDU_ASSETS.productIcons.relationship,
+    o_paradoxo: PDU_ASSETS.productIcons.paradox,
+  };
+
+  return visuals[productKey] ?? PDU_ASSETS.surfaces.access;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -578,6 +604,7 @@ export default function MeuUniversoPage() {
   const [syncNotice, setSyncNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<SelectedHistoryItem | null>(null);
 
   useEffect(() => {
     const nextUserId = getOrCreateLocalUserId();
@@ -1504,6 +1531,32 @@ export default function MeuUniversoPage() {
           ).length}
         />
 
+        <section className="mt-8 overflow-hidden rounded-[28px] border border-[#d8c3a6] bg-[#fffaf2] p-5 shadow-[0_24px_70px_rgba(80,57,34,0.08)] sm:p-7">
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">
+            {locale === "en" ? "A clear guide" : "Um guia claro"}
+          </p>
+          <h2 className="brand-serif mt-2 text-3xl font-semibold text-[#241b18] sm:text-4xl">
+            {locale === "en" ? "What you can do here." : "O que você pode fazer aqui."}
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6f615a]">
+            {locale === "en" ? "Choose one door. The rest can wait." : "Escolha uma porta. O resto pode esperar."}
+          </p>
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            {[
+              { visual: PDU_ASSETS.productIcons.threeCardPath, title: locale === "en" ? "Open a reading" : "Abrir uma leitura", text: locale === "en" ? "Ask one question and receive a reading." : "Faça uma pergunta e receba uma leitura.", href: "/#leitura" },
+              { visual: PDU_ASSETS.astrology.mapHero, title: locale === "en" ? "See your birth map" : "Ver seu mapa astral", text: locale === "en" ? "Your birth data and personal sky live here." : "Seus dados de nascimento e céu pessoal ficam aqui.", href: "/astrologia/mapa" },
+              { visual: PDU_ASSETS.surfaces.access, title: locale === "en" ? "See your access" : "Ver meus acessos", text: locale === "en" ? "Find the readings and subscriptions available to you." : "Encontre as leituras e assinaturas liberadas para você.", href: "#acessos" },
+            ].map((item) => (
+              <Link key={item.title} href={item.href} className="group relative min-h-48 overflow-hidden rounded-2xl border border-[#e4d3ba] bg-white/70 p-4 transition hover:-translate-y-0.5 hover:border-[#c4a678] hover:bg-white">
+                <Image src={item.visual} alt="" width={150} height={150} className="pointer-events-none absolute -right-5 -top-5 h-28 w-28 object-contain opacity-30 transition group-hover:scale-105" />
+                <strong className="relative block max-w-[72%] text-lg text-[#332720]">{item.title}</strong>
+                <span className="relative mt-2 block max-w-[78%] text-sm leading-6 text-[#6f615a]">{item.text}</span>
+                <span className="relative mt-5 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">{locale === "en" ? "Open" : "Abrir"}<ArrowRight size={13} /></span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
         <div className="pdu-universe-stats mt-8 grid gap-3 md:grid-cols-4">
           {stats.map((stat) => (
             <div
@@ -2018,7 +2071,8 @@ export default function MeuUniversoPage() {
         {authChecked ? (
           <section className="mt-8 overflow-hidden rounded-[28px] border border-[#d8c3a6] bg-[#fffaf2] shadow-[0_28px_90px_rgba(80,57,34,0.09)]">
             <div className="grid gap-0 lg:grid-cols-[0.86fr_1.14fr]">
-              <div className="bg-[#241b18] p-6 text-[#fff7e8] sm:p-7">
+              <div className="relative overflow-hidden bg-[#241b18] p-6 text-[#fff7e8] sm:p-7">
+                <Image src={PDU_ASSETS.symbolic.zodiac} alt="" width={310} height={310} className="pointer-events-none absolute -bottom-20 -left-16 h-72 w-72 object-contain opacity-20" />
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
                   {t("Progressão simbólica")}
                 </p>
@@ -2066,7 +2120,8 @@ export default function MeuUniversoPage() {
                 </div>
               </div>
 
-              <div className="p-5 sm:p-6">
+              <div className="relative overflow-hidden p-5 sm:p-6">
+                <Image src={PDU_ASSETS.symbolic.threeCardsEditorial} alt="" width={250} height={250} className="pointer-events-none absolute -right-12 -top-10 h-44 w-44 object-contain opacity-[0.09]" />
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="rounded-2xl border border-[#e4d3ba] bg-white/60 p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
@@ -2234,8 +2289,9 @@ export default function MeuUniversoPage() {
               {entitlements.map((entitlement) => (
                 <article
                   key={entitlement.id}
-                  className="rounded-lg border border-[#e4d3ba] bg-[#fbf6ee] p-4"
+                  className="relative overflow-hidden rounded-lg border border-[#e4d3ba] bg-[#fbf6ee] p-4"
                 >
+                  <Image src={getEntitlementVisual(entitlement.product_key)} alt="" width={160} height={160} className="pointer-events-none absolute -right-5 -top-5 h-28 w-28 object-contain opacity-25" />
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">
                     {entitlement.id.startsWith("owner-")
                       ? "Dono"
@@ -2245,7 +2301,7 @@ export default function MeuUniversoPage() {
                       ? "Círculo"
                       : "Avulso"}
                   </p>
-                  <h3 className="brand-serif mt-2 text-2xl font-semibold text-[#332720]">
+                  <h3 className="brand-serif relative mt-2 max-w-[78%] text-2xl font-semibold text-[#332720]">
                     {entitlement.title}
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-[#6f615a]">
@@ -2351,10 +2407,10 @@ export default function MeuUniversoPage() {
             ) : readingHistoryCount ? (
               <div className="space-y-3">
                 {readings.map((reading) => (
-                  <ReadingArticle key={reading.id} reading={reading} />
+                  <ReadingArticle key={reading.id} reading={reading} compact onOpen={() => setSelectedHistoryItem({ kind: "reading", reading })} />
                 ))}
                 {savedReadingMessages.map((message) => (
-                  <SavedMessageArticle key={message.id} message={message} />
+                  <SavedReadingPreview key={message.id} message={message} onOpen={() => setSelectedHistoryItem({ kind: "saved-reading", message })} />
                 ))}
               </div>
             ) : (
@@ -2388,6 +2444,10 @@ export default function MeuUniversoPage() {
             )}
           </section>
         </div>
+
+        {selectedHistoryItem ? (
+          <HistoryReadingDialog item={selectedHistoryItem} onClose={() => setSelectedHistoryItem(null)} />
+        ) : null}
 
       </section>
     </main>
@@ -2833,7 +2893,15 @@ function UniverseEmptyState({
   );
 }
 
-function ReadingArticle({ reading }: { reading: Reading }) {
+function ReadingArticle({
+  reading,
+  compact = false,
+  onOpen,
+}: {
+  reading: Reading;
+  compact?: boolean;
+  onOpen?: () => void;
+}) {
   const { locale, t } = useI18n();
   const spreadCards = localizeHistoryCards(normalizeSpreadCards(reading.spread), locale);
   const readingLocale = normalizeLocale(reading.locale);
@@ -2849,6 +2917,37 @@ function ReadingArticle({ reading }: { reading: Reading }) {
     })
     .join(" | ");
   const spreadLabel = localizeSpreadLabel(reading.spread_type, undefined, locale);
+
+  if (compact) {
+    return (
+      <article id={`leitura-${reading.id}`} className="scroll-mt-28 overflow-hidden rounded-2xl border border-[#e4d3ba] bg-[#fbf6ee] p-4 transition hover:border-[#c4a678] hover:bg-white">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
+          <span className="rounded-full bg-[#e7dcc9] px-2 py-1">{reading.theme ? localizeTheme(reading.theme, locale) : t("Leitura")}</span>
+          <span className="rounded-full bg-[#e7dcc9] px-2 py-1">{spreadLabel}</span>
+          <span className="inline-flex items-center gap-1"><Clock size={13} />{formatDate(reading.created_at, locale)}</span>
+        </div>
+        <h3 className="mt-3 font-semibold text-[#332720]">{reading.question || "Leitura salva"}</h3>
+        {spreadCards.length ? (
+          <div className="mt-4 flex gap-2 overflow-hidden" aria-label={t("Cartas da leitura")}>
+            {spreadCards.slice(0, 4).map((card, index) => (
+              <div key={`${card.cardKey || card.name}-${index}`} className="min-w-14 text-center">
+                {card.assetPath ? (
+                  <Image src={card.assetPath} alt={`${t("Carta da leitura")}: ${card.name}`} width={72} height={116} className={`mx-auto h-20 w-14 rounded-md object-cover shadow-[0_10px_20px_rgba(60,42,24,0.16)] ${card.reversed ? "rotate-180" : ""}`} />
+                ) : (
+                  <div className="mx-auto h-20 w-14 rounded-md bg-[#e7dcc9]" />
+                )}
+                <p className="mt-1 line-clamp-1 text-[0.62rem] font-semibold text-[#6f615a]">{card.name}</p>
+              </div>
+            ))}
+            {spreadCards.length > 4 ? <span className="self-center text-xs font-semibold text-[#8a6b3f]">+{spreadCards.length - 4}</span> : null}
+          </div>
+        ) : null}
+        <button type="button" onClick={onOpen} className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#241b18] px-4 py-2 text-sm font-semibold text-[#fff7e8] transition hover:bg-[#3a2c25]">
+          {locale === "en" ? "Open reading" : "Abrir leitura"}<ArrowRight size={14} />
+        </button>
+      </article>
+    );
+  }
 
   return (
     <article id={`leitura-${reading.id}`} className="scroll-mt-28 overflow-hidden rounded-lg border border-[#e4d3ba] bg-[#fbf6ee]">
@@ -2950,6 +3049,63 @@ function ReadingArticle({ reading }: { reading: Reading }) {
         </p>
       </div>
     </article>
+  );
+}
+
+function SavedReadingPreview({ message, onOpen }: { message: SavedMessage; onOpen: () => void }) {
+  const { locale, t } = useI18n();
+  if (!isSavedReadingPayload(message.payload)) return null;
+  const cards = localizeHistoryCards(normalizeSpreadCards(message.payload.spreadCards), locale);
+  const question = asString(message.payload.question) || (locale === "en" ? "Saved reading" : "Leitura salva");
+  const spreadLabel = localizeSpreadLabel(asString(message.payload.spreadType), asString(message.payload.spreadLabel), locale);
+
+  return (
+    <article className="overflow-hidden rounded-2xl border border-[#e4d3ba] bg-[#fbf6ee] p-4 transition hover:border-[#c4a678] hover:bg-white">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
+        <span className="rounded-full bg-[#e7dcc9] px-2 py-1">{spreadLabel}</span>
+        <span className="inline-flex items-center gap-1"><Clock size={13} />{formatDate(message.created_at, locale)}</span>
+      </div>
+      <h3 className="mt-3 font-semibold text-[#332720]">{question}</h3>
+      {cards.length ? <div className="mt-4 flex gap-2 overflow-hidden">{cards.slice(0, 4).map((card, index) => {
+        const assetPath = normalizeAssetPath(card.assetPath);
+        return <div key={`${card.cardKey || card.name}-${index}`} className="min-w-14 text-center">
+          {assetPath ? (
+            <Image src={assetPath} alt={`${t("Carta da leitura")}: ${card.name}`} width={72} height={116} className={`mx-auto h-20 w-14 rounded-md object-cover shadow-[0_10px_20px_rgba(60,42,24,0.16)] ${card.reversed ? "rotate-180" : ""}`} />
+          ) : (
+            <div className="mx-auto h-20 w-14 rounded-md bg-[#e7dcc9]" />
+          )}
+          <p className="mt-1 line-clamp-1 text-[0.62rem] font-semibold text-[#6f615a]">{card.name}</p>
+        </div>;
+      })}</div> : null}
+      <button type="button" onClick={onOpen} className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#241b18] px-4 py-2 text-sm font-semibold text-[#fff7e8] transition hover:bg-[#3a2c25]">{locale === "en" ? "Open reading" : "Abrir leitura"}<ArrowRight size={14} /></button>
+    </article>
+  );
+}
+
+function HistoryReadingDialog({ item, onClose }: { item: SelectedHistoryItem; onClose: () => void }) {
+  const { locale } = useI18n();
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  return (
+    <div role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }} className="fixed inset-0 z-[250] flex items-center justify-center bg-[#08070d]/75 p-3 backdrop-blur-md sm:p-6">
+      <section role="dialog" aria-modal="true" aria-labelledby="reading-dialog-title" className="max-h-[92dvh] w-full max-w-5xl overflow-y-auto rounded-[28px] border border-[#f4d58d]/25 bg-[#fffaf2] p-3 shadow-[0_38px_140px_rgba(0,0,0,0.55)] sm:p-5">
+        <div className="sticky top-0 z-10 mb-3 flex items-center justify-between rounded-2xl bg-[#fffaf2]/95 px-2 py-2 backdrop-blur">
+          <div>
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.15em] text-[#8a6b3f]">{locale === "en" ? "Your reading" : "Sua leitura"}</p>
+            <h2 id="reading-dialog-title" className="brand-serif text-2xl font-semibold text-[#332720]">{locale === "en" ? "Open with time" : "Abra com tempo"}</h2>
+          </div>
+          <button type="button" onClick={onClose} className="grid h-10 w-10 place-items-center rounded-full border border-[#d8c3a6] bg-white text-[#4d3c31] transition hover:bg-[#f8efe2]" aria-label={locale === "en" ? "Close reading" : "Fechar leitura"}><X size={18} /></button>
+        </div>
+        {item.kind === "reading" ? <ReadingArticle reading={item.reading} /> : <SavedMessageArticle message={item.message} />}
+      </section>
+    </div>
   );
 }
 

@@ -96,8 +96,6 @@ import {
 import { CARDS } from "@/lib/tarot/cards";
 import { getSpreadForProduct } from "@/lib/tarot/spreads";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
-import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
-import { PduAssetStory } from "@/components/PduAssetStory";
 import VoucherCodeEntry from "@/components/vouchers/VoucherCodeEntry";
 import { LUME_NAME, LUME_QUESTION_EVENT } from "@/lib/lume/persona";
 import { LumePresence, requestLumeOpen } from "@/components/LumeGuide";
@@ -314,46 +312,31 @@ const themeOptions = [
   { value: "spirit", label: "Espiritual", icon: MoonStar },
 ];
 
-type JourneyStep = {
-  label: string;
-  text: string;
-  icon: LucideIcon;
-  assetPath: string;
-  visualClass?: string;
-};
+const readingMoodOptions = [
+  { value: "career", label: "Com energia para agir", icon: Sparkles },
+  { value: "spirit", label: "Com o ânimo baixo", icon: MoonStar },
+] as const;
 
-const journeySteps: JourneyStep[] = [
+const quickStartOptions = [
   {
-    label: "1. Mensagem do dia",
-    text: "Abre o clima emocional do dia. É uma orientação curta, não uma resposta para uma pergunta.",
-    icon: Sparkles,
-    assetPath: PDU_ASSETS.homepage.dailyReadingBookCards,
-  },
-  {
-    label: "2. Carta do dia",
-    text: "Mostra um símbolo para contemplar. A carta ilumina um tema; a leitura aprofunda uma escolha.",
-    icon: Star,
-    assetPath: PDU_ASSETS.productIcons.cardOfTheDay,
-  },
-  {
-    label: "3. Leitura",
-    text: "Você faz uma pergunta e recebe 3 cartas com direção prática, conselho e próximos passos.",
-    icon: Compass,
+    label: "Ler cartas",
+    text: "Faça uma pergunta e abra uma leitura de 3 cartas.",
+    href: "#leitura",
     assetPath: PDU_ASSETS.productIcons.threeCardPath,
   },
   {
-    label: "4. Ritual",
-    text: "Transforma a leitura em uma ação simples para levar a clareza para o corpo e para a rotina.",
-    icon: Sun,
-    assetPath: PDU_ASSETS.homepage.completedActionsChecklist,
+    label: "Ver meu mapa",
+    text: "Entenda seu céu de nascimento no seu ritmo.",
+    href: "/astrologia/mapa",
+    assetPath: PDU_ASSETS.astrology.mapHero,
   },
   {
-    label: "5. Meu Universo",
-    text: "Guarda mensagens, leituras e padrões para você rever sua jornada com contexto.",
-    icon: Bookmark,
-    assetPath: PDU_ASSETS.homepage.savedMessagesBookmark,
+    label: "Meus acessos",
+    text: "Veja o que já está liberado no seu Universo.",
+    href: "/meu-universo#acessos",
+    assetPath: PDU_ASSETS.surfaces.access,
   },
-];
+] as const;
 
 const heroArtifacts = [
   {
@@ -428,19 +411,6 @@ const PT_POSITION_LABELS: Record<string, string> = {
   SITUATION: "SITUAÇÃO",
   OBSTACLE: "OBSTÁCULO",
   DIRECTION: "DIREÇÃO",
-};
-
-const ritualPrompts: Record<Locale, readonly string[]> = {
-  "pt-BR": [
-    "Respire antes de perguntar",
-    "Escolha um tema com honestidade",
-    "Leia como espelho, não sentença",
-  ],
-  en: [
-    "Breathe before asking",
-    "Choose a theme honestly",
-    "Read it as a mirror, not a verdict",
-  ],
 };
 
 const questionExamples: Record<Locale, readonly string[]> = {
@@ -622,42 +592,18 @@ const onboardingOptions: {
   icon: LucideIcon;
 }[] = [
   {
-    id: "atravessando",
-    label: "Atravessando uma transição",
-    description: "Algo mudou por dentro ou por fora e pede uma direção mais limpa.",
-    signal: "mudança",
-    assetPath: PDU_ASSETS.homepage.portalAccessKey,
-    icon: Compass,
-  },
-  {
-    id: "decidindo",
-    label: "No meio de uma decisão difícil",
-    description: "Existe um caminho pedindo escolha, limite ou coragem prática.",
-    signal: "decisão",
-    assetPath: PDU_ASSETS.productIcons.urgentClarity,
-    icon: ShieldCheck,
-  },
-  {
-    id: "amor",
-    label: "Vivendo uma questão afetiva",
-    description: "Um vínculo, desejo ou expectativa precisa ser olhado com presença.",
-    signal: "vínculo",
-    assetPath: PDU_ASSETS.productIcons.loveSignals,
-    icon: Heart,
-  },
-  {
-    id: "criando",
-    label: "Criando algo novo",
-    description: "Uma ideia, fase ou projeto quer ganhar forma sem perder alma.",
-    signal: "criação",
-    assetPath: PDU_ASSETS.homepage.growthPath,
+    id: "em-movimento",
+    label: "Com energia para agir",
+    description: "Quero transformar o que estou sentindo em um próximo passo possível.",
+    signal: "movimento",
+    assetPath: PDU_ASSETS.productIcons.threeCardPath,
     icon: Sparkles,
   },
   {
-    id: "descansando",
-    label: "Buscando paz interior",
-    description: "O corpo e a mente pedem silêncio, integração e menos ruído.",
-    signal: "recolhimento",
+    id: "precisando-de-cuidado",
+    label: "Com o ânimo baixo",
+    description: "Quero olhar para o momento com menos pressão e mais cuidado.",
+    signal: "cuidado",
     assetPath: PDU_ASSETS.symbolic.meditation,
     icon: MoonStar,
   },
@@ -1341,11 +1287,9 @@ export default function Home() {
   const [heroMarkIndex, setHeroMarkIndex] = useState(0);
   const [selectedHeroMark, setSelectedHeroMark] =
     useState<HeroMarkCandidate>(fallbackHeroMark);
-  const [portalTransitioning, setPortalTransitioning] = useState(false);
   const hasRestoredReadingStateRef = useRef(false);
   const lastAppliedSuggestedQuestionRef = useRef("");
   const shouldScrollToOpenedReadingRef = useRef(false);
-  const portalTransitionTimerRef = useRef<number | null>(null);
   const startCheckoutRef = useRef<(productKey: string) => Promise<void>>(
     async () => undefined
   );
@@ -1353,14 +1297,6 @@ export default function Home() {
   usePduAtmosphere();
   usePduScrollRecovery();
   const push = usePushNotifications();
-
-  useEffect(() => {
-    return () => {
-      if (portalTransitionTimerRef.current !== null) {
-        window.clearTimeout(portalTransitionTimerRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (!mobileMenuOpen && !exploreMenuOpen) return;
@@ -2122,26 +2058,6 @@ export default function Home() {
     }
   }
 
-  function openPortalIntent(intent: (typeof portalIntentOptions)[number]) {
-    if (intent.id === portalIntentId) return;
-
-    if (portalTransitionTimerRef.current !== null) {
-      window.clearTimeout(portalTransitionTimerRef.current);
-    }
-
-    setPortalTransitioning(true);
-    setPortalIntentId(intent.id);
-    setReadingProductKey("free_daily");
-    setTheme(intent.theme);
-    setSuggestedQuestionSource(intent.question);
-    setQuestion(t(intent.question));
-
-    portalTransitionTimerRef.current = window.setTimeout(() => {
-      setPortalTransitioning(false);
-      portalTransitionTimerRef.current = null;
-    }, 860);
-  }
-
   async function saveReading() {
     if (!result) return;
 
@@ -2637,14 +2553,17 @@ export default function Home() {
     [onboardingFocusId]
   );
 
-  function completeOnboarding(focus?: string) {
+  function completeOnboarding(
+    focus?: string,
+    profile = onboardingProfileDraft
+  ) {
     localStorage.setItem("pdu_onboarding_done", "1");
     if (focus) {
       localStorage.setItem("pdu_focus", focus);
       setOnboardingFocusId(focus);
     }
     const normalizedProfile = focus
-      ? normalizeReadingProfile(onboardingProfileDraft)
+      ? normalizeReadingProfile(profile)
       : null;
     if (normalizedProfile && hasProfileSignal(normalizedProfile)) {
       localStorage.setItem(
@@ -2668,12 +2587,13 @@ export default function Home() {
 
   function beginOnboardingProfile(focus: string) {
     const option = onboardingOptions.find((item) => item.id === focus);
+    const profile = {
+      ...onboardingProfileDraft,
+      currentPhase: option?.label ?? onboardingProfileDraft.currentPhase,
+    };
     setOnboardingFocusId(focus);
-    setOnboardingProfileDraft((current) => ({
-      ...current,
-      currentPhase: option?.label ?? current.currentPhase,
-    }));
-    setOnboardingStep("profile");
+    setOnboardingProfileDraft(profile);
+    completeOnboarding(focus, profile);
   }
 
   function toggleOnboardingProfileList(
@@ -2728,11 +2648,11 @@ export default function Home() {
                   </span>
                 </div>
                 <h2 className="pdu-onboarding-title brand-serif mt-5 text-4xl font-semibold leading-[1.02] text-[#fff7e8] sm:text-5xl">
-                  {t("Qual energia está mais presente agora?")}
+                  {t("Como você chega hoje?")}
                 </h2>
                 <p className="mt-4 max-w-md text-sm leading-7 text-[#d8ccc0]">
                   {t(
-                    "Escolha um ponto de partida. A leitura fica mais precisa sem presumir gênero, crença ou jeito de viver espiritualidade."
+                    "Escolha só um ponto de partida, se quiser. Você pode começar a leitura sem preencher nada."
                   )}
                 </p>
                 <div className="pdu-onboarding-points mt-7 grid gap-3 text-sm text-[#d8ccc0]">
@@ -2752,7 +2672,7 @@ export default function Home() {
                   <>
                     <div className="mb-5 flex items-center justify-between gap-4">
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
-                        {t("Selecione uma fase")}
+                        {t("Escolha uma opção")}
                       </p>
                       <button
                         type="button"
@@ -2777,7 +2697,7 @@ export default function Home() {
                       onClick={() => completeOnboarding()}
                       className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-[#d8ccc0] transition hover:border-[#f4d58d]/35 hover:text-[#fff7e8]"
                     >
-                      {t("Entrar sem calibrar agora")}
+                      {t("Começar sem responder")}
                       <ArrowRight size={16} />
                     </button>
                   </>
@@ -3463,154 +3383,48 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="pdu-reveal pdu-hero-reading-bridge">
-            <div className="pdu-hero-reading-bridge__copy">
-              <p>
-                {locale === "en" ? "Start here" : "Comece aqui"}
+          <section
+            className="pdu-reveal mx-auto grid w-full max-w-6xl gap-3 rounded-[2rem] border border-[#d9bc91] bg-[#fffaf2] p-5 shadow-[0_18px_55px_rgba(55,36,18,0.08)] sm:grid-cols-3 sm:p-7"
+            aria-labelledby="quick-start-title"
+          >
+            <div className="sm:col-span-3">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#956d3c]">
+                {locale === "en" ? "Your guide" : "Seu guia"}
               </p>
-              <h2 className="brand-serif">
-                {locale === "en"
-                  ? "Your question is the way in."
-                  : "A sua pergunta é a porta de entrada."}
+              <h2 id="quick-start-title" className="mt-1 font-serif text-3xl font-semibold text-[#2d211a]">
+                {locale === "en" ? "What would you like to do?" : "O que você quer fazer agora?"}
               </h2>
-              <span>
-                {locale === "en"
-                  ? "Lume organizes your question and the symbols. You only need to begin with what you are living now."
-                  : "A Lume organiza sua pergunta e os símbolos. Você só precisa começar pelo que está vivendo agora."}
-              </span>
             </div>
-            <div className="pdu-hero-reading-bridge__actions">
-              <button
-                type="button"
-                onClick={() => scrollToId("leitura")}
-                className="pdu-hero-reading-bridge__primary"
+            {quickStartOptions.map((option) => (
+              <a
+                key={option.label}
+                href={option.href}
+                className="group flex min-h-40 items-center gap-4 rounded-2xl border border-[#e8cfac] bg-[#fffdf9] p-4 transition hover:-translate-y-0.5 hover:border-[#a87b42] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6c4a26]"
               >
-                {locale === "en" ? "Open a reading" : "Abrir uma leitura"}
-                <ArrowRight size={17} />
-              </button>
-              <a href="#produtos" className="pdu-hero-reading-bridge__secondary">
-                {locale === "en" ? "Compare readings" : "Comparar leituras"}
+                <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#2d211a]">
+                  <Image
+                    src={option.assetPath}
+                    alt=""
+                    fill
+                    sizes="80px"
+                    className="object-contain p-1.5"
+                  />
+                </span>
+                <span>
+                  <strong className="block text-lg text-[#2d211a]">{t(option.label)}</strong>
+                  <span className="mt-1 block text-sm leading-5 text-[#725f52]">{t(option.text)}</span>
+                  <span className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#6c4a26]">
+                    {locale === "en" ? "Go" : "Abrir"} <ArrowRight size={15} />
+                  </span>
+                </span>
               </a>
-            </div>
-          </div>
-
-          <PduAssetStory {...PDU_ASSET_STORIES.home} />
+            ))}
+          </section>
 
           <LumePresence
             intentLabel={t(selectedPortalIntent.label)}
             intentPurpose={t(selectedPortalIntent.purpose)}
           />
-
-          <div
-            id="ritual"
-            className="pdu-reveal pdu-mobile-deferred pdu-journey-map"
-            aria-label={t("Como a experiência funciona")}
-          >
-            {journeySteps.map((step) => (
-              <div key={step.label} className="pdu-journey-map__item">
-                <span className={`pdu-journey-map__icon ${step.visualClass ?? ""}`}>
-                  <Image
-                    src={step.assetPath}
-                    alt=""
-                    fill
-                    sizes="(max-width: 768px) 4.75rem, 7.25rem"
-                    className="object-contain"
-                  />
-                </span>
-                <div>
-                  <strong>{t(step.label)}</strong>
-                  <p>{t(step.text)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div
-            className="pdu-reveal pdu-mobile-deferred pdu-portal-entry"
-            data-portal-changing={portalTransitioning ? "true" : undefined}
-          >
-            <div className="pdu-portal-entry__selection-trail" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </div>
-            <div
-              className="pdu-portal-entry__art"
-              data-portal-changing={portalTransitioning ? "true" : undefined}
-              aria-hidden="true"
-            >
-              <div className="pdu-portal-entry__art-glow" />
-              <div className="pdu-portal-entry__particles" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
-              <Image
-                key={selectedPortalIntent.id}
-                src={selectedPortalIntent.assetPath}
-                alt=""
-                fill
-                sizes="(max-width: 1120px) 180px, 220px"
-                quality={84}
-                className="object-contain"
-              />
-              <span>{t(selectedPortalIntent.label)}</span>
-            </div>
-            <div className="pdu-portal-entry__copy">
-              <p className="pdu-portal-console__eyebrow">{t("Antes da pergunta")}</p>
-              <h2 className="brand-serif">{t(selectedPortalIntent.title)}</h2>
-              <p>
-                {t(
-                  "Escolha o tipo de clareza que você quer abrir. Isso muda a pergunta sugerida, o tema da leitura e o tom da resposta."
-                )}
-              </p>
-            </div>
-            <div className="pdu-portal-entry__controls">
-              <div className="pdu-portal-current">
-                <span>{t("Intenção selecionada")}</span>
-                <strong>{t(selectedPortalIntent.label)}</strong>
-                <p>{t(selectedPortalIntent.purpose)}</p>
-              </div>
-              <div className="pdu-portal-transform" aria-live="polite">
-                <div>
-                  <span>{t("Antes")}</span>
-                  <p>{t(selectedPortalIntent.from)}</p>
-                </div>
-                <ArrowRight size={18} />
-                <div>
-                  <span>{t("Depois")}</span>
-                  <p>{t(selectedPortalIntent.to)}</p>
-                </div>
-              </div>
-              <div className="pdu-portal-intents">
-                {portalIntentOptions.map((intent) => (
-                  <button
-                    key={intent.id}
-                    type="button"
-                    onClick={() => openPortalIntent(intent)}
-                    data-active={intent.id === selectedPortalIntent.id}
-                    aria-pressed={intent.id === selectedPortalIntent.id}
-                    aria-label={`${t(intent.label)}: ${t(intent.purpose)}`}
-                    className="pdu-touch-choice relative z-[1] touch-manipulation select-none"
-                  >
-                    <strong>{t(intent.label)}</strong>
-                    <span>{t(intent.purpose)}</span>
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => scrollToId("leitura")}
-                className="pdu-portal-console__cta"
-              >
-                {t("Abrir leitura com esta intenção")}
-                <Sparkles size={16} />
-              </button>
-            </div>
-          </div>
 
           <div
             id="leitura"
@@ -3676,33 +3490,15 @@ export default function Home() {
 
                 <div className="grid gap-5 lg:grid-cols-[0.94fr_1.06fr]">
                   <div className="space-y-4 order-2">
-                    <div className="pdu-ritual-whisper">
-                      <span className="pdu-ritual-whisper__icon">
-                        <Feather size={15} />
-                      </span>
-                      <span>
-                        {t(
-                          "Antes da carta, uma pausa. O oráculo responde melhor quando a pergunta vem inteira."
-                        )}
-                      </span>
-                    </div>
-                    <p className="brand-serif text-xl leading-8 text-[#fff3df]">
-                      {openingTitle}
-                    </p>
-                    <div className="space-y-3 text-sm leading-6 text-[#cfc4b9]">
-                      <p>
-                        <span className="font-semibold text-[#f5d896]">
-                          {t("Conselho:")}
-                        </span>{" "}
-                        {openingAdvice}
-                      </p>
-                      <p>
-                        <span className="font-semibold text-[#f5d896]">
-                          {t("Afirmação:")}
-                        </span>{" "}
-                        {openingAffirmation}
-                      </p>
-                    </div>
+                    {activeReading || loading ? (
+                      <>
+                        <p className="brand-serif text-xl leading-8 text-[#fff3df]">{openingTitle}</p>
+                        <div className="space-y-3 text-sm leading-6 text-[#cfc4b9]">
+                          <p><span className="font-semibold text-[#f5d896]">{t("Conselho:")}</span>{" "}{openingAdvice}</p>
+                          <p><span className="font-semibold text-[#f5d896]">{t("Afirmação:")}</span>{" "}{openingAffirmation}</p>
+                        </div>
+                      </>
+                    ) : null}
 
                     {loading ? (
                       <ReadingSpreadPortal locale={locale} />
@@ -3711,11 +3507,11 @@ export default function Home() {
                         <span>
                           <Sparkles size={17} />
                         </span>
-                        <strong>{t("Escreva sua pergunta para revelar as cartas.")}</strong>
+                        <strong>{locale === "en" ? "One question is enough to begin." : "Uma pergunta basta para começar."}</strong>
                         <p>
                           {locale === "en"
                             ? `The ${selectedSpreadConfig.positions.length} cards appear here only after the reading begins, so the daily message is not confused with the answer to your question.`
-                            : `As ${selectedSpreadConfig.positions.length} cartas aparecem aqui somente depois que a leitura começar, para não confundir mensagem diária com resposta da sua pergunta.`}
+                            : `As ${selectedSpreadConfig.positions.length} cartas aparecem quando você abrir a leitura.`}
                         </p>
                       </div>
                     ) : (
@@ -3815,8 +3611,10 @@ export default function Home() {
                       </div>
                     ) : null}
 
-                    <div className="grid grid-cols-2 gap-2">
-                      {themeOptions.map((option) => (
+                    <div>
+                      <p className="mb-2 text-sm font-semibold text-[#fff3df]">{locale === "en" ? "How do you arrive today?" : "Como você chega hoje?"}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                      {readingMoodOptions.map((option) => (
                         <button
                           key={option.value}
                           type="button"
@@ -3834,6 +3632,7 @@ export default function Home() {
                           {t(option.label)}
                         </button>
                       ))}
+                      </div>
                     </div>
 
                     {onboardingFocusOption ? (
@@ -3850,65 +3649,15 @@ export default function Home() {
                       </div>
                     ) : null}
 
-                    <div
-                      className="mb-5 grid gap-2 sm:grid-cols-3"
-                      aria-label={locale === "en" ? "How to open the reading" : "Como abrir a leitura"}
-                    >
-                      {[
-                        {
-                          number: "01",
-                          title: locale === "en" ? "Choose a focus" : "Escolha um foco",
-                          text: locale === "en" ? "Name what is alive today." : "Nomeie o que está vivo hoje.",
-                        },
-                        {
-                          number: "02",
-                          title: locale === "en" ? "Ask simply" : "Pergunte com simplicidade",
-                          text: locale === "en" ? "Write one honest question." : "Escreva uma pergunta honesta.",
-                        },
-                        {
-                          number: "03",
-                          title: locale === "en" ? "Read and connect" : "Leia e conecte",
-                          text: locale === "en" ? "Meet the cards in your life." : "Encontre as cartas na sua vida.",
-                        },
-                      ].map((step) => (
-                        <div
-                          key={step.number}
-                          className="rounded-[8px] border border-white/10 bg-white/[0.035] px-3 py-2.5"
-                        >
-                          <span className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
-                            {step.number}
-                          </span>
-                          <p className="mt-1 text-xs font-semibold text-[#fff7e8]">
-                            {step.title}
-                          </p>
-                          <p className="mt-0.5 text-[0.7rem] leading-5 text-[#a99d91]">
-                            {step.text}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-
                     <label
                       htmlFor="question"
                       className="mt-4 block text-sm font-semibold text-[#fff3df]"
                     >
-                      {locale === "en"
-                        ? "2. Write what is happening"
-                        : "2. Escreva o que está acontecendo"}
+                      {locale === "en" ? "Your question" : "Sua pergunta"}
                     </label>
                     <p className="mt-1 text-sm leading-6 text-[#cfc4b9]">
-                      {locale === "en"
-                        ? "You do not need the perfect words. Choose an example or write it in your own way."
-                        : "Você não precisa encontrar as palavras perfeitas. Escolha um exemplo ou escreva do seu jeito."}
+                      {locale === "en" ? "Write it in your own words. It can be simple." : "Escreva do seu jeito. Pode ser simples."}
                     </p>
-                    <div
-                      className="pdu-ritual-prompts"
-                      aria-label={t("Como abrir a leitura")}
-                    >
-                      {ritualPrompts[locale].map((prompt) => (
-                        <span key={prompt}>{prompt}</span>
-                      ))}
-                    </div>
                     <div
                       className="mt-3 grid gap-2"
                       aria-label={
@@ -3917,7 +3666,7 @@ export default function Home() {
                           : "Exemplos de perguntas"
                       }
                     >
-                      {questionExamples[locale].map((example) => (
+                      {questionExamples[locale].slice(0, 2).map((example) => (
                         <button
                           key={example}
                           type="button"

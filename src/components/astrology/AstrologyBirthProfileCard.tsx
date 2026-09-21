@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CalendarDays, CheckCircle2, Clock3, Info, LoaderCircle, MapPin, Sparkles } from "lucide-react";
+import Image from "next/image";
+import { PDU_ASSETS } from "@/lib/pdu-assets";
 import {
   createAstrologyBirthDataClient,
   type AstrologyBirthDataRecord,
@@ -316,6 +318,7 @@ export function AstrologyBirthProfileCard({
       <div className="grid gap-0 lg:grid-cols-[0.82fr_1.18fr]">
         <div className="relative overflow-hidden bg-[#241b18] p-6 text-[#fff7e8] sm:p-8">
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-[#f4d58d]/20 bg-[radial-gradient(circle,rgba(244,213,141,0.24),transparent_66%)]" aria-hidden="true" />
+          <Image src={PDU_ASSETS.astrology.orbitalMap} alt="" width={330} height={330} className="pointer-events-none absolute -bottom-14 -right-16 h-72 w-72 object-contain opacity-30" />
           <div className="relative">
             <p className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/25 bg-white/[0.06] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
               <Sparkles size={13} />
