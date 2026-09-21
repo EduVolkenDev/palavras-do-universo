@@ -90,6 +90,10 @@ export function AstrologyBirthProfileCard({
         save: "Save my birth context",
         saving: "Saving…",
         saved: "Birth context saved",
+        savedTitle: "Your birth map is ready",
+        savedIntro: "Your saved details are already personalizing your astrological experience.",
+        edit: "Review or correct birth details",
+        continueToMap: "Open my birth map",
         loading: "Loading your saved context…",
         resolved: "Your local birth time was understood. The daylight-saving rule for that date was considered.",
         ambiguous: "This clock time happened twice on that date. Choose which occurrence matches the record.",
@@ -124,6 +128,10 @@ export function AstrologyBirthProfileCard({
         save: "Salvar meu contexto de nascimento",
         saving: "Salvando…",
         saved: "Contexto de nascimento salvo",
+        savedTitle: "Seu mapa já está preparado",
+        savedIntro: "Seus dados salvos já estão personalizando a sua experiência astrológica.",
+        edit: "Revisar ou corrigir dados de nascimento",
+        continueToMap: "Abrir meu mapa astral",
         loading: "Carregando seu contexto salvo…",
         resolved: "Sua hora local de nascimento foi compreendida. A regra de horário de verão dessa data foi considerada.",
         ambiguous: "Essa hora aconteceu duas vezes nessa data. Escolha qual ocorrência corresponde ao registro.",
@@ -139,6 +147,7 @@ export function AstrologyBirthProfileCard({
   const client = useMemo(() => createAstrologyBirthDataClient(), []);
   const [draft, setDraft] = useState<BirthDraft>(initialDraft);
   const [savedRecord, setSavedRecord] = useState<AstrologyBirthDataRecord | null>(null);
+  const [editingExisting, setEditingExisting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
@@ -286,6 +295,7 @@ export function AstrologyBirthProfileCard({
       });
       setSavedRecord(record);
       setDraft(draftFromRecord(record));
+      setEditingExisting(false);
       setNotice(copy.saved);
       if (redirectAfterSave) {
         window.setTimeout(() => {
@@ -299,6 +309,8 @@ export function AstrologyBirthProfileCard({
     }
   };
 
+  const showingSavedSummary = Boolean(savedRecord) && !editingExisting;
+
   return (
     <section id="preparar-meu-mapa" className="mt-8 overflow-hidden rounded-[30px] border border-[#241b18]/10 bg-[#fffaf2] shadow-[0_30px_90px_rgba(80,57,34,0.12)]">
       <div className="grid gap-0 lg:grid-cols-[0.82fr_1.18fr]">
@@ -309,8 +321,8 @@ export function AstrologyBirthProfileCard({
               <Sparkles size={13} />
               {copy.eyebrow}
             </p>
-            <h2 className="brand-serif mt-5 text-4xl font-semibold leading-tight sm:text-5xl">{copy.title}</h2>
-            <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">{copy.intro}</p>
+            <h2 className="brand-serif mt-5 text-4xl font-semibold leading-tight sm:text-5xl">{showingSavedSummary ? copy.savedTitle : copy.title}</h2>
+            <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">{showingSavedSummary ? copy.savedIntro : copy.intro}</p>
             <div className="mt-7 rounded-2xl border border-[#f4d58d]/20 bg-white/[0.06] p-4 text-sm leading-6 text-[#f4e6ce]">
               <div className="flex gap-3">
                 <Info className="mt-0.5 shrink-0 text-[#f5d896]" size={17} />
@@ -331,6 +343,16 @@ export function AstrologyBirthProfileCard({
             <div className="flex min-h-48 items-center justify-center gap-3 text-sm text-[#6f615a]">
               <LoaderCircle className="animate-spin" size={18} />
               {copy.loading}
+            </div>
+          ) : showingSavedSummary && savedRecord ? (
+            <div className="flex min-h-48 flex-col justify-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">{isEnglish ? "Saved birth details" : "Dados de nascimento salvos"}</p>
+              <p className="brand-serif mt-3 text-3xl font-semibold text-[#241b18]">{savedRecord.location.label}</p>
+              <p className="mt-2 text-sm leading-6 text-[#6f615a]">{savedRecord.localDate} · {savedRecord.localTime} · {savedRecord.timezone}</p>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <a href="/astrologia/mapa" className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#241b18] px-5 py-3 text-sm font-semibold text-[#fff7e8] transition hover:bg-[#3a2920]">{copy.continueToMap}</a>
+                <button type="button" onClick={() => setEditingExisting(true)} className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#8a6b3f]/45 bg-white px-5 py-3 text-sm font-semibold text-[#6f5134] transition hover:bg-[#fffaf2]">{copy.edit}</button>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
