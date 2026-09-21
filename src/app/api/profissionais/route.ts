@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/auth/api";
 import { readJsonBody } from "@/lib/http/request";
+import { isProductionRuntime } from "@/lib/runtime/request-context";
 import {
   buildProfileSummary,
   clampMarketplaceLimit,
@@ -27,10 +28,6 @@ import {
 
 function jsonError(error: string, status = 400) {
   return NextResponse.json({ error }, { status });
-}
-
-function isProductionRuntime() {
-  return process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
 }
 
 function unavailableMarketplace() {

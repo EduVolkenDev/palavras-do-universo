@@ -7,6 +7,7 @@ import LumeGuide from "@/components/LumeGuide";
 import SiteTelemetry from "@/components/SiteTelemetry";
 import { LOCALE_COOKIE_NAME, normalizeLocale } from "@/lib/i18n/config";
 import { ProductCurrencyProvider } from "@/lib/product/useProductCurrency";
+import { getRequestCountry } from "@/lib/runtime/request-context";
 import {
   PRODUCT_CURRENCY_COOKIE_NAME,
   normalizeProductCurrency,
@@ -61,7 +62,7 @@ export default async function RootLayout({
     currency: normalizeProductCurrency(
       cookieStore.get(PRODUCT_CURRENCY_COOKIE_NAME)?.value
     ),
-    country: requestHeaders.get("x-vercel-ip-country"),
+    country: getRequestCountry(requestHeaders),
     locale: initialLocale,
   });
 

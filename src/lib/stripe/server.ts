@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { isProductionRuntime } from "@/lib/runtime/request-context";
 
 let stripeClient: Stripe | null = null;
 
@@ -8,7 +9,7 @@ function cleanEnvValue(value: string | undefined) {
 
 function isProductionSite() {
   return (
-    process.env.VERCEL_ENV === "production" ||
+    isProductionRuntime() ||
     /^https:\/\/(www\.)?palavrasdouniverso\.com\b/i.test(getSiteUrl()) ||
     /^https:\/\/(www\.)?palavrasdouniverso\.volynx\.world\b/i.test(getSiteUrl()) ||
     /^https:\/\/(www\.)?palavrasdouniverso\.volinx\.world\b/i.test(getSiteUrl())

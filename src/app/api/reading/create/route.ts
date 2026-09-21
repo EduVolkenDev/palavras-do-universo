@@ -312,10 +312,12 @@ function buildSpreadCardMeaning(params: {
   return `${params.cardName}${params.reversed ? " reversa" : ""} fala a partir da posição ${position}: observe como ${params.keyword} muda a forma de sustentar sua pergunta${suffix}.`;
 }
 
-function isProductionRuntime() {
+function isProductionReadingRuntime() {
   const siteUrl = String(process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
   return (
+    process.env.NODE_ENV === "production" ||
     process.env.VERCEL_ENV === "production" ||
+    process.env.CF_PAGES === "1" ||
     /^https:\/\/(www\.)?palavrasdouniverso\.com\b/i.test(siteUrl) ||
     /^https:\/\/(www\.)?palavrasdouniverso\.volynx\.world\b/i.test(siteUrl) ||
     /^https:\/\/(www\.)?palavrasdouniverso\.volinx\.world\b/i.test(siteUrl)
@@ -323,7 +325,7 @@ function isProductionRuntime() {
 }
 
 function isQaNoAiEnabled() {
-  return process.env.PDU_READING_QA_NO_AI === "1" && !isProductionRuntime();
+  return process.env.PDU_READING_QA_NO_AI === "1" && !isProductionReadingRuntime();
 }
 
 function parseCookieHeader(header: string | null) {

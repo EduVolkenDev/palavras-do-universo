@@ -1,27 +1,11 @@
 import { createHash } from "node:crypto";
+import { getRequestIp, isProductionRuntime } from "@/lib/runtime/request-context";
 import { getSupabaseAdmin, hasSupabaseConfig } from "@/lib/supabase/server";
 
 type RateEntry = { count: number; resetAt: number };
 
 const buckets = new Map<string, RateEntry>();
 const MAX_BUCKETS = 10_000;
-
-function getClientIp(request: Request) {
-  const candidates = [
-    request.headers.get("x-vercel-forwarded-for"),
-    request.headers.get("x-real-ip"),
-    process.env.NODE_ENV === "production"
-      ? null
-      : request.headers.get("x-forwarded-for"),
-  ];
-
-  for (const candidate of candidates) {
-    const ip = candidate?.split(",")[0]?.trim();
-    if (ip && /^[a-f0-9:.]+$/i.test(ip)) return ip;
-  }
-
-  return "unknown";
-}
 
 function pruneExpiredBuckets(now: number) {
   if (buckets.size < MAX_BUCKETS) return;
@@ -56,7 +40,7 @@ export async function checkRateLimit(params: {
    */
   strict?: boolean;
 }) {
-  const ip = getClientIp(params.request);
+  const ip = getRequestIp(params.request.headers);
   const key = createHash("sha256").update(`${params.scope}:${ip}`).digest("hex");
 
   if (hasSupabaseConfig()) {
@@ -72,9 +56,7 @@ export async function checkRateLimit(params: {
     }
   }
 
-  const isProduction =
-    process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
-  if (params.strict && isProduction) return false;
+  if (params.strict && isProductionRuntime()) return false;
 
   return checkMemoryRateLimit(key, params.limit, params.windowMs);
 }

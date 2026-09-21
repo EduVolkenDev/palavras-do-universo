@@ -8,6 +8,7 @@ import { cookies, headers } from "next/headers";
 import { normalizeLocale } from "@/lib/i18n/config";
 import { translations } from "@/lib/i18n/translations";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
+import { getRequestCountry } from "@/lib/runtime/request-context";
 import { getProductCardPrice, productCards } from "@/lib/product/catalog";
 import {
   PRODUCT_CURRENCY_COOKIE_NAME,
@@ -179,7 +180,7 @@ export default async function SpreadExperiencePage({
     currency:
       resolvedSearchParams?.currency ??
       cookieStore.get(PRODUCT_CURRENCY_COOKIE_NAME)?.value,
-    country: requestHeaders.get("x-vercel-ip-country"),
+    country: getRequestCountry(requestHeaders),
     locale,
   });
   const t = (value: string) => translateText(value, locale);

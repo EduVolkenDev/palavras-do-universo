@@ -8,6 +8,7 @@ import {
 } from "@/lib/supabase/server";
 import { getSiteUrl, getStripe, hasStripeConfig } from "@/lib/stripe/server";
 import { checkRateLimit } from "@/lib/security/rateLimit";
+import { getRequestCountry, isProductionRuntime } from "@/lib/runtime/request-context";
 import { readJsonBody } from "@/lib/http/request";
 import { isOwnerAccessUser } from "@/lib/product/ownerAccess";
 import {
@@ -231,7 +232,7 @@ function getStripeLocale(locale: CheckoutLocale): Stripe.Checkout.SessionCreateP
 function isProductionCheckoutTarget() {
   const siteUrl = getSiteUrl();
   return (
-    process.env.VERCEL_ENV === "production" ||
+    isProductionRuntime() ||
     /^https:\/\/(www\.)?palavrasdouniverso\.com\b/i.test(siteUrl) ||
     /^https:\/\/(www\.)?palavrasdouniverso\.volynx\.world\b/i.test(siteUrl) ||
     /^https:\/\/(www\.)?palavrasdouniverso\.volinx\.world\b/i.test(siteUrl)
@@ -345,7 +346,7 @@ export async function POST(req: Request) {
   const checkoutCurrency = resolveProductCurrency({
     currency: body.currency,
     market: body.market,
-    country: req.headers.get("x-vercel-ip-country"),
+    country: getRequestCountry(req.headers),
     locale,
   });
   const userId = auth.user.id;

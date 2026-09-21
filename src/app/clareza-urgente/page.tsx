@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { normalizeLocale, LOCALE_COOKIE_NAME, type Locale } from "@/lib/i18n/config";
 import { normalizeMarketingAttribution } from "@/lib/marketing/attribution";
+import { getRequestCountry } from "@/lib/runtime/request-context";
 import ClarezaUrgenteCampaign from "@/components/marketing/ClarezaUrgenteCampaign";
 import {
   formatProductPrice,
@@ -122,7 +123,7 @@ async function getCampaignContext(searchParams: SearchParams) {
     currency:
       firstParam(params.currency) ??
       normalizeProductCurrency(cookieStore.get(PRODUCT_CURRENCY_COOKIE_NAME)?.value),
-    country: requestHeaders.get("x-vercel-ip-country"),
+    country: getRequestCountry(requestHeaders),
     locale,
   });
 
