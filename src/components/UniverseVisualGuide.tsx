@@ -4,6 +4,7 @@ import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import type { Locale } from "@/lib/i18n/config";
+import { translations } from "@/lib/i18n/translations";
 
 type UniverseVisualGuideProps = {
   locale: Locale;
@@ -39,6 +40,11 @@ export function UniverseVisualGuide({
 }: UniverseVisualGuideProps) {
   const isEnglish = locale === "en";
   const latestLabel = latestReading?.question || latestReading?.theme;
+  const recurringThemeLabel = recurringTheme
+    ? isEnglish
+      ? translations.en[recurringTheme.label] ?? recurringTheme.label
+      : recurringTheme.label
+    : "";
   const paths: VisualPath[] = [
     latestReading
       ? {
@@ -79,8 +85,8 @@ export function UniverseVisualGuide({
           label: isEnglish ? "A returning theme" : "Tema que retorna",
           title: isEnglish ? "Notice the pattern" : "Perceber o padrão",
           text: isEnglish
-            ? `“${recurringTheme.label}” appeared ${recurringTheme.count} times in your history.`
-            : `“${recurringTheme.label}” apareceu ${recurringTheme.count} vezes no seu histórico.`,
+            ? `“${recurringThemeLabel}” appeared ${recurringTheme.count} times in your history.`
+            : `“${recurringThemeLabel}” apareceu ${recurringTheme.count} vezes no seu histórico.`,
           href: "#historico-vivo",
         }
       : {

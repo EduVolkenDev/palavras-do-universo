@@ -4577,20 +4577,18 @@ export default function Home() {
      <section className="pdu-mobile-deferred pdu-universe-preview px-4 py-28 sm:px-6 lg:px-8">
         <div className="pdu-reveal mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
           <div className="pdu-universe-preview__copy">
-            <SectionEyebrow dark>Meu Universo</SectionEyebrow>
+            <SectionEyebrow dark>{t("Meu Universo")}</SectionEyebrow>
             <h2 className="brand-serif text-4xl font-semibold leading-tight text-[#fff7e8] sm:text-5xl">
-              Quanto mais você usa, mais sua jornada ganha contexto.
+              {t("Quanto mais você usa, mais sua jornada ganha contexto.")}
             </h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-[#d8ccc0]">
-              Suas leituras salvas começam a formar um diário simbólico: temas
-              que retornam, palavras que acalmam e sinais que ajudam a perceber
-              a fase que você está atravessando.
+              {t("Suas leituras salvas começam a formar um diário simbólico: temas que retornam, palavras que acalmam e sinais que ajudam a perceber a fase que você está atravessando.")}
             </p>
             <a
               href="/meu-universo"
               className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#1c1308] hover:bg-[#ffe3a3]"
             >
-              Abrir Meu Universo
+              {t("Abrir Meu Universo")}
               <ArrowRight size={16} />
             </a>
           </div>
@@ -4621,7 +4619,7 @@ export default function Home() {
                       className="object-contain"
                     />
                   </span>
-                  <span>{symbol.label}</span>
+                  <span>{t(symbol.label)}</span>
                 </div>
               ))}
             </div>
@@ -4632,7 +4630,7 @@ export default function Home() {
                   className="pdu-feature-token"
                   style={{ "--pdu-token-index": index } as CSSProperties}
                 >
-                  {item}
+                  {t(item)}
                 </div>
               ))}
             </div>
