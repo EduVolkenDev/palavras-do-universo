@@ -11664,3 +11664,52 @@ body:has(.pdu-not-found) .pdu-lume-ambient {
     animation: none !important;
   }
 }
+
+/* Final home-page interaction pass. */
+.pdu-home .pdu-lume-presence {
+  width: min(100%, 920px);
+  max-width: 920px;
+  margin-inline: auto;
+  padding: clamp(1.2rem, 2.5vw, 1.8rem);
+}
+
+.pdu-home .pdu-lume-presence__copy h2 {
+  max-width: 38rem;
+  font-size: clamp(1.5rem, 2.5vw, 2.15rem);
+}
+
+.pdu-home .pdu-lume-presence__copy p {
+  max-width: 39rem;
+  font-size: 0.94rem;
+}
+
+.pdu-hero-artifact {
+  animation: none !important;
+}
+
+.pdu-hero-artifact:hover {
+  border-color: rgba(244, 213, 141, 0.16);
+  transform: none;
+}
+
+.pdu-hero-artifact__visual {
+  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.26));
+}
+
+.pdu-access-guide__item {
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.pdu-access-guide__item:focus-visible {
+  z-index: 3;
+  outline: 3px solid rgba(108, 74, 38, 0.8);
+  outline-offset: -3px;
+}
+
+@media (max-width: 768px) {
+  .pdu-home .pdu-lume-presence {
+    margin-inline: 0;
+  }
+}

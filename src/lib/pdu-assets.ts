@@ -125,7 +125,7 @@ export const PDU_ASSETS = {
     lotus: "/assets/lotus.webp",
     magicBook: "/assets/magicbook.webp",
     mandalaBase: "/assets/mandala.webp",
-    mandalaDeep: "/assets/mandala2.webp",
+    mandalaDeep: "/assets/mandalaspecial.webp",
     meditation: "/assets/meditation.webp",
     oracle: "/assets/oraculo.webp",
     consultation: "/assets/pdu-consulta.webp",

@@ -183,6 +183,45 @@ function isInLocaleConditional(node) {
   return false;
 }
 
+function isInExplicitLocaleCopy(node) {
+  let current = node.parent;
+  while (current) {
+    if (ts.isObjectLiteralExpression(current)) {
+      const localeProperty = current.parent;
+      const localeContainer = localeProperty?.parent;
+      if (
+        ts.isPropertyAssignment(localeProperty) &&
+        ["pt", "en"].includes(propertyNameText(localeProperty.name) ?? "") &&
+        ts.isObjectLiteralExpression(localeContainer)
+      ) {
+        const localeKeys = new Set(
+          localeContainer.properties
+            .filter(ts.isPropertyAssignment)
+            .map((property) => propertyNameText(property.name))
+        );
+        if (localeKeys.has("pt") && localeKeys.has("en")) return true;
+      }
+    }
+    current = current.parent;
+  }
+  return false;
+}
+
+function isInTechnicalNatalBodyDefinition(node) {
+  let current = node.parent;
+  while (current) {
+    if (
+      ts.isVariableDeclaration(current) &&
+      ts.isIdentifier(current.name) &&
+      current.name.text === "bodies"
+    ) {
+      return true;
+    }
+    current = current.parent;
+  }
+  return false;
+}
+
 function isInMetadataDeclaration(node) {
   let current = node.parent;
   while (current) {
@@ -282,6 +321,8 @@ function auditFile(file) {
         !isInMetadataDeclaration(node) &&
         !isInTranslatedExpression(node.initializer) &&
         !isInLocaleConditional(node.initializer) &&
+        !isInExplicitLocaleCopy(node.initializer) &&
+        !isInTechnicalNatalBodyDefinition(node.initializer) &&
         !hasTranslation(value)
       ) {
         report("missing-catalog-key", file, node.initializer, `Translatable property "${key}" has no EN translation: "${normalizeText(value)}"`);

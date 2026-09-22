@@ -499,18 +499,21 @@ const experienceAccessPaths = [
     text: "Mensagem e Carta do Dia para criar o hábito sem compromisso.",
     icon: Sparkles,
     assetPath: PDU_ASSETS.products.startFreeSpreadIcon,
+    href: "#leitura",
   },
   {
     label: "Resolva uma questão",
     text: "Leituras avulsas para amor, decisões ou clareza urgente.",
     icon: Compass,
     assetPath: PDU_ASSETS.products.oneQuestionSpreadIcon,
+    href: "/tiradas",
   },
   {
     label: "Acompanhe sua jornada",
     text: "Círculo para histórico, padrões e experiências contínuas.",
     icon: History,
     assetPath: PDU_ASSETS.products.journeyCircleSpreadIcon,
+    href: "/meu-universo",
   },
 ];
 
@@ -562,20 +565,31 @@ const universeFeatureTokens = [
   "Padrões recorrentes",
 ];
 
-const testimonials = [
+type PublishedTestimonial = {
+  id: string;
+  name: string;
+  location: string;
+  stars: number;
+  text: string;
+};
+
+const testimonials: PublishedTestimonial[] = [
   {
+    id: "editorial-camila",
     name: "Camila R.",
     location: "São Paulo, SP",
     stars: 5,
     text: "Eu esperava algo genérico, mas a leitura foi cirúrgica. Nomeou exatamente o que eu não estava conseguindo verbalizar sobre minha situação no trabalho. Fiz a Clareza Urgente e tomei uma decisão que há meses eu adiava.",
   },
   {
+    id: "editorial-thiago",
     name: "Thiago M.",
     location: "Belo Horizonte, MG",
     stars: 5,
     text: "Nunca fui de tarot, mas o tom aqui é diferente — sem fatalismo, sem promessa vazia. É mais como uma conversa honesta com você mesmo mediada por símbolos. Já uso a mensagem diária todo dia antes de começar o trabalho.",
   },
   {
+    id: "editorial-fernanda",
     name: "Fernanda L.",
     location: "Florianópolis, SC",
     stars: 5,
@@ -629,24 +643,6 @@ const marketplaceSignals = [
     title: "Briefing privado",
     text: "A conversa começa com contexto e respeito, sem exposição pública.",
     icon: ShieldCheck,
-  },
-] as const;
-
-const marketplaceFlow = [
-  {
-    title: "Quando procurar",
-    text: "Use depois de uma leitura quando o tema pedir escuta humana, acompanhamento ou presença profissional.",
-    assetPath: PDU_ASSETS.symbolic.consultation,
-  },
-  {
-    title: "Como escolher",
-    text: "Compare especialidade, idioma, estilo de cuidado e faixa de acesso antes de iniciar contato.",
-    assetPath: PDU_ASSETS.homepage.portalAccessKey,
-  },
-  {
-    title: "Como conectar",
-    text: "Envie um briefing privado apenas quando fizer sentido continuar a conversa com alguém qualificado.",
-    assetPath: PDU_ASSETS.symbolic.hand,
   },
 ] as const;
 
@@ -1297,6 +1293,34 @@ export default function Home() {
   usePduAtmosphere();
   usePduScrollRecovery();
   const push = usePushNotifications();
+  const [publishedTestimonials, setPublishedTestimonials] = useState<
+    PublishedTestimonial[]
+  >([]);
+  const visibleTestimonials =
+    publishedTestimonials.length > 0 ? publishedTestimonials : testimonials;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPublishedTestimonials() {
+      try {
+        const response = await fetch("/api/testimonials", { cache: "no-store" });
+        const data = (await response.json()) as {
+          testimonials?: PublishedTestimonial[];
+        };
+        if (!cancelled && response.ok && Array.isArray(data.testimonials)) {
+          setPublishedTestimonials(data.testimonials);
+        }
+      } catch {
+        // Editorial fallback remains visible if the public feedback feed is unavailable.
+      }
+    }
+
+    void loadPublishedTestimonials();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!mobileMenuOpen && !exploreMenuOpen) return;
@@ -4264,78 +4288,6 @@ export default function Home() {
       ) : null}
 
       <section
-        className="pdu-reveal pdu-mobile-deferred pdu-marketplace-band"
-        id="profissionais"
-        aria-labelledby="profissionais-title"
-      >
-        <div className="pdu-marketplace-band__aura" aria-hidden="true" />
-        <div className="pdu-marketplace-band__head">
-          <div>
-            <SectionEyebrow dark>{t("Cuidado humano opcional")}</SectionEyebrow>
-            <h2 id="profissionais-title" className="brand-serif">
-              {t(
-                "Quando uma leitura pede presença humana, você pode procurar profissionais com ética, idioma e faixa de acesso clara."
-              )}
-            </h2>
-          </div>
-          <p>
-            {t(
-              "Profissionais não substituem a sua leitura e a leitura não substitui cuidado humano. Este espaço existe para continuar a conversa quando você quiser apoio real, com escolha e privacidade."
-            )}
-          </p>
-        </div>
-
-        <div className="pdu-marketplace-flow">
-          {marketplaceFlow.map((item, index) => {
-            return (
-              <article
-                key={item.title}
-                className="pdu-marketplace-flow__card"
-                style={{ "--pdu-market-index": index } as CSSProperties}
-              >
-                <span className="pdu-marketplace-flow__icon relative">
-                  <Image
-                    src={item.assetPath}
-                    alt=""
-                    fill
-                    sizes="2.5rem"
-                    className="object-contain"
-                  />
-                </span>
-                <strong>{t(item.title)}</strong>
-                <p>{t(item.text)}</p>
-              </article>
-            );
-          })}
-        </div>
-
-        <div className="pdu-marketplace-band__footer">
-          <div className="pdu-marketplace-band__invitation">
-            <span className="pdu-marketplace-band__invitation-mark" aria-hidden="true">
-              <Sparkles size={17} strokeWidth={1.6} />
-            </span>
-            <div>
-              <strong>{locale === "en" ? "The next door is human." : "A próxima porta pode ser humana."}</strong>
-              <p>
-                {locale === "en"
-                  ? "Explore a real conversation when reflection needs listening, continuity, or care."
-                  : "Explore uma conversa real quando a reflexão pedir escuta, continuidade ou cuidado."}
-              </p>
-            </div>
-          </div>
-          <div className="pdu-marketplace-band__actions">
-            <Link href="/profissionais" className="pdu-marketplace-band__cta">
-              {locale === "en" ? "Meet the professionals" : "Conhecer profissionais"}
-              <ArrowRight size={17} />
-            </Link>
-            <Link href="/profissionais/me" className="pdu-marketplace-band__secondary-cta">
-              {t("Sou profissional")}
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section
         id="produtos"
         className="pdu-mobile-deferred pdu-experience-section px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
       >
@@ -4394,9 +4346,9 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="pdu-access-guide mt-10" aria-label="Formas de acesso">
+          <div className="pdu-access-guide mt-10" aria-label={t("Formas de acesso")}>
             {experienceAccessPaths.map((path, index) => (
-              <div key={path.label} className="pdu-access-guide__item">
+              <a key={path.label} href={path.href} className="pdu-access-guide__item">
                 <span className="pdu-access-guide__number">0{index + 1}</span>
                 <span className="pdu-access-guide__icon relative">
                   <Image
@@ -4408,10 +4360,10 @@ export default function Home() {
                   />
                 </span>
                 <div>
-                  <strong>{path.label}</strong>
-                  <p>{path.text}</p>
+                  <strong>{t(path.label)}</strong>
+                  <p>{t(path.text)}</p>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
 
@@ -4810,9 +4762,9 @@ export default function Home() {
           </div>
 
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {testimonials.map((t) => (
+            {visibleTestimonials.map((t) => (
               <blockquote
-                key={t.name}
+                key={t.id}
                 className="flex flex-col rounded-[10px] border border-white/10 bg-white/[0.04] p-6"
               >
                 <Quote size={20} className="mb-4 shrink-0 text-[#f4d58d]/50" />

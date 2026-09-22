@@ -61,25 +61,23 @@ export type DegreeInterpretation = {
   explanation: string;
 };
 
-export function getDegreeInterpretation(degreesInSign: number, locale: AstrologyLocale): DegreeInterpretation {
-  const exact = `${degreesInSign.toFixed(1)}°`;
-  const third = degreesInSign < 10 ? "opening" : degreesInSign < 20 ? "middle" : "closing";
-
-  if (locale === "en") {
-    const meanings = {
-      opening: { title: "the sign's opening third", explanation: "This range tends to express the sign in a more direct, exploratory, still-developing way." },
-      middle: { title: "the sign's middle third", explanation: "This range tends to seek consistency, practice, and a recognizable form for the sign's qualities." },
-      closing: { title: "the sign's closing third", explanation: "This range tends to add complexity, maturity, and a need to integrate the sign's qualities with wider experience." },
-    } as const;
-    return { label: exact, ...meanings[third] };
-  }
-
-  const meanings = {
+const degreeMeanings = {
+  pt: {
     opening: { title: "o primeiro terço do signo", explanation: "Essa faixa tende a expressar o signo de maneira mais direta, exploratória e ainda em construção." },
     middle: { title: "o terço central do signo", explanation: "Essa faixa tende a buscar consistência, prática e uma forma reconhecível para as qualidades do signo." },
     closing: { title: "o terço final do signo", explanation: "Essa faixa tende a acrescentar complexidade, maturidade e necessidade de integrar as qualidades do signo à experiência acumulada." },
-  } as const;
-  return { label: exact, ...meanings[third] };
+  },
+  en: {
+    opening: { title: "the sign's opening third", explanation: "This range tends to express the sign in a more direct, exploratory, still-developing way." },
+    middle: { title: "the sign's middle third", explanation: "This range tends to seek consistency, practice, and a recognizable form for the sign's qualities." },
+    closing: { title: "the sign's closing third", explanation: "This range tends to add complexity, maturity, and a need to integrate the sign's qualities with wider experience." },
+  },
+} as const;
+
+export function getDegreeInterpretation(degreesInSign: number, locale: AstrologyLocale): DegreeInterpretation {
+  const exact = `${degreesInSign.toFixed(1)}°`;
+  const third = degreesInSign < 10 ? "opening" : degreesInSign < 20 ? "middle" : "closing";
+  return { label: exact, ...degreeMeanings[locale === "en" ? "en" : "pt"][third] };
 }
 
 export function getPlacementInterpretation(position: Pick<NatalPosition, "body" | "sign" | "degreesInSign" | "house">, locale: AstrologyLocale) {
