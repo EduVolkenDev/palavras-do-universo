@@ -204,9 +204,9 @@ export default async function SpreadExperiencePage({
     signature: t(detail.signature),
   };
   const productHref = localizedHref(
-    `/?product=${encodeURIComponent(spread.productKey)}&currency=${encodeURIComponent(
+    `/leitura?product=${encodeURIComponent(spread.productKey)}&currency=${encodeURIComponent(
       productCurrency
-    )}#leitura`,
+    )}`,
     locale,
   );
   const circleHref = localizedHref(

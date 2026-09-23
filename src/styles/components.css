@@ -11713,3 +11713,21 @@ body:has(.pdu-not-found) .pdu-lume-ambient {
     margin-inline: 0;
   }
 }
+
+.pdu-reading-route > section:not(#topo):not(#reading-opened),
+.pdu-reading-route > footer,
+.pdu-reading-route #topo > .pdu-veil,
+.pdu-reading-route #topo > .pdu-hero-stars,
+.pdu-reading-route #topo .pdu-hero-shell > :not(#leitura) {
+  display: none;
+}
+
+.pdu-reading-route #topo {
+  min-height: 0;
+  padding-top: calc(var(--pdu-header-height, 5rem) + 2rem);
+}
+
+.pdu-reading-route #leitura {
+  opacity: 1;
+  transform: none;
+}

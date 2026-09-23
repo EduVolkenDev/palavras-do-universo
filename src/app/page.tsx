@@ -1222,7 +1222,7 @@ function OnboardingIconOption({
   );
 }
 
-export default function Home() {
+export default function Home({ readingOnly = false }: { readingOnly?: boolean }) {
   const { locale, t } = useI18n();
   const { currency: productCurrency, setCurrency: setProductCurrency } =
     useProductCurrency(locale);
@@ -1701,11 +1701,13 @@ export default function Home() {
     setTheme(PRODUCT_THEMES[product] ?? "spirit");
     setSuggestedQuestionSource(PRODUCT_DEFAULT_QUESTIONS[product]);
     setQuestion(PRODUCT_DEFAULT_QUESTIONS[product]);
-    window.setTimeout(
-      () => scrollToId(resume === "checkout" ? "produtos" : "leitura"),
-      120
-    );
-  }, []);
+    if (!readingOnly || resume === "checkout") {
+      window.setTimeout(
+        () => scrollToId(resume === "checkout" ? "produtos" : "leitura"),
+        120
+      );
+    }
+  }, [readingOnly]);
 
   const selectedTheme = useMemo(
     () => themeOptions.find((option) => option.value === theme),
@@ -2634,7 +2636,7 @@ export default function Home() {
   }
 
   return (
-    <main className="pdu-home min-h-screen text-[#f8efe2]">
+    <main className={`pdu-home min-h-screen text-[#f8efe2]${readingOnly ? " pdu-reading-route" : ""}`}>
 
       {showOnboarding ? (
         <div
@@ -3454,6 +3456,12 @@ export default function Home() {
             id="leitura"
             className="pdu-reveal pdu-mobile-deferred pdu-hero-reading relative z-10 mx-auto w-full max-w-6xl scroll-mt-28"
           >
+            {readingOnly ? (
+              <Link href="/tiradas" className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-[#f5d896]">
+                <ArrowRight size={16} className="rotate-180" />
+                {t("Todas as tiradas")}
+              </Link>
+            ) : null}
             <div className="pdu-oracle-shell p-4 sm:p-5">
                 {readingOrigin === "restored" ? (
                   <ReadingHistoryNotice
@@ -3765,9 +3773,9 @@ export default function Home() {
                         }
                         onAction={() => {
                           if (paywall.kind === "auth") {
-                            window.location.href = buildLoginPath(`/?product=${encodeURIComponent(
+                            window.location.href = buildLoginPath(`${readingOnly ? "/leitura" : "/"}?product=${encodeURIComponent(
                               readingProductKey
-                            )}&currency=${encodeURIComponent(productCurrency)}#leitura`, {
+                            )}&currency=${encodeURIComponent(productCurrency)}${readingOnly ? "" : "#leitura"}`, {
                               reason: "reading-access",
                             });
                             return;
