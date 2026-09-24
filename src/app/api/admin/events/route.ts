@@ -10,7 +10,9 @@ const EVENT_SEVERITIES = new Set(["debug", "info", "warning", "error", "fatal"])
 type AdminEventBody = {
   action?: unknown;
   id?: unknown;
+  ids?: unknown;
   status?: unknown;
+  note?: unknown;
 };
 
 function forbidden() {
@@ -77,34 +79,73 @@ export async function POST(request: Request) {
   if (!parsed.ok) return parsed.response;
 
   const action = String(parsed.body.action ?? "").trim().toLowerCase();
-  const eventId = String(parsed.body.id ?? "").trim();
+  const eventIds = Array.from(
+    new Set(
+      [parsed.body.id, ...(Array.isArray(parsed.body.ids) ? parsed.body.ids : [])]
+        .map((value) => String(value ?? "").trim())
+        .filter(Boolean)
+    )
+  ).slice(0, 100);
   const status = String(parsed.body.status ?? "").trim().toLowerCase();
+  const note = String(parsed.body.note ?? "").trim().slice(0, 500);
 
-  if (action !== "status" || !eventId || !EVENT_STATUSES.has(status)) {
+  if (action !== "status" || !eventIds.length || !EVENT_STATUSES.has(status)) {
     return NextResponse.json({ error: "Invalid event action" }, { status: 400 });
   }
 
   const isResolved = status === "resolved" || status === "ignored";
-  const { data, error } = await getSupabaseAdmin()
+  const { data: currentEvents, error: currentError } = await getSupabaseAdmin()
+    .from("site_events")
+    .select("id, context")
+    .in("id", eventIds);
+
+  if (currentError) {
+    return NextResponse.json({ error: currentError.message }, { status: 500 });
+  }
+
+  const updatedEvents = await Promise.all(
+    (currentEvents ?? []).map(async (event) => {
+      const currentContext =
+        typeof event.context === "object" && event.context !== null && !Array.isArray(event.context)
+          ? event.context
+          : {};
+      const { data, error } = await getSupabaseAdmin()
     .from("site_events")
     .update({
       status,
       resolved_at: isResolved ? new Date().toISOString() : null,
       resolved_by: isResolved ? auth.user.id : null,
+      context: {
+        ...currentContext,
+        admin: {
+          action: status,
+          note,
+          actedAt: new Date().toISOString(),
+          actedBy: auth.user.id,
+        },
+      },
     })
-    .eq("id", eventId)
+    .eq("id", event.id)
     .select(
       "id, created_at, event_type, severity, source, route, path, locale, user_id, anonymous_id, reading_id, product_key, message, error_name, stack, last_action, viewport, scroll, context, user_agent, status, resolved_at, resolved_by"
     )
     .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    })
+  ).catch((error: unknown) => ({ error }));
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!Array.isArray(updatedEvents)) {
+    return NextResponse.json(
+      { error: updatedEvents.error instanceof Error ? updatedEvents.error.message : "Could not update events" },
+      { status: 500 }
+    );
   }
 
-  if (!data) {
+  const events = updatedEvents.filter(Boolean);
+  if (!events.length) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ ok: true, event: data });
+  return NextResponse.json({ ok: true, events, event: events[0] });
 }

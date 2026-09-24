@@ -100,6 +100,48 @@ function formatJson(value: JsonRecord) {
   }
 }
 
+type EventGroup = {
+  key: string;
+  event: SiteEventView;
+  ids: string[];
+};
+
+function eventFingerprint(event: SiteEventView) {
+  return [event.severity, event.event_type, event.path ?? event.route ?? "", event.error_name ?? "", event.message ?? ""].join("|");
+}
+
+function getPlainSummary(event: SiteEventView) {
+  if (event.event_type === "react.error_boundary") return "Uma parte da página parou de carregar.";
+  if (event.event_type === "asset.load_error") return "Um recurso visual não carregou.";
+  if (event.event_type === "ux.scroll_jump_to_top") return "A página voltou ao topo inesperadamente.";
+  if (event.event_type === "marketing.cta_click") return "Uma pessoa clicou em um convite para conhecer a oferta.";
+  if (event.event_type === "marketing.landing_view") return "Uma pessoa visitou uma página de campanha.";
+  return event.message || "Evento registrado pelo site.";
+}
+
+function getAnalysis(event: SiteEventView) {
+  const detail = `${event.error_name ?? ""} ${event.message ?? ""}`;
+  if (detail.includes("PlacementDetail")) {
+    return { cause: "Uma versão antiga da Astrologia chamou um componente que ainda não estava disponível.", impact: "A página /astrologia não carregou para estas visitas de 17 de setembro.", recommendation: "A função já existe no código atual. Confirme a página publicada e marque este grupo como resolvido." };
+  }
+  if (detail.includes("PduAssetStory")) {
+    return { cause: "Uma versão transitória da home tentou usar um bloco visual antes de ele estar disponível.", impact: "A home não carregou em três tentativas de 21 de setembro.", recommendation: "O bloco foi removido da versão atual. Se a home abrir normalmente, marque este grupo como resolvido." };
+  }
+  if (detail.includes("insertBefore")) {
+    return { cause: "O navegador encontrou uma alteração de interface enquanto reorganizava elementos da página.", impact: "A interação falhou para quatro visitas de 15 de setembro.", recommendation: "Não há repetição recente. Mantenha em análise e reabra apenas se voltar a acontecer." };
+  }
+  if (event.event_type === "asset.load_error") return { cause: "O navegador não conseguiu obter um arquivo visual.", impact: "A experiência pode ficar incompleta, mas a página tende a continuar utilizável.", recommendation: "Confira o caminho do arquivo e se o erro continua ocorrendo depois da publicação." };
+  if (event.event_type === "ux.scroll_jump_to_top") return { cause: "Uma mudança de rota ou atualização de conteúdo reposicionou a página.", impact: "A pessoa pode perder o ponto onde estava lendo.", recommendation: "Compare a última ação e o dispositivo; investigue apenas se o padrão se repetir." };
+  return { cause: "O site registrou um comportamento que precisa de contexto.", impact: "O impacto depende da rota e da ação anterior.", recommendation: "Abra os detalhes técnicos e confirme se é um caso isolado antes de tomar uma decisão." };
+}
+
+function adminNote(event: SiteEventView) {
+  const admin = event.context?.admin;
+  if (typeof admin !== "object" || admin === null || Array.isArray(admin)) return null;
+  const record = admin as JsonRecord;
+  return typeof record.note === "string" && record.note ? record.note : null;
+}
+
 export default function EventAdminPage({
   ownerEmail,
   hasSupabase,
@@ -112,6 +154,20 @@ export default function EventAdminPage({
   const [savingId, setSavingId] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [expandedAnalysis, setExpandedAnalysis] = useState<string | null>(null);
+  const [scope, setScope] = useState<"open" | "fatal" | "all">("open");
+
+  const groups = useMemo(() => {
+    const filtered = events.filter((event) => scope === "all" || (scope === "fatal" ? event.severity === "fatal" : event.status === "new" || event.status === "reviewed"));
+    const grouped = new Map<string, EventGroup>();
+    for (const event of filtered) {
+      const key = eventFingerprint(event);
+      const current = grouped.get(key);
+      if (current) current.ids.push(event.id);
+      else grouped.set(key, { key, event, ids: [event.id] });
+    }
+    return Array.from(grouped.values());
+  }, [events, scope]);
 
   const summary = useMemo(
     () => ({
@@ -154,24 +210,25 @@ export default function EventAdminPage({
     void loadEvents();
   }, []);
 
-  async function updateStatus(id: string, status: SiteEventStatus) {
-    setSavingId(id);
+  async function updateStatus(ids: string[], status: SiteEventStatus, note: string) {
+    setSavingId(ids[0] ?? "");
     setError("");
     setNotice("");
     try {
       const response = await fetch("/api/admin/events", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "status", id, status }),
+        body: JSON.stringify({ action: "status", ids, status, note }),
       });
-      const data = (await response.json()) as { event?: SiteEventView; error?: string };
-      if (!response.ok || !data.event) {
+      const data = (await response.json()) as { events?: SiteEventView[]; error?: string };
+      if (!response.ok || !Array.isArray(data.events)) {
         throw new Error(data.error || "Não foi possível atualizar o evento.");
       }
+      const updates = new Map(data.events.map((event) => [event.id, event]));
       setEvents((current) =>
-        current.map((event) => (event.id === id ? data.event! : event))
+        current.map((event) => updates.get(event.id) ?? event)
       );
-      setNotice("Status atualizado.");
+      setNotice(`${ids.length > 1 ? `${ids.length} ocorrências` : "Ocorrência"} atualizada${ids.length > 1 ? "s" : ""} com registro da decisão.`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Não foi possível atualizar o evento.");
     } finally {
@@ -224,25 +281,38 @@ export default function EventAdminPage({
           ))}
         </section>
 
+        <nav className="mt-7 flex flex-wrap gap-2" aria-label="Filtro de eventos">
+          {(["open", "fatal", "all"] as const).map((value) => (
+            <button key={value} type="button" onClick={() => setScope(value)} className={`rounded-full border px-4 py-2 text-xs font-bold ${scope === value ? "border-[#241b18] bg-[#241b18] text-[#fff7ed]" : "border-[#cdbbab] bg-white/60 text-[#604b42]"}`}>
+              {value === "open" ? "Pendentes" : value === "fatal" ? "Somente fatais" : "Todos os eventos"}
+            </button>
+          ))}
+        </nav>
+
         {notice ? <p className="mt-6 rounded-xl border border-[#afd2c3] bg-[#eefaf5] px-4 py-3 text-sm text-[#28604f]" role="status">{notice}</p> : null}
         {error ? <p className="mt-6 rounded-xl border border-[#e2bdb5] bg-[#fff2ef] px-4 py-3 text-sm text-[#8a4038]" role="alert">{error}</p> : null}
 
         <section className="mt-7 space-y-4" aria-live="polite">
           {loading ? <div className="rounded-2xl border border-[#dfd0c4] bg-white/72 p-8 text-sm text-[#765f54]">Carregando eventos…</div> : null}
-          {!loading && events.length === 0 ? <div className="rounded-2xl border border-dashed border-[#cdbbab] bg-white/52 p-10 text-center text-sm text-[#765f54]">Ainda não há eventos registrados.</div> : null}
-          {events.map((event) => (
-            <article key={event.id} className="rounded-2xl border border-[#dfd0c4] bg-white/82 p-5 shadow-[0_16px_40px_rgba(75,46,30,0.06)]">
+          {!loading && groups.length === 0 ? <div className="rounded-2xl border border-dashed border-[#cdbbab] bg-white/52 p-10 text-center text-sm text-[#765f54]">Não há eventos neste filtro.</div> : null}
+          {groups.map(({ key, event, ids }) => {
+            const analysis = getAnalysis(event);
+            const isExpanded = expandedAnalysis === key;
+            const note = adminNote(event);
+            return (
+            <article key={key} className="rounded-2xl border border-[#dfd0c4] bg-white/82 p-5 shadow-[0_16px_40px_rgba(75,46,30,0.06)]">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-[#806b60]">
                     <span className={`rounded-full border px-2.5 py-1 font-bold ${SEVERITY_CLASSES[event.severity]}`}>{event.severity.toUpperCase()}</span>
                     <span className={`rounded-full border px-2.5 py-1 font-bold ${STATUS_CLASSES[event.status]}`}>{STATUS_LABELS[event.status]}</span>
-                    <span>{event.event_type}</span>
+                    <span>{getPlainSummary(event)}</span>
                     <span>·</span>
                     <time dateTime={event.created_at}>{formatDate(event.created_at)}</time>
+                    {ids.length > 1 ? <span className="rounded-full bg-[#f1e8df] px-2 py-1 font-bold text-[#604b42]">{ids.length} repetições</span> : null}
                   </div>
                   <h2 className="mt-4 text-xl font-semibold text-[#2c1f1b]">{event.path || event.route || "Rota não informada"}</h2>
-                  {event.message ? <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#55453e]">{event.message}</p> : null}
+                  <p className="mt-2 text-sm leading-6 text-[#55453e]">{analysis.cause}</p>
                   <div className="mt-4 grid gap-2 text-xs text-[#806b60] sm:grid-cols-2 lg:grid-cols-4">
                     <span>Tela: {formatViewport(event)}</span>
                     <span>Scroll: {String(event.scroll?.y ?? "n/a")}</span>
@@ -261,16 +331,17 @@ export default function EventAdminPage({
                       {event.user_agent ? <p><strong>Navegador:</strong> {event.user_agent}</p> : null}
                     </div>
                   </details>
+                  {isExpanded ? <section className="mt-4 rounded-xl border border-[#b9d9d0] bg-[#eef8f4] p-4 text-sm leading-6 text-[#315d56]" aria-label="Análise do evento"><p><strong>Impacto:</strong> {analysis.impact}</p><p className="mt-2"><strong>Próximo passo:</strong> {analysis.recommendation}</p>{note ? <p className="mt-2"><strong>Decisão registrada:</strong> {note}</p> : null}</section> : null}
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2 lg:max-w-[18rem] lg:justify-end">
-                  {event.status !== "reviewed" ? <button type="button" onClick={() => void updateStatus(event.id, "reviewed")} disabled={savingId === event.id} className="inline-flex items-center gap-2 rounded-full border border-[#bdd7d0] bg-[#eff8f4] px-4 py-2.5 text-xs font-bold text-[#35685c] disabled:opacity-50"><Eye size={15} />Analisar</button> : null}
-                  {event.status !== "resolved" ? <button type="button" onClick={() => void updateStatus(event.id, "resolved")} disabled={savingId === event.id} className="inline-flex items-center gap-2 rounded-full bg-[#2f7762] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50"><CheckCircle2 size={15} />Resolver</button> : null}
-                  {event.status !== "ignored" ? <button type="button" onClick={() => void updateStatus(event.id, "ignored")} disabled={savingId === event.id} className="inline-flex items-center gap-2 rounded-full border border-[#d1b8b0] bg-[#fff7f5] px-4 py-2.5 text-xs font-bold text-[#7b4f47] disabled:opacity-50"><XCircle size={15} />Ignorar</button> : null}
-                  {event.status !== "new" ? <button type="button" onClick={() => void updateStatus(event.id, "new")} disabled={savingId === event.id} className="inline-flex items-center gap-2 rounded-full border border-[#cdbbab] bg-white px-4 py-2.5 text-xs font-bold text-[#604b42] disabled:opacity-50"><RotateCcw size={15} />Reabrir</button> : null}
+                  <button type="button" onClick={() => { setExpandedAnalysis(isExpanded ? null : key); void updateStatus(ids, "reviewed", "Investigado no painel: causa, impacto e próximo passo revisados."); }} disabled={savingId === event.id} className="inline-flex items-center gap-2 rounded-full border border-[#bdd7d0] bg-[#eff8f4] px-4 py-2.5 text-xs font-bold text-[#35685c] disabled:opacity-50"><Eye size={15} />Analisar</button>
+                  {event.status !== "resolved" ? <button type="button" onClick={() => { if (window.confirm(`Confirmar que ${ids.length > 1 ? "estas ocorrências" : "esta ocorrência"} foi corrigida${ids.length > 1 ? "s" : ""}?`)) void updateStatus(ids, "resolved", "Correção confirmada após verificação da versão publicada."); }} disabled={savingId === event.id} className="inline-flex items-center gap-2 rounded-full bg-[#2f7762] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50"><CheckCircle2 size={15} />Confirmar correção</button> : null}
+                  {event.status !== "ignored" ? <button type="button" onClick={() => { if (window.confirm(`Arquivar ${ids.length > 1 ? "estas ocorrências" : "esta ocorrência"} como ruído ou caso sem ação?`)) void updateStatus(ids, "ignored", "Arquivado como caso isolado ou sem ação necessária."); }} disabled={savingId === event.id} className="inline-flex items-center gap-2 rounded-full border border-[#d1b8b0] bg-[#fff7f5] px-4 py-2.5 text-xs font-bold text-[#7b4f47] disabled:opacity-50"><XCircle size={15} />Arquivar</button> : null}
+                  {event.status !== "new" ? <button type="button" onClick={() => void updateStatus(ids, "new", "Reaberto para nova investigação.")} disabled={savingId === event.id} className="inline-flex items-center gap-2 rounded-full border border-[#cdbbab] bg-white px-4 py-2.5 text-xs font-bold text-[#604b42] disabled:opacity-50"><RotateCcw size={15} />Reabrir</button> : null}
                 </div>
               </div>
             </article>
-          ))}
+          )})}
         </section>
       </div>
     </main>
