@@ -80,7 +80,7 @@ export function getDegreeInterpretation(degreesInSign: number, locale: Astrology
   return { label: exact, ...degreeMeanings[locale === "en" ? "en" : "pt"][third] };
 }
 
-export function getPlacementInterpretation(position: Pick<NatalPosition, "body" | "sign" | "degreesInSign" | "house">, locale: AstrologyLocale) {
+export function getPlacementInterpretation(position: Pick<NatalPosition, "body" | "sign" | "degreesInSign"> & { house: number }, locale: AstrologyLocale) {
   const body = getBodyInterpretation(position.body, locale);
   const sign = getSignInterpretation(position.sign, locale);
   const house = getHouseInterpretation(position.house, locale);

@@ -4,12 +4,15 @@ import {
   ArrowRight,
   BookOpen,
   Check,
+  CheckCircle2,
   ChevronLeft,
   ChevronDown,
   CircleHelp,
+  Clock3,
   Compass,
   Lock,
   LockKeyhole,
+  LoaderCircle,
   Layers3,
   MoonStar,
   Orbit,
@@ -45,11 +48,13 @@ import {
   getPlacementInterpretation,
 } from "@/lib/astrology/placement-interpretation";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
+import { normalizeMarketingAttribution } from "@/lib/marketing/attribution";
+import { recordSiteEvent } from "@/lib/client/siteEvents";
 import styles from "./AstrologyChartExperience.module.css";
 
 type AstrologySelection = NatalBody | "Ascendant";
 
-type Chart = Pick<NatalChart, "locationLabel" | "houseSystem" | "ascendant" | "positions" | "aspects">;
+type Chart = Pick<NatalChart, "locationLabel" | "timePrecision" | "houseSystem" | "ascendant" | "positions" | "aspects">;
 type ChartLoadFailure = "birth-data-required" | "session-expired" | "unavailable";
 
 const zodiacSigns: ZodiacSign[] = [
@@ -95,6 +100,9 @@ export function AstrologyChartExperience() {
   const [loadFailure, setLoadFailure] = useState<ChartLoadFailure | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState("");
   const [checkoutError, setCheckoutError] = useState("");
+  const [checkoutNotice, setCheckoutNotice] = useState("");
+  const [checkoutNoticeTone, setCheckoutNoticeTone] = useState<"info" | "success" | "warning">("info");
+  const [checkoutRecoveryPending, setCheckoutRecoveryPending] = useState(false);
   const [activeSection, setActiveSection] = useState<"overview" | "planets" | "houses" | "aspects">("overview");
   const [expandedBody, setExpandedBody] = useState<AstrologySelection | null>("Moon");
   const [expandedHouse, setExpandedHouse] = useState<number | null>(1);
@@ -104,8 +112,54 @@ export function AstrologyChartExperience() {
     let active = true;
     const controller = new AbortController();
 
-    void fetch("/api/astrology/natal", { credentials: "include", cache: "no-store", signal: controller.signal })
-      .then(async (response) => {
+    async function openMap() {
+      const params = new URLSearchParams(window.location.search);
+      const checkoutState = params.get("checkout");
+      const checkoutSessionId = params.get("session_id");
+
+      if (checkoutState === "success") {
+        setCheckoutRecoveryPending(true);
+        if (checkoutSessionId) {
+          setCheckoutNoticeTone("info");
+          setCheckoutNotice(isEnglish ? "Confirming your payment and opening the complete map…" : "Confirmando seu pagamento e abrindo o mapa completo…");
+          try {
+            const confirmResponse = await fetch("/api/checkout/confirm", {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ sessionId: checkoutSessionId }),
+              signal: controller.signal,
+            });
+            if (!confirmResponse.ok) throw new Error("checkout-confirmation-failed");
+            recordSiteEvent({ eventType: "commerce.checkout_confirmed", productKey: params.get("product") ?? ASTROLOGY_FULL_PRODUCT_KEY, context: { surface: "astrology_map" } });
+            setCheckoutRecoveryPending(false);
+            setCheckoutNoticeTone("success");
+            setCheckoutNotice(isEnglish ? "Payment confirmed. Your complete map is ready." : "Pagamento confirmado. Seu mapa completo está liberado.");
+          } catch (caught) {
+            if (!(caught instanceof DOMException && caught.name === "AbortError")) {
+              setCheckoutNoticeTone("warning");
+              setCheckoutNotice(isEnglish ? "Your payment returned successfully, but access is still being synchronized. Refresh in a moment; you will not be charged again." : "Seu pagamento voltou com sucesso, mas o acesso ainda está sendo sincronizado. Atualize em instantes; você não será cobrado novamente.");
+            }
+          }
+        } else {
+          setCheckoutNoticeTone("warning");
+          setCheckoutNotice(isEnglish ? "We could not identify the payment session. Your map remains saved; contact support if access does not appear." : "Não foi possível identificar a sessão do pagamento. Seu mapa continua salvo; fale com o suporte se o acesso não aparecer.");
+        }
+      } else if (checkoutState === "cancelled") {
+        setCheckoutRecoveryPending(false);
+        setCheckoutNoticeTone("warning");
+        setCheckoutNotice(isEnglish ? "Payment was not completed. Your map is still saved and you can continue whenever you want." : "O pagamento não foi concluído. Seu mapa continua salvo e você pode retomar quando quiser.");
+      }
+
+      if (checkoutState) {
+        params.delete("checkout");
+        params.delete("session_id");
+        const cleanUrl = `${window.location.pathname}${params.size ? `?${params.toString()}` : ""}`;
+        window.history.replaceState({}, "", cleanUrl);
+      }
+
+      try {
+        const response = await fetch("/api/astrology/natal", { credentials: "include", cache: "no-store", signal: controller.signal });
         const payload = (await response.json().catch(() => null)) as { chart?: Chart; access?: { level?: "preview" | "full" }; code?: string } | null;
         if (!response.ok || !payload?.chart) {
           if (response.status === 401) throw new Error("session-expired");
@@ -115,19 +169,20 @@ export function AstrologyChartExperience() {
         if (!active) return;
         setChart(payload.chart);
         setAccessLevel(payload.access?.level === "full" ? "full" : "preview");
-      })
-      .catch((caught) => {
+      } catch (caught) {
         if (!active || (caught instanceof DOMException && caught.name === "AbortError")) return;
         setLoadFailure(caught instanceof Error && ["birth-data-required", "session-expired"].includes(caught.message) ? caught.message as ChartLoadFailure : "unavailable");
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    }
+
+    void openMap();
     return () => {
       active = false;
       controller.abort();
     };
-  }, []);
+  }, [isEnglish]);
 
   const positionMap = useMemo(
     () => new Map((chart?.positions ?? []).map((position) => [position.body, position])),
@@ -137,31 +192,55 @@ export function AstrologyChartExperience() {
   const circlePrice = formatProductPrice("circulo_do_universo", currency);
 
   async function startCheckout(productKey: string) {
+    if (checkoutRecoveryPending) return;
     setCheckoutLoading(productKey);
     setCheckoutError("");
+    recordSiteEvent({
+      eventType: "marketing.cta_click",
+      productKey,
+      context: {
+        campaign: "conteudo_astrologia_4_semanas",
+        destination: "checkout",
+        attribution: normalizeMarketingAttribution(new URLSearchParams(window.location.search)),
+      },
+    });
     try {
       const response = await fetch("/api/checkout/create", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productKey, locale, currency }),
+        body: JSON.stringify({
+          productKey,
+          locale,
+          currency,
+          attribution: normalizeMarketingAttribution(new URLSearchParams(window.location.search)),
+          returnTo: `${window.location.pathname}${window.location.search}`,
+        }),
       });
       const payload = (await response.json()) as { checkoutUrl?: string; error?: string };
       if (response.status === 401) {
-        window.location.assign(buildLoginPath("/astrologia/mapa"));
+        window.location.assign(buildLoginPath(`${window.location.pathname}${window.location.search}`));
         return;
       }
-      if (!response.ok || !payload.checkoutUrl) throw new Error(payload.error ?? "checkout-unavailable");
+      if (!response.ok || !payload.checkoutUrl) {
+        throw new Error(isEnglish ? "We could not open secure checkout. Please try again in a moment." : "Não foi possível abrir o checkout seguro. Tente novamente em instantes.");
+      }
       window.location.assign(payload.checkoutUrl);
     } catch (caught) {
-      setCheckoutError(caught instanceof Error ? caught.message : "checkout-unavailable");
+      setCheckoutError(caught instanceof Error ? caught.message : (isEnglish ? "Checkout is temporarily unavailable." : "O checkout está temporariamente indisponível."));
     } finally {
       setCheckoutLoading("");
     }
   }
 
   if (loading) {
-    return <div className="mx-auto max-w-6xl px-4 py-24 text-center text-[#6f615a]">{isEnglish ? "Opening your map…" : "Abrindo o seu mapa…"}</div>;
+    return (
+      <div className="mx-auto flex min-h-[55vh] max-w-3xl flex-col items-center justify-center px-4 py-24 text-center text-[#6f615a]">
+        <LoaderCircle className="animate-spin text-[#8a6b3f]" size={26} />
+        <p className="mt-4 text-base font-semibold text-[#4f4035]">{checkoutNotice || (isEnglish ? "Opening your map…" : "Abrindo o seu mapa…")}</p>
+        <p className="mt-2 text-sm">{isEnglish ? "Keep this page open while we prepare your experience." : "Mantenha esta página aberta enquanto preparamos sua experiência."}</p>
+      </div>
+    );
   }
 
   if (loadFailure || !chart) {
@@ -189,12 +268,14 @@ export function AstrologyChartExperience() {
   }
 
   const astrologyLocale: AstrologyLocale = isEnglish ? "en" : "pt-BR";
-  const ascendantLabel = getSignInterpretation(chart.ascendant.sign, astrologyLocale).label;
+  const ascendant = chart.ascendant;
+  const hasBirthTime = chart.timePrecision !== "unknown" && ascendant !== null;
+  const ascendantLabel = ascendant ? getSignInterpretation(ascendant.sign, astrologyLocale).label : "";
   const personalizedBodies = accessLevel === "full" ? fullBodies : coreBodies;
-  const ascendantIndex = zodiacSigns.indexOf(chart.ascendant.sign);
-  const expandedPlacement = expandedBody === "Ascendant"
-    ? { sign: chart.ascendant.sign, degreesInSign: chart.ascendant.degreesInSign, house: 1 }
-    : expandedBody && personalizedBodies.includes(expandedBody)
+  const ascendantIndex = ascendant ? zodiacSigns.indexOf(ascendant.sign) : -1;
+  const expandedPlacement = expandedBody === "Ascendant" && ascendant
+    ? { sign: ascendant.sign, degreesInSign: ascendant.degreesInSign, house: 1 }
+    : expandedBody && expandedBody !== "Ascendant" && personalizedBodies.includes(expandedBody)
       ? positionMap.get(expandedBody)
       : undefined;
 
@@ -222,18 +303,39 @@ export function AstrologyChartExperience() {
             <div className="rounded-[28px] border border-[#f4d58d]/25 bg-white/[0.07] p-6 backdrop-blur-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d9c49f]">{isEnglish ? "Birth place" : "Local de nascimento"}</p>
               <p className="mt-2 text-lg text-[#fff7e8]">{chart.locationLabel}</p>
-              <p className="mt-3 text-xs leading-5 text-[#bfb5ad]">{isEnglish ? "Calculated from your local birth time and the historical time rule for that date." : "Calculado a partir da sua hora local de nascimento e da regra histórica daquele dia."}</p>
+              <p className="mt-3 text-xs leading-5 text-[#bfb5ad]">{hasBirthTime ? (isEnglish ? "Calculated from your local birth time and the historical time rule for that date." : "Calculado a partir da sua hora local de nascimento e da regra histórica daquele dia.") : (isEnglish ? "Birth time was not provided. Rising sign and houses stay hidden until you add it; no time was guessed." : "O horário de nascimento não foi informado. Ascendente e casas ficam ocultos até você adicioná-lo; nenhuma hora foi inventada.")}</p>
             </div>
           </div>
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-20">
-        <div className="grid gap-5 md:grid-cols-3">
+        {checkoutNotice ? (
+          <div className={`mb-8 flex items-start gap-3 rounded-2xl border p-4 text-sm leading-6 ${checkoutNoticeTone === "success" ? "border-[#a9cdbf] bg-[#eef8f2] text-[#315d56]" : checkoutNoticeTone === "warning" ? "border-[#d8b877] bg-[#fff7df] text-[#6f5134]" : "border-[#c9b6df] bg-[#f4eefb] text-[#4f3d66]"}`} role="status">
+            {checkoutNoticeTone === "success" ? <CheckCircle2 className="mt-0.5 shrink-0" size={18} /> : checkoutNoticeTone === "info" ? <LoaderCircle className="mt-0.5 shrink-0 animate-spin" size={18} /> : <CircleHelp className="mt-0.5 shrink-0" size={18} />}
+            <p>{checkoutNotice}</p>
+          </div>
+        ) : null}
+
+        <div className={`grid gap-5 ${hasBirthTime ? "md:grid-cols-3" : "md:grid-cols-2 lg:grid-cols-3"}`}>
           <CoreCard body="Sun" icon={<Sun size={20} />} eyebrow={isEnglish ? "Sun sign" : "Signo solar"} title={getBodyInterpretation("Sun", astrologyLocale).label} placement={positionMap.get("Sun")} locale={astrologyLocale} expanded={expandedBody === "Sun"} onSelect={() => setExpandedBody("Sun")} />
           <CoreCard body="Moon" icon={<MoonStar size={20} />} eyebrow={isEnglish ? "Moon sign" : "Signo lunar"} title={getBodyInterpretation("Moon", astrologyLocale).label} placement={positionMap.get("Moon")} locale={astrologyLocale} expanded={expandedBody === "Moon"} onSelect={() => setExpandedBody("Moon")} />
-          <CoreCard body="Ascendant" icon={<Sparkles size={20} />} eyebrow={isEnglish ? "Rising sign" : "Ascendente"} title={ascendantLabel} placement={{ sign: chart.ascendant.sign, degreesInSign: chart.ascendant.degreesInSign, house: 1 }} locale={astrologyLocale} expanded={expandedBody === "Ascendant"} onSelect={() => setExpandedBody("Ascendant")} />
+          {hasBirthTime && ascendant ? (
+            <CoreCard body="Ascendant" icon={<Sparkles size={20} />} eyebrow={isEnglish ? "Rising sign" : "Ascendente"} title={ascendantLabel} placement={{ sign: ascendant.sign, degreesInSign: ascendant.degreesInSign, house: 1 }} locale={astrologyLocale} expanded={expandedBody === "Ascendant"} onSelect={() => setExpandedBody("Ascendant")} />
+          ) : (
+            <Link href="/meu-universo#preparar-meu-mapa" className="rounded-[26px] border border-dashed border-[#caa96c] bg-[#fffaf2] p-6 text-left shadow-[0_18px_50px_rgba(80,57,34,0.05)] transition hover:-translate-y-1 hover:border-[#8a6b3f]">
+              <span className="grid h-11 w-11 place-items-center rounded-full border border-[#caa96c]/60 bg-[#f8efe2] text-[#8a6b3f]"><Clock3 size={19} /></span>
+              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">{isEnglish ? "When you know the time" : "Quando souber o horário"}</p>
+              <h3 className="brand-serif mt-2 text-3xl font-semibold">{isEnglish ? "Add rising sign and houses" : "Adicionar Ascendente e casas"}</h3>
+              <p className="mt-3 text-sm leading-6 text-[#6f615a]">{isEnglish ? "Your current reading remains available. Add or correct the birth time later to complete these layers responsibly." : "Sua leitura atual continua disponível. Adicione ou corrija o horário depois para completar essas camadas com responsabilidade."}</p>
+            </Link>
+          )}
         </div>
+
+        {accessLevel !== "full" ? (
+          <AstrologyOfferCard isEnglish={isEnglish} fullPrice={fullPrice} circlePrice={circlePrice} checkoutLoading={checkoutLoading} checkoutDisabled={checkoutRecoveryPending} onCheckout={startCheckout} compact />
+        ) : null}
+        {checkoutError ? <p className="mt-4 rounded-2xl border border-[#d9aaa8] bg-[#fff1f0] p-4 text-center text-sm text-[#7b3330]" role="alert">{checkoutError}</p> : null}
 
         {expandedBody && expandedPlacement ? <PlacementDetail body={expandedBody} position={expandedPlacement} aspects={chart.aspects} locale={astrologyLocale} /> : null}
 
@@ -272,7 +374,7 @@ export function AstrologyChartExperience() {
             { id: "planets" as const, icon: <Orbit size={16} />, label: isEnglish ? "Planets" : "Planetas" },
             { id: "houses" as const, icon: <Compass size={16} />, label: isEnglish ? "Houses" : "Casas" },
             { id: "aspects" as const, icon: <CircleHelp size={16} />, label: isEnglish ? "Aspects" : "Aspectos" },
-          ].map((tab) => (
+          ].filter((tab) => hasBirthTime || tab.id !== "houses").map((tab) => (
             <button key={tab.id} type="button" role="tab" aria-selected={activeSection === tab.id} onClick={() => setActiveSection(tab.id)} className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${activeSection === tab.id ? "bg-[#241b18] text-[#fff7e8] shadow-[0_12px_24px_rgba(36,27,24,0.14)]" : "text-[#6f615a] hover:bg-[#f4eadc]"}`}>
               {tab.icon}
               {tab.label}
@@ -284,12 +386,12 @@ export function AstrologyChartExperience() {
           <section className="mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] p-6 sm:p-8">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a6b3f]">{isEnglish ? "Your first layer" : "A sua primeira camada"}</p>
-              <h3 className="brand-serif mt-3 text-3xl font-semibold">{isEnglish ? "The Big Three are a beginning, not a summary." : "Os três pilares são um começo, não um resumo."}</h3>
-              <p className="mt-4 text-sm leading-7 text-[#6f615a]">{isEnglish ? "Sun, Moon, and rising sign answer three different questions: who you are becoming, what you need to feel at home, and how you meet the world. Tap the cards above to read each one in your own chart." : "Sol, Lua e Ascendente respondem a três perguntas diferentes: quem você está se tornando, do que precisa para se sentir em casa e como encontra o mundo. Toque nos cards acima para ler cada um dentro do seu mapa."}</p>
+              <h3 className="brand-serif mt-3 text-3xl font-semibold">{hasBirthTime ? (isEnglish ? "The Big Three are a beginning, not a summary." : "Os três pilares são um começo, não um resumo.") : (isEnglish ? "Two pillars are already open." : "Dois pilares já estão abertos.")}</h3>
+              <p className="mt-4 text-sm leading-7 text-[#6f615a]">{hasBirthTime ? (isEnglish ? "Sun, Moon, and rising sign answer three different questions: who you are becoming, what you need to feel at home, and how you meet the world. Tap the cards above to read each one in your own chart." : "Sol, Lua e Ascendente respondem a três perguntas diferentes: quem você está se tornando, do que precisa para se sentir em casa e como encontra o mundo. Toque nos cards acima para ler cada um dentro do seu mapa.") : (isEnglish ? "Your Sun and Moon are already open. Rising sign and houses depend on birth time, so those layers remain hidden instead of being guessed." : "Seu Sol e sua Lua já estão abertos. Ascendente e casas dependem do horário de nascimento, por isso essas camadas ficam ocultas em vez de serem inventadas.")}</p>
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 <MiniLesson title={isEnglish ? "Sun" : "Sol"} text={isEnglish ? "identity and direction" : "identidade e direção"} artwork={PDU_ASSETS.astrology.planets.Sun} />
                 <MiniLesson title={isEnglish ? "Moon" : "Lua"} text={isEnglish ? "care and belonging" : "cuidado e pertencimento"} artwork={PDU_ASSETS.astrology.planets.Moon} />
-                <MiniLesson title={isEnglish ? "Rising" : "Ascendente"} text={isEnglish ? "presence and entry" : "presença e entrada"} artwork={PDU_ASSETS.astrology.mapHero} />
+                <MiniLesson title={isEnglish ? "Rising" : "Ascendente"} text={hasBirthTime ? (isEnglish ? "presence and entry" : "presença e entrada") : (isEnglish ? "available when you add the time" : "disponível ao adicionar o horário")} artwork={PDU_ASSETS.astrology.mapHero} />
               </div>
             </div>
             <div className="relative overflow-hidden rounded-[30px] bg-[#e8dccb] p-6 sm:p-8">
@@ -308,7 +410,7 @@ export function AstrologyChartExperience() {
           <PlanetLibrary chart={chart} positionMap={positionMap} personalizedBodies={personalizedBodies} locale={astrologyLocale} expandedBody={expandedBody} onSelect={setExpandedBody} />
         ) : null}
 
-        {activeSection === "houses" ? (
+        {activeSection === "houses" && hasBirthTime ? (
           <HouseLibrary ascendantIndex={ascendantIndex} accessLevel={accessLevel} locale={astrologyLocale} expandedHouse={expandedHouse} onSelect={setExpandedHouse} />
         ) : null}
 
@@ -316,25 +418,50 @@ export function AstrologyChartExperience() {
           <AspectLibrary chart={chart} accessLevel={accessLevel} locale={astrologyLocale} expandedAspect={expandedAspect} onSelect={setExpandedAspect} />
         ) : null}
 
-        {accessLevel !== "full" ? (
-          <div className="mt-8 grid gap-6 overflow-hidden rounded-[30px] border border-[#caa96c]/40 bg-[#241b18] p-6 text-[#fff7e8] shadow-[0_30px_80px_rgba(36,27,24,0.18)] sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div>
-              <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]"><Lock size={14} /> {isEnglish ? "Continue your map" : "Continue o seu mapa"}</p>
-              <h3 className="brand-serif mt-3 text-3xl font-semibold">{isEnglish ? "See every planet, house, aspect, and influence." : "Veja cada planeta, casa, aspecto e influência."}</h3>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-[#d8ccc0]">{isEnglish ? `Unlock the complete interpretation for ${fullPrice}, or access it as part of the Circle for ${circlePrice} per month.` : `Desbloqueie a interpretação completa por ${fullPrice}, ou tenha acesso a ela dentro do Círculo por ${circlePrice} ao mês.`}</p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-              <button type="button" onClick={() => void startCheckout(ASTROLOGY_FULL_PRODUCT_KEY)} disabled={Boolean(checkoutLoading)} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#241b18] hover:bg-[#ffe3a3] disabled:opacity-60">{checkoutLoading === ASTROLOGY_FULL_PRODUCT_KEY ? (isEnglish ? "Opening…" : "Abrindo…") : (isEnglish ? "Unlock my full map" : "Desbloquear meu mapa") } <ArrowRight size={16} /></button>
-              <button type="button" onClick={() => void startCheckout("circulo_do_universo")} disabled={Boolean(checkoutLoading)} className="inline-flex items-center justify-center gap-2 rounded-full border border-[#f4d58d]/45 px-5 py-3 text-sm font-semibold text-[#fff7e8] hover:bg-white/10">{isEnglish ? "Join the Circle" : "Entrar no Círculo"}</button>
-            </div>
-          </div>
-        ) : null}
+        {accessLevel !== "full" ? <AstrologyOfferCard isEnglish={isEnglish} fullPrice={fullPrice} circlePrice={circlePrice} checkoutLoading={checkoutLoading} checkoutDisabled={checkoutRecoveryPending} onCheckout={startCheckout} /> : null}
 
-        {checkoutError ? <p className="mt-5 text-center text-sm text-[#9a3c37]" role="alert">{checkoutError}</p> : null}
         <p className="mx-auto mt-10 max-w-2xl text-center text-xs leading-6 text-[#8a7667]">{isEnglish ? "Astrology is offered as a symbolic language for reflection and entertainment. It does not determine events, replace professional care, or remove your freedom of choice." : "A astrologia é oferecida como linguagem simbólica para reflexão e entretenimento. Ela não determina acontecimentos, substitui cuidados profissionais nem retira sua liberdade de escolha."}</p>
       </section>
     </main>
   );
+}
+
+function AstrologyOfferCard({
+  isEnglish,
+  fullPrice,
+  circlePrice,
+  checkoutLoading,
+  checkoutDisabled,
+  onCheckout,
+  compact = false,
+}: {
+  isEnglish: boolean;
+  fullPrice: string;
+  circlePrice: string;
+  checkoutLoading: string;
+  checkoutDisabled: boolean;
+  onCheckout: (productKey: string) => Promise<void>;
+  compact?: boolean;
+}) {
+  return (
+    <div className={`${compact ? "mt-6" : "mt-8"} grid gap-6 overflow-hidden rounded-[30px] border border-[#caa96c]/40 bg-[#241b18] p-6 text-[#fff7e8] shadow-[0_30px_80px_rgba(36,27,24,0.18)] sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center`}>
+      <div>
+        <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]"><Lock size={14} /> {isEnglish ? "Continue your map" : "Continue o seu mapa"}</p>
+        <h3 className="brand-serif mt-3 text-3xl font-semibold">{isEnglish ? "Open every available planet, aspect, and personal layer." : "Abra todos os planetas, aspectos e camadas pessoais disponíveis."}</h3>
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-[#d8ccc0]">{isEnglish ? `Unlock the complete interpretation for ${fullPrice} as a one-time payment, or access it as part of the Circle for ${circlePrice} per month.` : `Desbloqueie a interpretação completa por ${fullPrice}, em pagamento único, ou tenha acesso a ela dentro do Círculo por ${circlePrice} ao mês.`}</p>
+      </div>
+      <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+        <button type="button" onClick={() => void onCheckout(ASTROLOGY_FULL_PRODUCT_KEY)} disabled={checkoutDisabled || Boolean(checkoutLoading)} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#241b18] hover:bg-[#ffe3a3] disabled:cursor-not-allowed disabled:opacity-60">{checkoutRecoveryPendingLabel(checkoutDisabled, checkoutLoading === ASTROLOGY_FULL_PRODUCT_KEY, isEnglish, isEnglish ? "Unlock my full map" : "Desbloquear meu mapa")} <ArrowRight size={16} /></button>
+        <button type="button" onClick={() => void onCheckout("circulo_do_universo")} disabled={checkoutDisabled || Boolean(checkoutLoading)} className="inline-flex items-center justify-center rounded-full border border-[#f4d58d]/45 px-5 py-3 text-sm font-semibold text-[#fff7e8] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60">{checkoutRecoveryPendingLabel(checkoutDisabled, checkoutLoading === "circulo_do_universo", isEnglish, isEnglish ? "Join the Circle" : "Entrar no Círculo")}</button>
+      </div>
+    </div>
+  );
+}
+
+function checkoutRecoveryPendingLabel(disabled: boolean, loading: boolean, isEnglish: boolean, defaultLabel: string) {
+  if (disabled) return isEnglish ? "Synchronizing access…" : "Sincronizando acesso…";
+  if (loading) return isEnglish ? "Opening…" : "Abrindo…";
+  return defaultLabel;
 }
 
 function bodyLabel(body: NatalBody, locale: AstrologyLocale) {
@@ -359,7 +486,7 @@ function CoreCard({
   icon: React.ReactNode;
   eyebrow: string;
   title: string;
-  placement?: { sign: ZodiacSign; degreesInSign: number; house: number };
+  placement?: { sign: ZodiacSign; degreesInSign: number; house: number | null };
   locale: AstrologyLocale;
   expanded: boolean;
   onSelect: () => void;
@@ -372,7 +499,7 @@ function CoreCard({
       <div className="relative flex items-center justify-between gap-3"><span className="grid h-10 w-10 place-items-center rounded-full border border-[#caa96c]/50 text-[#8a6b3f]">{icon}</span><span className="text-xs font-semibold uppercase tracking-[0.15em] text-[#9a7b4b]">{eyebrow}</span></div>
       <div className={styles.coreHeading}>
         <h3 className="brand-serif text-3xl font-semibold">{title}</h3>
-        {placement ? <p className="mt-2 text-sm text-[#6f615a]">{formatPlacement(placement.sign, placement.degreesInSign, locale)} · {locale === "en" ? `house ${placement.house}` : `casa ${placement.house}`}</p> : null}
+        {placement ? <p className="mt-2 text-sm text-[#6f615a]">{formatPlacement(placement.sign, placement.degreesInSign, locale)}{placement.house !== null ? ` · ${locale === "en" ? `house ${placement.house}` : `casa ${placement.house}`}` : ""}</p> : null}
       </div>
       <p className="relative mt-5 border-t border-[#e6d8c3] pt-4 text-sm leading-6 text-[#6f615a]">{copy.archetype}</p>
       <span className="relative mt-5 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">{expanded ? (locale === "en" ? "Reading open" : "Leitura aberta") : (locale === "en" ? "Open explanation" : "Abrir explicação")} <ChevronDown size={15} className={`transition ${expanded ? "rotate-180" : ""}`} /></span>
@@ -380,11 +507,11 @@ function CoreCard({
   );
 }
 
-function PlacementDetail({ body, position, aspects, locale }: { body: AstrologySelection; position: { sign: ZodiacSign; degreesInSign: number; house: number }; aspects: Chart["aspects"]; locale: AstrologyLocale }) {
+function PlacementDetail({ body, position, aspects, locale }: { body: AstrologySelection; position: { sign: ZodiacSign; degreesInSign: number; house: number | null }; aspects: Chart["aspects"]; locale: AstrologyLocale }) {
   const copy = body === "Ascendant" ? getAscendantInterpretation(locale) : getBodyInterpretation(body, locale);
   const sign = getSignInterpretation(position.sign, locale);
   const degree = getDegreeInterpretation(position.degreesInSign, locale);
-  const placement = body === "Ascendant" ? null : getPlacementInterpretation({ body, ...position }, locale);
+  const placement = body === "Ascendant" || position.house === null ? null : getPlacementInterpretation({ body, ...position, house: position.house }, locale);
   const bodyAspects = body === "Ascendant" ? [] : getBodyAspectReadings(body, aspects, locale);
   return (
     <section className="mt-5 overflow-hidden rounded-[30px] border border-[#caa96c]/55 bg-[#fffaf2] shadow-[0_20px_55px_rgba(80,57,34,0.1)]" aria-live="polite">
@@ -395,7 +522,7 @@ function PlacementDetail({ body, position, aspects, locale }: { body: AstrologyS
           <div className="relative z-10 flex min-h-[13rem] flex-col justify-end">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]">{copy.label}</p>
             <p className="brand-serif mt-2 text-3xl font-semibold">{formatPlacement(position.sign, position.degreesInSign, locale)}</p>
-            <p className="mt-2 text-sm text-[#d8ccc0]">{locale === "en" ? `House ${position.house}` : `Casa ${position.house}`} · {sign.element} · {sign.mode}</p>
+            <p className="mt-2 text-sm text-[#d8ccc0]">{position.house !== null ? `${locale === "en" ? `House ${position.house}` : `Casa ${position.house}`} · ` : ""}{sign.element} · {sign.mode}</p>
           </div>
         </div>
         <div className="p-6 sm:p-8">
@@ -406,7 +533,7 @@ function PlacementDetail({ body, position, aspects, locale }: { body: AstrologyS
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <InsightBlock title={locale === "en" ? "Potential" : "Potenciais"} text={placement?.gifts ?? `${sign.gifts}.`} />
             <InsightBlock title={locale === "en" ? "A gentle attention" : "Ponto de atenção"} text={placement?.tension ?? `${sign.tension}.`} />
-            <InsightBlock title={placement?.houseTitle ?? `${locale === "en" ? "House" : "Casa"} ${position.house}`} text={placement?.houseMeaning ?? getHouseInterpretation(position.house, locale).explanation} />
+            {position.house !== null ? <InsightBlock title={placement?.houseTitle ?? `${locale === "en" ? "House" : "Casa"} ${position.house}`} text={placement?.houseMeaning ?? getHouseInterpretation(position.house, locale).explanation} /> : null}
             <InsightBlock title={`${locale === "en" ? "Degree" : "Grau"} · ${degree.title}`} text={`${degree.label}. ${degree.explanation} ${locale === "en" ? "The degree refines the reading; it does not replace the sign, house, or aspects." : "O grau refina a leitura; não substitui o signo, a casa nem os aspectos."}`} />
           </div>
           {placement ? <p className="mt-6 rounded-2xl border border-[#d8c3a6] bg-white/65 p-4 text-sm font-medium leading-7 text-[#4f4035]">{placement.synthesis}</p> : null}
@@ -467,7 +594,30 @@ function PersonalAspectList({ readings, locale }: { readings: ReturnType<typeof 
 }
 
 function PersonalizedPlacementReading({ position, aspects, locale }: { position: NatalPosition; aspects: Chart["aspects"]; locale: AstrologyLocale }) {
-  const reading = getPlacementInterpretation(position, locale);
+  if (position.house === null) {
+    const body = getBodyInterpretation(position.body, locale);
+    const sign = getSignInterpretation(position.sign, locale);
+    const degree = getDegreeInterpretation(position.degreesInSign, locale);
+    const bodyAspects = getBodyAspectReadings(position.body, aspects, locale);
+    return (
+      <div className="mt-4 grid gap-4">
+        <div className="rounded-2xl border border-[#d8c3a6] bg-[#fffaf2] p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">{locale === "en" ? "Planet and sign" : "Planeta e signo"}</p>
+          <h5 className="brand-serif mt-2 text-2xl font-semibold text-[#332720]">{body.label} {locale === "en" ? "in" : "em"} {sign.label}</h5>
+          <p className="mt-3 text-sm leading-7 text-[#55473e]">{body.explanation}</p>
+          <p className="mt-3 text-sm font-medium leading-6 text-[#6f5134]">{sign.tone}. {sign.gifts}.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <InsightBlock title={locale === "en" ? "Potential" : "Potenciais"} text={sign.gifts} />
+          <InsightBlock title={locale === "en" ? "A gentle attention" : "Ponto de atenção"} text={sign.tension} />
+          <InsightBlock title={`${locale === "en" ? "Degree" : "Grau"} · ${degree.title}`} text={`${degree.label}. ${degree.explanation}`} />
+        </div>
+        <p className="rounded-2xl border border-[#d8c3a6] bg-[#f8efe2] p-4 text-sm leading-7 text-[#4f4035]">{locale === "en" ? "Birth time was not provided, so no house was assigned to this planet. Add the time later to reveal that layer without guessing." : "O horário de nascimento não foi informado, por isso nenhuma casa foi atribuída a este planeta. Adicione o horário depois para revelar essa camada sem suposições."}</p>
+        <PersonalAspectList readings={bodyAspects} locale={locale} />
+      </div>
+    );
+  }
+  const reading = getPlacementInterpretation({ ...position, house: position.house }, locale);
   const bodyAspects = getBodyAspectReadings(position.body, aspects, locale);
   return (
     <div className="mt-4 grid gap-4">
@@ -532,7 +682,7 @@ function PlanetLibrary({ chart, positionMap, personalizedBodies, locale, expande
                 <p className="text-sm leading-6 text-[#55473e]">{copy.explanation}</p>
                 {personalized && position ? (
                   <p className="mt-4 border-t border-[#dcc9af] pt-4 text-sm font-semibold text-[#6f5134]">
-                    {formatPlacement(position.sign, position.degreesInSign, locale)} · {isEnglish ? `house ${position.house}` : `casa ${position.house}`}
+                    {formatPlacement(position.sign, position.degreesInSign, locale)}{position.house !== null ? ` · ${isEnglish ? `house ${position.house}` : `casa ${position.house}`}` : ""}
                   </p>
                 ) : (
                   <p className="mt-4 border-t border-[#dcc9af] pt-4 text-xs font-semibold uppercase tracking-[0.12em] text-[#6f5134]">

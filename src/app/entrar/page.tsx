@@ -13,7 +13,7 @@ import {
   productCards,
   pricingPlans,
 } from "@/lib/product/catalog";
-import { resolveProductCurrency } from "@/lib/product/pricing";
+import { formatProductPrice, resolveProductCurrency } from "@/lib/product/pricing";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 import { PduAssetStory } from "@/components/PduAssetStory";
@@ -203,7 +203,7 @@ const productVisuals: Record<string, string> = {
 
 function getProductFromNextParam(
   locale: string
-): { title: string; price: string; visual: string } | null {
+): { productKey: string; title: string; price: string; visual: string } | null {
   if (typeof window === "undefined") return null;
   const params = new URLSearchParams(window.location.search);
   const next = params.get("next");
@@ -211,18 +211,29 @@ function getProductFromNextParam(
 
   // next looks like: /?product=clareza_urgente#produtos
   try {
-    const inner = new URLSearchParams(next.split("?")[1]?.split("#")[0] ?? "");
-    const key = inner.get("product");
+    const destination = new URL(next, "https://palavras.local");
+    const inner = destination.searchParams;
+    const key = inner.get("product") ?? (destination.pathname === "/astrologia/mapa" ? "mapa_astral" : null);
     if (!key) return null;
     const productCurrency = resolveProductCurrency({
       currency: inner.get("currency") ?? params.get("currency"),
       locale,
     });
 
+    if (key === "mapa_astral") {
+      return {
+        productKey: key,
+        title: locale === "en" ? "Complete Birth Chart" : "Mapa Astral Completo",
+        price: formatProductPrice(key, productCurrency),
+        visual: PDU_ASSETS.astrology.myMap,
+      };
+    }
+
     const fromCards = productCards.find((p) => p.productKey === key);
     const cardPrice = fromCards ? getProductCardPrice(fromCards, productCurrency) : "";
     if (fromCards && cardPrice) {
       return {
+        productKey: key,
         title: fromCards.title,
         price: cardPrice,
         visual: productVisuals[key] ?? PDU_ASSETS.surfaces.account,
@@ -232,6 +243,7 @@ function getProductFromNextParam(
     const fromPlans = pricingPlans.find((p) => p.productKey === key);
     if (fromPlans) {
       return {
+        productKey: key,
         title: fromPlans.title,
         price: `${getPricingPlanPrice(fromPlans, productCurrency)}/${fromPlans.cadence}`,
         visual: productVisuals[key] ?? PDU_ASSETS.surfaces.account,
@@ -258,7 +270,7 @@ export default function EntrarPage() {
   const [existingAccountHint, setExistingAccountHint] = useState(false);
   const [resendState, setResendState] = useState<FormState>("idle");
   const [resendMessage, setResendMessage] = useState("");
-  const [product, setProduct] = useState<{ title: string; price: string; visual: string } | null>(null);
+  const [product, setProduct] = useState<{ productKey: string; title: string; price: string; visual: string } | null>(null);
   const [readingHistoryReason, setReadingHistoryReason] = useState(false);
   const isEn = locale === "en";
 
@@ -267,11 +279,12 @@ export default function EntrarPage() {
       const params = new URLSearchParams(window.location.search);
       const reason = params.get("reason") === "reading-history";
       const mode = params.get("mode");
-      setProduct(getProductFromNextParam(locale));
+      const nextProduct = getProductFromNextParam(locale);
+      setProduct(nextProduct);
       setReadingHistoryReason(reason);
       if (mode === "reset-password") setAuthMode("reset-password");
       else if (mode === "forgot") setAuthMode("forgot");
-      else if (mode === "signup" || mode === "criar" || reason) setAuthMode("signup");
+      else if (mode === "signup" || mode === "criar" || reason || nextProduct?.productKey === "mapa_astral") setAuthMode("signup");
     }, 0);
     return () => window.clearTimeout(timer);
   }, [locale]);
@@ -790,10 +803,10 @@ export default function EntrarPage() {
           : isEn ? "Sign in" : "Entrar";
 
   return (
-    <main className="ritual-texture min-h-screen px-4 py-12 text-[#241b18]">
+    <main className="pdu-auth-page ritual-texture min-h-screen px-4 py-12 text-[#241b18]">
       <section className="mx-auto w-full max-w-md rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-6 shadow-[0_24px_70px_rgba(66,48,31,0.16)] sm:p-8">
         <Link
-          href="/"
+          href={product?.productKey === "mapa_astral" ? "/astrologia" : "/"}
           className="inline-flex items-center gap-2 text-sm font-semibold text-[#6f615a]"
         >
           <ArrowLeft size={16} />
@@ -802,7 +815,7 @@ export default function EntrarPage() {
 
         <div className="mt-8 grid h-12 w-12 place-items-center rounded-lg border border-[#dfccb0] bg-white/70">
           <Image
-            src={PDU_ASSETS.surfaces.account}
+            src={product?.visual ?? PDU_ASSETS.surfaces.account}
             alt={isEn ? "Palavras do Universo account" : "Conta Palavras do Universo"}
             width={36}
             height={36}
@@ -844,11 +857,11 @@ export default function EntrarPage() {
             <p className="text-sm leading-6 text-[#4d3c31]">
               {isEn ? (
                 <>
-                  To unlock <strong>{product.title}</strong> ({product.price}), sign in or create your account first.
+                  To open the free first layer and then choose whether to unlock <strong>{product.title}</strong> ({product.price}, one-time payment), sign in or create your free account.
                 </>
               ) : (
                 <>
-                  Para acessar <strong>{product.title}</strong> ({product.price}), entre ou crie sua conta primeiro.
+                  Para abrir a primeira camada gratuita e depois escolher se quer liberar <strong>{product.title}</strong> ({product.price}, pagamento único), entre ou crie sua conta grátis.
                 </>
               )}
             </p>

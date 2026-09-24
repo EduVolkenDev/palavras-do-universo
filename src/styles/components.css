@@ -6214,6 +6214,22 @@ body:has(.pdu-onboarding-overlay) .pdu-lume-ambient {
   bottom: auto;
 }
 
+body:has(.pdu-auth-page) .pdu-language-switcher {
+  top: calc(0.75rem + env(safe-area-inset-top));
+  right: calc(0.75rem + env(safe-area-inset-right));
+  bottom: auto;
+  width: 7.5rem;
+  min-height: 42px;
+  max-height: 42px;
+  border: 1px solid rgba(202, 169, 108, 0.72);
+  background: rgba(36, 27, 24, 0.96);
+  box-shadow: 0 12px 32px rgba(36, 27, 24, 0.2);
+}
+
+body:has(.pdu-auth-page) .pdu-lume-ambient {
+  display: none;
+}
+
 .pdu-campaign-steps-visual {
   position: relative;
   min-height: 18rem;

@@ -3,8 +3,13 @@
 import { ArrowRight, BookOpen, Clock3, MoonStar, Orbit, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { useI18n } from "@/components/I18nProvider";
+import { recordSiteEvent } from "@/lib/client/siteEvents";
+import { appendMarketingAttribution, type MarketingAttribution } from "@/lib/marketing/attribution";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
+import { formatProductPrice } from "@/lib/product/pricing";
+import { useProductCurrency } from "@/lib/product/useProductCurrency";
 
 const experiences = [
   {
@@ -53,9 +58,34 @@ const experiences = [
   },
 ];
 
-export function AstrologyOverview() {
+export function AstrologyOverview({ attribution = {} }: { attribution?: MarketingAttribution }) {
   const { locale } = useI18n();
   const isEnglish = locale === "en";
+  const { currency } = useProductCurrency(locale);
+  const fullPrice = formatProductPrice("mapa_astral", currency);
+  const circlePrice = formatProductPrice("circulo_do_universo", currency);
+  const mapQuery = new URLSearchParams({ product: "mapa_astral", currency });
+  appendMarketingAttribution(mapQuery, attribution);
+  const mapHref = `/astrologia/mapa?${mapQuery.toString()}`;
+  const landingTracked = useRef(false);
+
+  useEffect(() => {
+    if (landingTracked.current) return;
+    landingTracked.current = true;
+    recordSiteEvent({
+      eventType: "marketing.landing_view",
+      productKey: "mapa_astral",
+      context: { campaign: "conteudo_astrologia_4_semanas", destination: "astrology_landing", attribution },
+    });
+  }, [attribution]);
+
+  function trackMapEntry(destination: string) {
+    recordSiteEvent({
+      eventType: "marketing.cta_click",
+      productKey: "mapa_astral",
+      context: { campaign: "conteudo_astrologia_4_semanas", destination, attribution },
+    });
+  }
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#171225] text-[#fff7e8]">
@@ -71,13 +101,25 @@ export function AstrologyOverview() {
             <div className="max-w-3xl">
               <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]"><Sparkles size={15} /> {isEnglish ? "The astrology of Palavras do Universo" : "A astrologia do Palavras do Universo"}</p>
               <h1 className="brand-serif mt-5 text-5xl font-semibold leading-[0.96] sm:text-7xl">{isEnglish ? "Your sky is more than a map." : "O seu céu é muito mais do que um mapa."}</h1>
-              <p className="mt-7 max-w-2xl text-base leading-8 text-[#d8ccc0]">{isEnglish ? "Astrology here becomes a living space: a way to understand your birth language, notice today's atmosphere, move through time, and connect symbols with the life you are actually living." : "Aqui, a astrologia se torna um espaço vivo: uma forma de compreender a sua linguagem de nascimento, perceber a atmosfera de hoje, atravessar o tempo e conectar símbolos com a vida que você realmente está vivendo."}</p>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link href="/astrologia/mapa" className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#241b18] shadow-[0_18px_42px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[#ffe3a3]">
-                  {isEnglish ? "Enter my astrology" : "Entrar na minha astrologia"}
+              <p className="mt-7 max-w-2xl text-base leading-8 text-[#d8ccc0]">{isEnglish ? "Discover your Sun, Moon, and rising sign in the free first layer. If you want to go deeper, unlock the complete birth chart with planets, houses, aspects, and personalized explanations." : "Descubra Sol, Lua e Ascendente na primeira camada gratuita. Se quiser aprofundar, desbloqueie o mapa astral completo com planetas, casas, aspectos e explicações personalizadas."}</p>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <Link href={mapHref} onClick={() => trackMapEntry("hero_free_layer")} className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#241b18] shadow-[0_18px_42px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[#ffe3a3]">
+                  {isEnglish ? "Open my free first layer" : "Abrir minha primeira camada grátis"}
                   <ArrowRight size={16} />
                 </Link>
-                <span className="text-xs leading-5 text-[#c8bdb5]">{isEnglish ? "Start with the free first layer." : "Comece pela primeira camada gratuita."}</span>
+                <span className="text-xs leading-5 text-[#c8bdb5]">{isEnglish ? "Create a free account. You only pay if you choose to unlock the complete map." : "Crie uma conta grátis. Você só paga se escolher liberar o mapa completo."}</span>
+              </div>
+              <div className="mt-6 grid max-w-2xl gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-[#f4d58d]/25 bg-white/[0.07] p-4 backdrop-blur-sm">
+                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{isEnglish ? "Complete birth chart" : "Mapa Astral Completo"}</p>
+                  <p className="brand-serif mt-2 text-3xl font-semibold text-white">{fullPrice}</p>
+                  <p className="mt-1 text-xs leading-5 text-[#c8bdb5]">{isEnglish ? "One-time payment. Yours to revisit." : "Pagamento único. Seu para rever quando quiser."}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-[#110d1e]/55 p-4 backdrop-blur-sm">
+                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#d9c49f]">{isEnglish ? "Included in the Circle" : "Também incluído no Círculo"}</p>
+                  <p className="brand-serif mt-2 text-3xl font-semibold text-white">{circlePrice}<span className="ml-1 text-sm font-normal text-[#c8bdb5]">/{isEnglish ? "month" : "mês"}</span></p>
+                  <p className="mt-1 text-xs leading-5 text-[#c8bdb5]">{isEnglish ? "For continued readings and your symbolic history." : "Para leituras contínuas e seu histórico simbólico."}</p>
+                </div>
               </div>
             </div>
 
@@ -86,7 +128,7 @@ export function AstrologyOverview() {
               <div className="relative flex min-h-[26rem] items-center justify-center sm:min-h-[34rem]">
                 <span className="absolute left-0 top-0 rounded-full border border-[#f4d58d]/30 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{isEnglish ? "A universe in motion" : "Um universo em movimento"}</span>
                 <div className="relative h-[23rem] w-[23rem] sm:h-[31rem] sm:w-[31rem]">
-                  <Image src={PDU_ASSETS.astrology.orbitalMap} alt="" fill sizes="(max-width: 640px) 23rem, 31rem" className="object-contain opacity-95 drop-shadow-[0_0_48px_rgba(244,213,141,0.28)]" />
+                  <Image src={PDU_ASSETS.astrology.orbitalMap} alt="" fill priority sizes="(max-width: 640px) 23rem, 31rem" className="object-contain opacity-95 drop-shadow-[0_0_48px_rgba(244,213,141,0.28)]" />
                   <div className="absolute inset-[21%] animate-[spin_34s_linear_infinite] rounded-full border border-[#f4d58d]/30" aria-hidden="true" />
                 </div>
                 <div className="absolute bottom-0 right-0 max-w-[17rem] rounded-2xl border border-white/10 bg-[#0d0a17]/80 p-4 backdrop-blur-md">
@@ -111,7 +153,7 @@ export function AstrologyOverview() {
             {experiences.map((experience) => {
               const Icon = experience.icon;
               return (
-                <Link key={experience.key} href="/astrologia/mapa" className="group relative min-h-[18rem] overflow-hidden rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] p-6 shadow-[0_18px_50px_rgba(80,57,34,0.07)] transition duration-500 hover:-translate-y-1 hover:border-[#b69256] hover:shadow-[0_26px_65px_rgba(80,57,34,0.14)] sm:p-8">
+                <Link key={experience.key} href={mapHref} onClick={() => trackMapEntry(`experience_${experience.key}`)} className="group relative min-h-[18rem] overflow-hidden rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] p-6 shadow-[0_18px_50px_rgba(80,57,34,0.07)] transition duration-500 hover:-translate-y-1 hover:border-[#b69256] hover:shadow-[0_26px_65px_rgba(80,57,34,0.14)] sm:p-8">
                   <div className="absolute -right-8 -top-10 h-72 w-72 opacity-75 transition duration-500 group-hover:scale-110 group-hover:opacity-100"><Image src={experience.asset} alt="" fill sizes="18rem" className="object-contain" /></div>
                   <div className="relative z-10 max-w-[62%]">
                     <span className="grid h-11 w-11 place-items-center rounded-full border border-[#caa96c]/60 bg-[#f8efe2] text-[#8a6b3f]"><Icon size={19} /></span>
@@ -131,7 +173,7 @@ export function AstrologyOverview() {
               <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]"><BookOpen size={15} /> {isEnglish ? "The next layer" : "A próxima camada"}</p>
               <h3 className="brand-serif mt-4 text-3xl font-semibold sm:text-4xl">{isEnglish ? "When your sky meets your symbols." : "Quando o seu céu encontra os seus símbolos."}</h3>
               <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">{isEnglish ? "Your Tarot readings can converse with the movements of your chart — as correspondence, never as fixed destiny. With time, Lume and your symbolic memory make the experience more personal." : "As suas leituras de Tarot podem conversar com os movimentos do seu mapa — como correspondência, nunca como destino fixo. Com o tempo, Lume e a sua memória simbólica tornam a experiência mais pessoal."}</p>
-              <Link href="/astrologia/mapa" className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/45 px-5 py-3 text-sm font-semibold text-[#fff7e8] transition hover:bg-white/10">{isEnglish ? "Start my sky" : "Começar pelo meu céu"} <ArrowRight size={16} /></Link>
+              <Link href={mapHref} onClick={() => trackMapEntry("closing_cta")} className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/45 px-5 py-3 text-sm font-semibold text-[#fff7e8] transition hover:bg-white/10">{isEnglish ? "Start my sky" : "Começar pelo meu céu"} <ArrowRight size={16} /></Link>
             </div>
           </div>
         </div>

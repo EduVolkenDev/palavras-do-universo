@@ -26,7 +26,7 @@ type BirthDraft = {
   timezone: string;
   latitude: string;
   longitude: string;
-  precision: "exact" | "approximate";
+  precision: "exact" | "approximate" | "unknown";
   disambiguation: BirthTimeDisambiguation | "";
 };
 
@@ -49,7 +49,7 @@ function initialDraft(): BirthDraft {
 function draftFromRecord(record: AstrologyBirthDataRecord): BirthDraft {
   return {
     localDate: record.localDate,
-    localTime: record.localTime,
+    localTime: record.precision === "unknown" ? "" : record.localTime,
     locationLabel: record.location.label,
     countryCode: record.location.countryCode,
     timezone: record.timezone,
@@ -80,6 +80,8 @@ export function AstrologyBirthProfileCard({
         precision: "Time precision",
         exact: "Exact time",
         approximate: "Approximate time",
+        unknown: "I do not know the time",
+        unknownHelp: "You can continue without guessing. We will show the planets and aspects that can be read responsibly, and leave rising sign and houses hidden until you add the time.",
         placeHelp: "Type the city and country as you know them. We identify the exact place, timezone and coordinates automatically.",
         findPlace: "Find my place",
         findingPlace: "Searching…",
@@ -118,6 +120,8 @@ export function AstrologyBirthProfileCard({
         precision: "Precisão da hora",
         exact: "Hora exata",
         approximate: "Hora aproximada",
+        unknown: "Não sei o horário",
+        unknownHelp: "Você pode continuar sem inventar uma hora. Mostraremos planetas e aspectos que podem ser lidos com responsabilidade, deixando Ascendente e casas ocultos até você adicionar o horário.",
         placeHelp: "Digite a cidade e o país como você conhece. Nós identificamos o local exato e calculamos o fuso e as coordenadas automaticamente.",
         findPlace: "Encontrar meu local",
         findingPlace: "Buscando…",
@@ -174,15 +178,16 @@ export function AstrologyBirthProfileCard({
     return () => { active = false; };
   }, [client, copy.saveError]);
 
+  const calculationTime = draft.precision === "unknown" ? "12:00" : draft.localTime;
   const resolution = useMemo<ServerBirthTimeResolution | null>(() => {
-    if (!draft.localDate || !draft.localTime || !draft.timezone) return null;
+    if (!draft.localDate || !calculationTime || !draft.timezone) return null;
     return resolveAstrologyBirthTime({
       localDate: draft.localDate,
-      localTime: draft.localTime,
+      localTime: calculationTime,
       timezone: draft.timezone,
       disambiguation: draft.disambiguation || undefined,
     });
-  }, [draft.disambiguation, draft.localDate, draft.localTime, draft.timezone]);
+  }, [calculationTime, draft.disambiguation, draft.localDate, draft.timezone]);
 
   const update = <K extends keyof BirthDraft>(key: K, value: BirthDraft[K]) => {
     setDraft((current) => ({
@@ -194,6 +199,16 @@ export function AstrologyBirthProfileCard({
     if (key === "locationLabel") {
       setLocationCandidates([]);
     }
+    setNotice("");
+    setError("");
+  };
+
+  const updatePrecision = (precision: BirthDraft["precision"]) => {
+    setDraft((current) => ({
+      ...current,
+      precision,
+      ...(precision === "unknown" ? { localTime: "", disambiguation: "" } : {}),
+    }));
     setNotice("");
     setError("");
   };
@@ -249,7 +264,7 @@ export function AstrologyBirthProfileCard({
     setNotice("");
     setError("");
 
-    if (!draft.localDate || !draft.localTime || !draft.locationLabel || !draft.countryCode || !draft.timezone || !draft.latitude || !draft.longitude) {
+    if (!draft.localDate || (draft.precision !== "unknown" && !draft.localTime) || !draft.locationLabel || !draft.countryCode || !draft.timezone || !draft.latitude || !draft.longitude) {
       setError(copy.missing);
       return;
     }
@@ -282,7 +297,7 @@ export function AstrologyBirthProfileCard({
       const record = await client.saveBirthData({
         birthData: {
           localDate: draft.localDate,
-          localTime: draft.localTime,
+          localTime: calculationTime,
           timeInputMode: "local-clock",
           timezone: draft.timezone,
           location: {
@@ -351,7 +366,7 @@ export function AstrologyBirthProfileCard({
             <div className="flex min-h-48 flex-col justify-center">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">{isEnglish ? "Saved birth details" : "Dados de nascimento salvos"}</p>
               <p className="brand-serif mt-3 text-3xl font-semibold text-[#241b18]">{savedRecord.location.label}</p>
-              <p className="mt-2 text-sm leading-6 text-[#6f615a]">{savedRecord.localDate} · {savedRecord.localTime} · {savedRecord.timezone}</p>
+              <p className="mt-2 text-sm leading-6 text-[#6f615a]">{savedRecord.localDate} · {savedRecord.precision === "unknown" ? (isEnglish ? "birth time unknown" : "horário de nascimento desconhecido") : savedRecord.localTime} · {savedRecord.timezone}</p>
               <div className="mt-7 flex flex-wrap gap-3">
                 <a href="/astrologia/mapa" className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#241b18] px-5 py-3 text-sm font-semibold text-[#fff7e8] transition hover:bg-[#3a2920]">{copy.continueToMap}</a>
                 <button type="button" onClick={() => setEditingExisting(true)} className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#8a6b3f]/45 bg-white px-5 py-3 text-sm font-semibold text-[#6f5134] transition hover:bg-[#fffaf2]">{copy.edit}</button>
@@ -364,10 +379,15 @@ export function AstrologyBirthProfileCard({
                   <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]"><CalendarDays size={14} />{copy.date}</span>
                   <input className={inputClass} type="date" value={draft.localDate} onChange={(event) => update("localDate", event.target.value)} required />
                 </label>
-                <label className="block">
-                  <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]"><Clock3 size={14} />{copy.time}</span>
-                  <input className={inputClass} type="time" value={draft.localTime} onChange={(event) => update("localTime", event.target.value)} required />
-                </label>
+                <div>
+                  <label className="block">
+                    <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]"><Clock3 size={14} />{copy.time}</span>
+                    <input className={inputClass} type="time" value={draft.localTime} onChange={(event) => update("localTime", event.target.value)} disabled={draft.precision === "unknown"} required={draft.precision !== "unknown"} />
+                  </label>
+                  <button type="button" onClick={() => updatePrecision(draft.precision === "unknown" ? "approximate" : "unknown")} className="mt-2 text-xs font-semibold text-[#6f5134] underline decoration-[#caa96c] underline-offset-4">
+                    {draft.precision === "unknown" ? (isEnglish ? "Add a time" : "Informar um horário") : copy.unknown}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -401,11 +421,19 @@ export function AstrologyBirthProfileCard({
 
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">{copy.precision}</span>
-                <select className={inputClass} value={draft.precision} onChange={(event) => update("precision", event.target.value as BirthDraft["precision"])}>
+                <select className={inputClass} value={draft.precision} onChange={(event) => updatePrecision(event.target.value as BirthDraft["precision"])}>
                   <option value="exact">{copy.exact}</option>
                   <option value="approximate">{copy.approximate}</option>
+                  <option value="unknown">{copy.unknown}</option>
                 </select>
               </label>
+
+              {draft.precision === "unknown" ? (
+                <div className="rounded-2xl border border-[#caa96c]/45 bg-[#fff7df] p-4 text-sm leading-6 text-[#5d4727]">
+                  <Info className="mb-1 mr-2 inline-block" size={16} />
+                  {copy.unknownHelp}
+                </div>
+              ) : null}
 
               {resolution?.status === "ambiguous" ? (
                 <fieldset className="rounded-2xl border border-[#c69a4f]/45 bg-[#fff7df] p-4 text-sm text-[#5d4727]">
@@ -421,7 +449,7 @@ export function AstrologyBirthProfileCard({
                 </fieldset>
               ) : null}
 
-              {resolution?.status === "resolved" ? (
+              {resolution?.status === "resolved" && draft.precision !== "unknown" ? (
                 <div className="rounded-2xl border border-[#a9cdbf] bg-[#eef8f2] p-4 text-sm leading-6 text-[#315d56]">
                   <CheckCircle2 className="mb-1 inline-block mr-2" size={16} />
                   {copy.resolved}

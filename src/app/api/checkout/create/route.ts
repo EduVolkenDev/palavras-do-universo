@@ -30,9 +30,11 @@ import {
   type ProductPrice,
 } from "@/lib/product/pricing";
 import {
+  appendMarketingAttribution,
   normalizeMarketingAttribution,
   toStripeMarketingMetadata,
 } from "@/lib/marketing/attribution";
+import { sanitizeAuthRedirect } from "@/lib/auth/redirect";
 
 type CheckoutBody = {
   productKey?: unknown;
@@ -42,6 +44,7 @@ type CheckoutBody = {
   currency?: unknown;
   market?: unknown;
   attribution?: unknown;
+  returnTo?: unknown;
 };
 
 type OracleProduct = {
@@ -324,6 +327,23 @@ function getUnlockedRedirectPath(productKey: string) {
   return `/?product=${encodeURIComponent(productKey)}`;
 }
 
+function buildCheckoutReturnUrl(params: {
+  siteUrl: string;
+  returnPath: string;
+  checkout: "success" | "cancelled";
+  productKey: string;
+  currency: string;
+  attribution: ReturnType<typeof normalizeMarketingAttribution>;
+}) {
+  const url = new URL(params.returnPath, params.siteUrl);
+  url.searchParams.set("checkout", params.checkout);
+  url.searchParams.set("product", params.productKey);
+  url.searchParams.set("currency", params.currency);
+  if (params.checkout === "success") url.searchParams.set("session_id", "__CHECKOUT_SESSION_ID__");
+  appendMarketingAttribution(url.searchParams, params.attribution);
+  return url.toString().replace("__CHECKOUT_SESSION_ID__", "{CHECKOUT_SESSION_ID}");
+}
+
 export async function POST(req: Request) {
   if (
     !(await checkRateLimit({
@@ -477,6 +497,18 @@ export async function POST(req: Request) {
   const mode = getCheckoutMode(product);
   const siteUrl = getSiteUrl();
   const stripe = getStripe();
+  const defaultReturnPath = isInternalTest
+    ? "/admin/teste-checkout"
+    : product.product_key === ASTROLOGY_FULL_PRODUCT_KEY
+      ? "/astrologia/mapa"
+      : "/meu-universo";
+  const requestedReturnPath = typeof body.returnTo === "string" ? body.returnTo : null;
+  const sanitizedReturnPath = sanitizeAuthRedirect(requestedReturnPath, defaultReturnPath);
+  const returnPath =
+    (product.product_key === ASTROLOGY_FULL_PRODUCT_KEY || product.product_key === CIRCLE_PRODUCT_KEY) &&
+    sanitizedReturnPath.startsWith("/astrologia/mapa")
+      ? sanitizedReturnPath
+      : defaultReturnPath;
 
   let session: Stripe.Checkout.Session;
 
@@ -496,16 +528,22 @@ export async function POST(req: Request) {
       customer_email: email,
       allow_promotion_codes: true,
       billing_address_collection: "auto",
-      success_url: `${siteUrl}${isInternalTest ? "/admin/teste-checkout" : product.product_key === ASTROLOGY_FULL_PRODUCT_KEY ? "/astrologia/mapa" : "/meu-universo"}?checkout=success&session_id={CHECKOUT_SESSION_ID}&product=${encodeURIComponent(
-        product.product_key
-      )}&currency=${encodeURIComponent(
-        checkoutPrice.currency
-      )}`,
-      cancel_url: `${siteUrl}/?checkout=cancelled&product=${encodeURIComponent(
-        product.product_key
-      )}&currency=${encodeURIComponent(
-        checkoutPrice.currency
-      )}`,
+      success_url: buildCheckoutReturnUrl({
+        siteUrl,
+        returnPath,
+        checkout: "success",
+        productKey: product.product_key,
+        currency: checkoutPrice.currency,
+        attribution: marketingAttribution,
+      }),
+      cancel_url: buildCheckoutReturnUrl({
+        siteUrl,
+        returnPath,
+        checkout: "cancelled",
+        productKey: product.product_key,
+        currency: checkoutPrice.currency,
+        attribution: marketingAttribution,
+      }),
       metadata: {
         user_id: userId,
         product_key: product.product_key,

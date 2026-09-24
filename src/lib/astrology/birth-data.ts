@@ -3,7 +3,7 @@ import { resolveAstrologyBirthTime, type BirthTimeDisambiguation, type ServerBir
 
 export const ASTROLOGY_BIRTH_CALCULATION_VERSION = "birth-time-iana-v1";
 
-type BirthPrecision = "exact" | "approximate" | "unknown";
+export type BirthPrecision = "exact" | "approximate" | "unknown";
 type DaylightSavingStatus = "active" | "inactive" | "unknown";
 
 export interface AstrologyBirthDataPayload {

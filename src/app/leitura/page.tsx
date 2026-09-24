@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Home from "../page";
+import HomePage from "../page";
 
 export const metadata: Metadata = {
   title: "Abrir leitura | Palavras do Universo",
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function ReadingPage() {
-  return <Home readingOnly />;
+  return <HomePage searchParams={Promise.resolve({ readingOnly: "1" })} />;
 }

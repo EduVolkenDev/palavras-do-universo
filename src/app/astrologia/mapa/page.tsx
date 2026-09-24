@@ -15,9 +15,32 @@ export const metadata = {
   description: "Leia o seu mapa natal com contexto, clareza e uma linguagem simbólica acessível.",
 };
 
-export default async function AstrologyMapPage() {
+const MAP_QUERY_KEYS = new Set([
+  "product",
+  "currency",
+  "campaign",
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "checkout",
+  "session_id",
+]);
+
+function buildCurrentMapPath(params: Record<string, string | string[] | undefined>) {
+  const query = new URLSearchParams();
+  for (const [key, rawValue] of Object.entries(params)) {
+    const value = Array.isArray(rawValue) ? rawValue[0] : rawValue;
+    if (!MAP_QUERY_KEYS.has(key) || typeof value !== "string" || !value || value.length > 200) continue;
+    query.set(key, value);
+  }
+  return `/astrologia/mapa${query.size ? `?${query.toString()}` : ""}`;
+}
+
+export default async function AstrologyMapPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const mapPath = buildCurrentMapPath(await searchParams);
   const user = await getAuthenticatedUser();
-  if (!user) redirect(buildLoginPath("/astrologia/mapa"));
+  if (!user) redirect(buildLoginPath(mapPath));
 
   const locale = normalizeLocale(user.user_metadata?.locale ?? "pt-BR");
   let birthData = null;
@@ -58,9 +81,9 @@ export default async function AstrologyMapPage() {
         <div className="mx-auto max-w-3xl py-14 text-center sm:py-20">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a6b3f]">{locale === "en" ? "Your astrology entrance" : "A sua entrada no mapa"}</p>
           <h1 className="brand-serif mt-5 text-5xl font-semibold leading-tight text-[#241b18] sm:text-6xl">{locale === "en" ? "First, let us find the sky you were born under." : "Primeiro, vamos encontrar o céu sob o qual você nasceu."}</h1>
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-[#6f615a]">{locale === "en" ? "Tell us the date, local time, and city shown in your birth record. We calculate the rest quietly, including historical daylight-saving rules." : "Conte a data, a hora local e a cidade que aparecem no seu registro de nascimento. Nós calculamos o restante em silêncio, inclusive as regras históricas do horário de verão."}</p>
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-[#6f615a]">{locale === "en" ? "Tell us the date, city, and—if you know it—the local time shown in your birth record. You can continue without guessing a time; rising sign and houses will wait until you add it." : "Conte a data, a cidade e, se souber, a hora local do seu registro de nascimento. Você pode continuar sem inventar um horário; Ascendente e casas ficam reservados até você adicionar essa informação."}</p>
         </div>
-        <AstrologyBirthProfileCard locale={locale} redirectAfterSave="/astrologia/mapa" />
+        <AstrologyBirthProfileCard locale={locale} redirectAfterSave={mapPath} />
       </div>
     </main>
   );

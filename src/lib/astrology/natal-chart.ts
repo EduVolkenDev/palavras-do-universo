@@ -5,7 +5,7 @@ import {
   SiderealTime,
   SunPosition,
 } from "astronomy-engine";
-import type { AstrologyBirthDataPayload } from "./birth-data";
+import type { AstrologyBirthDataPayload, BirthPrecision } from "./birth-data";
 
 export const ASTROLOGY_FULL_PRODUCT_KEY = "mapa_astral";
 
@@ -42,7 +42,7 @@ export interface NatalPosition {
   longitude: number;
   sign: ZodiacSign;
   degreesInSign: number;
-  house: number;
+  house: number | null;
 }
 
 export interface NatalAspect {
@@ -58,12 +58,13 @@ export interface NatalChart {
   calculatedAtISO: string;
   timezone: string;
   locationLabel: string;
-  houseSystem: "whole-sign";
+  timePrecision: BirthPrecision;
+  houseSystem: "whole-sign" | null;
   ascendant: {
     longitude: number;
     sign: ZodiacSign;
     degreesInSign: number;
-  };
+  } | null;
   positions: NatalPosition[];
   aspects: NatalAspect[];
   limitations: string[];
@@ -194,30 +195,34 @@ export function calculateNatalChart(birthData: AstrologyBirthDataPayload): Natal
   const date = new Date(birthData.timeResolution.utcISO);
   if (Number.isNaN(date.getTime())) throw new Error("Invalid birth date");
 
-  const ascendantLongitudeValue = ascendantLongitude(
-    date,
-    birthData.location.latitude,
-    birthData.location.longitude,
-  );
-  const positions = addHouses(
-    bodies.map(({ body, astronomyBody }) => positionFor(body, astronomyBody, date)),
-    ascendantLongitudeValue,
-  );
+  const hasKnownTime = birthData.precision !== "unknown";
+  const basePositions = bodies.map(({ body, astronomyBody }) => positionFor(body, astronomyBody, date));
+  const ascendantLongitudeValue = hasKnownTime
+    ? ascendantLongitude(date, birthData.location.latitude, birthData.location.longitude)
+    : null;
+  const positions: NatalPosition[] = ascendantLongitudeValue === null
+    ? basePositions.map((position) => ({ ...position, house: null }))
+    : addHouses(basePositions, ascendantLongitudeValue);
 
   return {
     calculatedAtISO: date.toISOString(),
     timezone: birthData.timezone,
     locationLabel: birthData.location.label,
-    houseSystem: "whole-sign",
-    ascendant: {
-      longitude: Number(ascendantLongitudeValue.toFixed(2)),
-      sign: zodiacFromLongitude(ascendantLongitudeValue),
-      degreesInSign: Number((ascendantLongitudeValue % 30).toFixed(2)),
-    },
+    timePrecision: birthData.precision,
+    houseSystem: ascendantLongitudeValue === null ? null : "whole-sign",
+    ascendant: ascendantLongitudeValue === null
+      ? null
+      : {
+          longitude: Number(ascendantLongitudeValue.toFixed(2)),
+          sign: zodiacFromLongitude(ascendantLongitudeValue),
+          degreesInSign: Number((ascendantLongitudeValue % 30).toFixed(2)),
+        },
     positions,
     aspects: calculateAspects(positions),
     limitations: [
-      "O primeiro mapa usa casas de signo inteiro, com os mesmos 12 setores para todas as pessoas.",
+      ...(hasKnownTime
+        ? ["O primeiro mapa usa casas de signo inteiro, com os mesmos 12 setores para todas as pessoas."]
+        : ["Sem a hora de nascimento, o mapa não atribui Ascendente nem casas. As posições planetárias usam o meio-dia local como referência transparente e podem ser refinadas quando a hora for adicionada."]),
       "A leitura é simbólica: ela amplia reflexão e contexto, mas não determina acontecimentos ou escolhas.",
     ],
   };

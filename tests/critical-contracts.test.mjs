@@ -260,6 +260,30 @@ test("the real astrology map stays private and does not depend on fictional prev
   assert.match(chartStyles, /\.coreHeading h3[\s\S]*word-break: keep-all/);
 });
 
+test("the astrology campaign keeps context through auth, unknown birth time, checkout, and fulfillment return", async () => {
+  const landingPage = await source("src/app/astrologia/page.tsx");
+  const landing = await source("src/components/astrology/AstrologyOverview.tsx");
+  const mapPage = await source("src/app/astrologia/mapa/page.tsx");
+  const mapExperience = await source("src/components/astrology/AstrologyChartExperience.tsx");
+  const birthProfile = await source("src/components/astrology/AstrologyBirthProfileCard.tsx");
+  const natalChart = await source("src/lib/astrology/natal-chart.ts");
+  const checkout = await source("src/app/api/checkout/create/route.ts");
+
+  assert.doesNotMatch(landingPage, /product === "mapa_astral"/);
+  assert.match(landing, /appendMarketingAttribution\(mapQuery, attribution\)/);
+  assert.match(landing, /formatProductPrice\("mapa_astral"/);
+  assert.match(mapPage, /buildLoginPath\(mapPath\)/);
+  assert.match(mapExperience, /\/api\/checkout\/confirm/);
+  assert.match(mapExperience, /returnTo:/);
+  assert.match(mapExperience, /normalizeMarketingAttribution/);
+  assert.match(birthProfile, /"unknown"/);
+  assert.match(birthProfile, /precision === "unknown" \? "12:00"/);
+  assert.match(natalChart, /house: null/);
+  assert.match(natalChart, /ascendant: ascendantLongitudeValue === null/);
+  assert.match(checkout, /buildCheckoutReturnUrl/);
+  assert.match(checkout, /cancelled/);
+});
+
 test("voucher invitations validate delivery and keep a recovery path", async () => {
   const service = await source("src/lib/vouchers/service.ts");
   const email = await source("src/lib/email/transactional.ts");

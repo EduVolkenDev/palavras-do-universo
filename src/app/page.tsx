@@ -32,7 +32,7 @@ import {
   UserRound,
 } from "lucide-react";
 import Image from "next/image";
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, use, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { buildLoginPath } from "@/lib/auth/redirect";
 import {
@@ -1222,7 +1222,15 @@ function OnboardingIconOption({
   );
 }
 
-export default function Home({ readingOnly = false }: { readingOnly?: boolean }) {
+export default function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ readingOnly?: string }>;
+}) {
+  return <HomeExperience readingOnly={use(searchParams).readingOnly === "1"} />;
+}
+
+function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
   const { locale, t } = useI18n();
   const { currency: productCurrency, setCurrency: setProductCurrency } =
     useProductCurrency(locale);
