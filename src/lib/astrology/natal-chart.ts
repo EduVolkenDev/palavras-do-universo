@@ -129,6 +129,11 @@ function positionFor(body: NatalBody, astronomyBody: Body, date: Date) {
   };
 }
 
+export function calculatePlanetPositionsAt(date: Date): NatalPosition[] {
+  if (Number.isNaN(date.getTime())) throw new Error("Invalid sky date");
+  return bodies.map(({ body, astronomyBody }) => ({ ...positionFor(body, astronomyBody, date), house: null }));
+}
+
 function degreesToRadians(value: number) {
   return (value * Math.PI) / 180;
 }
@@ -196,7 +201,7 @@ export function calculateNatalChart(birthData: AstrologyBirthDataPayload): Natal
   if (Number.isNaN(date.getTime())) throw new Error("Invalid birth date");
 
   const hasKnownTime = birthData.precision !== "unknown";
-  const basePositions = bodies.map(({ body, astronomyBody }) => positionFor(body, astronomyBody, date));
+  const basePositions = calculatePlanetPositionsAt(date);
   const ascendantLongitudeValue = hasKnownTime
     ? ascendantLongitude(date, birthData.location.latitude, birthData.location.longitude)
     : null;

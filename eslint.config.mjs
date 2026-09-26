@@ -10,6 +10,7 @@ export default defineConfig([
     ".next-stale-*/**",
     ".vercel/**",
     "out/**",
+    "dist/**",
     "node_modules/**",
   ]),
 ]);

@@ -1,0 +1,41 @@
+.zodiacSign {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(9.75rem, 21vw, 30.5rem);
+  height: clamp(9.75rem, 21vw, 30.5rem);
+  object-fit: contain;
+  mix-blend-mode: screen;
+  opacity: 0;
+  pointer-events: none;
+  filter: brightness(1.08) saturate(0.88) drop-shadow(0 0 18px rgba(244, 213, 141, 0.32));
+  transform: translate(-50%, -50%);
+  animation: zodiac-sign-fade 48s ease-in-out infinite both;
+  animation-delay: var(--zodiac-delay);
+}
+
+@keyframes zodiac-sign-fade {
+  0% {
+    opacity: 0;
+  }
+  1.8% {
+    opacity: 0.68;
+  }
+  6.4% {
+    opacity: 0.68;
+  }
+  8.33%, 100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zodiacSign {
+    animation: none;
+    opacity: 0;
+  }
+
+  .zodiacSign:first-of-type {
+    opacity: 0.58;
+  }
+}

@@ -202,12 +202,21 @@ try {
       .filter((card) => card.includedInCircle)
       .map((card) => card.productKey)
   );
+  // Astrology has its own landing, rather than a tarot product card.
+  const circleReadingKeys = Array.from(access.CIRCLE_INCLUDED_PRODUCTS).filter(
+    (productKey) => productKey !== access.ASTROLOGY_FULL_PRODUCT_KEY
+  );
   assert(
-    circleCardKeys.size === access.CIRCLE_INCLUDED_PRODUCTS.size &&
-      Array.from(access.CIRCLE_INCLUDED_PRODUCTS).every((productKey) =>
+    circleCardKeys.size === circleReadingKeys.length &&
+      circleReadingKeys.every((productKey) =>
         circleCardKeys.has(productKey)
       ),
     "Circle access rules must match the product-card inclusion flags"
+  );
+  assert(
+    access.entitlementUnlocksProduct(access.CIRCLE_PRODUCT_KEY, access.ASTROLOGY_FULL_PRODUCT_KEY) &&
+      !access.entitlementUnlocksProduct(access.ASTROLOGY_FULL_PRODUCT_KEY, access.CIRCLE_PRODUCT_KEY),
+    "Circle must include the natal map without one-time map purchases unlocking Circle access"
   );
   assert(
     !circleCardKeys.has("clareza_urgente"),
@@ -317,12 +326,20 @@ try {
   const circleMigration = await readSource(
     "supabase/migrations/20260816123000_align_circle_included_products.sql"
   );
-  for (const productKey of access.CIRCLE_INCLUDED_PRODUCTS) {
+  for (const productKey of circleReadingKeys) {
     assert(
       circleMigration.includes(`'${productKey}'`),
       `Circle migration must include ${productKey}`
     );
   }
+  const astrologyMigration = await readSource(
+    "supabase/migrations/20260917100000_add_astrology_map_product.sql"
+  );
+  assert(
+    astrologyMigration.includes(`'${access.ASTROLOGY_FULL_PRODUCT_KEY}'`) &&
+      astrologyMigration.includes(`array['${access.CIRCLE_PRODUCT_KEY}']`),
+    "The separate astrology migration must include the map in the Circle"
+  );
   const standalonePricingMigration = await readSource(
     "supabase/migrations/20260819120000_price_premium_spreads_avulso.sql"
   );

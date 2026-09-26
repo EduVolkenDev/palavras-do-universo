@@ -3,13 +3,19 @@
 import { ArrowRight, BookOpen, Clock3, MoonStar, Orbit, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { useI18n } from "@/components/I18nProvider";
 import { recordSiteEvent } from "@/lib/client/siteEvents";
 import { appendMarketingAttribution, type MarketingAttribution } from "@/lib/marketing/attribution";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { formatProductPrice } from "@/lib/product/pricing";
 import { useProductCurrency } from "@/lib/product/useProductCurrency";
+import styles from "./AstrologyOverview.module.css";
+
+const zodiacSigns = [
+  "aries", "taurus", "gemini", "cancer", "leo", "virgo",
+  "libra", "scorpio", "sagittarius", "capricorn", "aquarius", "pisces",
+] as const;
 
 const experiences = [
   {
@@ -20,8 +26,8 @@ const experiences = [
     eyebrowEn: "TODAY",
     titlePt: "Meu Céu Hoje",
     titleEn: "My Sky Today",
-    textPt: "Uma leitura do clima emocional do dia, conectada ao seu mapa e ao momento que você está vivendo.",
-    textEn: "A reading of the emotional weather of the day, connected to your chart and the moment you are living.",
+    textPt: "O céu atual é aberto. A leitura diária conectada ao seu mapa é exclusiva de assinantes do Círculo.",
+    textEn: "The current sky is open. The daily reading connected to your chart is exclusive to Circle members.",
   },
   {
     key: "pulse",
@@ -67,6 +73,9 @@ export function AstrologyOverview({ attribution = {} }: { attribution?: Marketin
   const mapQuery = new URLSearchParams({ product: "mapa_astral", currency });
   appendMarketingAttribution(mapQuery, attribution);
   const mapHref = `/astrologia/mapa?${mapQuery.toString()}`;
+  const circleQuery = new URLSearchParams({ product: "circulo_do_universo", currency });
+  appendMarketingAttribution(circleQuery, attribution);
+  const circleMapHref = `/astrologia/mapa?${circleQuery.toString()}`;
   const landingTracked = useRef(false);
 
   useEffect(() => {
@@ -113,12 +122,12 @@ export function AstrologyOverview({ attribution = {} }: { attribution?: Marketin
                 <div className="rounded-2xl border border-[#f4d58d]/25 bg-white/[0.07] p-4 backdrop-blur-sm">
                   <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{isEnglish ? "Complete birth chart" : "Mapa Astral Completo"}</p>
                   <p className="brand-serif mt-2 text-3xl font-semibold text-white">{fullPrice}</p>
-                  <p className="mt-1 text-xs leading-5 text-[#c8bdb5]">{isEnglish ? "One-time payment. Yours to revisit." : "Pagamento único. Seu para rever quando quiser."}</p>
+                  <p className="mt-1 text-xs leading-5 text-[#c8bdb5]">{isEnglish ? "One-time natal portrait. No daily readings." : "Retrato natal avulso. Sem leituras diárias."}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-[#110d1e]/55 p-4 backdrop-blur-sm">
                   <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#d9c49f]">{isEnglish ? "Included in the Circle" : "Também incluído no Círculo"}</p>
                   <p className="brand-serif mt-2 text-3xl font-semibold text-white">{circlePrice}<span className="ml-1 text-sm font-normal text-[#c8bdb5]">/{isEnglish ? "month" : "mês"}</span></p>
-                  <p className="mt-1 text-xs leading-5 text-[#c8bdb5]">{isEnglish ? "For continued readings and your symbolic history." : "Para leituras contínuas e seu histórico simbólico."}</p>
+                  <p className="mt-1 text-xs leading-5 text-[#c8bdb5]">{isEnglish ? "Includes the map and your daily transit readings while active." : "Inclui o mapa e as leituras diárias dos trânsitos enquanto estiver ativo."}</p>
                 </div>
               </div>
             </div>
@@ -128,8 +137,34 @@ export function AstrologyOverview({ attribution = {} }: { attribution?: Marketin
               <div className="relative flex min-h-[26rem] items-center justify-center sm:min-h-[34rem]">
                 <span className="absolute left-0 top-0 rounded-full border border-[#f4d58d]/30 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{isEnglish ? "A universe in motion" : "Um universo em movimento"}</span>
                 <div className="relative h-[23rem] w-[23rem] sm:h-[31rem] sm:w-[31rem]">
-                  <Image src={PDU_ASSETS.astrology.orbitalMap} alt="" fill priority sizes="(max-width: 640px) 23rem, 31rem" className="object-contain opacity-95 drop-shadow-[0_0_48px_rgba(244,213,141,0.28)]" />
-                  <div className="absolute inset-[21%] animate-[spin_34s_linear_infinite] rounded-full border border-[#f4d58d]/30" aria-hidden="true" />
+                  <div className="absolute inset-[7%] rounded-full border border-[#f4d58d]/20" aria-hidden="true" />
+                  <div className="absolute inset-[17%] rounded-full border border-[#d8c6ee]/25" aria-hidden="true" />
+                  <div className="absolute inset-[29%] rounded-full border border-[#f4d58d]/35" aria-hidden="true" />
+                  <div className="absolute inset-[40%] rounded-full border border-[#d8c6ee]/35" aria-hidden="true" />
+                  <div className="absolute left-[47%] top-[47%] h-[6%] w-[6%] rounded-full bg-[#fff2c2] shadow-[0_0_42px_14px_rgba(244,213,141,0.65)]" aria-hidden="true" />
+                  <div className="absolute inset-0 overflow-hidden rounded-full" aria-hidden="true">
+                    {zodiacSigns.map((sign, index) => (
+                      <Image
+                        key={sign}
+                        src={PDU_ASSETS.astrology.zodiacSigns[sign]}
+                        alt=""
+                        width={1800}
+                        height={1800}
+                        sizes="(max-width: 640px) 6rem, 9.5rem"
+                        className={styles.zodiacSign}
+                        style={{
+                          "--zodiac-delay": `${index * -4}s`,
+                        } as CSSProperties}
+                      />
+                    ))}
+                  </div>
+                  <div className="absolute inset-[7%] animate-[spin_34s_linear_infinite]" aria-hidden="true">
+                    <span className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 rounded-full bg-[#f4d58d] shadow-[0_0_18px_rgba(244,213,141,0.85)]" />
+                    <span className="absolute bottom-[13%] right-[4%] h-2 w-2 rounded-full bg-[#d8c6ee] shadow-[0_0_14px_rgba(216,198,238,0.9)]" />
+                  </div>
+                  <div className="absolute inset-[18%] animate-[spin_25s_linear_infinite_reverse]" aria-hidden="true">
+                    <span className="absolute left-0 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-[#c9a5ef] shadow-[0_0_16px_rgba(201,165,239,0.9)]" />
+                  </div>
                 </div>
                 <div className="absolute bottom-0 right-0 max-w-[17rem] rounded-2xl border border-white/10 bg-[#0d0a17]/80 p-4 backdrop-blur-md">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{isEnglish ? "Not fixed destiny" : "Não é destino fixo"}</p>
@@ -153,7 +188,7 @@ export function AstrologyOverview({ attribution = {} }: { attribution?: Marketin
             {experiences.map((experience) => {
               const Icon = experience.icon;
               return (
-                <Link key={experience.key} href={mapHref} onClick={() => trackMapEntry(`experience_${experience.key}`)} className="group relative min-h-[18rem] overflow-hidden rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] p-6 shadow-[0_18px_50px_rgba(80,57,34,0.07)] transition duration-500 hover:-translate-y-1 hover:border-[#b69256] hover:shadow-[0_26px_65px_rgba(80,57,34,0.14)] sm:p-8">
+                <Link key={experience.key} href={experience.key === "sky" ? circleMapHref : mapHref} onClick={() => trackMapEntry(`experience_${experience.key}`)} className="group relative min-h-[18rem] overflow-hidden rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] p-6 shadow-[0_18px_50px_rgba(80,57,34,0.07)] transition duration-500 hover:-translate-y-1 hover:border-[#b69256] hover:shadow-[0_26px_65px_rgba(80,57,34,0.14)] sm:p-8">
                   <div className="absolute -right-8 -top-10 h-72 w-72 opacity-75 transition duration-500 group-hover:scale-110 group-hover:opacity-100"><Image src={experience.asset} alt="" fill sizes="18rem" className="object-contain" /></div>
                   <div className="relative z-10 max-w-[62%]">
                     <span className="grid h-11 w-11 place-items-center rounded-full border border-[#caa96c]/60 bg-[#f8efe2] text-[#8a6b3f]"><Icon size={19} /></span>

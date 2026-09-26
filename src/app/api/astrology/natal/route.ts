@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/auth/api";
 import { calculateNatalChart, ASTROLOGY_FULL_PRODUCT_KEY } from "@/lib/astrology/natal-chart";
+import { chartForAstrologyAccess } from "@/lib/astrology/chart-access";
+import { hasFullAstrologyAccess } from "@/lib/astrology/server-access";
 import { readAstrologyBirthData } from "@/lib/astrology/birth-data";
-import { getAvailableEntitlementForProduct } from "@/lib/product/entitlements";
-import { isOwnerAccessUser } from "@/lib/product/ownerAccess";
 import {
   ensureSupabaseProfile,
   getSupabaseAdmin,
@@ -30,18 +30,14 @@ export async function GET() {
       );
     }
 
-    const fullAccess =
-      isOwnerAccessUser(auth.user) ||
-      Boolean(
-        await getAvailableEntitlementForProduct({
-          userId: auth.user.id,
-          productKey: ASTROLOGY_FULL_PRODUCT_KEY,
-        }),
-      );
+    const fullAccess = await hasFullAstrologyAccess(auth.user);
+
+    const chart = calculateNatalChart(birthData);
+    const visibleChart = chartForAstrologyAccess(chart, fullAccess);
 
     return NextResponse.json({
       ok: true,
-      chart: calculateNatalChart(birthData),
+      chart: visibleChart,
       access: {
         level: fullAccess ? "full" : "preview",
         productKey: ASTROLOGY_FULL_PRODUCT_KEY,

@@ -18,10 +18,11 @@ import {
   Orbit,
   Sparkles,
   Sun,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { buildLoginPath } from "@/lib/auth/redirect";
 import { useI18n } from "@/components/I18nProvider";
 import { formatProductPrice } from "@/lib/product/pricing";
@@ -47,12 +48,15 @@ import {
   getDegreeInterpretation,
   getPlacementInterpretation,
 } from "@/lib/astrology/placement-interpretation";
+import { describePersonalRulership, describePlanetRulership } from "@/lib/astrology/rulership";
+import { AstrologyDailySky } from "./AstrologyDailySky";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { normalizeMarketingAttribution } from "@/lib/marketing/attribution";
 import { recordSiteEvent } from "@/lib/client/siteEvents";
 import styles from "./AstrologyChartExperience.module.css";
 
 type AstrologySelection = NatalBody | "Ascendant";
+type ActiveReading = { body: AstrologySelection; source: "core" } | { body: NatalBody; source: "planet" };
 
 type Chart = Pick<NatalChart, "locationLabel" | "timePrecision" | "houseSystem" | "ascendant" | "positions" | "aspects">;
 type ChartLoadFailure = "birth-data-required" | "session-expired" | "unavailable";
@@ -72,7 +76,6 @@ const zodiacSigns: ZodiacSign[] = [
   "pisces",
 ];
 
-const coreBodies: NatalBody[] = ["Sun", "Moon"];
 const fullBodies: NatalBody[] = [
   "Sun",
   "Moon",
@@ -104,7 +107,7 @@ export function AstrologyChartExperience() {
   const [checkoutNoticeTone, setCheckoutNoticeTone] = useState<"info" | "success" | "warning">("info");
   const [checkoutRecoveryPending, setCheckoutRecoveryPending] = useState(false);
   const [activeSection, setActiveSection] = useState<"overview" | "planets" | "houses" | "aspects">("overview");
-  const [expandedBody, setExpandedBody] = useState<AstrologySelection | null>("Moon");
+  const [activeReading, setActiveReading] = useState<ActiveReading | null>(null);
   const [expandedHouse, setExpandedHouse] = useState<number | null>(1);
   const [expandedAspect, setExpandedAspect] = useState<string | null>(null);
 
@@ -271,12 +274,12 @@ export function AstrologyChartExperience() {
   const ascendant = chart.ascendant;
   const hasBirthTime = chart.timePrecision !== "unknown" && ascendant !== null;
   const ascendantLabel = ascendant ? getSignInterpretation(ascendant.sign, astrologyLocale).label : "";
-  const personalizedBodies = accessLevel === "full" ? fullBodies : coreBodies;
   const ascendantIndex = ascendant ? zodiacSigns.indexOf(ascendant.sign) : -1;
-  const expandedPlacement = expandedBody === "Ascendant" && ascendant
+  const selectedBody = activeReading?.body;
+  const selectedPlacement = accessLevel !== "full" ? undefined : selectedBody === "Ascendant" && ascendant
     ? { sign: ascendant.sign, degreesInSign: ascendant.degreesInSign, house: 1 }
-    : expandedBody && expandedBody !== "Ascendant" && personalizedBodies.includes(expandedBody)
-      ? positionMap.get(expandedBody)
+    : selectedBody && selectedBody !== "Ascendant"
+      ? positionMap.get(selectedBody)
       : undefined;
 
   return (
@@ -294,16 +297,29 @@ export function AstrologyChartExperience() {
               {isEnglish ? "My Universe" : "Meu Universo"}
             </Link>
           </div>
-          <div className="mt-12 grid items-end gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="mt-12 grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
             <div>
               <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]"><Sparkles size={15} /> {isEnglish ? "Your natal sky" : "O seu céu de nascimento"}</p>
               <h1 className="brand-serif mt-5 max-w-3xl text-5xl font-semibold leading-[0.98] sm:text-7xl">{isEnglish ? "A map for the way you are becoming." : "Um mapa para o jeito como você está se tornando."}</h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-[#d8ccc0]">{isEnglish ? "Astrology here is a symbolic language for noticing patterns, needs, talents, and the timing of your choices." : "Aqui, a astrologia é uma linguagem simbólica para reconhecer padrões, necessidades, talentos e o tempo das suas escolhas."}</p>
             </div>
-            <div className="rounded-[28px] border border-[#f4d58d]/25 bg-white/[0.07] p-6 backdrop-blur-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d9c49f]">{isEnglish ? "Birth place" : "Local de nascimento"}</p>
-              <p className="mt-2 text-lg text-[#fff7e8]">{chart.locationLabel}</p>
-              <p className="mt-3 text-xs leading-5 text-[#bfb5ad]">{hasBirthTime ? (isEnglish ? "Calculated from your local birth time and the historical time rule for that date." : "Calculado a partir da sua hora local de nascimento e da regra histórica daquele dia.") : (isEnglish ? "Birth time was not provided. Rising sign and houses stay hidden until you add it; no time was guessed." : "O horário de nascimento não foi informado. Ascendente e casas ficam ocultos até você adicioná-lo; nenhuma hora foi inventada.")}</p>
+            <div className="relative mx-auto w-full max-w-[34rem]">
+              <div className="pointer-events-none absolute inset-x-[15%] top-[12%] aspect-square rounded-full bg-[#8f68bd]/20 blur-3xl" aria-hidden="true" />
+              <div className="relative aspect-[4/3] w-full">
+                <Image
+                  src={PDU_ASSETS.astrology.mapHero}
+                  alt=""
+                  fill
+                  sizes="(max-width: 1024px) min(92vw, 34rem), 42vw"
+                  fetchPriority="high"
+                  className="scale-[1.68] object-contain drop-shadow-[0_18px_50px_rgba(12,8,20,0.3)]"
+                />
+              </div>
+              <div className="relative z-10 -mt-5 rounded-[28px] border border-[#f4d58d]/30 bg-[#251d31]/85 p-6 shadow-[0_24px_60px_rgba(8,5,14,0.22)] backdrop-blur-md sm:p-7">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d9c49f]">{isEnglish ? "Birth place" : "Local de nascimento"}</p>
+                <p className="mt-2 text-lg text-[#fff7e8]">{chart.locationLabel}</p>
+                <p className="mt-3 text-xs leading-5 text-[#c9bec9]">{hasBirthTime ? (isEnglish ? "Calculated from your local birth time and the historical time rule for that date." : "Calculado a partir da sua hora local de nascimento e da regra histórica daquele dia.") : (isEnglish ? "Birth time was not provided. Rising sign and houses stay hidden until you add it; no time was guessed." : "O horário de nascimento não foi informado. Ascendente e casas ficam ocultos até você adicioná-lo; nenhuma hora foi inventada.")}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -318,10 +334,10 @@ export function AstrologyChartExperience() {
         ) : null}
 
         <div className={`grid gap-5 ${hasBirthTime ? "md:grid-cols-3" : "md:grid-cols-2 lg:grid-cols-3"}`}>
-          <CoreCard body="Sun" icon={<Sun size={20} />} eyebrow={isEnglish ? "Sun sign" : "Signo solar"} title={getBodyInterpretation("Sun", astrologyLocale).label} placement={positionMap.get("Sun")} locale={astrologyLocale} expanded={expandedBody === "Sun"} onSelect={() => setExpandedBody("Sun")} />
-          <CoreCard body="Moon" icon={<MoonStar size={20} />} eyebrow={isEnglish ? "Moon sign" : "Signo lunar"} title={getBodyInterpretation("Moon", astrologyLocale).label} placement={positionMap.get("Moon")} locale={astrologyLocale} expanded={expandedBody === "Moon"} onSelect={() => setExpandedBody("Moon")} />
+          <CoreCard body="Sun" icon={<Sun size={20} />} eyebrow={isEnglish ? "Sun sign" : "Signo solar"} title={getBodyInterpretation("Sun", astrologyLocale).label} placement={positionMap.get("Sun")} locale={astrologyLocale} fullAccess={accessLevel === "full"} expanded={activeReading?.source === "core" && activeReading.body === "Sun"} onSelect={() => setActiveReading({ body: "Sun", source: "core" })} />
+          <CoreCard body="Moon" icon={<MoonStar size={20} />} eyebrow={isEnglish ? "Moon sign" : "Signo lunar"} title={getBodyInterpretation("Moon", astrologyLocale).label} placement={positionMap.get("Moon")} locale={astrologyLocale} fullAccess={accessLevel === "full"} expanded={activeReading?.source === "core" && activeReading.body === "Moon"} onSelect={() => setActiveReading({ body: "Moon", source: "core" })} />
           {hasBirthTime && ascendant ? (
-            <CoreCard body="Ascendant" icon={<Sparkles size={20} />} eyebrow={isEnglish ? "Rising sign" : "Ascendente"} title={ascendantLabel} placement={{ sign: ascendant.sign, degreesInSign: ascendant.degreesInSign, house: 1 }} locale={astrologyLocale} expanded={expandedBody === "Ascendant"} onSelect={() => setExpandedBody("Ascendant")} />
+            <CoreCard body="Ascendant" icon={<Sparkles size={20} />} eyebrow={isEnglish ? "Rising sign" : "Ascendente"} title={ascendantLabel} placement={{ sign: ascendant.sign, degreesInSign: ascendant.degreesInSign, house: 1 }} locale={astrologyLocale} fullAccess={accessLevel === "full"} expanded={activeReading?.source === "core" && activeReading.body === "Ascendant"} onSelect={() => setActiveReading({ body: "Ascendant", source: "core" })} />
           ) : (
             <Link href="/meu-universo#preparar-meu-mapa" className="rounded-[26px] border border-dashed border-[#caa96c] bg-[#fffaf2] p-6 text-left shadow-[0_18px_50px_rgba(80,57,34,0.05)] transition hover:-translate-y-1 hover:border-[#8a6b3f]">
               <span className="grid h-11 w-11 place-items-center rounded-full border border-[#caa96c]/60 bg-[#f8efe2] text-[#8a6b3f]"><Clock3 size={19} /></span>
@@ -336,8 +352,6 @@ export function AstrologyChartExperience() {
           <AstrologyOfferCard isEnglish={isEnglish} fullPrice={fullPrice} circlePrice={circlePrice} checkoutLoading={checkoutLoading} checkoutDisabled={checkoutRecoveryPending} onCheckout={startCheckout} compact />
         ) : null}
         {checkoutError ? <p className="mt-4 rounded-2xl border border-[#d9aaa8] bg-[#fff1f0] p-4 text-center text-sm text-[#7b3330]" role="alert">{checkoutError}</p> : null}
-
-        {expandedBody && expandedPlacement ? <PlacementDetail body={expandedBody} position={expandedPlacement} aspects={chart.aspects} locale={astrologyLocale} /> : null}
 
         <section className="relative mt-12 overflow-hidden rounded-[32px] bg-[#241b18] p-6 text-[#fff7e8] shadow-[0_30px_80px_rgba(36,27,24,0.16)] sm:p-8 lg:p-10">
           <div className="pointer-events-none absolute -right-20 -top-24 h-80 w-80 rounded-full bg-[#7049a5]/35 blur-3xl" aria-hidden="true" />
@@ -354,10 +368,19 @@ export function AstrologyChartExperience() {
             </div>
             <div className="relative mx-auto h-64 w-64 sm:h-72 sm:w-72">
               <Image src={PDU_ASSETS.astrology.orbitalMap} alt="" fill sizes="18rem" className="object-contain opacity-90 drop-shadow-[0_0_42px_rgba(244,213,141,0.28)]" />
-              <div className="absolute inset-[22%] rounded-full border border-[#f4d58d]/45" aria-hidden="true" />
             </div>
           </div>
         </section>
+
+        <AstrologyDailySky
+          locale={astrologyLocale}
+          mapAccessLevel={accessLevel}
+          circlePrice={circlePrice}
+          checkoutLoading={checkoutLoading === "circulo_do_universo"}
+          checkoutDisabled={checkoutRecoveryPending || Boolean(checkoutLoading && checkoutLoading !== "circulo_do_universo")}
+          checkoutError={checkoutError}
+          onCheckout={() => startCheckout("circulo_do_universo")}
+        />
 
         <div className="mt-12 flex flex-wrap items-end justify-between gap-5">
           <div>
@@ -407,7 +430,7 @@ export function AstrologyChartExperience() {
         ) : null}
 
         {activeSection === "planets" ? (
-          <PlanetLibrary chart={chart} positionMap={positionMap} personalizedBodies={personalizedBodies} locale={astrologyLocale} expandedBody={expandedBody} onSelect={setExpandedBody} />
+          <PlanetLibrary chart={chart} positionMap={positionMap} accessLevel={accessLevel} locale={astrologyLocale} activeBody={activeReading?.source === "planet" ? activeReading.body : null} onSelect={(body) => setActiveReading({ body, source: "planet" })} />
         ) : null}
 
         {activeSection === "houses" && hasBirthTime ? (
@@ -418,7 +441,22 @@ export function AstrologyChartExperience() {
           <AspectLibrary chart={chart} accessLevel={accessLevel} locale={astrologyLocale} expandedAspect={expandedAspect} onSelect={setExpandedAspect} />
         ) : null}
 
-        {accessLevel !== "full" ? <AstrologyOfferCard isEnglish={isEnglish} fullPrice={fullPrice} circlePrice={circlePrice} checkoutLoading={checkoutLoading} checkoutDisabled={checkoutRecoveryPending} onCheckout={startCheckout} /> : null}
+        {accessLevel !== "full" ? <div id="astrology-access-options" className="scroll-mt-8"><AstrologyOfferCard isEnglish={isEnglish} fullPrice={fullPrice} circlePrice={circlePrice} checkoutLoading={checkoutLoading} checkoutDisabled={checkoutRecoveryPending} onCheckout={startCheckout} /></div> : null}
+
+        <AstrologyReadingDialog
+          selection={activeReading}
+          placement={selectedPlacement}
+          chart={chart}
+          accessLevel={accessLevel}
+          locale={astrologyLocale}
+          fullPrice={fullPrice}
+          circlePrice={circlePrice}
+          checkoutLoading={checkoutLoading}
+          checkoutDisabled={checkoutRecoveryPending}
+          checkoutError={checkoutError}
+          onCheckout={startCheckout}
+          onClose={() => setActiveReading(null)}
+        />
 
         <p className="mx-auto mt-10 max-w-2xl text-center text-xs leading-6 text-[#8a7667]">{isEnglish ? "Astrology is offered as a symbolic language for reflection and entertainment. It does not determine events, replace professional care, or remove your freedom of choice." : "A astrologia é oferecida como linguagem simbólica para reflexão e entretenimento. Ela não determina acontecimentos, substitui cuidados profissionais nem retira sua liberdade de escolha."}</p>
       </section>
@@ -448,7 +486,7 @@ function AstrologyOfferCard({
       <div>
         <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]"><Lock size={14} /> {isEnglish ? "Continue your map" : "Continue o seu mapa"}</p>
         <h3 className="brand-serif mt-3 text-3xl font-semibold">{isEnglish ? "Open every available planet, aspect, and personal layer." : "Abra todos os planetas, aspectos e camadas pessoais disponíveis."}</h3>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-[#d8ccc0]">{isEnglish ? `Unlock the complete interpretation for ${fullPrice} as a one-time payment, or access it as part of the Circle for ${circlePrice} per month.` : `Desbloqueie a interpretação completa por ${fullPrice}, em pagamento único, ou tenha acesso a ela dentro do Círculo por ${circlePrice} ao mês.`}</p>
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-[#d8ccc0]">{isEnglish ? `The one-time Complete Map is your natal portrait for ${fullPrice}; it does not include daily updates. The Circle includes the map and daily transit readings for ${circlePrice} per month while active.` : `O Mapa Completo avulso é o seu retrato natal por ${fullPrice}; não inclui atualizações diárias. O Círculo inclui o mapa e leituras dos trânsitos de cada dia por ${circlePrice} ao mês, enquanto estiver ativo.`}</p>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
         <button type="button" onClick={() => void onCheckout(ASTROLOGY_FULL_PRODUCT_KEY)} disabled={checkoutDisabled || Boolean(checkoutLoading)} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#241b18] hover:bg-[#ffe3a3] disabled:cursor-not-allowed disabled:opacity-60">{checkoutRecoveryPendingLabel(checkoutDisabled, checkoutLoading === ASTROLOGY_FULL_PRODUCT_KEY, isEnglish, isEnglish ? "Unlock my full map" : "Desbloquear meu mapa")} <ArrowRight size={16} /></button>
@@ -479,6 +517,7 @@ function CoreCard({
   title,
   placement,
   locale,
+  fullAccess,
   expanded,
   onSelect,
 }: {
@@ -488,22 +527,151 @@ function CoreCard({
   title: string;
   placement?: { sign: ZodiacSign; degreesInSign: number; house: number | null };
   locale: AstrologyLocale;
+  fullAccess: boolean;
   expanded: boolean;
   onSelect: () => void;
 }) {
   const copy = body === "Ascendant" ? getAscendantInterpretation(locale) : getBodyInterpretation(body, locale);
-  const artwork = body === "Ascendant" ? PDU_ASSETS.astrology.mapHero : PDU_ASSETS.astrology.planets[body];
+  const artwork = placement
+    ? PDU_ASSETS.astrology.zodiacSigns[placement.sign]
+    : body === "Ascendant"
+      ? PDU_ASSETS.astrology.mapHero
+      : PDU_ASSETS.astrology.planets[body];
   return (
-    <button type="button" onClick={onSelect} aria-expanded={expanded} data-body={body} className={`${styles.coreCard} group relative overflow-hidden rounded-[26px] border p-6 text-left shadow-[0_18px_50px_rgba(80,57,34,0.07)] transition hover:-translate-y-1 ${expanded ? "border-[#8a6b3f] ring-2 ring-[#f4d58d]/35" : "border-[#d8c3a6]"}`}>
-      <span className={styles.coreArtwork} aria-hidden="true"><Image src={artwork} alt="" fill sizes="(max-width: 767px) 11rem, 12rem" className="object-contain" /></span>
+    <button type="button" onClick={onSelect} aria-haspopup="dialog" aria-controls="astrology-reading-dialog" data-body={body} className={`${styles.coreCard} group relative overflow-hidden rounded-[26px] border p-6 text-left shadow-[0_18px_50px_rgba(80,57,34,0.07)] transition hover:-translate-y-1 ${expanded ? "border-[#8a6b3f] ring-2 ring-[#f4d58d]/35" : "border-[#d8c3a6]"}`}>
+      <span className={`${styles.coreArtwork} ${placement ? styles.coreSignArtwork : ""}`} aria-hidden="true"><Image src={artwork} alt="" fill sizes="(max-width: 767px) 11rem, 12rem" className={placement ? styles.coreSignImage : "object-contain"} /></span>
       <div className="relative flex items-center justify-between gap-3"><span className="grid h-10 w-10 place-items-center rounded-full border border-[#caa96c]/50 text-[#8a6b3f]">{icon}</span><span className="text-xs font-semibold uppercase tracking-[0.15em] text-[#9a7b4b]">{eyebrow}</span></div>
       <div className={styles.coreHeading}>
         <h3 className="brand-serif text-3xl font-semibold">{title}</h3>
-        {placement ? <p className="mt-2 text-sm text-[#6f615a]">{formatPlacement(placement.sign, placement.degreesInSign, locale)}{placement.house !== null ? ` · ${locale === "en" ? `house ${placement.house}` : `casa ${placement.house}`}` : ""}</p> : null}
+        {placement ? <p className="mt-2 text-sm text-[#6f615a]">{fullAccess ? formatPlacement(placement.sign, placement.degreesInSign, locale) : getSignInterpretation(placement.sign, locale).label}{fullAccess && placement.house !== null ? ` · ${locale === "en" ? `house ${placement.house}` : `casa ${placement.house}`}` : ""}</p> : null}
       </div>
       <p className="relative mt-5 border-t border-[#e6d8c3] pt-4 text-sm leading-6 text-[#6f615a]">{copy.archetype}</p>
-      <span className="relative mt-5 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">{expanded ? (locale === "en" ? "Reading open" : "Leitura aberta") : (locale === "en" ? "Open explanation" : "Abrir explicação")} <ChevronDown size={15} className={`transition ${expanded ? "rotate-180" : ""}`} /></span>
+      <span className="relative mt-5 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">{locale === "en" ? "Open explanation" : "Abrir explicação"} <ArrowRight size={15} aria-hidden="true" /></span>
     </button>
+  );
+}
+
+function AstrologyReadingDialog({
+  selection,
+  placement,
+  chart,
+  accessLevel,
+  locale,
+  fullPrice,
+  circlePrice,
+  checkoutLoading,
+  checkoutDisabled,
+  checkoutError,
+  onCheckout,
+  onClose,
+}: {
+  selection: ActiveReading | null;
+  placement?: { sign: ZodiacSign; degreesInSign: number; house: number | null };
+  chart: Chart;
+  accessLevel: "preview" | "full";
+  locale: AstrologyLocale;
+  fullPrice: string;
+  circlePrice: string;
+  checkoutLoading: string;
+  checkoutDisabled: boolean;
+  checkoutError: string;
+  onCheckout: (productKey: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const isEnglish = locale === "en";
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (selection && dialog && !dialog.open) {
+      dialog.showModal();
+      dialog.scrollTop = 0;
+    }
+  }, [selection]);
+
+  useEffect(() => () => {
+    if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+  }, []);
+
+  function requestClose() {
+    const dialog = dialogRef.current;
+    if (!dialog?.open || closeTimerRef.current !== null) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      dialog.close();
+      return;
+    }
+    dialog.classList.add(styles.readingDialogClosing);
+    closeTimerRef.current = window.setTimeout(() => dialog.close(), 220);
+  }
+
+  const body = selection?.body;
+  const copy = body === "Ascendant"
+    ? getAscendantInterpretation(locale)
+    : body ? getBodyInterpretation(body, locale) : null;
+  const planetPosition = selection?.source === "planet"
+    ? chart.positions.find((position) => position.body === selection.body)
+    : null;
+  const hasPersonalReading = accessLevel === "full" && (selection?.source === "core" ? Boolean(placement) : Boolean(planetPosition));
+
+  return (
+    <dialog
+      id="astrology-reading-dialog"
+      ref={dialogRef}
+      aria-labelledby="astrology-reading-title"
+      className={styles.readingDialog}
+      onClick={(event) => { if (event.target === event.currentTarget) requestClose(); }}
+      onCancel={(event) => { event.preventDefault(); requestClose(); }}
+      onClose={() => {
+        if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+        dialogRef.current?.classList.remove(styles.readingDialogClosing);
+        onClose();
+      }}
+    >
+      {selection && copy ? (
+        <>
+          <button type="button" onClick={requestClose} aria-label={isEnglish ? "Close reading" : "Fechar leitura"} className={styles.readingDialogClose}><X size={18} aria-hidden="true" /></button>
+          <div className={styles.readingDialogHeader}>
+            <div className="pointer-events-none absolute -right-12 -top-20 h-56 w-56 rounded-full bg-[#9b74c5]/25 blur-3xl" aria-hidden="true" />
+            <div className="relative pr-12">
+              <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.17em] text-[#f5d896]"><Sparkles size={15} aria-hidden="true" />{isEnglish ? "Your symbolic reading" : "Sua leitura simbólica"}</p>
+              <h2 id="astrology-reading-title" className="brand-serif mt-2 text-3xl font-semibold text-[#fff7e8] sm:text-4xl">{copy.label}</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#d8ccc0]">{copy.archetype}</p>
+            </div>
+          </div>
+          <div className="px-4 pb-6 pt-1 sm:px-7 sm:pb-8">
+            {hasPersonalReading && selection.source === "core" && placement ? (
+              <PlacementDetail body={selection.body} position={placement} aspects={chart.aspects} locale={locale} />
+            ) : null}
+            {hasPersonalReading && selection.source === "planet" && planetPosition ? (
+              <>
+                <p className="mt-5 text-sm leading-7 text-[#55473e]">{copy.inLife}</p>
+                <p className="mt-2 text-xs font-semibold text-[#775a3c]">{describePlanetRulership(selection.body, locale)}</p>
+                <PersonalizedPlacementReading position={planetPosition} aspects={chart.aspects} locale={locale} />
+              </>
+            ) : null}
+            {!hasPersonalReading ? (
+              <div className="pt-5">
+                <p className="text-base leading-8 text-[#55473e]">{copy.explanation}</p>
+                <p className="mt-4 text-sm leading-7 text-[#6f615a]">{copy.inLife}</p>
+                {selection.source === "planet" ? <p className="mt-3 text-xs font-semibold text-[#775a3c]">{describePlanetRulership(selection.body, locale)}</p> : null}
+                <p className="mt-6 rounded-2xl border border-[#d8c3a6] bg-[#f8efe2] p-4 text-sm font-medium leading-7 text-[#6f5134]">{copy.question}</p>
+                <div className="mt-6 rounded-2xl border border-[#caa96c]/45 bg-[#241b18] p-5 text-[#fff7e8] sm:p-6">
+                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#f5d896]">{isEnglish ? "Continue the reading" : "Continue a leitura"}</p>
+                  <p className="mt-3 text-sm leading-7 text-[#d8ccc0]">{isEnglish ? "The one-time Complete Map opens your natal signs, planets, houses, degrees, and aspects. The Circle includes that map plus daily readings while your subscription is active." : "O Mapa Completo avulso abre seus signos, planetas, casas, graus e aspectos natais. O Círculo inclui esse mapa e, durante a assinatura ativa, leituras diárias."}</p>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <button type="button" onClick={() => void onCheckout(ASTROLOGY_FULL_PRODUCT_KEY)} disabled={checkoutDisabled || Boolean(checkoutLoading)} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2.5 text-sm font-semibold text-[#241b18] transition hover:bg-[#ffe3a3] disabled:cursor-wait disabled:opacity-60">{checkoutRecoveryPendingLabel(checkoutDisabled, checkoutLoading === ASTROLOGY_FULL_PRODUCT_KEY, isEnglish, isEnglish ? `Complete Map · ${fullPrice}` : `Mapa Completo · ${fullPrice}`)} <ArrowRight size={16} aria-hidden="true" /></button>
+                    <button type="button" onClick={() => void onCheckout("circulo_do_universo")} disabled={checkoutDisabled || Boolean(checkoutLoading)} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#f4d58d]/50 px-4 py-2.5 text-sm font-semibold text-[#fff7e8] transition hover:bg-white/10 disabled:cursor-wait disabled:opacity-60">{checkoutRecoveryPendingLabel(checkoutDisabled, checkoutLoading === "circulo_do_universo", isEnglish, isEnglish ? `Circle · ${circlePrice}/month` : `Círculo · ${circlePrice}/mês`)}</button>
+                  </div>
+                  {checkoutError ? <p role="alert" className="mt-3 text-sm text-[#ffcfca]">{checkoutError}</p> : null}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </>
+      ) : null}
+    </dialog>
   );
 }
 
@@ -518,7 +686,7 @@ function PlacementDetail({ body, position, aspects, locale }: { body: AstrologyS
       <div className="grid gap-0 lg:grid-cols-[0.7fr_1.3fr]">
         <div className="relative min-h-[15rem] overflow-hidden bg-[#241b18] p-6 text-[#fff7e8] sm:p-8">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(244,213,141,0.22),transparent_34%),linear-gradient(145deg,#241b18,#171225)]" />
-          <Image src={body === "Ascendant" ? PDU_ASSETS.astrology.mapHero : PDU_ASSETS.astrology.planets[body]} alt="" fill sizes="(max-width: 1024px) 100vw, 28rem" className="object-contain opacity-60" />
+          <Image src={PDU_ASSETS.astrology.zodiacSigns[position.sign]} alt="" fill sizes="(max-width: 1024px) 100vw, 28rem" className={styles.placementSignArtwork} />
           <div className="relative z-10 flex min-h-[13rem] flex-col justify-end">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]">{copy.label}</p>
             <p className="brand-serif mt-2 text-3xl font-semibold">{formatPlacement(position.sign, position.degreesInSign, locale)}</p>
@@ -612,6 +780,7 @@ function PersonalizedPlacementReading({ position, aspects, locale }: { position:
           <InsightBlock title={locale === "en" ? "A gentle attention" : "Ponto de atenção"} text={sign.tension} />
           <InsightBlock title={`${locale === "en" ? "Degree" : "Grau"} · ${degree.title}`} text={`${degree.label}. ${degree.explanation}`} />
         </div>
+        <InsightBlock title={locale === "en" ? "Signs this planet rules" : "Signos regidos por este planeta"} text={describePersonalRulership(position, locale)} />
         <p className="rounded-2xl border border-[#d8c3a6] bg-[#f8efe2] p-4 text-sm leading-7 text-[#4f4035]">{locale === "en" ? "Birth time was not provided, so no house was assigned to this planet. Add the time later to reveal that layer without guessing." : "O horário de nascimento não foi informado, por isso nenhuma casa foi atribuída a este planeta. Adicione o horário depois para revelar essa camada sem suposições."}</p>
         <PersonalAspectList readings={bodyAspects} locale={locale} />
       </div>
@@ -633,6 +802,7 @@ function PersonalizedPlacementReading({ position, aspects, locale }: { position:
         <InsightBlock title={reading.houseTitle} text={reading.houseMeaning} />
         <InsightBlock title={reading.degreeTitle} text={reading.degreeMeaning} />
       </div>
+      <InsightBlock title={locale === "en" ? "Signs this planet rules" : "Signos regidos por este planeta"} text={describePersonalRulership(position, locale)} />
       <p className="rounded-2xl border border-[#d8c3a6] bg-[#f8efe2] p-4 text-sm font-medium leading-7 text-[#4f4035]">{reading.synthesis}</p>
       <PersonalAspectList readings={bodyAspects} locale={locale} />
       <div className="rounded-2xl border border-[#d8c3a6] bg-[#fffaf2] p-4">
@@ -643,30 +813,32 @@ function PersonalizedPlacementReading({ position, aspects, locale }: { position:
   );
 }
 
-function PlanetLibrary({ chart, positionMap, personalizedBodies, locale, expandedBody, onSelect }: { chart: Chart; positionMap: Map<NatalBody, NatalPosition>; personalizedBodies: NatalBody[]; locale: AstrologyLocale; expandedBody: AstrologySelection | null; onSelect: (body: NatalBody) => void }) {
+function PlanetLibrary({ chart, positionMap, accessLevel, locale, activeBody, onSelect }: { chart: Chart; positionMap: Map<NatalBody, NatalPosition>; accessLevel: "preview" | "full"; locale: AstrologyLocale; activeBody: NatalBody | null; onSelect: (body: NatalBody) => void }) {
   const isEnglish = locale === "en";
+  const hasFullAccess = accessLevel === "full";
   return (
     <section className="mt-6 rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] p-6 sm:p-8" role="tabpanel">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a6b3f]">{isEnglish ? "The ten voices" : "As dez vozes"}</p><h3 className="brand-serif mt-3 text-3xl font-semibold">{isEnglish ? "What each planet is teaching you." : "O que cada planeta está ensinando."}</h3><p className="mt-3 max-w-2xl text-sm leading-7 text-[#6f615a]">{isEnglish ? "Every planet has an open meaning. If you have the full map, its sign, house, and personalized reading appear here too." : "Todo planeta tem um significado aberto. Se você tem o mapa completo, o signo, a casa e a leitura personalizada aparecem aqui também."}</p></div>
+        <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a6b3f]">{isEnglish ? "The ten voices" : "As dez vozes"}</p><h3 className="brand-serif mt-3 text-3xl font-semibold">{isEnglish ? "What each planet is teaching you." : "O que cada planeta está ensinando."}</h3><p className="mt-3 max-w-2xl text-sm leading-7 text-[#6f615a]">{isEnglish ? "Explore what each planet represents. Your personal combinations open with the Complete Map or the Circle." : "Explore o que cada planeta representa. As combinações pessoais são liberadas no Mapa Completo ou no Círculo."}</p></div>
         <Orbit className="text-[#caa96c]" size={28} aria-hidden="true" />
       </div>
       <div className="mt-7 grid gap-4 md:grid-cols-2">
         {fullBodies.map((body) => {
           const position = positionMap.get(body);
-          const personalized = personalizedBodies.includes(body) && position;
+          const personalized = hasFullAccess && Boolean(position);
           const copy = getBodyInterpretation(body, locale);
-          const expanded = expandedBody === body;
+          const expanded = activeBody === body;
+          const invitation = isEnglish
+            ? `See ${copy.label} in my sign`
+            : `Ver ${copy.label} no meu signo`;
           return (
-            <button
+            <article
               key={body}
-              type="button"
-              onClick={() => onSelect(body)}
-              aria-expanded={expanded}
               data-body={body}
-              className={`${styles.planetCard} rounded-[24px] border p-5 text-left transition hover:-translate-y-0.5 ${expanded ? "border-[#8a6b3f]" : "border-[#e6d8c3] hover:border-[#caa96c]"}`}
+              className={`${styles.planetCard} rounded-[24px] border p-5 transition ${expanded ? "border-[#8a6b3f]" : "border-[#e6d8c3] hover:border-[#caa96c]"}`}
             >
-              <div className={styles.planetLead}>
+              <button type="button" onClick={() => onSelect(body)} aria-haspopup="dialog" aria-controls="astrology-reading-dialog" className="block w-full rounded-xl text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8a6b3f]">
+                <div className={styles.planetLead}>
                 <span className={styles.planetArtwork} aria-hidden="true">
                   <Image src={PDU_ASSETS.astrology.planets[body]} alt="" fill sizes="(max-width: 767px) 11rem, 13rem" className="object-contain" />
                 </span>
@@ -675,33 +847,30 @@ function PlanetLibrary({ chart, positionMap, personalizedBodies, locale, expande
                   <h4 className="brand-serif mt-2 text-2xl font-semibold text-[#332720]">{copy.archetype}</h4>
                 </div>
                 <span className={`${styles.planetStatus} grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#caa96c]/45 text-[#8a6b3f]`}>
-                  {personalized ? <Check size={16} /> : <LockKeyhole size={15} />}
+                  {hasFullAccess ? <Check size={16} /> : <LockKeyhole size={15} />}
                 </span>
-              </div>
-              <div className={styles.planetNarrative}>
-                <p className="text-sm leading-6 text-[#55473e]">{copy.explanation}</p>
-                {personalized && position ? (
-                  <p className="mt-4 border-t border-[#dcc9af] pt-4 text-sm font-semibold text-[#6f5134]">
-                    {formatPlacement(position.sign, position.degreesInSign, locale)}{position.house !== null ? ` · ${isEnglish ? `house ${position.house}` : `casa ${position.house}`}` : ""}
-                  </p>
-                ) : (
-                  <p className="mt-4 border-t border-[#dcc9af] pt-4 text-xs font-semibold uppercase tracking-[0.12em] text-[#6f5134]">
-                    {isEnglish ? "Personal placement · available in full map" : "Posicionamento pessoal · disponível no mapa completo"}
-                  </p>
-                )}
-                {expanded && personalized && position ? <PersonalizedPlacementReading position={position} aspects={chart.aspects} locale={locale} /> : null}
-                {expanded && !personalized ? (
-                  <div className="mt-4 rounded-2xl border border-[#d8c3a6]/60 bg-[#fffaf2]/85 p-4">
-                    <p className="text-sm leading-7 text-[#55473e]">{copy.inLife}</p>
-                    <p className="mt-3 text-sm font-medium leading-6 text-[#6f5134]">{copy.question}</p>
-                  </div>
-                ) : null}
-              </div>
-            </button>
+                </div>
+                <div className={styles.planetNarrative}>
+                  <p className="text-sm leading-6 text-[#55473e]">{copy.explanation}</p>
+                  <p className="mt-3 text-xs font-semibold leading-5 text-[#775a3c]">{describePlanetRulership(body, locale)}</p>
+                  {personalized && position ? (
+                    <p className="mt-4 border-t border-[#dcc9af] pt-4 text-sm font-semibold text-[#6f5134]">
+                      {formatPlacement(position.sign, position.degreesInSign, locale)}{position.house !== null ? ` · ${isEnglish ? `house ${position.house}` : `casa ${position.house}`}` : ""}
+                    </p>
+                  ) : null}
+                  <span className={styles.planetInvitation}>
+                    {!hasFullAccess ? <LockKeyhole size={15} aria-hidden="true" /> : <Sparkles size={16} aria-hidden="true" />}
+                    <span>{invitation}</span>
+                    <ArrowRight size={16} aria-hidden="true" className="ml-auto shrink-0" />
+                  </span>
+                  {!hasFullAccess ? <span className="mt-2 block text-xs font-medium text-[#806c5d]">{isEnglish ? "Personal reading · Complete Map or Circle" : "Leitura pessoal · Mapa Completo ou Círculo"}</span> : null}
+                </div>
+              </button>
+            </article>
           );
         })}
       </div>
-      {chart.positions.length < fullBodies.length ? <p className="mt-5 text-xs text-[#8a7667]">{isEnglish ? "Some astronomical objects may be unavailable for this calculation date." : "Alguns corpos astronômicos podem não estar disponíveis para esta data de cálculo."}</p> : null}
+      {hasFullAccess && chart.positions.length < fullBodies.length ? <p className="mt-5 text-xs text-[#8a7667]">{isEnglish ? "Some astronomical objects may be unavailable for this calculation date." : "Alguns corpos astronômicos podem não estar disponíveis para esta data de cálculo."}</p> : null}
     </section>
   );
 }
