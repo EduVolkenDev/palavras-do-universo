@@ -818,7 +818,7 @@ export async function finalizeVoucherCheckoutSession(params: {
   }
 
   if (redemption?.id) {
-    await supabase
+    const { error: updateError } = await supabase
       .from("voucher_redemptions")
       .update({
         status: "redeemed",
@@ -827,14 +827,32 @@ export async function finalizeVoucherCheckoutSession(params: {
         updated_at: new Date().toISOString(),
       })
       .eq("id", redemption.id);
+    if (updateError) {
+      throw new Error(`Could not finalize voucher redemption: ${updateError.message}`);
+    }
   } else {
-    await supabase.from("voucher_redemptions").insert({
+    const { error: insertError } = await supabase.from("voucher_redemptions").insert({
       voucher_id: params.voucherId,
       user_id: params.userId,
       email: params.email?.toLowerCase() ?? null,
       checkout_session_id: params.checkoutSessionId,
       status: "redeemed",
     });
+    if (insertError) {
+      // fulfillCheckoutSession can run concurrently (webhook x confirm). The
+      // unique index on voucher_redemptions(checkout_session_id) guarantees a
+      // single redemption row; if we lost the insert race, verify the winner
+      // redeemed it and return WITHOUT incrementing voucher usage twice.
+      if (insertError.code === "23505") {
+        const { data: raced } = await supabase
+          .from("voucher_redemptions")
+          .select("id,status")
+          .eq("checkout_session_id", params.checkoutSessionId)
+          .maybeSingle();
+        if (raced?.status === "redeemed") return;
+      }
+      throw new Error(`Could not record voucher redemption: ${insertError.message}`);
+    }
   }
 
   await incrementVoucherUsage(params.voucherId);

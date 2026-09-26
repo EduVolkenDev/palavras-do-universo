@@ -34,6 +34,13 @@ export async function POST(req: Request) {
     return jsonError("Checkout is not paid yet", 409);
   }
 
+  // Fulfillment fallback: the Stripe webhook is the primary fulfillment path,
+  // but it can be delayed (or misconfigured), and a paid user must not be
+  // stranded on the success page. This call is safe to run concurrently with
+  // the webhook: purchase grants go through the transactional
+  // grant_purchase_entitlement RPC, which serializes on the entitlement row
+  // and treats a replay of the same checkout_session_id as a no-op, so a
+  // double grant is impossible. See src/lib/product/fulfillment.ts.
   const result = await fulfillCheckoutSession(session);
   if (!result.ok) return jsonError("Checkout cannot be fulfilled", 422);
 
