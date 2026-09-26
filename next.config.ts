@@ -51,12 +51,20 @@ const nextConfig: NextConfig = {
     qualities: [72, 74, 75, 84, 86, 88, 90, 95],
   },
   async redirects() {
-    return legacyHosts.map((host) => ({
-      source: "/:path*",
-      has: [{ type: "host" as const, value: host }],
-      destination: `${canonicalSiteUrl}/:path*`,
-      permanent: true,
-    }));
+    return [
+      ...legacyHosts.map((host) => ({
+        source: "/:path*",
+        has: [{ type: "host" as const, value: host }],
+        destination: `${canonicalSiteUrl}/:path*`,
+        permanent: true,
+      })),
+      // Rede de segurança: /daily nunca foi uma rota de página (a Carta do Dia vive em /carta-do-dia)
+      {
+        source: "/daily",
+        destination: "/carta-do-dia",
+        permanent: true,
+      },
+    ];
   },
   async headers() {
     return [
