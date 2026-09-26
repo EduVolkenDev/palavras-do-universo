@@ -128,8 +128,18 @@ export function AstrologyOverview({ attribution = {} }: { attribution?: Marketin
               <div className="relative flex min-h-[26rem] items-center justify-center sm:min-h-[34rem]">
                 <span className="absolute left-0 top-0 rounded-full border border-[#f4d58d]/30 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{isEnglish ? "A universe in motion" : "Um universo em movimento"}</span>
                 <div className="relative h-[23rem] w-[23rem] sm:h-[31rem] sm:w-[31rem]">
-                  <Image src={PDU_ASSETS.astrology.orbitalMap} alt="" fill priority sizes="(max-width: 640px) 23rem, 31rem" className="object-contain opacity-95 drop-shadow-[0_0_48px_rgba(244,213,141,0.28)]" />
-                  <div className="absolute inset-[21%] animate-[spin_34s_linear_infinite] rounded-full border border-[#f4d58d]/30" aria-hidden="true" />
+                  <div className="absolute inset-[7%] rounded-full border border-[#f4d58d]/20" aria-hidden="true" />
+                  <div className="absolute inset-[17%] rounded-full border border-[#d8c6ee]/25" aria-hidden="true" />
+                  <div className="absolute inset-[29%] rounded-full border border-[#f4d58d]/35" aria-hidden="true" />
+                  <div className="absolute inset-[40%] rounded-full border border-[#d8c6ee]/35" aria-hidden="true" />
+                  <div className="absolute left-[47%] top-[47%] h-[6%] w-[6%] rounded-full bg-[#fff2c2] shadow-[0_0_42px_14px_rgba(244,213,141,0.65)]" aria-hidden="true" />
+                  <div className="absolute inset-[7%] animate-[spin_34s_linear_infinite]" aria-hidden="true">
+                    <span className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 rounded-full bg-[#f4d58d] shadow-[0_0_18px_rgba(244,213,141,0.85)]" />
+                    <span className="absolute bottom-[13%] right-[4%] h-2 w-2 rounded-full bg-[#d8c6ee] shadow-[0_0_14px_rgba(216,198,238,0.9)]" />
+                  </div>
+                  <div className="absolute inset-[18%] animate-[spin_25s_linear_infinite_reverse]" aria-hidden="true">
+                    <span className="absolute left-0 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-[#c9a5ef] shadow-[0_0_16px_rgba(201,165,239,0.9)]" />
+                  </div>
                 </div>
                 <div className="absolute bottom-0 right-0 max-w-[17rem] rounded-2xl border border-white/10 bg-[#0d0a17]/80 p-4 backdrop-blur-md">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{isEnglish ? "Not fixed destiny" : "Não é destino fixo"}</p>
