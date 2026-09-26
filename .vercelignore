@@ -3,6 +3,7 @@
 !.env.example
 !.env.production.template
 .next
+dist
 node_modules
 .vercel
 supabase/.temp
