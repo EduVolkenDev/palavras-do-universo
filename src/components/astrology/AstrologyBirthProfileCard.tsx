@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CalendarDays, CheckCircle2, Clock3, Info, LoaderCircle, MapPin, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
+import { buildLoginPath } from "@/lib/auth/redirect";
 import {
   createAstrologyBirthDataClient,
   type AstrologyBirthDataRecord,
@@ -93,6 +94,8 @@ export function AstrologyBirthProfileCard({
         attribution: "Map data © OpenStreetMap contributors",
         save: "Save my birth context",
         saving: "Saving…",
+        existingAccountPrompt: "Already have an account?",
+        existingAccountAction: "Sign in to continue",
         saved: "Birth context saved",
         savedTitle: "Your birth map is ready",
         savedIntro: "Your saved details are already personalizing your astrological experience.",
@@ -133,6 +136,8 @@ export function AstrologyBirthProfileCard({
         attribution: "Dados do mapa © OpenStreetMap contributors",
         save: "Salvar meu contexto de nascimento",
         saving: "Salvando…",
+        existingAccountPrompt: "Já tem uma conta?",
+        existingAccountAction: "Entrar para continuar",
         saved: "Contexto de nascimento salvo",
         savedTitle: "Seu mapa já está preparado",
         savedIntro: "Seus dados salvos já estão personalizando a sua experiência astrológica.",
@@ -327,6 +332,9 @@ export function AstrologyBirthProfileCard({
   };
 
   const showingSavedSummary = Boolean(savedRecord) && !editingExisting;
+  const loginPath = buildLoginPath(redirectAfterSave ?? "/astrologia/mapa", {
+    lang: isEnglish ? "en" : "pt-BR",
+  });
 
   return (
     <section id="preparar-meu-mapa" className="mt-8 overflow-hidden rounded-[30px] border border-[#241b18]/10 bg-[#fffaf2] shadow-[0_30px_90px_rgba(80,57,34,0.12)]">
@@ -374,6 +382,12 @@ export function AstrologyBirthProfileCard({
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
+              <p className="rounded-2xl border border-[#dfccb0] bg-[#f8efe2] px-4 py-3 text-sm leading-6 text-[#6f615a]">
+                {copy.existingAccountPrompt}{" "}
+                <a href={loginPath} className="font-semibold text-[#6f5134] underline decoration-[#c69a4f]/70 underline-offset-4 transition hover:text-[#241b18] focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6b3f]">
+                  {copy.existingAccountAction}
+                </a>
+              </p>
               <div className="grid gap-5 sm:grid-cols-2">
                 <label className="block">
                   <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]"><CalendarDays size={14} />{copy.date}</span>
