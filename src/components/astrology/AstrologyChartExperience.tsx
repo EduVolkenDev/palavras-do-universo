@@ -492,7 +492,11 @@ function CoreCard({
   onSelect: () => void;
 }) {
   const copy = body === "Ascendant" ? getAscendantInterpretation(locale) : getBodyInterpretation(body, locale);
-  const artwork = body === "Ascendant" ? PDU_ASSETS.astrology.mapHero : PDU_ASSETS.astrology.planets[body];
+  const artwork = placement
+    ? PDU_ASSETS.astrology.zodiacSigns[placement.sign]
+    : body === "Ascendant"
+      ? PDU_ASSETS.astrology.mapHero
+      : PDU_ASSETS.astrology.planets[body];
   return (
     <button type="button" onClick={onSelect} aria-expanded={expanded} data-body={body} className={`${styles.coreCard} group relative overflow-hidden rounded-[26px] border p-6 text-left shadow-[0_18px_50px_rgba(80,57,34,0.07)] transition hover:-translate-y-1 ${expanded ? "border-[#8a6b3f] ring-2 ring-[#f4d58d]/35" : "border-[#d8c3a6]"}`}>
       <span className={styles.coreArtwork} aria-hidden="true"><Image src={artwork} alt="" fill sizes="(max-width: 767px) 11rem, 12rem" className="object-contain" /></span>
@@ -518,7 +522,7 @@ function PlacementDetail({ body, position, aspects, locale }: { body: AstrologyS
       <div className="grid gap-0 lg:grid-cols-[0.7fr_1.3fr]">
         <div className="relative min-h-[15rem] overflow-hidden bg-[#241b18] p-6 text-[#fff7e8] sm:p-8">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(244,213,141,0.22),transparent_34%),linear-gradient(145deg,#241b18,#171225)]" />
-          <Image src={body === "Ascendant" ? PDU_ASSETS.astrology.mapHero : PDU_ASSETS.astrology.planets[body]} alt="" fill sizes="(max-width: 1024px) 100vw, 28rem" className="object-contain opacity-60" />
+          <Image src={PDU_ASSETS.astrology.zodiacSigns[position.sign]} alt="" fill sizes="(max-width: 1024px) 100vw, 28rem" className="object-contain opacity-70" />
           <div className="relative z-10 flex min-h-[13rem] flex-col justify-end">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]">{copy.label}</p>
             <p className="brand-serif mt-2 text-3xl font-semibold">{formatPlacement(position.sign, position.degreesInSign, locale)}</p>
