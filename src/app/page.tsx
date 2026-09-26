@@ -96,6 +96,7 @@ import {
 import { CARDS } from "@/lib/tarot/cards";
 import { getSpreadForProduct } from "@/lib/tarot/spreads";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
+import { EduReadingHomeSection } from "@/components/EduReading";
 import VoucherCodeEntry from "@/components/vouchers/VoucherCodeEntry";
 import { LUME_NAME, LUME_QUESTION_EVENT } from "@/lib/lume/persona";
 import { LumePresence, requestLumeOpen } from "@/components/LumeGuide";
@@ -3082,6 +3083,9 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
               <MoonStar size={15} aria-hidden="true" />
               {t("Astrologia")}
             </Link>
+            <Link href="/leitura-com-edu" className="pdu-site-header__nav-link">
+              {t("Leitura com o Edu")}
+            </Link>
             <Link href="/profissionais" className="pdu-site-header__nav-link">
               {t("Profissionais")}
             </Link>
@@ -3174,6 +3178,20 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                 </span>
                 <ArrowRight size={16} aria-hidden="true" />
               </Link>
+              <Link
+                href="/leitura-com-edu"
+                className="pdu-mobile-menu__featured pdu-mobile-menu__featured--soft"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="pdu-mobile-menu__featured-icon">
+                  <Sparkles size={17} aria-hidden="true" />
+                </span>
+                <span>
+                  <strong>{t("Leitura com o Edu")}</strong>
+                  <small>{t("Converse sobre uma leitura realizada por ele")}</small>
+                </span>
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
               <button
                 type="button"
                 className="pdu-mobile-menu__featured pdu-mobile-menu__featured--soft"
@@ -3211,6 +3229,9 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
               <nav className="grid gap-1" aria-label={t("Explorar")}>
                 <Link href="/astrologia" onClick={() => setMobileMenuOpen(false)}>
                   {t("Astrologia")}
+                </Link>
+                <Link href="/leitura-com-edu" onClick={() => setMobileMenuOpen(false)}>
+                  {t("Leitura com o Edu")}
                 </Link>
                 <a href="#produtos" onClick={() => setMobileMenuOpen(false)}>
                   {t("Leituras")}
@@ -4468,6 +4489,8 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
           </div>
        </div>
      </section>
+
+      <EduReadingHomeSection />
 
       <section
         id="lab"

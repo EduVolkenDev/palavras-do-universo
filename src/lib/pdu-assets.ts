@@ -60,6 +60,12 @@ export const PDU_ASSETS = {
     candle: "/assets/candle.webp",
     mandala: "/assets/mandalaspecial.webp",
   },
+  people: {
+    eduReadingPortrait: "/assets/edu-reading-portrait.webp",
+    eduReadingCards: "/assets/edu-reading-cards.webp",
+    eduReadingCalendar: "/assets/edu-reading-calendar.webp",
+    eduReadingLetter: "/assets/edu-reading-letter.webp",
+  },
   astrology: {
     skyAtmosphere: "/assets/astrology/sky-atmosphere.webp",
     moonPortal: "/assets/astrology/moon-portal.webp",

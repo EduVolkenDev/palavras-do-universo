@@ -1675,6 +1675,8 @@ const en: Record<string, string> = {
   "Pergunta para levar": "A question to carry with you",
   "O significado não é uma sentença sobre o seu futuro. Ele é um ponto de partida para reconhecer o que esta carta movimenta no seu momento e escolher o que fazer com mais presença.": "A meaning is not a sentence about your future. It is a starting point for recognizing what this card is moving in your life right now and choosing what to do with more presence.",
   "Consultar outras cartas": "Explore other cards",
+  "Leitura com o Edu": "Reading with Edu",
+  "Converse sobre uma leitura realizada por ele": "Talk about a reading done by him",
 };
 
 export const translations = { en };
