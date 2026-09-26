@@ -31,6 +31,46 @@ async function getEntitlementProducts(productKey: string) {
   return [...products];
 }
 
+async function grantPurchaseEntitlements(params: {
+  userId: string;
+  productKey: string;
+  expiresAt?: string | null;
+  metadata?: Record<string, unknown>;
+}) {
+  // Purchase grants MUST go through the transactional RPC below -- never
+  // read-then-write. POST /api/stripe/webhook and POST /api/checkout/confirm
+  // can run fulfillCheckoutSession() concurrently for the same checkout
+  // session; the RPC serializes them on the entitlement row
+  // (SELECT ... FOR UPDATE + partial unique index on
+  // (user_id, product_key, source) WHERE source = 'purchase'), so a replay of
+  // the same checkout_session_id is idempotent and never increments
+  // usage_limit twice. See supabase/migrations/
+  // 20260926070000_purchase_entitlement_race_fix.sql.
+  const supabase = getSupabaseAdmin();
+  const productKeys = await getEntitlementProducts(params.productKey);
+  const metadata = params.metadata ?? {};
+  const attribution = metadata.attribution;
+
+  for (const productKey of productKeys) {
+    const { error } = await supabase.rpc("grant_purchase_entitlement", {
+      p_user_id: params.userId,
+      p_product_key: productKey,
+      p_checkout_session_id: getString(metadata.checkout_session_id),
+      p_payment_intent_id: getString(metadata.payment_intent_id),
+      p_currency: getString(metadata.currency),
+      p_market: getString(metadata.market),
+      p_attribution:
+        attribution && typeof attribution === "object"
+          ? (attribution as Record<string, unknown>)
+          : null,
+      p_expires_at: params.expiresAt ?? null,
+    });
+    if (error) {
+      throw new Error(`Could not grant purchase entitlement: ${error.message}`);
+    }
+  }
+}
+
 async function grantEntitlements(params: {
   userId: string;
   productKey: string;
@@ -38,6 +78,10 @@ async function grantEntitlements(params: {
   expiresAt?: string | null;
   metadata?: Record<string, unknown>;
 }) {
+  if (params.source === "purchase") {
+    return grantPurchaseEntitlements(params);
+  }
+
   const supabase = getSupabaseAdmin();
   const productKeys = await getEntitlementProducts(params.productKey);
 
