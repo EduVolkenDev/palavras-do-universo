@@ -200,20 +200,24 @@ export function EduReadingPage() {
       <div className="mx-auto max-w-6xl">{renderExperienceCard(experienceCards[0])}</div>
     </section>
     <EduReadingBookingPanel />
-    <section id="historia" className="scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
-      <div className="mx-auto max-w-6xl">
-        <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:gap-20">
-          <div><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8e674d]">{copy.storyEyebrow}</p><h2 className="brand-serif mt-4 text-4xl font-semibold leading-tight sm:text-5xl">{copy.storyTitle}</h2></div>
-          <div className="space-y-5 text-base leading-8 text-[#6f5d55]">{copy.story.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>
+    <section id="historia" className="scroll-mt-24 overflow-hidden bg-[#f7f0e5] px-4 py-8 sm:px-6 lg:px-8 lg:py-12" aria-label={copy.storyEyebrow}>
+      <div className="mx-auto max-w-[90rem]">
+        <div className="mx-auto max-w-2xl py-8 md:hidden">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8e674d]">{copy.storyEyebrow}</p>
+          <h2 id="story-mobile-title" className="brand-serif mt-4 text-4xl font-semibold leading-tight">{copy.storyTitle}</h2>
+          <div className="mt-7 space-y-5 text-base leading-8 text-[#6f5d55]">{copy.story.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>
         </div>
-        <div className="relative mt-10 aspect-[3/2] w-full sm:mt-14">
-          <Image
-            src={PDU_ASSETS.people.eduReadingBeginning}
-            alt={copy.storyImageAlt}
-            fill
-            sizes="(max-width: 1280px) calc(100vw - 2rem), 72rem"
-            className="object-contain"
-          />
+        <Image
+          src={locale === "en" ? PDU_ASSETS.people.eduReadingBeginning : PDU_ASSETS.people.eduReadingBeginningPt}
+          alt={copy.storyImageAlt}
+          width={locale === "en" ? 5586 : 1860}
+          height={locale === "en" ? 2535 : 845}
+          sizes="(max-width: 1440px) 100vw, 90rem"
+          className="hidden h-auto w-full md:block"
+        />
+        <div className="hidden md:sr-only">
+          <h2 id="story-image-title">{copy.storyTitle}</h2>
+          {copy.story.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
         </div>
       </div>
     </section>
