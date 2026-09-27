@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Clock3, RefreshCw, Sparkles } from "lucide-react";
 import type { DailySky, DailyTone, DailyTransit } from "@/lib/astrology/daily-sky";
 import { getAspectInterpretation, getBodyInterpretation, getSignInterpretation, type AstrologyLocale } from "@/lib/astrology/interpretations";
+import { AstrologyDailyLume } from "./AstrologyDailyLume";
 
 const toneOrder: DailyTone[] = ["supportive", "attention", "intensified"];
 
@@ -152,7 +153,8 @@ export function AstrologyDailySky({
             </div>
             {circleAccess ? (
               <div className="mt-8">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <AstrologyDailyLume sky={sky} locale={locale} />
+                <div className="mt-8 flex flex-wrap items-baseline justify-between gap-2">
                   <h3 className="brand-serif text-2xl font-semibold text-[#332720]">{isEnglish ? "How today's sky meets your map" : "Como o céu de hoje encontra seu mapa"}</h3>
                   <p className="text-xs text-[#806c5d]">{isEnglish ? "Major aspects within 2°; Moon within 3°" : "Aspectos principais até 2°; Lua até 3°"}</p>
                 </div>
