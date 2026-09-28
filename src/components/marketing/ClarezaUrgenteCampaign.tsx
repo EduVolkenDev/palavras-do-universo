@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Compass, Sparkles } from "lucide-react";
@@ -13,6 +13,7 @@ import {
   normalizeMarketingAttribution,
   type MarketingAttribution,
 } from "@/lib/marketing/attribution";
+import { buildLoginPath } from "@/lib/auth/redirect";
 import type { ProductCurrency } from "@/lib/product/pricing";
 
 type CampaignCopy = {
@@ -85,6 +86,10 @@ function buildCampaignHref(
   return `${path}?${query.toString()}#${hash}`;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 function trackCampaignEvent(eventType: string, destination: string) {
   recordSiteEvent({
     eventType,
@@ -121,6 +126,51 @@ export default function ClarezaUrgenteCampaign({
     currency,
     resume: "checkout",
   }, attribution);
+
+  const [ctaLoading, setCtaLoading] = useState(false);
+  const ctaLockRef = useRef(false);
+
+  // Tenta abrir o checkout direto; em qualquer falha cai no fluxo atual
+  // (checkoutHref — a home retoma via ?resume=checkout).
+  async function handlePrimaryCta(event: React.MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    if (ctaLockRef.current) return;
+    ctaLockRef.current = true;
+    setCtaLoading(true);
+    trackCampaignEvent("marketing.cta_click", "checkout");
+    try {
+      const res = await fetch("/api/checkout/create", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          productKey: "clareza_urgente",
+          locale,
+          currency,
+          attribution: readAttribution(),
+        }),
+      });
+
+      if (res.status === 401) {
+        window.location.href = buildLoginPath(checkoutHref);
+        return;
+      }
+
+      let data: unknown = null;
+      try {
+        data = (await res.json()) as unknown;
+      } catch {
+        data = null;
+      }
+
+      if (res.ok && isRecord(data) && typeof data.checkoutUrl === "string") {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+    } catch {
+      // Rede indisponível — segue para o fallback abaixo.
+    }
+    window.location.href = checkoutHref;
+  }
 
   useEffect(() => {
     if (landingTracked.current) return;
@@ -172,14 +222,16 @@ export default function ClarezaUrgenteCampaign({
             </p>
 
             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              <Link
-                href={checkoutHref}
-                onClick={() => trackCampaignEvent("marketing.cta_click", "checkout")}
-                className="inline-flex min-h-14 items-center justify-center gap-3 rounded-full bg-[#f2cb76] px-7 text-sm font-bold text-[#211722] shadow-[0_14px_50px_rgba(242,203,118,0.2)] transition hover:-translate-y-0.5 hover:bg-[#ffe19b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f2cb76]"
+              <button
+                type="button"
+                onClick={handlePrimaryCta}
+                disabled={ctaLoading}
+                aria-busy={ctaLoading}
+                className="inline-flex min-h-14 items-center justify-center gap-3 rounded-full bg-[#f2cb76] px-7 text-sm font-bold text-[#211722] shadow-[0_14px_50px_rgba(242,203,118,0.2)] transition hover:-translate-y-0.5 hover:bg-[#ffe19b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f2cb76] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0"
               >
                 {copy.primaryCta}
                 <ArrowRight size={18} aria-hidden="true" />
-              </Link>
+              </button>
               <Link
                 href={freeHref}
                 onClick={() => trackCampaignEvent("marketing.cta_click", "free_reading")}
