@@ -56,13 +56,24 @@ export const PAID_READING_PRODUCTS = new Set([
 ]);
 
 export const INTERNAL_TEST_PRODUCT_KEY = "teste_checkout_50";
+export const INTERNAL_TEST_CIRCLE_PRODUCT_KEY = "circulo_teste_50";
 
 export function isInternalTestProduct(productKey: string) {
-  return productKey === INTERNAL_TEST_PRODUCT_KEY;
+  return (
+    productKey === INTERNAL_TEST_PRODUCT_KEY ||
+    productKey === INTERNAL_TEST_CIRCLE_PRODUCT_KEY
+  );
 }
 
 export const CIRCLE_PRODUCT_KEY = "circulo_do_universo";
 export const ASTROLOGY_FULL_PRODUCT_KEY = "mapa_astral";
+
+export function isCircleSubscriptionProduct(productKey: string) {
+  return (
+    productKey === CIRCLE_PRODUCT_KEY ||
+    productKey === INTERNAL_TEST_CIRCLE_PRODUCT_KEY
+  );
+}
 
 export const CIRCLE_INCLUDED_PRODUCTS = new Set([
   "caminho_3_cartas",
@@ -86,7 +97,7 @@ export function circleUnlocksProduct(productKey: string) {
 export function entitlementUnlocksProduct(entitlementProductKey: string, productKey: string) {
   return (
     entitlementProductKey === productKey ||
-    (entitlementProductKey === CIRCLE_PRODUCT_KEY && circleUnlocksProduct(productKey))
+    (isCircleSubscriptionProduct(entitlementProductKey) && circleUnlocksProduct(productKey))
   );
 }
 
@@ -119,7 +130,7 @@ export function hasEntitlementForProduct(
 }
 
 export function isCircleEntitlement(entitlement: ProductEntitlementLike) {
-  return entitlement.product_key === CIRCLE_PRODUCT_KEY;
+  return isCircleSubscriptionProduct(entitlement.product_key);
 }
 
 export function shouldConsumeEntitlement(entitlement: ProductEntitlementLike) {

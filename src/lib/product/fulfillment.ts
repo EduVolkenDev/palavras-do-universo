@@ -2,6 +2,10 @@ import Stripe from "stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { finalizeVoucherCheckoutSession } from "@/lib/vouchers/service";
 import { getMarketingAttributionFromStripeMetadata } from "@/lib/marketing/attribution";
+import {
+  INTERNAL_TEST_CIRCLE_PRODUCT_KEY,
+  isCircleSubscriptionProduct,
+} from "@/lib/product/access";
 
 type EntitlementProduct = {
   product_key: string;
@@ -15,11 +19,15 @@ async function getEntitlementProducts(productKey: string) {
   const supabase = getSupabaseAdmin();
   const products = new Set<string>([productKey]);
 
-  if (productKey === "circulo_do_universo") {
+  if (isCircleSubscriptionProduct(productKey)) {
+    const includedIn =
+      productKey === INTERNAL_TEST_CIRCLE_PRODUCT_KEY
+        ? INTERNAL_TEST_CIRCLE_PRODUCT_KEY
+        : "circulo_do_universo";
     const { data, error } = await supabase
       .from("oracle_products")
       .select("product_key")
-      .contains("included_in", ["circulo_do_universo"])
+      .contains("included_in", [includedIn])
       .returns<EntitlementProduct[]>();
     if (error) throw new Error(`Could not resolve included products: ${error.message}`);
 

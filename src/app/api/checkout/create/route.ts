@@ -70,6 +70,10 @@ const checkoutCopyByLocale: Record<
       title: "Teste de Checkout",
       description: "Validação interna de pagamento do Palavras do Universo.",
     },
+    circulo_teste_50: {
+      title: "Círculo de Teste",
+      description: "Assinatura interna de R$0,50/mês para validar acesso contínuo, webhook e Lume.",
+    },
     clareza_urgente: {
       title: "Clareza Urgente",
       description:
@@ -321,7 +325,9 @@ function buildLineItem(
 }
 
 function getUnlockedRedirectPath(productKey: string) {
-  if (isInternalTestProduct(productKey)) return "/admin/teste-checkout?checkout=active";
+  if (isInternalTestProduct(productKey)) {
+    return `/admin/teste-checkout?checkout=active&plan=${encodeURIComponent(productKey)}`;
+  }
   if (productKey === CIRCLE_PRODUCT_KEY) return "/meu-universo?access=active";
   if (productKey === ASTROLOGY_FULL_PRODUCT_KEY) return "/astrologia/mapa?access=active";
   return `/?product=${encodeURIComponent(productKey)}`;

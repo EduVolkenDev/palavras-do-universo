@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const TEST_PRODUCT_KEY = "teste_checkout_50";
+const TEST_CIRCLE_PRODUCT_KEY = "circulo_teste_50";
 
 type Entitlement = {
   product_key?: unknown;
@@ -27,6 +28,13 @@ function getCheckoutState() {
   return new URLSearchParams(window.location.search).get("checkout") ?? "";
 }
 
+function getPlan() {
+  if (typeof window === "undefined") return TEST_PRODUCT_KEY;
+  return new URLSearchParams(window.location.search).get("plan") === TEST_CIRCLE_PRODUCT_KEY
+    ? TEST_CIRCLE_PRODUCT_KEY
+    : TEST_PRODUCT_KEY;
+}
+
 export default function InternalCheckoutTestPage({
   ownerEmail,
   hasSupabase,
@@ -39,8 +47,9 @@ export default function InternalCheckoutTestPage({
   const [hasEntitlement, setHasEntitlement] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [plan, setPlan] = useState(TEST_PRODUCT_KEY);
 
-  async function checkEntitlement() {
+  async function checkEntitlement(targetPlan = plan) {
     setChecking(true);
     setError("");
     try {
@@ -49,8 +58,9 @@ export default function InternalCheckoutTestPage({
       if (!response.ok || !Array.isArray(data.entitlements)) {
         throw new Error(data.error || "Não foi possível consultar o acesso entregue.");
       }
-      const delivered = data.entitlements.some(
-        (item) => item.product_key === TEST_PRODUCT_KEY && item.status === "active"
+      const delivered = data.entitlements.some((item) =>
+        [targetPlan, TEST_PRODUCT_KEY, TEST_CIRCLE_PRODUCT_KEY].includes(String(item.product_key)) &&
+        item.status === "active"
       );
       setHasEntitlement(delivered);
       setMessage(
@@ -69,7 +79,7 @@ export default function InternalCheckoutTestPage({
     }
   }
 
-  async function confirmCheckout(): Promise<CheckoutConfirmation> {
+  async function confirmCheckout(targetPlan = plan): Promise<CheckoutConfirmation> {
     const sessionId =
       typeof window === "undefined"
         ? ""
@@ -91,8 +101,9 @@ export default function InternalCheckoutTestPage({
         throw new Error(data.error || "Não foi possível confirmar a entrega.");
       }
 
-      const delivered = data.entitlements.some(
-        (item) => item.product_key === TEST_PRODUCT_KEY && item.status === "active"
+      const delivered = data.entitlements.some((item) =>
+        [targetPlan, TEST_PRODUCT_KEY, TEST_CIRCLE_PRODUCT_KEY].includes(String(item.product_key)) &&
+        item.status === "active"
       );
       setHasEntitlement(delivered);
       setMessage(
@@ -115,15 +126,19 @@ export default function InternalCheckoutTestPage({
 
   useEffect(() => {
     const checkoutState = getCheckoutState();
+    const targetPlan = getPlan();
+    setPlan(targetPlan);
     if (checkoutState === "success" || checkoutState === "active") {
       void (async () => {
         if (checkoutState === "success") {
-          const confirmation = await confirmCheckout();
+          const confirmation = await confirmCheckout(targetPlan);
           if (confirmation !== "pending") return;
         }
-        await checkEntitlement();
+        await checkEntitlement(targetPlan);
       })();
     }
+  // These callbacks intentionally run once for the return URL's selected plan.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function startCheckout() {
@@ -135,7 +150,7 @@ export default function InternalCheckoutTestPage({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          productKey: TEST_PRODUCT_KEY,
+          productKey: plan,
           locale: "pt-BR",
           currency: "BRL",
         }),
@@ -187,9 +202,15 @@ export default function InternalCheckoutTestPage({
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9a754f]">Produto oculto</p>
-              <h2 className="brand-serif mt-2 text-3xl text-[#2c1f1b]">Teste de Checkout</h2>
+              <h2 className="brand-serif mt-2 text-3xl text-[#2c1f1b]">
+                {plan === TEST_CIRCLE_PRODUCT_KEY ? "Círculo de Teste" : "Teste de Checkout"}
+              </h2>
               <p className="mt-3 text-sm leading-6 text-[#6f5d55]">
-                Uma cobrança única de <strong className="text-[#2c1f1b]">R$0,50</strong>, no modo configurado para o ensaio.
+                {plan === TEST_CIRCLE_PRODUCT_KEY ? (
+                  <>Uma assinatura mensal de <strong className="text-[#2c1f1b]">R$0,50</strong> para validar o acesso contínuo do Círculo e do Lume.</>
+                ) : (
+                  <>Uma cobrança única de <strong className="text-[#2c1f1b]">R$0,50</strong>, no modo configurado para o ensaio.</>
+                )}
               </p>
             </div>
             <div className="rounded-2xl border border-[#ead8b2] bg-[#fff5d9] px-4 py-3 text-sm text-[#715a32]">

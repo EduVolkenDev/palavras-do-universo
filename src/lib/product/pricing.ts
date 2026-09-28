@@ -33,6 +33,7 @@ export const PRODUCT_PRICE_MATRIX: Record<
   mapa_astral: { BRL: 3990, GBP: 1700 },
   circulo_do_universo: { BRL: 4990, GBP: 2000 },
   teste_checkout_50: { BRL: 50, GBP: 50 },
+  circulo_teste_50: { BRL: 50, GBP: 50 },
 };
 
 export function normalizeProductCurrency(value: unknown): ProductCurrency | null {

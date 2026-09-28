@@ -2,6 +2,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/server";
 import {
   CIRCLE_PRODUCT_KEY,
   circleUnlocksProduct,
+  INTERNAL_TEST_CIRCLE_PRODUCT_KEY,
 } from "@/lib/product/access";
 
 type AvailableEntitlement = {
@@ -28,7 +29,19 @@ export async function getAvailableEntitlementForProduct(params: {
 
   if (error) throw error;
   if (exactEntitlement || params.productKey === CIRCLE_PRODUCT_KEY) {
-    return exactEntitlement;
+    if (exactEntitlement || process.env.PDU_ENABLE_INTERNAL_TEST_CHECKOUT !== "true") {
+      return exactEntitlement;
+    }
+    const { data: testCircleEntitlement, error: testCircleError } = await supabase
+      .from("available_entitlements")
+      .select("id, product_key, source, usage_limit, usage_count")
+      .eq("user_id", params.userId)
+      .eq("product_key", INTERNAL_TEST_CIRCLE_PRODUCT_KEY)
+      .order("starts_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<AvailableEntitlement>();
+    if (testCircleError) throw testCircleError;
+    return testCircleEntitlement;
   }
   if (!circleUnlocksProduct(params.productKey)) return null;
 
