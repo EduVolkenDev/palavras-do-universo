@@ -84,7 +84,7 @@ export function AstrologyDailyLume({ sky, locale }: { sky: DailySky; locale: Ast
           if (!entries.length) return null;
           return <div key={tone} className="mt-6"><h4 className="font-semibold text-[#493527]">{isEnglish ? en : pt}</h4><div className="mt-3 space-y-3">{entries.map((item) => {
             const transit = transits.find((value) => dailyTransitId(value) === item.transitId)!;
-            return <article key={item.transitId} className="rounded-2xl border border-[#e6d8c3] bg-white/65 p-4"><p className="text-xs font-semibold text-[#806c5d]">{getBodyInterpretation(transit.transitBody, locale).label} · {getAspectInterpretation(transit.type, locale).label} · {getBodyInterpretation(transit.natalBody, locale).label} natal</p><p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#55473e]">{item.text}</p></article>;
+            return <article key={item.transitId} className="rounded-2xl border border-[#e6d8c3] bg-white/65 p-4"><p className="text-xs font-semibold text-[#806c5d]">{getBodyInterpretation(transit.transitBody, locale).label} · {getAspectInterpretation(transit.type, locale).label} · {getBodyInterpretation(transit.natalBody, locale).label} {isEnglish ? "in your birth chart" : "natal"}</p><p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#55473e]">{item.text}</p></article>;
           })}</div></div>;
         })}
         <div className="mt-6 rounded-2xl bg-[#241b18] p-5 text-[#fff7e8]"><h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-[#f5d896]">{isEnglish ? "One possible gesture today" : "Um gesto possível para hoje"}</h4><p className="mt-3 text-sm leading-7">{reading.content.nextStep}</p></div>

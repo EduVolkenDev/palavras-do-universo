@@ -6,7 +6,7 @@ export type EduReadingOffer = {
   cards: number;
   durationLabel: string;
   priceCents: Record<ProductCurrency, number>;
-  description: string;
+  description: { pt: string; en: string };
 };
 
 // Valores e duração ficam aqui para que possam ser revisados sem alterar a jornada.
@@ -19,7 +19,10 @@ export const EDU_READING_OFFERS: EduReadingOffer[] = [
     cards: 3,
     durationLabel: "40–50 min",
     priceCents: { BRL: 19900, GBP: 3500 },
-    description: "Uma pergunta central, três perspectivas e um próximo passo possível.",
+    description: {
+      pt: "Uma pergunta central, três perspectivas e um próximo passo possível.",
+      en: "One central question, three perspectives, and one possible next step.",
+    },
   },
   {
     id: "diamante",
@@ -27,7 +30,10 @@ export const EDU_READING_OFFERS: EduReadingOffer[] = [
     cards: 5,
     durationLabel: "50–70 min",
     priceCents: { BRL: 29900, GBP: 5000 },
-    description: "Uma leitura para olhar a questão por camadas e encontrar integração.",
+    description: {
+      pt: "Uma leitura para olhar a questão por camadas e encontrar integração.",
+      en: "A reading that explores your question in layers and looks for integration.",
+    },
   },
   {
     id: "passaro-voando",
@@ -35,7 +41,10 @@ export const EDU_READING_OFFERS: EduReadingOffer[] = [
     cards: 7,
     durationLabel: "70–80 min",
     priceCents: { BRL: 35000, GBP: 7000 },
-    description: "Uma leitura ampla para transições, direção e movimento consciente.",
+    description: {
+      pt: "Uma leitura ampla para transições, direção e movimento consciente.",
+      en: "A broad reading for transitions, direction, and conscious movement.",
+    },
   },
 ];
 

@@ -236,6 +236,10 @@ export function AstrologyChartExperience() {
     }
   }
 
+  function openCoreReading(bodyKey: AstrologySelection) {
+    setActiveReading({ body: bodyKey, source: "core" });
+  }
+
   if (loading) {
     return (
       <div className="mx-auto flex min-h-[55vh] max-w-3xl flex-col items-center justify-center px-4 py-24 text-center text-[#6f615a]">
@@ -334,10 +338,10 @@ export function AstrologyChartExperience() {
         ) : null}
 
         <div className={`grid gap-5 ${hasBirthTime ? "md:grid-cols-3" : "md:grid-cols-2 lg:grid-cols-3"}`}>
-          <CoreCard body="Sun" icon={<Sun size={20} />} eyebrow={isEnglish ? "Sun sign" : "Signo solar"} title={getBodyInterpretation("Sun", astrologyLocale).label} placement={positionMap.get("Sun")} locale={astrologyLocale} fullAccess={accessLevel === "full"} expanded={activeReading?.source === "core" && activeReading.body === "Sun"} onSelect={() => setActiveReading({ body: "Sun", source: "core" })} />
-          <CoreCard body="Moon" icon={<MoonStar size={20} />} eyebrow={isEnglish ? "Moon sign" : "Signo lunar"} title={getBodyInterpretation("Moon", astrologyLocale).label} placement={positionMap.get("Moon")} locale={astrologyLocale} fullAccess={accessLevel === "full"} expanded={activeReading?.source === "core" && activeReading.body === "Moon"} onSelect={() => setActiveReading({ body: "Moon", source: "core" })} />
+          <CoreCard body="Sun" icon={<Sun size={20} />} eyebrow={isEnglish ? "Sun sign" : "Signo solar"} title={getBodyInterpretation("Sun", astrologyLocale).label} placement={positionMap.get("Sun")} locale={astrologyLocale} fullAccess={accessLevel === "full"} expanded={activeReading?.source === "core" && activeReading.body === "Sun"} onSelect={() => openCoreReading("Sun")} />
+          <CoreCard body="Moon" icon={<MoonStar size={20} />} eyebrow={isEnglish ? "Moon sign" : "Signo lunar"} title={getBodyInterpretation("Moon", astrologyLocale).label} placement={positionMap.get("Moon")} locale={astrologyLocale} fullAccess={accessLevel === "full"} expanded={activeReading?.source === "core" && activeReading.body === "Moon"} onSelect={() => openCoreReading("Moon")} />
           {hasBirthTime && ascendant ? (
-            <CoreCard body="Ascendant" icon={<Sparkles size={20} />} eyebrow={isEnglish ? "Rising sign" : "Ascendente"} title={ascendantLabel} placement={{ sign: ascendant.sign, degreesInSign: ascendant.degreesInSign, house: 1 }} locale={astrologyLocale} fullAccess={accessLevel === "full"} expanded={activeReading?.source === "core" && activeReading.body === "Ascendant"} onSelect={() => setActiveReading({ body: "Ascendant", source: "core" })} />
+            <CoreCard body="Ascendant" icon={<Sparkles size={20} />} eyebrow={isEnglish ? "Rising sign" : "Ascendente"} title={ascendantLabel} placement={{ sign: ascendant.sign, degreesInSign: ascendant.degreesInSign, house: 1 }} locale={astrologyLocale} fullAccess={accessLevel === "full"} expanded={activeReading?.source === "core" && activeReading.body === "Ascendant"} onSelect={() => openCoreReading("Ascendant")} />
           ) : (
             <Link href="/meu-universo#preparar-meu-mapa" className="rounded-[26px] border border-dashed border-[#caa96c] bg-[#fffaf2] p-6 text-left shadow-[0_18px_50px_rgba(80,57,34,0.05)] transition hover:-translate-y-1 hover:border-[#8a6b3f]">
               <span className="grid h-11 w-11 place-items-center rounded-full border border-[#caa96c]/60 bg-[#f8efe2] text-[#8a6b3f]"><Clock3 size={19} /></span>
