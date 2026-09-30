@@ -5,6 +5,16 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  "routes": [
+    {
+      "pattern": "palavrasdouniverso.com/*",
+      "zone_name": "palavrasdouniverso.com"
+    },
+    {
+      "pattern": "www.palavrasdouniverso.com/*",
+      "zone_name": "palavrasdouniverso.com"
+    }
+  ],
   "main": "vinext/server/fetch-handler",
   "assets": {
     "directory": "dist/client",

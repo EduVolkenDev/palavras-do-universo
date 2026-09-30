@@ -96,7 +96,21 @@ export function ProductCurrencyProvider({
   }, []);
 
   useEffect(() => {
-    const preferredCurrency = readBrowserCurrency(initialCurrency);
+    let hasManualCurrencyOverride = false;
+    try {
+      hasManualCurrencyOverride =
+        window.localStorage?.getItem(PRODUCT_CURRENCY_OVERRIDE_STORAGE_KEY) === "1";
+    } catch {
+      hasManualCurrencyOverride = false;
+    }
+
+    const preferredLocale =
+      new URLSearchParams(window.location.search).get("lang") ||
+      document.documentElement.lang ||
+      null;
+    const preferredCurrency = hasManualCurrencyOverride
+      ? readBrowserCurrency(initialCurrency)
+      : getDefaultProductCurrency(preferredLocale);
     const timer = window.setTimeout(() => {
       setCurrencyState((currentCurrency) =>
         currentCurrency === preferredCurrency ? currentCurrency : preferredCurrency
@@ -104,6 +118,16 @@ export function ProductCurrencyProvider({
     }, 0);
     return () => window.clearTimeout(timer);
   }, [initialCurrency]);
+
+  useEffect(() => {
+    const handleCurrencyChange = (event: Event) => {
+      const nextCurrency = (event as CustomEvent<{ currency?: unknown }>).detail?.currency;
+      const normalized = normalizeProductCurrency(nextCurrency);
+      if (normalized) setCurrencyState(normalized);
+    };
+    window.addEventListener("pdu:currency-changed", handleCurrencyChange);
+    return () => window.removeEventListener("pdu:currency-changed", handleCurrencyChange);
+  }, []);
 
   const value = useMemo(
     () => ({ currency, setCurrency }),

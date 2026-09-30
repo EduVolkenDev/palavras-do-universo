@@ -86,9 +86,10 @@ export function resolveProductCurrency(params: {
   if (market) return currencyForProductMarket(market);
 
   const countryCurrency = currencyForCountry(params.country);
+  if (params.locale) return getDefaultProductCurrency(params.locale);
   if (countryCurrency) return countryCurrency;
 
-  return getDefaultProductCurrency(params.locale);
+  return getDefaultProductCurrency();
 }
 
 export function getProductPriceForCurrency(

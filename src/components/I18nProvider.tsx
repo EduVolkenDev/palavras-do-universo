@@ -16,6 +16,12 @@ import {
   type Locale,
 } from "@/lib/i18n/config";
 import { translations } from "@/lib/i18n/translations";
+import {
+  getDefaultProductCurrency,
+  PRODUCT_CURRENCY_COOKIE_NAME,
+  PRODUCT_CURRENCY_OVERRIDE_STORAGE_KEY,
+  PRODUCT_CURRENCY_STORAGE_KEY,
+} from "@/lib/product/pricing";
 
 type I18nValue = {
   locale: Locale;
@@ -100,18 +106,6 @@ export function I18nProvider({
 }) {
   const [locale, updateLocale] = useState<Locale>(initialLocale);
 
-  useEffect(() => {
-    const preferredLocale = getInitialLocale();
-    const timeout = window.setTimeout(
-      () =>
-        updateLocale((currentLocale) =>
-          currentLocale === preferredLocale ? currentLocale : preferredLocale
-        ),
-      0
-    );
-    return () => window.clearTimeout(timeout);
-  }, []);
-
   const setLocale = useCallback((nextLocale: Locale) => {
     updateLocale(nextLocale);
 
@@ -134,7 +128,46 @@ export function I18nProvider({
     } catch {
       // Cookie persistence is best-effort; the visible locale state is primary.
     }
+
+    let hasManualCurrencyOverride = false;
+    try {
+      hasManualCurrencyOverride =
+        window.localStorage?.getItem(PRODUCT_CURRENCY_OVERRIDE_STORAGE_KEY) === "1";
+    } catch {
+      hasManualCurrencyOverride = false;
+    }
+
+    if (!hasManualCurrencyOverride) {
+      const nextCurrency = getDefaultProductCurrency(nextLocale);
+      try {
+        window.localStorage?.setItem(PRODUCT_CURRENCY_STORAGE_KEY, nextCurrency);
+      } catch {
+        // Currency still follows the locale for this session.
+      }
+      try {
+        const secure = window.location.protocol === "https:" ? "; secure" : "";
+        document.cookie = `${PRODUCT_CURRENCY_COOKIE_NAME}=${nextCurrency}; path=/; max-age=31536000; samesite=lax${secure}`;
+      } catch {
+        // Currency persistence is best-effort.
+      }
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set("currency", nextCurrency);
+        window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+      } catch {
+        // URL synchronization is best-effort.
+      }
+      window.dispatchEvent(new CustomEvent("pdu:currency-changed", { detail: { currency: nextCurrency } }));
+    }
   }, []);
+
+  useEffect(() => {
+    const preferredLocale = getInitialLocale();
+    const timeout = window.setTimeout(() => {
+      if (preferredLocale !== initialLocale) setLocale(preferredLocale);
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [initialLocale, setLocale]);
 
   useEffect(() => {
     document.documentElement.lang = locale;
