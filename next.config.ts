@@ -45,6 +45,13 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // Vinext does not inline dynamic `process.env.NEXT_PUBLIC_*` lookups in
+  // client bundles on Cloudflare. Keep the two intentionally public Supabase
+  // values explicit so browser authentication can initialize at build time.
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  },
   allowedDevOrigins: ["127.0.0.1"],
   poweredByHeader: false,
   images: {
