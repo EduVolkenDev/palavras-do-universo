@@ -13,6 +13,8 @@ import {
   Wind,
   type LucideIcon,
 } from "lucide-react";
+import { formatProductPrice } from "@/lib/product/pricing";
+import { useProductCurrency } from "@/lib/product/useProductCurrency";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -86,7 +88,7 @@ const copy = {
     secondaryCta: "Voltar para o portal",
     noCards: "Sem cartas. Sem respostas prontas.",
     choosePractice: "Escolha o que você precisa sustentar agora",
-    choosePracticeHint: "Cada porta muda o ponto de partida. O caminho continua sendo seu.",
+    choosePracticeHint: "Você não precisa saber explicar. Escolha o que parece mais próximo — ou siga sem escrever.",
     practices: {
       clarity_checkin: { title: "Dar nome ao momento", text: "Quando tudo parece misturado e você precisa encontrar um fio." },
       decision_pause: { title: "Abrir espaço para decidir", text: "Quando uma escolha pede calma antes de qualquer movimento." },
@@ -95,15 +97,18 @@ const copy = {
       self_care_reset: { title: "Voltar para o cuidado", text: "Quando seu corpo e sua rotina estão pedindo atenção real." },
     },
     openingPrompts: {
-      clarity_checkin: { label: "O que precisa ganhar nome em você agora?", helper: "Escreva a sensação, situação ou pensamento que está pedindo espaço." },
-      decision_pause: { label: "Que escolha está pedindo espaço dentro de você?", helper: "Não procure a resposta ainda. Descreva os dois lados com honestidade." },
-      transition_anchor: { label: "O que está deixando de ser como antes?", helper: "Nomeie o que termina, muda de forma ou abre passagem." },
-      quiet_the_noise: { label: "O que está fazendo mais barulho do que deveria?", helper: "Diferencie o que é urgente do que apenas está exigindo atenção." },
-      self_care_reset: { label: "O que seu corpo ou sua rotina está pedindo?", helper: "Observe uma necessidade concreta que você costuma empurrar para depois." },
+      clarity_checkin: { label: "O que precisa ganhar nome em você agora?", helper: "Uma frase curta já basta — ou escolha uma opção abaixo." },
+      decision_pause: { label: "Que escolha está ocupando espaço agora?", helper: "Você não precisa decidir. Uma frase ou um toque basta." },
+      transition_anchor: { label: "O que está mudando na sua vida?", helper: "Pode ser uma palavra, uma opção abaixo ou nada por enquanto." },
+      quiet_the_noise: { label: "O que está ocupando mais espaço na sua mente?", helper: "Escolha uma opção ou siga sem explicar." },
+      self_care_reset: { label: "O que você está sentindo no corpo ou na rotina?", helper: "Não precisa encontrar a resposta certa. Um toque já basta." },
     },
     arrivalEyebrow: "Primeiro, chegue como você está",
     arrivalTitle: "Qual frase se aproxima mais do seu momento?",
     arrivalSubtitle: "Não é um diagnóstico. É só um ponto de partida para a prática conversar com você.",
+    arrivalSkippedEyebrow: "SEM PRESSA",
+    arrivalSkippedTitle: "Você pode começar sem saber explicar.",
+    arrivalSkippedSubtitle: "Escolha uma frase, escreva um pouco ou apenas siga. Não existe resposta certa.",
     arrivals: {
       unclear: { title: "Chego sem conseguir nomear", text: "Muita coisa está acontecendo ao mesmo tempo." },
       transition: { title: "Estou atravessando uma mudança", text: "Uma parte já terminou; outra ainda está tomando forma." },
@@ -111,14 +116,28 @@ const copy = {
       ready: { title: "Quero me mover com intenção", text: "A direção existe; falta transformar vontade em um gesto." },
     },
     prompts: [
-      { label: "O que está mais vivo em você agora?", helper: "Escreva sem organizar demais." },
-      { label: "O que está sob o seu cuidado hoje?", helper: "Separe o que depende da sua presença do que precisa de tempo." },
-      { label: "Qual é o menor gesto possível nas próximas 24 horas?", helper: "Algo pequeno o bastante para realmente acontecer." },
+      { label: "O que merece um pouco da sua atenção hoje?", helper: "Escolha uma opção. Escrever é só se você quiser." },
+      { label: "Que pequeno passo cabe agora?", helper: "Pode ser algo simples — ou apenas fazer uma pausa." },
     ],
     step: "Passo",
     of: "de",
     next: "Continuar",
     back: "Voltar",
+    startWithoutChoosing: "Só quero começar",
+    quickAnswerHint: "Se uma frase ajudar, toque nela. Você também pode escrever ou pular.",
+    writeOptional: "Se quiser, conte um pouco mais (opcional)",
+    skipAnswer: "Pular esta etapa",
+    skipFinalAnswer: "Guardar por agora",
+    answerOptions: {
+      signal: ["Ainda estou tentando entender", "Tem coisa demais acontecendo", "Só preciso de um pouco de clareza"],
+      care: ["Meu descanso e meu corpo", "Uma conversa importante", "Uma decisão que pode esperar", "Ainda não sei nomear"],
+      nextStep: ["Fazer uma pausa breve", "Anotar uma coisa de cada vez", "Pedir apoio a alguém de confiança", "Hoje, só observar já basta"],
+    },
+    skippedAnswers: {
+      signal: "Ainda estou tentando entender o que sinto.",
+      care: "Ainda não sei o que merece minha atenção — e tudo bem.",
+      nextStep: "Por agora, vou apenas fazer uma pausa.",
+    },
     finish: "Guardar minha prática",
     saving: "Guardando no seu Universo...",
     savedDevice: "Salva neste dispositivo",
@@ -143,6 +162,11 @@ const copy = {
     cardCta: "Abrir Carta do Dia",
     readingDoor: "Quando uma pergunta pedir mais profundidade",
     readingCtaShort: "Fazer uma leitura",
+    continuityEyebrow: "Se você quiser continuar com mais constância",
+    continuityTitle: "Círculo do Universo",
+    continuityBody: "Inclui 11 leituras premium, histórico e rituais semanais enquanto a assinatura estiver ativa.",
+    continuityCta: "Conhecer a assinatura",
+    monthly: "por mês",
   },
   en: {
     eyebrow: "THE NOW LAB",
@@ -153,7 +177,7 @@ const copy = {
     secondaryCta: "Back to the portal",
     noCards: "No cards. No ready-made answers.",
     choosePractice: "Choose what you need to hold right now",
-    choosePracticeHint: "Each door changes the starting point. The path remains yours.",
+    choosePracticeHint: "You do not need to explain it. Choose what feels closest — or continue without writing.",
     practices: {
       clarity_checkin: { title: "Name the moment", text: "When everything feels mixed together and you need to find a thread." },
       decision_pause: { title: "Make room to decide", text: "When a choice needs calm before any movement." },
@@ -162,15 +186,18 @@ const copy = {
       self_care_reset: { title: "Return to care", text: "When your body and routine are asking for real attention." },
     },
     openingPrompts: {
-      clarity_checkin: { label: "What needs a name in you right now?", helper: "Write the feeling, situation, or thought that is asking for room." },
-      decision_pause: { label: "What choice is asking for room inside you?", helper: "Do not look for the answer yet. Describe both sides honestly." },
-      transition_anchor: { label: "What is no longer the way it was?", helper: "Name what is ending, changing shape, or opening a passage." },
-      quiet_the_noise: { label: "What is making more noise than it should?", helper: "Separate what is urgent from what is simply demanding attention." },
-      self_care_reset: { label: "What is your body or routine asking for?", helper: "Notice one concrete need you often keep pushing aside." },
+      clarity_checkin: { label: "What needs a name in you right now?", helper: "One short phrase is enough — or choose an option below." },
+      decision_pause: { label: "What choice is taking up space right now?", helper: "You do not need to decide. One phrase or tap is enough." },
+      transition_anchor: { label: "What is changing in your life?", helper: "It can be one word, an option below, or nothing for now." },
+      quiet_the_noise: { label: "What is taking up the most space in your mind?", helper: "Choose an option or continue without explaining." },
+      self_care_reset: { label: "What are you noticing in your body or routine?", helper: "There is no right answer to find. One tap is enough." },
     },
     arrivalEyebrow: "First, arrive as you are",
     arrivalTitle: "Which sentence feels closest to your moment?",
     arrivalSubtitle: "This is not a diagnosis. It is simply a starting point for the practice to meet you.",
+    arrivalSkippedEyebrow: "NO RUSH",
+    arrivalSkippedTitle: "You can begin without explaining.",
+    arrivalSkippedSubtitle: "Choose a phrase, write a little, or simply continue. There is no right answer.",
     arrivals: {
       unclear: { title: "I arrive without a name for it", text: "A lot is happening at once." },
       transition: { title: "I am moving through a change", text: "One part has ended; another is still taking shape." },
@@ -178,14 +205,28 @@ const copy = {
       ready: { title: "I want to move with intention", text: "The direction is there; now it needs to become a gesture." },
     },
     prompts: [
-      { label: "What feels most alive in you right now?", helper: "Write without trying to organize it too much." },
-      { label: "What is in your care today?", helper: "Separate what depends on your presence from what needs time." },
-      { label: "What is the smallest possible gesture in the next 24 hours?", helper: "Something small enough to actually happen." },
+      { label: "What could use a little of your attention today?", helper: "Choose an option. Writing is only if you want to." },
+      { label: "What small step feels possible now?", helper: "It can be something simple — or just taking a pause." },
     ],
     step: "Step",
     of: "of",
     next: "Continue",
     back: "Back",
+    startWithoutChoosing: "I just want to begin",
+    quickAnswerHint: "Tap a phrase if it helps. You can also write or skip.",
+    writeOptional: "If you want, tell us a little more (optional)",
+    skipAnswer: "Skip this step",
+    skipFinalAnswer: "Save for now",
+    answerOptions: {
+      signal: ["I am still trying to understand", "There is too much happening", "I just need a little clarity"],
+      care: ["My rest and my body", "An important conversation", "A decision that can wait", "I cannot name it yet"],
+      nextStep: ["Take a short pause", "Write down one thing at a time", "Ask someone I trust for support", "For today, simply noticing is enough"],
+    },
+    skippedAnswers: {
+      signal: "I am still trying to understand what I feel.",
+      care: "I do not yet know what needs my attention — and that is okay.",
+      nextStep: "For now, I will simply take a pause.",
+    },
     finish: "Save my practice",
     saving: "Saving to your Universe...",
     savedDevice: "Saved on this device",
@@ -210,19 +251,32 @@ const copy = {
     cardCta: "Open Card of the Day",
     readingDoor: "When a question needs more depth",
     readingCtaShort: "Start a reading",
+    continuityEyebrow: "If you would like ongoing support",
+    continuityTitle: "Circle of the Universe",
+    continuityBody: "Includes 11 premium readings, history, and weekly rituals while your membership is active.",
+    continuityCta: "Explore the membership",
+    monthly: "per month",
   },
 } as const;
 
 export default function LabPage() {
   const { locale, setLocale } = useI18n();
+  const { currency } = useProductCurrency(locale);
+  const circlePrice = formatProductPrice("circulo_do_universo", currency);
   const language = locale === "en" ? copy.en : copy.pt;
   const [practiceKey, setPracticeKey] = useState<LabPracticeKey | null>(null);
   const [arrivalKey, setArrivalKey] = useState<LabArrivalKey | null>(null);
+  const [arrivalSkipped, setArrivalSkipped] = useState(false);
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [answers, setAnswers] = useState<Record<AnswerKey, string>>({
     signal: "",
     care: "",
     nextStep: "",
+  });
+  const [selectedOptions, setSelectedOptions] = useState<Record<AnswerKey, string | null>>({
+    signal: null,
+    care: null,
+    nextStep: null,
   });
   const [completed, setCompleted] = useState<LabPracticePayload | null>(null);
   const [continuity, setContinuity] = useState<LabPracticeContinuity>(() => getLabPracticeContinuity([]));
@@ -248,6 +302,7 @@ export default function LabPage() {
             care: current.latest.care,
             nextStep: current.latest.nextStep,
           });
+          setSelectedOptions({ signal: null, care: null, nextStep: null });
         } else if (isLabPracticeKey(requestedPractice)) {
           setPracticeKey(requestedPractice);
         }
@@ -278,7 +333,7 @@ export default function LabPage() {
   const prompt = step > 0
     ? step === 1 && practiceKey
       ? language.openingPrompts[practiceKey]
-      : language.prompts[step - 1]
+      : language.prompts[step - 2]
     : null;
   const activeAnswerKey = step > 0 ? answerKeys[step - 1] : null;
   const canAdvance = Boolean(
@@ -299,14 +354,23 @@ export default function LabPage() {
   function updateAnswer(value: string) {
     if (!activeAnswerKey) return;
     setAnswers((current) => ({ ...current, [activeAnswerKey]: value }));
+    setSelectedOptions((current) => ({ ...current, [activeAnswerKey]: null }));
+  }
+
+  function selectQuickAnswer(value: string) {
+    if (!activeAnswerKey) return;
+    setAnswers((current) => ({ ...current, [activeAnswerKey]: value }));
+    setSelectedOptions((current) => ({ ...current, [activeAnswerKey]: value }));
   }
 
   function beginPractice(key: LabPracticeKey) {
     setCompleted(null);
     setPracticeKey(key);
     setArrivalKey(null);
+    setArrivalSkipped(false);
     setStep(0);
     setAnswers({ signal: "", care: "", nextStep: "" });
+    setSelectedOptions({ signal: null, care: null, nextStep: null });
   }
 
   function resumeLastPractice() {
@@ -316,16 +380,24 @@ export default function LabPage() {
     setCompleted(null);
     setPracticeKey(practice.practiceKey);
     setArrivalKey(practice.arrivalKey);
+    setArrivalSkipped(false);
     setStep(1);
     setAnswers({
       signal: practice.signal,
       care: practice.care,
       nextStep: practice.nextStep,
     });
+    setSelectedOptions({ signal: null, care: null, nextStep: null });
   }
 
-  function advance() {
-    if (!canAdvance) return;
+  function advance(skipCurrent = false) {
+    if (!canAdvance && !skipCurrent) return;
+    if (skipCurrent && activeAnswerKey) {
+      setAnswers((current) => ({
+        ...current,
+        [activeAnswerKey]: current[activeAnswerKey].trim() || language.skippedAnswers[activeAnswerKey],
+      }));
+    }
     if (step === 3 && arrivalKey && practiceKey) {
       setSaving(true);
       const payload: LabPracticePayload = {
@@ -333,9 +405,9 @@ export default function LabPage() {
         locale,
         practiceKey,
         arrivalKey,
-        signal: answers.signal.trim(),
-        care: answers.care.trim(),
-        nextStep: answers.nextStep.trim(),
+        signal: answers.signal.trim() || language.skippedAnswers.signal,
+        care: answers.care.trim() || language.skippedAnswers.care,
+        nextStep: answers.nextStep.trim() || language.skippedAnswers.nextStep,
       };
       saveLocalPracticeMessage(payload);
       setCompleted(payload);
@@ -351,8 +423,16 @@ export default function LabPage() {
     setCompleted(null);
     setPracticeKey(null);
     setArrivalKey(null);
+    setArrivalSkipped(false);
     setStep(0);
     setAnswers({ signal: "", care: "", nextStep: "" });
+    setSelectedOptions({ signal: null, care: null, nextStep: null });
+  }
+
+  function skipArrival() {
+    setArrivalKey("unclear");
+    setArrivalSkipped(true);
+    setStep(1);
   }
 
   return (
@@ -445,13 +525,24 @@ export default function LabPage() {
                 <Link href="/meu-universo" className="inline-flex items-center gap-2 rounded-full border border-[#bda77f] px-5 py-3 text-sm font-semibold text-[#5c4635] hover:bg-[#f4eadb]">{language.universeCta}</Link>
                 <button type="button" onClick={reset} className="inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-[#8a6b3f] hover:bg-[#f4eadb]"><RotateCcw size={16} />{language.restart}</button>
               </div>
+              <div className="mt-10 rounded-2xl border border-[#9db8a4] bg-[#f1f5ed] p-5 sm:p-6">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#48634f]">{language.continuityEyebrow}</p>
+                <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="brand-serif text-2xl font-semibold text-[#2b211c]">{language.continuityTitle}</h3>
+                  <p className="text-sm font-semibold text-[#405344]">{circlePrice}/{language.monthly}</p>
+                </div>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#526357]">{language.continuityBody}</p>
+                <Link href={`/?product=circulo_do_universo&currency=${currency}&resume=checkout#produtos`} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#315d56] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#264b45]">
+                  {language.continuityCta}<ArrowRight size={16} />
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="grid gap-12 lg:grid-cols-[0.75fr_1.25fr] lg:gap-16">
              <div>
-                <p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#8a6b3f]">{practiceKey ? language.arrivalEyebrow : language.choosePractice}</p>
-                <h2 className="brand-serif mt-4 text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl">{practiceKey ? language.arrivalTitle : language.choosePractice}</h2>
-                <p className="mt-4 text-sm leading-6 text-[#6f615a]">{practiceKey ? language.arrivalSubtitle : language.choosePracticeHint}</p>
+                <p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#8a6b3f]">{practiceKey ? arrivalSkipped && step > 0 ? language.arrivalSkippedEyebrow : language.arrivalEyebrow : language.choosePractice}</p>
+                <h2 className="brand-serif mt-4 text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl">{practiceKey ? arrivalSkipped && step > 0 ? language.arrivalSkippedTitle : language.arrivalTitle : language.choosePractice}</h2>
+                <p className="mt-4 text-sm leading-6 text-[#6f615a]">{practiceKey ? arrivalSkipped && step > 0 ? language.arrivalSkippedSubtitle : language.arrivalSubtitle : language.choosePracticeHint}</p>
                {continuity.latest ? (
                   <div className="mt-8 rounded-2xl border border-[#d8cfb9] bg-[#f3f5ec] p-4">
                     <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#59705a]">{language.lastPractice}</p>
@@ -470,7 +561,7 @@ export default function LabPage() {
               <div>
                 <div className="mb-6 flex items-center justify-between gap-4">
                   <p className="text-xs font-semibold text-[#8a6b3f]">{practiceKey ? `${language.step} ${step + 1} ${language.of} 4` : language.choosePractice}</p>
-                  <div className="flex gap-1.5" aria-label={`${language.step} ${step + 1} ${language.of} 4`}>
+                  <div className="flex gap-1.5" role="progressbar" aria-label={`${language.step} ${step + 1} ${language.of} 4`} aria-valuemin={1} aria-valuemax={4} aria-valuenow={step + 1}>
                     {[0, 1, 2, 3].map((item) => <span key={item} className={`h-1.5 w-10 rounded-full sm:w-14 ${practiceKey && item <= step ? "bg-[#2b211c]" : "bg-[#e5d8c6]"}`} aria-hidden="true" />)}
                   </div>
                 </div>
@@ -490,13 +581,14 @@ export default function LabPage() {
                     })}
                   </div>
                 ) : step === 0 ? (
+                  <>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {LAB_ARRIVAL_KEYS.map((key) => {
                       const Icon = arrivalIcons[key];
                       const item = language.arrivals[key];
                       const selected = arrivalKey === key;
                       return (
-                        <button key={key} type="button" aria-pressed={selected} onClick={() => setArrivalKey(key)} className={`group rounded-2xl border p-5 text-left transition ${selected ? "border-[#8a6b3f] bg-[#f5e8cf] shadow-[0_14px_28px_rgba(138,107,63,0.12)]" : "border-[#e4d3ba] bg-[#fffdf8] hover:-translate-y-0.5 hover:border-[#bda77f]"}`}>
+                        <button key={key} type="button" aria-pressed={selected} onClick={() => { setArrivalKey(key); setArrivalSkipped(false); }} className={`group rounded-2xl border p-5 text-left transition ${selected ? "border-[#8a6b3f] bg-[#f5e8cf] shadow-[0_14px_28px_rgba(138,107,63,0.12)]" : "border-[#e4d3ba] bg-[#fffdf8] hover:-translate-y-0.5 hover:border-[#bda77f]"}`}>
                           <span className={`mb-5 inline-flex rounded-full p-2 ${selected ? "bg-[#2b211c] text-[#f4d58d]" : "bg-[#f2e8d8] text-[#8a6b3f]"}`}><Icon size={18} /></span>
                           <span className="block text-base font-semibold text-[#332720]">{item.title}</span>
                           <span className="mt-2 block text-sm leading-5 text-[#6f615a]">{item.text}</span>
@@ -504,21 +596,41 @@ export default function LabPage() {
                       );
                     })}
                   </div>
+                  <button type="button" onClick={skipArrival} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[#bda77f] px-4 py-2.5 text-sm font-semibold text-[#5c4635] transition hover:bg-[#f4eadb]">
+                    {language.startWithoutChoosing}
+                  </button>
+                  </>
                 ) : (
                   <div className="rounded-2xl border border-[#e4d3ba] bg-[#fffdf8] p-5 sm:p-7">
                     <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#8a6b3f]">{language.step} {step}</p>
                     <h3 className="brand-serif mt-4 text-3xl font-semibold leading-tight text-[#332720] sm:text-4xl">{prompt?.label}</h3>
                     <p className="mt-3 text-sm leading-6 text-[#6f615a]">{prompt?.helper}</p>
+                    <p className="mt-5 text-xs font-semibold text-[#8a6b3f]">{language.quickAnswerHint}</p>
+                    {activeAnswerKey ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {language.answerOptions[activeAnswerKey].map((option) => {
+                          const selected = answers[activeAnswerKey] === option;
+                          return (
+                            <button key={option} type="button" aria-pressed={selected} onClick={() => selectQuickAnswer(option)} className={`min-h-11 rounded-full border px-4 py-2 text-left text-sm font-medium transition ${selected ? "border-[#8a6b3f] bg-[#f5e8cf] text-[#332720]" : "border-[#d8c7ad] bg-[#fffaf2] text-[#5c4635] hover:border-[#8a6b3f] hover:bg-[#f8f0e3]"}`}>
+                              {option}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
                     <label htmlFor={`lab-${activeAnswerKey}`} className="sr-only">{prompt?.label}</label>
-                    <textarea id={`lab-${activeAnswerKey}`} value={activeAnswerKey ? answers[activeAnswerKey] : ""} onChange={(event) => updateAnswer(event.target.value)} rows={6} maxLength={800} autoFocus className="mt-6 min-h-36 w-full resize-y rounded-xl border border-[#d8c7ad] bg-[#fffaf2] px-4 py-3 text-base leading-7 text-[#332720] outline-none transition placeholder:text-[#aa998d] focus:border-[#8a6b3f] focus:ring-2 focus:ring-[#d9bb7d]/40" placeholder={locale === "en" ? "Write here..." : "Escreva aqui..."} />
-                    <p className="mt-2 text-right text-xs text-[#927f70]">{activeAnswerKey ? answers[activeAnswerKey].length : 0}/800</p>
+                    <textarea id={`lab-${activeAnswerKey}`} value={activeAnswerKey && selectedOptions[activeAnswerKey] ? "" : activeAnswerKey ? answers[activeAnswerKey] : ""} onChange={(event) => updateAnswer(event.target.value)} rows={3} maxLength={800} className="mt-5 min-h-24 w-full resize-y rounded-xl border border-[#d8c7ad] bg-[#fffaf2] px-4 py-3 text-base leading-7 text-[#332720] outline-none transition placeholder:text-[#aa998d] focus:border-[#8a6b3f] focus:ring-2 focus:ring-[#d9bb7d]/40" placeholder={language.writeOptional} />
+                    <p className="mt-2 text-right text-xs text-[#927f70]">{activeAnswerKey && !selectedOptions[activeAnswerKey] ? answers[activeAnswerKey].length : 0}/800</p>
                   </div>
                 )}
 
-                {selectedArrival && step > 0 ? <p className="mt-4 text-sm text-[#6f615a]"><span className="font-semibold text-[#8a6b3f]">{language.arrivalLabel}: </span>{selectedArrival.title}</p> : null}
+                {selectedArrival && !arrivalSkipped && step > 0 ? <p className="mt-4 text-sm text-[#6f615a]"><span className="font-semibold text-[#8a6b3f]">{language.arrivalLabel}: </span>{selectedArrival.title}</p> : null}
                 {practiceKey ? <div className="mt-6 flex flex-wrap justify-between gap-3">
                  <button type="button" onClick={() => setStep((current) => (current > 0 ? (current - 1) as 0 | 1 | 2 | 3 : 0))} disabled={step === 0 || saving} className="inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-[#8a6b3f] disabled:cursor-not-allowed disabled:opacity-35 hover:bg-[#f4eadb]"><ArrowLeft size={16} />{language.back}</button>
-                 <button type="button" onClick={advance} disabled={!canAdvance || saving} className="inline-flex items-center gap-2 rounded-full bg-[#2b211c] px-5 py-3 text-sm font-semibold text-[#fff8eb] transition hover:bg-[#45342a] disabled:cursor-not-allowed disabled:opacity-40">{saving ? language.saving : step === 3 ? language.finish : language.next}<ArrowRight size={16} /></button>
+                 <div className="flex flex-wrap justify-end gap-2">
+                   {step > 0 ? <button type="button" onClick={() => advance(true)} disabled={saving} className="inline-flex min-h-11 items-center rounded-full px-4 py-3 text-sm font-semibold text-[#8a6b3f] transition hover:bg-[#f4eadb] disabled:opacity-50">{step === 3 ? language.skipFinalAnswer : language.skipAnswer}</button> : null}
+                   <button type="button" onClick={() => advance()} disabled={!canAdvance || saving} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#2b211c] px-5 py-3 text-sm font-semibold text-[#fff8eb] transition hover:bg-[#45342a] disabled:cursor-not-allowed disabled:opacity-40">{saving ? language.saving : step === 3 ? language.finish : language.next}<ArrowRight size={16} /></button>
+                 </div>
                 </div> : null}
               </div>
             </div>
