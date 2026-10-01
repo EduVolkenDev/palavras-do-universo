@@ -325,3 +325,50 @@ test("voucher invitations validate delivery and keep a recovery path", async () 
   assert.match(admin, /Idioma do e-mail/);
   assert.match(admin, /value="pt-BR"/);
 });
+
+test("purchase entitlement grants are atomic and idempotent per checkout session", async () => {
+  const fulfillment = await source("src/lib/product/fulfillment.ts");
+  const migration = await source(
+    "supabase/migrations/20260926070000_purchase_entitlement_race_fix.sql"
+  );
+
+  // The app must never read-then-write purchase entitlements: grants go
+  // through the transactional RPC, which serializes concurrent
+  // webhook x confirm executions.
+  assert.match(fulfillment, /\.rpc\("grant_purchase_entitlement"/);
+  assert.match(fulfillment, /grantPurchaseEntitlements/);
+
+  // Structural guarantee in the database.
+  assert.match(migration, /create unique index if not exists user_entitlements_purchase_unique/);
+  assert.match(
+    migration,
+    /on public\.user_entitlements \(user_id, product_key, source\)\s+where source = 'purchase'/
+  );
+  assert.match(migration, /create or replace function public\.grant_purchase_entitlement/);
+  assert.match(migration, /for update/);
+  assert.match(migration, /exception when unique_violation/);
+  assert.match(migration, /checkout_session_id/);
+
+  // Audit trail: superseded sessions are appended to metadata.purchase_history
+  // as an ARRAY element. A bare jsonb_build_object on the RHS of || would
+  // corrupt the history shape, so the contract pins jsonb_build_array.
+  assert.match(migration, /purchase_history/);
+  assert.match(migration, /jsonb_build_array\(\s*jsonb_build_object\(/);
+  assert.match(migration, /jsonb_typeof\(v_old_metadata -> 'purchase_history'\) = 'array'/);
+
+  // Fail-closed: the RPC's idempotency contract requires a session id.
+  assert.match(migration, /checkout_session_id is required/);
+
+  // The index is intentionally partial: voucher ('admin') grants legitimately
+  // hold several rows per (user_id, product_key).
+  assert.doesNotMatch(migration, /where source in \('purchase', 'subscription'\)/);
+});
+
+test("voucher redemption survives the webhook x confirm race without double counting", async () => {
+  const service = await source("src/lib/vouchers/service.ts");
+
+  // The unique index on voucher_redemptions(checkout_session_id) is the
+  // mutual exclusion; the loser must not increment voucher usage twice.
+  assert.match(service, /insertError\.code === "23505"/);
+  assert.match(service, /if \(raced\?\.status === "redeemed"\) return;/);
+});
