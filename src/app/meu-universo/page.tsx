@@ -2071,8 +2071,18 @@ export default function MeuUniversoPage() {
         {authChecked ? (
           <section className="mt-8 overflow-hidden rounded-[28px] border border-[#d8c3a6] bg-[#fffaf2] shadow-[0_28px_90px_rgba(80,57,34,0.09)]">
             <div className="grid gap-0 lg:grid-cols-[0.86fr_1.14fr]">
-              <div className="relative overflow-hidden bg-[#241b18] p-6 text-[#fff7e8] sm:p-7">
-                <Image src={PDU_ASSETS.symbolic.zodiac} alt="" width={310} height={310} className="pointer-events-none absolute -bottom-20 -left-16 h-72 w-72 object-contain opacity-20" />
+              <div className="relative isolate overflow-hidden bg-[#241b18] p-6 text-[#fff7e8] sm:p-7">
+                <Image
+                  src={PDU_ASSETS.symbolic.zodiac}
+                  alt=""
+                  aria-hidden
+                  width={720}
+                  height={720}
+                  sizes="(max-width: 640px) 140vw, (max-width: 1024px) 120vw, 44vw"
+                  className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-auto w-[150%] max-w-none -translate-x-1/2 -translate-y-1/2 select-none object-contain opacity-[0.10] sm:w-[145%] sm:opacity-[0.12] lg:w-[135%] lg:opacity-[0.16]"
+                />
+                <div className="pointer-events-none absolute inset-0 z-[1] bg-[#241b18]/10" aria-hidden />
+                <div className="relative z-10">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
                   {t("Progressão simbólica")}
                 </p>
@@ -2117,6 +2127,7 @@ export default function MeuUniversoPage() {
                       </strong>
                     </div>
                   ))}
+                </div>
                 </div>
               </div>
 
