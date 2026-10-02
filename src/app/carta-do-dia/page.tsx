@@ -19,6 +19,7 @@ export async function generateMetadata({
     title: locale === "en" ? translations.en[title] ?? title : title,
     description:
       locale === "en" ? translations.en[description] ?? description : description,
+    alternates: { canonical: "/carta-do-dia" },
   };
 }
 

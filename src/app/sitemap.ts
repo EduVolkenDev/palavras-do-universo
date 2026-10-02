@@ -5,6 +5,7 @@ const siteUrl = "https://palavrasdouniverso.com";
 
 const publicRoutes = [
   "/",
+  "/astrologia",
   "/lab",
   "/clareza-urgente",
   "/carta-do-dia",

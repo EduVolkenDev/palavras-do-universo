@@ -154,12 +154,14 @@ export async function generateMetadata({ params }: PageParams): Promise<Metadata
     return {
       title: "Profissional não encontrado | Palavras do Universo",
       description: "O perfil solicitado não está disponível.",
+      alternates: { canonical: `/profissionais/${handle}` },
     };
   }
 
   return {
     title: `${profile.displayName} | Palavras do Universo`,
     description: profile.headline || profile.bio.slice(0, 160),
+    alternates: { canonical: `/profissionais/${profile.handle}` },
   };
 }
 

@@ -5,6 +5,7 @@ import { normalizeMarketingAttribution } from "@/lib/marketing/attribution";
 export const metadata = {
   title: "Astrologia | Palavras do Universo",
   description: "Conheça o céu diário, o pulso cósmico, o mapa natal, o seu tempo e as convergências simbólicas do Palavras do Universo.",
+  alternates: { canonical: "/astrologia" },
 };
 
 export default async function AstrologyPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import { LegalPage } from "@/components/LegalPage";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/reembolsos" },
+};
 
 export default function RefundPage() {
   return (
