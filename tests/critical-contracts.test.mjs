@@ -241,7 +241,7 @@ test("astrology placements combine planet, sign, house, degree and real aspects"
   assert.match(interpretation, /return aspects[\s\S]*\.filter/);
 });
 
-test("the real astrology map stays private and does not depend on fictional preview data", async () => {
+test("personal astrology data stays private and does not depend on fictional preview data", async () => {
   const natalRoute = await source("src/app/api/astrology/natal/route.ts");
   const experience = await source("src/components/astrology/AstrologyChartExperience.tsx");
   const chartStyles = await source("src/components/astrology/AstrologyChartExperience.module.css");
@@ -264,6 +264,7 @@ test("the astrology campaign keeps context through auth, unknown birth time, che
   const landingPage = await source("src/app/astrologia/page.tsx");
   const landing = await source("src/components/astrology/AstrologyOverview.tsx");
   const mapPage = await source("src/app/astrologia/mapa/page.tsx");
+  const mapEntry = await source("src/components/astrology/AstrologyMapEntry.tsx");
   const mapExperience = await source("src/components/astrology/AstrologyChartExperience.tsx");
   const birthProfile = await source("src/components/astrology/AstrologyBirthProfileCard.tsx");
   const natalChart = await source("src/lib/astrology/natal-chart.ts");
@@ -272,7 +273,12 @@ test("the astrology campaign keeps context through auth, unknown birth time, che
   assert.doesNotMatch(landingPage, /product === "mapa_astral"/);
   assert.match(landing, /appendMarketingAttribution\(mapQuery, attribution\)/);
   assert.match(landing, /formatProductPrice\("mapa_astral"/);
-  assert.match(mapPage, /buildLoginPath\(mapPath\)/);
+  assert.match(mapPage, /if \(!user\) return <AstrologyMapEntry mapPath=\{mapPath\} \/>/);
+  assert.doesNotMatch(mapPage, /redirect\(buildLoginPath/);
+  assert.match(mapEntry, /buildLoginPath\(mapPath, \{ lang: locale \}\)/);
+  assert.match(mapEntry, /Start with the free layer|Começar pela camada gratuita/);
+  assert.match(mapEntry, /only when you choose to prepare your personal map|só é necessária quando você decidir preparar seu mapa pessoal/);
+  assert.match(mapEntry, /formatProductPrice\("mapa_astral", currency\)/);
   assert.match(mapExperience, /\/api\/checkout\/confirm/);
   assert.match(mapExperience, /returnTo:/);
   assert.match(mapExperience, /normalizeMarketingAttribution/);
