@@ -139,8 +139,8 @@ try {
         const toggleLabel = targetLocale === "en" ? "EN" : "PT";
         const expectedHeading =
           targetLocale === "en"
-            ? "When the noise gets loud, return to your centre."
-            : "Quando o ruído aperta, volte ao seu eixo.";
+            ? "For the question that keeps coming back."
+            : "Para a pergunta que continua voltando.";
 
         await page.getByRole("button", { name: toggleLabel, exact: true }).click();
         await page.waitForFunction(

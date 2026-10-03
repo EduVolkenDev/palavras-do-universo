@@ -81,6 +81,20 @@ const allowedLiteralValues = new Set([
   "CVV",
 ]);
 
+const technicalNatalBodyValues = new Set([
+  "Sun",
+  "Moon",
+  "Mercury",
+  "Venus",
+  "Mars",
+  "Jupiter",
+  "Saturn",
+  "Uranus",
+  "Neptune",
+  "Pluto",
+  "Ascendant",
+]);
+
 const reports = [];
 
 function report(kind, file, node, message) {
@@ -323,6 +337,7 @@ function auditFile(file) {
         !isInLocaleConditional(node.initializer) &&
         !isInExplicitLocaleCopy(node.initializer) &&
         !isInTechnicalNatalBodyDefinition(node.initializer) &&
+        !technicalNatalBodyValues.has(value) &&
         !hasTranslation(value)
       ) {
         report("missing-catalog-key", file, node.initializer, `Translatable property "${key}" has no EN translation: "${normalizeText(value)}"`);

@@ -8,6 +8,7 @@ import { useI18n } from "@/components/I18nProvider";
 import { recordSiteEvent } from "@/lib/client/siteEvents";
 import { appendMarketingAttribution, type MarketingAttribution } from "@/lib/marketing/attribution";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
+import { ASTROLOGY_VISUALS } from "@/lib/astrology/visual-assets";
 import { formatProductPrice } from "@/lib/product/pricing";
 import { useProductCurrency } from "@/lib/product/useProductCurrency";
 import styles from "./AstrologyOverview.module.css";
@@ -133,6 +134,7 @@ export function AstrologyOverview({ attribution = {} }: { attribution?: Marketin
             </div>
 
             <div className="relative min-h-[28rem] overflow-hidden rounded-[36px] border border-[#f4d58d]/25 bg-[#110d1e]/70 p-5 shadow-[0_32px_100px_rgba(0,0,0,0.28)] backdrop-blur-sm sm:min-h-[36rem] sm:p-8">
+              <Image src={ASTROLOGY_VISUALS.overview.hero} alt="" fill sizes="(max-width: 1024px) 100vw, 48vw" className="object-cover opacity-45 mix-blend-screen" aria-hidden="true" />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(244,213,141,0.2),transparent_28%),linear-gradient(135deg,rgba(38,24,64,0.28),rgba(11,8,20,0.8))]" />
               <div className="relative flex min-h-[26rem] items-center justify-center sm:min-h-[34rem]">
                 <span className="absolute left-0 top-0 rounded-full border border-[#f4d58d]/30 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{isEnglish ? "A universe in motion" : "Um universo em movimento"}</span>
@@ -203,7 +205,7 @@ export function AstrologyOverview({ attribution = {} }: { attribution?: Marketin
           </div>
 
           <div className="mt-8 grid gap-6 overflow-hidden rounded-[32px] bg-[#241b18] p-6 text-[#fff7e8] sm:p-8 lg:grid-cols-[0.7fr_1.3fr] lg:items-center lg:p-10">
-            <div className="relative min-h-[15rem] overflow-hidden rounded-2xl bg-[#171225]"><Image src={PDU_ASSETS.astrology.moonPortal} alt="" fill sizes="(max-width: 1024px) 100vw, 28rem" className="object-cover opacity-90 transition duration-700 hover:scale-105" /><div className="absolute inset-0 bg-gradient-to-t from-[#0d0a17]/80 via-transparent to-transparent" /></div>
+            <div className="relative min-h-[18rem] overflow-hidden rounded-2xl bg-[#171225]"><Image src={ASTROLOGY_VISUALS.overview.navigation} alt="" fill sizes="(max-width: 1024px) 100vw, 28rem" className="object-contain p-4 opacity-90 transition duration-700 hover:scale-105" /><div className="absolute inset-0 bg-gradient-to-t from-[#0d0a17]/80 via-transparent to-transparent" /></div>
             <div className="max-w-2xl">
               <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]"><BookOpen size={15} /> {isEnglish ? "The next layer" : "A próxima camada"}</p>
               <h3 className="brand-serif mt-4 text-3xl font-semibold sm:text-4xl">{isEnglish ? "When your sky meets your symbols." : "Quando o seu céu encontra os seus símbolos."}</h3>

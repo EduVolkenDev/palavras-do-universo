@@ -13,6 +13,15 @@ export function dailyReadingCacheKey(input: DailyReadingInput) {
     timezone: input.sky.timezone,
     locale: input.locale,
     natal: { positions: input.chart.positions, ascendant: input.chart.ascendant, precision: input.chart.timePrecision },
+    context: input.userContext ? {
+      profile: input.userContext.readingProfile,
+      journey: input.userContext.journey,
+      activeReading: input.userContext.activeReading ? {
+        question: input.userContext.activeReading.question,
+        theme: input.userContext.activeReading.theme,
+        cards: input.userContext.activeReading.cards.map((card) => ({ name: card.name, position: card.position, keyword: card.keyword })),
+      } : null,
+    } : null,
   })).digest("hex");
 }
 

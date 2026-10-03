@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { ArrowRight, Clock3, RefreshCw, Sparkles } from "lucide-react";
+import Image from "next/image";
 import type { DailySky, DailyTone, DailyTransit } from "@/lib/astrology/daily-sky";
 import { getAspectInterpretation, getBodyInterpretation, getSignInterpretation, type AstrologyLocale } from "@/lib/astrology/interpretations";
+import { ASTROLOGY_VISUALS, createDailyTransitArtworkPlan, dailyTransitArtworkKey } from "@/lib/astrology/visual-assets";
 import { AstrologyDailyLume } from "./AstrologyDailyLume";
 
 const toneOrder: DailyTone[] = ["supportive", "attention", "intensified"];
@@ -124,10 +126,13 @@ export function AstrologyDailySky({
   }, [mapAccessLevel]);
 
   const circleAccess = sky?.access === "circle";
+  const transitArtworkPlan = sky ? createDailyTransitArtworkPlan(sky.transits) : null;
   return (
     <section className="mt-8 overflow-hidden rounded-[30px] border border-[#cdb898] bg-[#fffaf2] shadow-[0_18px_52px_rgba(80,57,34,0.08)]" aria-labelledby="daily-sky-title">
-      <div className="bg-[#241b18] px-6 py-7 text-[#fff7e8] sm:px-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="relative isolate overflow-hidden bg-[#241b18] px-6 py-8 text-[#fff7e8] sm:px-8 sm:py-10">
+        <Image src={ASTROLOGY_VISUALS.dailySky.hero} alt="" fill sizes="(max-width: 1024px) 100vw, 72rem" className="object-cover object-[72%_50%] opacity-95" aria-hidden="true" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(36,27,24,0.98)_0%,rgba(36,27,24,0.88)_42%,rgba(36,27,24,0.16)_68%,rgba(36,27,24,0.02)_100%)]" aria-hidden="true" />
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]"><Sparkles size={15} aria-hidden="true" />{isEnglish ? "The moving sky" : "O céu em movimento"}</p>
             <h2 id="daily-sky-title" className="brand-serif mt-3 text-3xl font-semibold sm:text-4xl">{isEnglish ? "Your sky today" : "Seu céu de hoje"}</h2>
@@ -142,18 +147,42 @@ export function AstrologyDailySky({
         {error ? <p role="status" className="mb-5 rounded-xl border border-[#d9aaa8] bg-[#fff1f0] p-4 text-sm text-[#7b3330]">{isEnglish ? "Today's sky could not be refreshed. Try reopening the page shortly." : "Não foi possível atualizar o céu de hoje. Tente abrir a página novamente em instantes."}</p> : null}
         {sky ? (
           <>
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#8a6b3f]">{isEnglish ? "Where the planets are now" : "Onde estão os planetas agora"}</p>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-              {sky.positions.map((position) => (
-                <div key={position.body} className="rounded-2xl border border-[#e6d8c3] bg-white/75 px-4 py-3">
-                  <p className="text-xs font-semibold text-[#806c5d]">{getBodyInterpretation(position.body, locale).label}</p>
-                  <p className="mt-1 text-sm font-semibold text-[#332720]">{position.degreesInSign.toFixed(1)}° {getSignInterpretation(position.sign, locale).label}</p>
+            <section className="grid gap-5 lg:grid-cols-[0.72fr_1.28fr] lg:items-stretch" aria-labelledby="current-positions-title">
+              <div className="relative min-h-[18rem] overflow-hidden rounded-[24px] bg-[#e9ddcb]">
+                <Image src={ASTROLOGY_VISUALS.dailySky.positionsIntro} alt="" fill sizes="(max-width: 1024px) 100vw, 28rem" className="object-contain p-4" aria-hidden="true" />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(36,27,24,0.04),rgba(36,27,24,0.58))]" aria-hidden="true" />
+                <p className="absolute bottom-5 left-5 max-w-[14rem] text-sm leading-6 text-[#fff7e8]">{isEnglish ? "A live snapshot gives the sky a time, a place, and a changing relationship to your chart." : "Um retrato ao vivo dá ao céu um tempo, um lugar e uma relação em movimento com o seu mapa."}</p>
+              </div>
+              <div className="rounded-[24px] border border-[#e6d8c3] bg-white/45 p-5 sm:p-6">
+                <p id="current-positions-title" className="text-xs font-semibold uppercase tracking-[0.15em] text-[#8a6b3f]">{isEnglish ? "Where the planets are now" : "Onde estão os planetas agora"}</p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {sky.positions.map((position) => (
+                    <div key={position.body} className="relative min-h-[8.5rem] overflow-hidden rounded-2xl border border-[#e6d8c3] bg-[#241b18]">
+                      <Image src={ASTROLOGY_VISUALS.dailySky.positionByBody[position.body]} alt="" fill sizes="(max-width: 640px) 50vw, 18vw" className="object-contain p-2" aria-hidden="true" />
+                      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(36,27,24,0.86)_0%,rgba(36,27,24,0.62)_42%,rgba(36,27,24,0.18)_74%,rgba(36,27,24,0.08)_100%)]" aria-hidden="true" />
+                      <div className="relative p-4"><p className="text-xs font-semibold text-[#f2dfbd]">{getBodyInterpretation(position.body, locale).label}</p>
+                      <p className="mt-1 text-sm font-semibold text-[#fffaf2]">{position.degreesInSign.toFixed(1)}° {getSignInterpretation(position.sign, locale).label}</p></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3" aria-label={isEnglish ? "Ways to read the current sky" : "Formas de ler o céu atual"}>
+              {ASTROLOGY_VISUALS.dailySky.positionExplainers.map((artwork, index) => (
+                <div key={artwork} className="relative min-h-36 overflow-hidden rounded-2xl border border-[#e6d8c3] bg-[#f8efe2]">
+                  <Image src={artwork} alt="" fill sizes="(max-width: 640px) 100vw, 25vw" className="object-contain p-3" aria-hidden="true" />
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(36,27,24,0.66))]" aria-hidden="true" />
+                  <p className="absolute bottom-3 left-3 right-3 text-xs font-semibold leading-5 text-[#fff7e8]">{[
+                    isEnglish ? "Movement, not a fixed forecast" : "Movimento, não previsão fixa",
+                    isEnglish ? "The collective sky in context" : "O céu coletivo em contexto",
+                    isEnglish ? "A rhythm that keeps changing" : "Um ritmo que continua mudando",
+                  ][index]}</p>
                 </div>
               ))}
             </div>
             {circleAccess ? (
               <div className="mt-8">
-                <AstrologyDailyLume sky={sky} locale={locale} />
+                <AstrologyDailyLume sky={sky} locale={locale} artworkPlan={transitArtworkPlan!} />
                 <div className="mt-8 flex flex-wrap items-baseline justify-between gap-2">
                   <h3 className="brand-serif text-2xl font-semibold text-[#332720]">{isEnglish ? "How today's sky meets your map" : "Como o céu de hoje encontra seu mapa"}</h3>
                   <p className="text-xs text-[#806c5d]">{isEnglish ? "Major aspects within 2°; Moon within 3°" : "Aspectos principais até 2°; Lua até 3°"}</p>
@@ -161,19 +190,29 @@ export function AstrologyDailySky({
                 {sky.transits.length ? toneOrder.map((tone) => {
                   const items = sky.transits.filter((transit) => transit.tone === tone);
                   if (!items.length) return null;
-                  return <div key={tone} className="mt-6">
-                    <h4 className="text-sm font-semibold text-[#493527]">{toneLabel(tone, locale)}</h4>
+                  return <section key={tone} className="mt-8" aria-labelledby={`transit-tone-${tone}`}>
+                    <div className={`grid overflow-hidden rounded-[24px] border ${toneStyles[tone]} lg:grid-cols-[minmax(0,1.15fr)_minmax(19rem,0.85fr)]`}>
+                      <div className="p-5 sm:p-6">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">{isEnglish ? "A symbolic relationship" : "Uma relação simbólica"}</p>
+                        <h4 id={`transit-tone-${tone}`} className="brand-serif mt-2 text-3xl font-semibold text-[#332720]">{toneLabel(tone, locale)}</h4>
+                        <p className="mt-2 text-sm leading-6 text-[#55473e]">{isEnglish ? "Use this as context for attention and choice, never as a prediction of what must happen." : "Use isto como contexto para atenção e escolha, nunca como previsão do que precisa acontecer."}</p>
+                      </div>
+                      <div className="relative min-h-[14rem] overflow-hidden border-t border-current/10 bg-[#e7dac6] lg:min-h-full lg:border-l lg:border-t-0"><Image src={transitArtworkPlan!.headerByTone[tone]} alt="" fill sizes="(max-width: 1024px) 100vw, 32rem" className="object-contain p-5" aria-hidden="true" /></div>
+                    </div>
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
                       {items.map((transit) => {
                         const text = transitText(transit, locale);
-                        return <article key={`${transit.transitBody}-${transit.type}-${transit.natalBody}`} className={`rounded-2xl border p-4 ${toneStyles[tone]}`}>
-                          <div className="flex flex-wrap items-start justify-between gap-2"><h5 className="font-semibold text-[#332720]">{text.title}</h5><span className="text-xs text-[#806c5d]">{transit.orb.toFixed(1)}° {isEnglish ? "orb" : "orbe"}</span></div>
-                          <p className="mt-2 text-xs font-medium text-[#806c5d]">{text.detail}</p>
-                          <p className="mt-2 text-sm leading-6 text-[#55473e]">{text.description}</p>
+                        return <article key={`${transit.transitBody}-${transit.type}-${transit.natalBody}`} className={`grid overflow-hidden rounded-2xl border ${toneStyles[tone]} md:grid-cols-[minmax(0,1.2fr)_minmax(10rem,0.8fr)]`}>
+                          <div className="p-4 sm:p-5">
+                            <div className="flex flex-wrap items-start justify-between gap-2"><h5 className="font-semibold text-[#332720]">{text.title}</h5><span className="text-xs text-[#806c5d]">{transit.orb.toFixed(1)}° {isEnglish ? "orb" : "orbe"}</span></div>
+                            <p className="mt-2 text-xs font-medium text-[#806c5d]">{text.detail}</p>
+                            <p className="mt-2 text-sm leading-6 text-[#55473e]">{text.description}</p>
+                          </div>
+                          <div className="relative min-h-[11rem] overflow-hidden border-t border-current/10 bg-[#e7dac6] md:min-h-full md:border-l md:border-t-0"><Image src={transitArtworkPlan!.dailyCardByTransit[dailyTransitArtworkKey(transit)]} alt="" fill sizes="(max-width: 767px) 100vw, 16rem" className="object-contain p-3" aria-hidden="true" /></div>
                         </article>;
                       })}
                     </div>
-                  </div>;
+                  </section>;
                 }) : <p className="mt-4 rounded-2xl border border-[#e6d8c3] bg-white/70 p-4 text-sm leading-6 text-[#6f615a]">{isEnglish ? "No close major transit meets your birth chart at this moment. That is not a negative reading; the planets still move, and this view refreshes as they do." : "Nenhum trânsito principal está próximo do seu mapa natal neste momento. Isso não é uma leitura negativa; os planetas continuam se movendo, e esta visão se atualiza com eles."}</p>}
               </div>
             ) : (

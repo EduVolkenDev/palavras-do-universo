@@ -1,8 +1,9 @@
 /**
  * Canonical visual inventory for the Palavras do Universo experience.
  *
- * Keep every referenced visual as a flat `/assets/<file>` path. Do not add
- * nested asset folders unless the whole inventory policy changes.
+ * Keep every referenced visual as a semantic `/assets/<file>` path. Grouped
+ * collections may live in a nested folder when they ship with a manifest that
+ * explains their page and component roles.
  */
 export const PDU_ASSETS = {
   brand: {
@@ -72,6 +73,10 @@ export const PDU_ASSETS = {
     eduReadingDigital: "/assets/edu-reading-digital.webp",
   },
   astrology: {
+    transits: {
+      root: "/assets/astrology/transits",
+      manifest: "/assets/astrology/transits/manifest.json",
+    },
     skyAtmosphere: "/assets/astrology/sky-atmosphere.webp",
     moonPortal: "/assets/astrology/moon-portal.webp",
     orbitalMap: "/assets/astrology/sections/generated/placement-layers-transparent.webp",

@@ -1,5 +1,6 @@
 import type { DailySky, DailyTone } from "./daily-sky.ts";
 import type { NatalChart } from "./natal-chart.ts";
+import type { UserContext } from "@/lib/personalization/reading-context";
 
 export const DAILY_READING_VERSION = "lume-astrology-daily-v1";
 export const DAILY_READING_RETRY_SECONDS = 300;
@@ -14,6 +15,7 @@ export type DailyReadingInput = {
   locale: DailyReadingLocale;
   chart: NatalChart;
   sky: DailySky;
+  userContext?: UserContext;
 };
 export type SavedDailyReading = {
   content: DailyReadingContent;

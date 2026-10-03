@@ -7,6 +7,11 @@ import {
   syncStripeRefund,
   syncStripeSubscription,
 } from "@/lib/product/fulfillment";
+import {
+  isEduReadingCheckoutSession,
+  markEduReadingPaid,
+  markEduReadingPaymentRetryable,
+} from "@/lib/edu-reading-checkout";
 
 export const runtime = "nodejs";
 
@@ -173,23 +178,41 @@ export async function POST(req: Request) {
           event.data.object.mode === "subscription" ||
           ["paid", "no_payment_required"].includes(event.data.object.payment_status)
         ) {
+          if (isEduReadingCheckoutSession(event.data.object)) {
+            await markEduReadingPaid(event.data.object);
+            break;
+          }
           const result = await fulfillCheckoutSession(event.data.object);
           if (!result.ok) throw new Error(`Checkout fulfillment failed: ${result.reason}`);
         }
         break;
       }
       case "checkout.session.async_payment_succeeded": {
+        if (isEduReadingCheckoutSession(event.data.object)) {
+          await markEduReadingPaid(event.data.object);
+          break;
+        }
         const result = await fulfillCheckoutSession(event.data.object);
         if (!result.ok) throw new Error(`Async checkout fulfillment failed: ${result.reason}`);
         break;
       }
       case "checkout.session.async_payment_failed": {
+        if (isEduReadingCheckoutSession(event.data.object)) {
+          await markEduReadingPaymentRetryable(event.data.object);
+          break;
+        }
         const { error } = await getSupabaseAdmin()
           .from("purchases")
           .update({ status: "failed", updated_at: new Date().toISOString() })
           .eq("provider", "stripe")
           .eq("provider_checkout_id", event.data.object.id);
         if (error) throw new Error(`Could not mark checkout as failed: ${error.message}`);
+        break;
+      }
+      case "checkout.session.expired": {
+        if (isEduReadingCheckoutSession(event.data.object)) {
+          await markEduReadingPaymentRetryable(event.data.object);
+        }
         break;
       }
       case "charge.refunded": {
