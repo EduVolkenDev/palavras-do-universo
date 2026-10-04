@@ -1547,11 +1547,28 @@ export default function MeuUniversoPage() {
               { visual: PDU_ASSETS.astrology.mapHero, title: locale === "en" ? "See your birth map" : "Ver seu mapa astral", text: locale === "en" ? "Your birth data and personal sky live here." : "Seus dados de nascimento e céu pessoal ficam aqui.", href: "/astrologia/mapa" },
               { visual: PDU_ASSETS.surfaces.access, title: locale === "en" ? "See your access" : "Ver meus acessos", text: locale === "en" ? "Find the readings and subscriptions available to you." : "Encontre as leituras e assinaturas liberadas para você.", href: "#acessos" },
             ].map((item) => (
-              <Link key={item.title} href={item.href} className="group relative min-h-48 overflow-hidden rounded-2xl border border-[#e4d3ba] bg-white/70 p-4 transition hover:-translate-y-0.5 hover:border-[#c4a678] hover:bg-white">
-                <Image src={item.visual} alt="" width={150} height={150} className="pointer-events-none absolute -right-5 -top-5 h-28 w-28 object-contain opacity-30 transition group-hover:scale-105" />
-                <strong className="relative block max-w-[72%] text-lg text-[#332720]">{item.title}</strong>
-                <span className="relative mt-2 block max-w-[78%] text-sm leading-6 text-[#6f615a]">{item.text}</span>
-                <span className="relative mt-5 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">{locale === "en" ? "Open" : "Abrir"}<ArrowRight size={13} /></span>
+              <Link
+                key={item.title}
+                href={item.href}
+                className="group grid min-h-[15.5rem] grid-cols-[minmax(0,1.08fr)_minmax(10.5rem,0.92fr)] overflow-hidden rounded-2xl border border-[#e4d3ba] bg-white/80 transition hover:-translate-y-0.5 hover:border-[#c4a678] hover:bg-white"
+              >
+                <div className="flex min-w-0 flex-col p-5">
+                  <strong className="block text-lg text-[#332720]">{item.title}</strong>
+                  <span className="mt-2 block text-sm leading-6 text-[#6f615a]">{item.text}</span>
+                  <span className="mt-auto inline-flex items-center gap-1 pt-5 text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">
+                    {locale === "en" ? "Open" : "Abrir"}
+                    <ArrowRight size={13} />
+                  </span>
+                </div>
+                <div className="relative min-h-[15.5rem] border-l border-[#e4d3ba] bg-[radial-gradient(circle_at_50%_44%,#fffdf8_0%,#f4ead8_68%,#e9d8bb_100%)] p-2">
+                  <Image
+                    src={item.visual}
+                    alt=""
+                    fill
+                    sizes="(min-width: 768px) 18rem, 46vw"
+                    className="pointer-events-none object-contain object-center"
+                  />
+                </div>
               </Link>
             ))}
           </div>

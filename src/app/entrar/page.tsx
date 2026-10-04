@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useI18n } from "@/components/I18nProvider";
-import { buildAuthCallbackUrl, sanitizeAuthRedirect } from "@/lib/auth/redirect";
+import { DEFAULT_AUTH_REDIRECT, buildAuthCallbackUrl, sanitizeAuthRedirect } from "@/lib/auth/redirect";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   getProductCardPrice,
@@ -270,6 +270,7 @@ export default function EntrarPage() {
   const [existingAccountHint, setExistingAccountHint] = useState(false);
   const [resendState, setResendState] = useState<FormState>("idle");
   const [resendMessage, setResendMessage] = useState("");
+  const [completedRedirect, setCompletedRedirect] = useState(DEFAULT_AUTH_REDIRECT);
   const [product, setProduct] = useState<{ productKey: string; title: string; price: string; visual: string } | null>(null);
   const [readingHistoryReason, setReadingHistoryReason] = useState(false);
   const isEn = locale === "en";
@@ -318,6 +319,11 @@ export default function EntrarPage() {
   function getNextPath() {
     const requested = new URLSearchParams(window.location.search).get("next");
     return sanitizeAuthRedirect(requested);
+  }
+
+  function continueAfterAuthentication(nextPath: string) {
+    setCompletedRedirect(nextPath);
+    window.location.assign(nextPath);
   }
 
   function switchMode(nextMode: AuthMode) {
@@ -535,7 +541,7 @@ export default function EntrarPage() {
 
       setState("success");
       setMessage(locale === "en" ? "Email confirmed." : "E-mail confirmado.");
-      window.location.assign(nextPath);
+      continueAfterAuthentication(nextPath);
       return;
     }
 
@@ -556,7 +562,7 @@ export default function EntrarPage() {
 
       setState("success");
       setMessage(locale === "en" ? "Password updated." : "Senha atualizada.");
-      window.location.assign(nextPath);
+      continueAfterAuthentication(nextPath);
       return;
     }
 
@@ -591,7 +597,7 @@ export default function EntrarPage() {
       if (data.session) {
         setState("success");
         setMessage(locale === "en" ? "Account created." : "Conta criada.");
-        window.location.assign(nextPath);
+        continueAfterAuthentication(nextPath);
         return;
       }
 
@@ -657,7 +663,7 @@ export default function EntrarPage() {
 
     setState("success");
     setMessage(locale === "en" ? "Signed in." : "Entrada confirmada.");
-    window.location.assign(nextPath);
+    continueAfterAuthentication(nextPath);
   }
 
   async function handleResendConfirmation() {
@@ -1045,6 +1051,15 @@ export default function EntrarPage() {
           >
             {message}
           </p>
+        ) : null}
+
+        {state === "success" ? (
+          <a
+            href={completedRedirect}
+            className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-[#8a6b3f] bg-white px-4 py-3 text-sm font-semibold text-[#5f462f] transition hover:bg-[#f6ead6]"
+          >
+            {isEn ? "Continue to my Universe" : "Continuar para o meu Universo"}
+          </a>
         ) : null}
 
         {state === "sent" && existingAccountHint ? (
