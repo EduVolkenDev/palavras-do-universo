@@ -20,5 +20,12 @@
     "directory": "dist/client",
     "not_found_handling": "none",
     "binding": "ASSETS"
+  },
+  "vars": {
+    "BREVO_SMTP_HOST": "smtp-relay.brevo.com",
+    "BREVO_SMTP_PORT": "587",
+    "BREVO_SMTP_USER": "b0d5ba001@smtp-brevo.com",
+    "NEXT_PUBLIC_SITE_URL": "https://palavrasdouniverso.com",
+    "PDU_EMAIL_FROM": "no-reply@palavrasdouniverso.com"
   }
 }
