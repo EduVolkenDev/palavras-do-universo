@@ -10,7 +10,7 @@ import {
 import {
   isEduReadingCheckoutSession,
   markEduReadingPaid,
-  markEduReadingPaymentRetryable,
+  markEduReadingPaymentExpired,
 } from "@/lib/edu-reading-checkout";
 
 export const runtime = "nodejs";
@@ -198,7 +198,7 @@ export async function POST(req: Request) {
       }
       case "checkout.session.async_payment_failed": {
         if (isEduReadingCheckoutSession(event.data.object)) {
-          await markEduReadingPaymentRetryable(event.data.object);
+          await markEduReadingPaymentExpired(event.data.object);
           break;
         }
         const { error } = await getSupabaseAdmin()
@@ -211,7 +211,7 @@ export async function POST(req: Request) {
       }
       case "checkout.session.expired": {
         if (isEduReadingCheckoutSession(event.data.object)) {
-          await markEduReadingPaymentRetryable(event.data.object);
+          await markEduReadingPaymentExpired(event.data.object);
         }
         break;
       }

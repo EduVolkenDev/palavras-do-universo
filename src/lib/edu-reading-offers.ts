@@ -61,6 +61,16 @@ export const EDU_READING_AVAILABILITY = {
   lookaheadDays: 42,
 };
 
+// A slot remains unavailable while Checkout is open and after payment. The
+// legacy request states stay here as well so no historical manual request can
+// overlap a new paid booking during the transition.
+export const EDU_READING_BLOCKING_STATUSES = [
+  "requested",
+  "confirmed_pending_payment",
+  "payment_pending",
+  "paid",
+] as const;
+
 export type EduReadingAvailabilityDay = {
   dateKey: string;
   label: string;
@@ -73,6 +83,8 @@ export type EduReadingSlot = {
   endTime: string;
 };
 
+export type EduReadingBusySlot = EduReadingSlot;
+
 function timeToMinutes(value: string) {
   const [hours, minutes] = value.split(":").map(Number);
   return hours * 60 + minutes;
@@ -82,6 +94,10 @@ function minutesToTime(value: number) {
   const hours = Math.floor(value / 60).toString().padStart(2, "0");
   const minutes = (value % 60).toString().padStart(2, "0");
   return `${hours}:${minutes}`;
+}
+
+function normalizeTime(value: string) {
+  return /^\d{2}:\d{2}/.test(value) ? value.slice(0, 5) : value;
 }
 
 function parseDateKey(dateKey: string) {
@@ -136,6 +152,25 @@ export function getEduReadingSlot(
   };
 }
 
+export function isEduReadingSlotAvailable(
+  candidate: EduReadingSlot,
+  busySlots: readonly EduReadingBusySlot[]
+) {
+  const candidateStart = timeToMinutes(candidate.startTime);
+  const candidateEndWithBuffer =
+    timeToMinutes(candidate.endTime) + EDU_READING_AVAILABILITY.bufferMinutes;
+
+  return !busySlots.some((busy) => {
+    if (busy.dateKey !== candidate.dateKey) return false;
+
+    const busyStart = timeToMinutes(normalizeTime(busy.startTime));
+    const busyEndWithBuffer =
+      timeToMinutes(normalizeTime(busy.endTime)) + EDU_READING_AVAILABILITY.bufferMinutes;
+
+    return candidateStart < busyEndWithBuffer && candidateEndWithBuffer > busyStart;
+  });
+}
+
 export function isEduReadingOfferId(value: unknown): value is EduReadingOffer["id"] {
   return EDU_READING_OFFERS.some((offer) => offer.id === value);
 }
@@ -153,10 +188,23 @@ function londonToday(now: Date) {
   return new Date(Date.UTC(year, month - 1, day, 12));
 }
 
+function londonCurrentMinutes(now: Date) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: EDU_READING_AVAILABILITY.timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const hours = Number(parts.find((part) => part.type === "hour")?.value);
+  const minutes = Number(parts.find((part) => part.type === "minute")?.value);
+  return hours * 60 + minutes;
+}
+
 export function getUpcomingEduReadingAvailability(
   offerId: EduReadingOffer["id"],
   locale: "pt-BR" | "en",
-  now = new Date()
+  now = new Date(),
+  busySlots: readonly EduReadingBusySlot[] = []
 ): EduReadingAvailabilityDay[] {
   const slots = getEduReadingOfferSlots(offerId);
   if (!slots.length) return [];
@@ -168,6 +216,8 @@ export function getUpcomingEduReadingAvailability(
     month: "long",
   });
   const start = londonToday(now);
+  const todayKey = start.toISOString().slice(0, 10);
+  const currentMinutes = londonCurrentMinutes(now);
   const days: EduReadingAvailabilityDay[] = [];
 
   for (let offset = 0; offset < EDU_READING_AVAILABILITY.lookaheadDays && days.length < 4; offset += 1) {
@@ -176,10 +226,18 @@ export function getUpcomingEduReadingAvailability(
     const weekday = date.getUTCDay() as (typeof EDU_READING_AVAILABILITY.weekdays)[number];
     if (!EDU_READING_AVAILABILITY.weekdays.includes(weekday)) continue;
 
+    const dateKey = date.toISOString().slice(0, 10);
+    const availableSlots = slots.filter((startTime) => {
+      if (dateKey === todayKey && timeToMinutes(startTime) <= currentMinutes) return false;
+      const slot = getEduReadingSlot(offerId, dateKey, startTime);
+      return Boolean(slot && isEduReadingSlotAvailable(slot, busySlots));
+    });
+    if (!availableSlots.length) continue;
+
     days.push({
-      dateKey: date.toISOString().slice(0, 10),
+      dateKey,
       label: dateFormatter.format(date).replace(/^./, (character) => character.toUpperCase()),
-      slots,
+      slots: availableSlots,
     });
   }
 

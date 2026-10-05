@@ -3,7 +3,7 @@ import { requireApiUser } from "@/lib/auth/api";
 import { readJsonBody } from "@/lib/http/request";
 import { isOwnerAccessUser } from "@/lib/product/ownerAccess";
 import { getSupabaseAdmin, hasSupabaseConfig } from "@/lib/supabase/server";
-import { createEduReadingCheckout } from "@/lib/edu-reading-checkout";
+import { getStripe, hasStripeConfig } from "@/lib/stripe/server";
 
 const REQUEST_STATUSES = new Set([
   "requested",
@@ -78,35 +78,36 @@ export async function POST(request: Request) {
   if (!current) return NextResponse.json({ error: "Reading request not found" }, { status: 404 });
 
   if (action === "confirm") {
-    try {
-      if (current.status === "payment_pending" && current.payment_url) {
-        return NextResponse.json({ ok: true, request: current });
-      }
-      if (current.status !== "requested") {
-        return NextResponse.json({ error: "This request cannot be confirmed in its current status" }, { status: 409 });
-      }
-      const result = await createEduReadingCheckout(id, auth.user.email ?? auth.user.id);
-      const { data: updated, error: updatedError } = await supabase
-        .from("edu_reading_requests")
-        .select(REQUEST_FIELDS)
-        .eq("id", id)
-        .single();
-      if (updatedError || !updated) {
-        return NextResponse.json({ error: updatedError?.message ?? "Could not reload request" }, { status: 500 });
-      }
-      return NextResponse.json({ ok: true, request: updated, paymentUrl: result.paymentUrl });
-    } catch (caught) {
-      return NextResponse.json(
-        { error: caught instanceof Error ? caught.message : "Could not confirm reading request" },
-        { status: 409 }
-      );
-    }
+    if (current.status === "paid") return NextResponse.json({ ok: true, request: current });
+    return NextResponse.json(
+      { error: "A booking is confirmed only after Stripe reports a successful payment." },
+      { status: 409 }
+    );
   }
 
   const nextStatus = action === "decline" ? "declined" : "cancelled";
   const allowedStatuses = action === "decline"
     ? ["requested"]
     : ["requested", "confirmed_pending_payment", "payment_pending"];
+  if (action === "cancel" && current.status === "payment_pending" && current.stripe_checkout_id) {
+    if (!hasStripeConfig()) {
+      return NextResponse.json({ error: "Stripe is not configured" }, { status: 503 });
+    }
+    try {
+      const stripe = getStripe();
+      const checkout = await stripe.checkout.sessions.retrieve(current.stripe_checkout_id);
+      if (checkout.payment_status === "paid" || checkout.status === "complete") {
+        return NextResponse.json({ error: "A paid booking cannot be cancelled here." }, { status: 409 });
+      }
+      if (checkout.status === "open") await stripe.checkout.sessions.expire(checkout.id);
+    } catch (caught) {
+      return NextResponse.json(
+        { error: caught instanceof Error ? caught.message : "Could not close the Stripe Checkout." },
+        { status: 409 }
+      );
+    }
+  }
+
   const { data: updated, error: updateError } = await supabase
     .from("edu_reading_requests")
     .update({

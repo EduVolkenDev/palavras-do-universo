@@ -5,6 +5,8 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  "workers_dev": false,
+  "preview_urls": false,
   "routes": [
     {
       "pattern": "palavrasdouniverso.com/*",
@@ -24,7 +26,7 @@
   "vars": {
     "BREVO_SMTP_HOST": "smtp-relay.brevo.com",
     "BREVO_SMTP_PORT": "587",
-    "BREVO_SMTP_USER": "b0d5ba001@smtp-brevo.com",
+    "PDU_SMTP_RELAY_URL": "https://palavras-do-universo.vercel.app/api/internal/voucher-email",
     "NEXT_PUBLIC_SITE_URL": "https://palavrasdouniverso.com",
     "PDU_EMAIL_FROM": "no-reply@palavrasdouniverso.com"
   }

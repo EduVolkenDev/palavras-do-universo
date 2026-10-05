@@ -36,7 +36,9 @@ const COPY = {
       ["Conheça as possibilidades", "Conversamos sobre o formato, o valor e a disponibilidade antes de combinar o atendimento."],
       ["Combine sua leitura", "Depois de acertarmos os detalhes, confirmamos como a leitura será realizada."],
     ],
-    differenceEyebrow: "Também na plataforma",
+    differenceEyebrow: "Escolha sua experiência",
+    differenceTitle: "Uma leitura com o Edu ou no seu ritmo, na plataforma.",
+    differenceText: "As duas experiências têm propostas diferentes. Veja qual combina melhor com o que você procura hoje.",
     platform: "Na plataforma",
     platformText: "As experiências digitais do Palavras do Universo podem utilizar inteligência artificial, conforme indicado em cada experiência.",
     platformTitle: "Leitura digital",
@@ -82,7 +84,9 @@ const COPY = {
     stepsEyebrow: "How to request it",
     stepsTitle: "We begin with a simple conversation.",
     steps: [["Reach out", "Tell me you would like a reading. You do not need to share intimate details in this first contact."], ["Learn the possibilities", "We talk about format, price and availability before arranging the session."], ["Arrange your reading", "After agreeing on the details, we confirm how the reading will happen."]],
-    differenceEyebrow: "Also on the platform",
+    differenceEyebrow: "Choose your experience",
+    differenceTitle: "A reading with Edu, or one to explore at your own pace.",
+    differenceText: "Each experience has a different purpose. See which one feels right for what you are looking for today.",
     platform: "On the platform",
     platformText: "Palavras do Universo’s digital experiences may use artificial intelligence, as indicated in each experience.",
     platformTitle: "Digital reading",
@@ -196,8 +200,15 @@ export function EduReadingPage() {
         </div>
       </div>
     </section>
-    <section className="px-4 pb-8 pt-12 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">{renderExperienceCard(experienceCards[0])}</div>
+    <section className="px-4 pb-10 pt-12 sm:px-6 lg:px-8 lg:pb-14" aria-labelledby="edu-experiences-title">
+      <div className="mx-auto max-w-6xl">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8e674d]">{copy.differenceEyebrow}</p>
+        <h2 id="edu-experiences-title" className="brand-serif mt-4 max-w-3xl text-4xl font-semibold leading-tight sm:text-5xl">{copy.differenceTitle}</h2>
+        <p className="mt-4 max-w-2xl text-base leading-8 text-[#6f5d55]">{copy.differenceText}</p>
+        <div className="mt-8 grid gap-6 sm:gap-8">
+          {experienceCards.map(renderExperienceCard)}
+        </div>
+      </div>
     </section>
     <EduReadingBookingPanel />
     <section id="historia" className="scroll-mt-24 overflow-hidden bg-[#f7f0e5] px-4 py-8 sm:px-6 lg:px-8 lg:py-12" aria-label={copy.storyEyebrow}>
@@ -230,14 +241,6 @@ export function EduReadingPage() {
       const visual = visuals[index];
       return <article key={title} className="group relative isolate flex min-h-[31rem] flex-col overflow-hidden rounded-[1.75rem] border border-[#d8c3a6] bg-[#fffaf2] p-6 shadow-[0_18px_48px_rgba(91,63,35,0.08)] sm:p-7"><div className="pointer-events-none absolute inset-x-0 bottom-0 h-[62%] bg-[radial-gradient(circle_at_50%_80%,rgba(230,185,95,0.22),transparent_66%)]" aria-hidden="true" /><span className="relative text-xs font-bold tracking-[0.16em] text-[#9d753e]">0{index+1}</span><h3 className="relative mt-5 text-2xl font-semibold">{title}</h3><p className="relative mt-3 max-w-[18rem] text-sm leading-7 text-[#6f5d55]">{text}</p><div className="relative mt-auto flex min-h-[14rem] items-end justify-center pt-4"><Image src={visual.src} alt={visual.alt} width={720} height={690} sizes="(max-width: 767px) min(90vw, 28rem), 30vw" className="h-auto w-[min(25rem,118%)] max-w-none translate-y-6 transition duration-500 group-hover:-translate-y-1 group-hover:scale-[1.03]" /></div></article>;
     })}</div></div></section>
-    <section className="px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
-      <div className="mx-auto max-w-6xl">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8e674d]">{copy.differenceEyebrow}</p>
-        <div className="mt-8 grid gap-6 sm:gap-8">
-          {experienceCards.slice(1).map(renderExperienceCard)}
-        </div>
-      </div>
-    </section>
     <section className="bg-[#ede1cf] px-4 py-20 sm:px-6 lg:px-8 lg:py-28"><div className="mx-auto max-w-4xl"><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8e674d]">{copy.faqEyebrow}</p><h2 className="brand-serif mt-4 text-4xl font-semibold sm:text-5xl">{copy.faqTitle}</h2><div className="mt-10 grid gap-3">{copy.faq.map(([question,answer]) => <details key={question} className="rounded-2xl border border-[#d8c3a6] bg-[#fffaf2] p-5"><summary className="cursor-pointer font-semibold text-[#2c1f1b]">{question}</summary><p className="mt-4 text-sm leading-7 text-[#6f5d55]">{answer}</p></details>)}</div></div></section>
     <section id="contato" className="scroll-mt-24 bg-[#171225] px-4 py-20 text-[#fff7e8] sm:px-6 lg:px-8 lg:py-28"><div className="mx-auto max-w-3xl text-center"><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#f5d896]">Leitura com o Edu</p><h2 className="brand-serif mt-4 text-5xl font-semibold leading-tight sm:text-6xl">{copy.closeTitle}</h2><p className="mt-6 text-base leading-8 text-[#d8ccc0]">{copy.closeText}</p><div className="mt-8 flex justify-center"><a href="#agendar" className="inline-flex min-h-12 items-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#241b18] transition hover:bg-[#ffe3a3]">{locale === "en" ? "Start my request" : "Começar meu pedido"}<ArrowRight size={16}/></a></div></div></section>
   </main>;

@@ -111,10 +111,18 @@ const copy = {
       ready: { title: "Quero me mover com intenção", text: "A direção existe; falta transformar vontade em um gesto." },
     },
     prompts: [
-      { label: "O que está mais vivo em você agora?", helper: "Escreva sem organizar demais." },
-      { label: "O que está sob o seu cuidado hoje?", helper: "Separe o que depende da sua presença do que precisa de tempo." },
-      { label: "Qual é o menor gesto possível nas próximas 24 horas?", helper: "Algo pequeno o bastante para realmente acontecer." },
+      { label: "O que mais ocupa sua cabeça agora?", helper: "Pode responder com uma palavra, escolher uma sugestão ou seguir sem responder." },
+      { label: "O que ajudaria um pouquinho hoje?", helper: "Não precisa resolver tudo. Escolha algo simples — ou deixe em aberto." },
+      { label: "Que passo parece possível, mesmo pequeno?", helper: "Pode ser descansar, pedir ajuda ou não fazer nada por enquanto." },
     ],
+    quickChoices: [
+      ["ansiedade", "dúvida", "cansaço", "esperança"],
+      ["uma pausa", "conversar com alguém", "resolver algo simples", "ainda não sei"],
+      ["descansar", "pedir ajuda", "cuidar de uma coisa", "esperar um pouco"],
+    ],
+    optionalHint: "Você pode escrever, escolher uma sugestão ou continuar sem responder.",
+    writePlaceholder: "Se quiser, escreva uma palavra ou frase curta…",
+    answerOpen: "Você deixou esta resposta em aberto.",
     step: "Passo",
     of: "de",
     next: "Continuar",
@@ -178,10 +186,18 @@ const copy = {
       ready: { title: "I want to move with intention", text: "The direction is there; now it needs to become a gesture." },
     },
     prompts: [
-      { label: "What feels most alive in you right now?", helper: "Write without trying to organize it too much." },
-      { label: "What is in your care today?", helper: "Separate what depends on your presence from what needs time." },
-      { label: "What is the smallest possible gesture in the next 24 hours?", helper: "Something small enough to actually happen." },
+      { label: "What is taking up the most space in your mind right now?", helper: "A single word is enough. Choose a suggestion or continue without answering." },
+      { label: "What might help a little today?", helper: "You do not have to solve everything. Choose something simple—or leave it open." },
+      { label: "What step feels possible, even a small one?", helper: "It could be resting, asking for help, or doing nothing for now." },
     ],
+    quickChoices: [
+      ["anxiety", "uncertainty", "tiredness", "hope"],
+      ["a pause", "talk to someone", "one small task", "I don't know yet"],
+      ["rest", "ask for help", "care for one thing", "wait a little"],
+    ],
+    optionalHint: "Write a word, tap a suggestion, or continue without answering.",
+    writePlaceholder: "If you want, write a word or a short sentence…",
+    answerOpen: "You left this answer open.",
     step: "Step",
     of: "of",
     next: "Continue",
@@ -284,7 +300,7 @@ export default function LabPage() {
   const canAdvance = Boolean(
     step === 0
       ? practiceKey && arrivalKey
-      : activeAnswerKey && answers[activeAnswerKey].trim().length >= (step === 3 ? 4 : 3)
+      : true
   );
 
   const lastPracticeDate = useMemo(() => {
@@ -430,9 +446,9 @@ export default function LabPage() {
               <p className="mt-5 max-w-2xl text-base leading-7 text-[#6f615a]">{language.resultBody}</p>
               <div className="mt-10 grid gap-4 sm:grid-cols-3">
                 {([
-                  [language.signalLabel, completed.signal],
-                  [language.careLabel, completed.care],
-                  [language.nextStepLabel, completed.nextStep],
+                  [language.signalLabel, completed.signal || language.answerOpen],
+                  [language.careLabel, completed.care || language.answerOpen],
+                  [language.nextStepLabel, completed.nextStep || language.answerOpen],
                 ] as const).map(([label, value]) => (
                   <article key={label} className="rounded-2xl border border-[#e4d3ba] bg-[#f8f0e3] p-5">
                     <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#8a6b3f]">{label}</p>
@@ -509,8 +525,22 @@ export default function LabPage() {
                     <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#8a6b3f]">{language.step} {step}</p>
                     <h3 className="brand-serif mt-4 text-3xl font-semibold leading-tight text-[#332720] sm:text-4xl">{prompt?.label}</h3>
                     <p className="mt-3 text-sm leading-6 text-[#6f615a]">{prompt?.helper}</p>
+                    <p className="mt-4 text-xs font-semibold leading-5 text-[#8a6b3f]">{language.optionalHint}</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {language.quickChoices[step - 1].map((choice) => (
+                        <button
+                          key={choice}
+                          type="button"
+                          aria-pressed={activeAnswerKey ? answers[activeAnswerKey] === choice : false}
+                          onClick={() => updateAnswer(choice)}
+                          className={`rounded-full border px-3.5 py-2 text-sm transition ${activeAnswerKey && answers[activeAnswerKey] === choice ? "border-[#8a6b3f] bg-[#f2e4cb] text-[#3b2a1e]" : "border-[#e4d3ba] bg-[#fffaf2] text-[#6f615a] hover:border-[#bda77f] hover:bg-[#f8f0e3]"}`}
+                        >
+                          {choice}
+                        </button>
+                      ))}
+                    </div>
                     <label htmlFor={`lab-${activeAnswerKey}`} className="sr-only">{prompt?.label}</label>
-                    <textarea id={`lab-${activeAnswerKey}`} value={activeAnswerKey ? answers[activeAnswerKey] : ""} onChange={(event) => updateAnswer(event.target.value)} rows={6} maxLength={800} autoFocus className="mt-6 min-h-36 w-full resize-y rounded-xl border border-[#d8c7ad] bg-[#fffaf2] px-4 py-3 text-base leading-7 text-[#332720] outline-none transition placeholder:text-[#aa998d] focus:border-[#8a6b3f] focus:ring-2 focus:ring-[#d9bb7d]/40" placeholder={locale === "en" ? "Write here..." : "Escreva aqui..."} />
+                    <textarea id={`lab-${activeAnswerKey}`} value={activeAnswerKey ? answers[activeAnswerKey] : ""} onChange={(event) => updateAnswer(event.target.value)} rows={3} maxLength={800} className="mt-4 min-h-24 w-full resize-y rounded-xl border border-[#d8c7ad] bg-[#fffaf2] px-4 py-3 text-base leading-7 text-[#332720] outline-none transition placeholder:text-[#aa998d] focus:border-[#8a6b3f] focus:ring-2 focus:ring-[#d9bb7d]/40" placeholder={language.writePlaceholder} />
                     <p className="mt-2 text-right text-xs text-[#927f70]">{activeAnswerKey ? answers[activeAnswerKey].length : 0}/800</p>
                   </div>
                 )}

@@ -241,7 +241,7 @@ test("astrology placements combine planet, sign, house, degree and real aspects"
   assert.match(interpretation, /return aspects[\s\S]*\.filter/);
 });
 
-test("the real astrology map stays private and does not depend on fictional preview data", async () => {
+test("personal astrology data stays private and does not depend on fictional preview data", async () => {
   const natalRoute = await source("src/app/api/astrology/natal/route.ts");
   const experience = await source("src/components/astrology/AstrologyChartExperience.tsx");
   const chartStyles = await source("src/components/astrology/AstrologyChartExperience.module.css");
@@ -264,6 +264,7 @@ test("the astrology campaign keeps context through auth, unknown birth time, che
   const landingPage = await source("src/app/astrologia/page.tsx");
   const landing = await source("src/components/astrology/AstrologyOverview.tsx");
   const mapPage = await source("src/app/astrologia/mapa/page.tsx");
+  const mapEntry = await source("src/components/astrology/AstrologyMapEntry.tsx");
   const mapExperience = await source("src/components/astrology/AstrologyChartExperience.tsx");
   const birthProfile = await source("src/components/astrology/AstrologyBirthProfileCard.tsx");
   const natalChart = await source("src/lib/astrology/natal-chart.ts");
@@ -272,7 +273,12 @@ test("the astrology campaign keeps context through auth, unknown birth time, che
   assert.doesNotMatch(landingPage, /product === "mapa_astral"/);
   assert.match(landing, /appendMarketingAttribution\(mapQuery, attribution\)/);
   assert.match(landing, /formatProductPrice\("mapa_astral"/);
-  assert.match(mapPage, /buildLoginPath\(mapPath\)/);
+  assert.match(mapPage, /if \(!user\) return <AstrologyMapEntry mapPath=\{mapPath\} \/>/);
+  assert.doesNotMatch(mapPage, /redirect\(buildLoginPath/);
+  assert.match(mapEntry, /buildLoginPath\(mapPath, \{ lang: locale \}\)/);
+  assert.match(mapEntry, /Start with the free layer|Começar pela camada gratuita/);
+  assert.match(mapEntry, /only when you choose to prepare your personal map|só é necessária quando você decidir preparar seu mapa pessoal/);
+  assert.match(mapEntry, /formatProductPrice\("mapa_astral", currency\)/);
   assert.match(mapExperience, /\/api\/checkout\/confirm/);
   assert.match(mapExperience, /returnTo:/);
   assert.match(mapExperience, /normalizeMarketingAttribution/);
@@ -295,6 +301,8 @@ test("voucher invitations validate delivery and keep a recovery path", async () 
   assert.match(service, /EMAIL_PATTERN/);
   assert.match(service, /resendVoucherEmail/);
   assert.match(email, /no-reply@palavrasdouniverso\.com/);
+  assert.match(email, /const port = Number\(process\.env\.BREVO_SMTP_PORT\) \|\| SMTP_PORT/);
+  assert.match(email, /secure: port === 465/);
   assert.match(email, /MAX_SEND_ATTEMPTS/);
   assert.match(email, /MAX_SEND_ATTEMPTS = 1/);
   assert.match(email, /X-Mailin-Track-Clicks/);
@@ -324,4 +332,33 @@ test("voucher invitations validate delivery and keep a recovery path", async () 
   assert.match(service, /emailLocale/);
   assert.match(admin, /Idioma do e-mail/);
   assert.match(admin, /value="pt-BR"/);
+});
+
+test("Edu bookings hold a real London time only through secure payment", async () => {
+  const offers = await source("src/lib/edu-reading-offers.ts");
+  const availability = await source("src/app/api/edu-reading/availability/route.ts");
+  const request = await source("src/app/api/edu-reading/requests/route.ts");
+  const checkout = await source("src/lib/edu-reading-checkout.ts");
+  const webhook = await source("src/app/api/stripe/webhook/route.ts");
+  const admin = await source("src/app/api/admin/edu-reading-requests/route.ts");
+  const booking = await source("src/components/EduReadingBookingPanel.tsx");
+  const migration = await source("supabase/migrations/20260930120000_edu_reading_requests.sql");
+
+  assert.match(offers, /timezone: "Europe\/London"/);
+  assert.match(offers, /bufferMinutes: 30/);
+  assert.match(offers, /isEduReadingSlotAvailable/);
+  assert.match(availability, /checkout_expires_at/);
+  assert.match(availability, /EDU_READING_BLOCKING_STATUSES/);
+  assert.match(request, /createEduReadingCheckout\(data\.id\)/);
+  assert.match(request, /error\.code === "23P01"/);
+  assert.match(checkout, /expires_at: checkoutExpiresAt/);
+  assert.match(checkout, /idempotencyKey: `edu-reading-checkout-\$\{request\.id\}`/);
+  assert.match(checkout, /integration_identifier: createIntegrationIdentifier\(\)/);
+  assert.match(checkout, /status: "expired"/);
+  assert.match(webhook, /markEduReadingPaymentExpired/);
+  assert.match(admin, /stripe\.checkout\.sessions\.expire/);
+  assert.match(booking, /Continue to secure payment|Continuar para o pagamento seguro/);
+  assert.match(migration, /checkout_expires_at timestamptz/);
+  assert.match(migration, /exclude using gist/);
+  assert.match(migration, /interval '30 minutes'/);
 });

@@ -43,15 +43,26 @@ const securityHeaders = [
     : []),
 ];
 
+const supabaseBrowserConfig = {
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+};
+
+if (
+  isProduction &&
+  Object.values(supabaseBrowserConfig).some((value) => !value?.trim())
+) {
+  throw new Error(
+    "Production builds require NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY for browser authentication."
+  );
+}
+
 const nextConfig: NextConfig = {
   reactCompiler: true,
   // Vinext does not inline dynamic `process.env.NEXT_PUBLIC_*` lookups in
   // client bundles on Cloudflare. Keep the two intentionally public Supabase
   // values explicit so browser authentication can initialize at build time.
-  env: {
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  },
+  env: supabaseBrowserConfig,
   allowedDevOrigins: ["127.0.0.1"],
   poweredByHeader: false,
   images: {

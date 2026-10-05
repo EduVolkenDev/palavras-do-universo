@@ -60,10 +60,11 @@ function getTransporter() {
   const pass = clean(process.env.BREVO_SMTP_KEY);
   if (!user || !pass) return null;
 
+  const port = Number(process.env.BREVO_SMTP_PORT) || SMTP_PORT;
   transporter = nodemailer.createTransport({
     host: clean(process.env.BREVO_SMTP_HOST) || SMTP_HOST,
-    port: Number(process.env.BREVO_SMTP_PORT) || SMTP_PORT,
-    secure: false,
+    port,
+    secure: port === 465,
     auth: { user, pass },
     connectionTimeout: 10_000,
     greetingTimeout: 10_000,
@@ -248,7 +249,7 @@ function buildVoucherEmail(voucher: VoucherEmailInput) {
   return { subject, text, html };
 }
 
-export async function sendVoucherEmail(
+async function sendVoucherEmailViaSmtp(
   voucher: VoucherEmailInput
 ): Promise<VoucherEmailDelivery> {
   const targetEmail = clean(voucher.target_email ?? undefined).toLowerCase();
@@ -308,4 +309,83 @@ export async function sendVoucherEmail(
     error: lastError instanceof Error ? lastError.message : String(lastError),
   });
   return { status: "failed", reason: "send_failed" };
+}
+
+async function sendVoucherEmailViaRelay(
+  voucher: VoucherEmailInput,
+  relayUrl: string,
+  secret: string
+): Promise<VoucherEmailDelivery> {
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const body = JSON.stringify(voucher);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = new Uint8Array(
+    await crypto.subtle.sign(
+      "HMAC",
+      key,
+      new TextEncoder().encode(`${timestamp}.${body}`)
+    )
+  );
+  const signatureHex = Array.from(signature, (byte) => byte.toString(16).padStart(2, "0")).join("");
+
+  try {
+    const response = await fetch(relayUrl, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-pdu-timestamp": timestamp,
+        "x-pdu-signature": signatureHex,
+      },
+      body,
+      cache: "no-store",
+      signal: AbortSignal.timeout(20_000),
+    });
+    const result = (await response.json().catch(() => null)) as
+      | { delivery?: unknown }
+      | null;
+    if (response.ok && result?.delivery === "sent") return { status: "sent" };
+    if (response.ok && result?.delivery === "skipped") {
+      return {
+        status: "skipped",
+        reason: voucher.target_email ? "missing_recipient_name" : "missing_recipient",
+      };
+    }
+    throw new Error(`SMTP relay returned HTTP ${response.status}`);
+  } catch (caught) {
+    console.error("[voucher-email] SMTP relay failed", {
+      voucherId: voucher.id,
+      error: caught instanceof Error ? caught.message : String(caught),
+    });
+    return { status: "failed", reason: "send_failed" };
+  }
+}
+
+export async function sendVoucherEmail(
+  voucher: VoucherEmailInput
+): Promise<VoucherEmailDelivery> {
+  const targetEmail = clean(voucher.target_email ?? undefined).toLowerCase();
+  if (!targetEmail) return { status: "skipped", reason: "missing_recipient" };
+  if (!getRecipientName(voucher.recipient_name)) {
+    console.error("[voucher-email] recipient name is missing", { voucherId: voucher.id });
+    return { status: "skipped", reason: "missing_recipient_name" };
+  }
+
+  const relayUrl = clean(process.env.PDU_SMTP_RELAY_URL);
+  const secret = clean(process.env.BREVO_SMTP_KEY);
+  if (relayUrl && secret) {
+    return sendVoucherEmailViaRelay(voucher, relayUrl, secret);
+  }
+  return sendVoucherEmailViaSmtp(voucher);
+}
+
+export async function sendVoucherEmailDirectlyFromNode(
+  voucher: VoucherEmailInput
+): Promise<VoucherEmailDelivery> {
+  return sendVoucherEmailViaSmtp(voucher);
 }

@@ -298,26 +298,25 @@ export function AstrologyChartExperience() {
               {isEnglish ? "My Universe" : "Meu Universo"}
             </Link>
           </div>
-          <div className="mt-12 grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
-            <div>
+          <div className="mt-12 grid items-center gap-8 lg:grid-cols-[1.04fr_0.96fr] lg:gap-4">
+            <div className="relative z-10 lg:pb-8">
               <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]"><Sparkles size={15} /> {isEnglish ? "Your natal sky" : "O seu céu de nascimento"}</p>
               <h1 className="brand-serif mt-5 max-w-3xl text-5xl font-semibold leading-[0.98] sm:text-7xl">{isEnglish ? "A map for the way you are becoming." : "Um mapa para o jeito como você está se tornando."}</h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-[#d8ccc0]">{isEnglish ? "Astrology here is a symbolic language for noticing patterns, needs, talents, and the timing of your choices." : "Aqui, a astrologia é uma linguagem simbólica para reconhecer padrões, necessidades, talentos e o tempo das suas escolhas."}</p>
             </div>
-            <div className="relative mx-auto w-full max-w-[38rem]">
-              <div className="pointer-events-none absolute inset-x-[15%] top-[12%] aspect-square rounded-full bg-[#8f68bd]/20 blur-3xl" aria-hidden="true" />
-              <div className="relative aspect-square w-full overflow-hidden rounded-[34px] border border-[#f4d58d]/20 bg-[#171225] shadow-[0_24px_70px_rgba(12,8,20,0.38)]">
+            <div className="relative mx-auto min-h-[28rem] w-full max-w-[38rem] overflow-hidden sm:min-h-[32rem] lg:min-h-[38rem]">
+              <div className="pointer-events-none absolute inset-x-[8%] top-[6%] h-[74%] rounded-full bg-[radial-gradient(circle,rgba(244,213,141,0.18)_0%,rgba(112,73,165,0.16)_38%,transparent_70%)] blur-2xl" aria-hidden="true" />
+              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
                 <Image
                   src={ASTROLOGY_VISUALS.natalMap.hero[0]}
                   alt=""
                   fill
-                  sizes="(max-width: 1024px) min(92vw, 38rem), 46vw"
-                  fetchPriority="high"
-                  className="object-contain p-4 opacity-90"
+                  sizes="(max-width: 639px) 120vw, (max-width: 1023px) 92vw, 47rem"
+                  preload
+                  className="scale-[1.08] object-contain object-center drop-shadow-[0_0_54px_rgba(244,213,141,0.24)] sm:scale-[1.06] lg:scale-[1.02]"
                 />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,transparent_30%,rgba(17,13,30,0.38))]" aria-hidden="true" />
               </div>
-              <div className="relative z-10 -mt-5 rounded-[28px] border border-[#f4d58d]/30 bg-[#251d31]/85 p-6 shadow-[0_24px_60px_rgba(8,5,14,0.22)] backdrop-blur-md sm:p-7">
+              <div className="absolute inset-x-4 bottom-28 z-10 rounded-[28px] border border-[#f4d58d]/30 bg-[#2a2234]/85 p-5 shadow-[0_24px_70px_rgba(12,8,18,0.36)] backdrop-blur-xl sm:inset-x-8 sm:bottom-32 sm:p-6 lg:inset-x-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d9c49f]">{isEnglish ? "Birth place" : "Local de nascimento"}</p>
                 <p className="mt-2 text-lg text-[#fff7e8]">{chart.locationLabel}</p>
                 <p className="mt-3 text-xs leading-5 text-[#c9bec9]">{hasBirthTime ? (isEnglish ? "Calculated from your local birth time and the historical time rule for that date." : "Calculado a partir da sua hora local de nascimento e da regra histórica daquele dia.") : (isEnglish ? "Birth time was not provided. Rising sign and houses stay hidden until you add it; no time was guessed." : "O horário de nascimento não foi informado. Ascendente e casas ficam ocultos até você adicioná-lo; nenhuma hora foi inventada.")}</p>

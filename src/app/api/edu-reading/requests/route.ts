@@ -4,12 +4,16 @@ import { checkRateLimit } from "@/lib/security/rateLimit";
 import { normalizeProductCurrency, type ProductCurrency } from "@/lib/product/pricing";
 import { getSupabaseAdmin, hasSupabaseConfig } from "@/lib/supabase/server";
 import {
+  EDU_READING_BLOCKING_STATUSES,
   EDU_READING_OFFERS,
   getEduReadingSlot,
   getUpcomingEduReadingAvailability,
+  isEduReadingSlotAvailable,
   isEduReadingOfferId,
+  type EduReadingBusySlot,
   type EduReadingOffer,
 } from "@/lib/edu-reading-offers";
+import { createEduReadingCheckout } from "@/lib/edu-reading-checkout";
 
 export const runtime = "nodejs";
 
@@ -24,13 +28,6 @@ type RequestBody = {
   locale?: unknown;
 };
 
-const ACTIVE_STATUSES = [
-  "requested",
-  "confirmed_pending_payment",
-  "payment_pending",
-  "paid",
-] as const;
-
 function invalid(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
@@ -42,6 +39,17 @@ function normalizeEmail(value: unknown) {
 
 function normalizeLocale(value: unknown) {
   return String(value ?? "").trim().toLowerCase().startsWith("en") ? "en" : "pt-BR";
+}
+
+function normalizeTime(value: string) {
+  return /^\d{2}:\d{2}/.test(value) ? value.slice(0, 5) : value;
+}
+
+function unavailable() {
+  return NextResponse.json(
+    { error: "A agenda está sendo preparada. Tente novamente em alguns instantes.", code: "BOOKING_UNAVAILABLE" },
+    { status: 503 }
+  );
 }
 
 function getOffer(value: unknown): EduReadingOffer | null {
@@ -90,26 +98,38 @@ export async function POST(request: Request) {
     return invalid("Escolha uma leitura, data e horário válidos.");
   }
 
+  const now = new Date();
   const slot = getEduReadingSlot(offer.id, dateKey, startTime);
-  const visibleDay = getUpcomingEduReadingAvailability(offer.id, locale, new Date()).find(
-    (day) => day.dateKey === dateKey && day.slots.includes(startTime)
+  const visibleDay = getUpcomingEduReadingAvailability(offer.id, locale, now).find(
+    (day) => day.dateKey === dateKey && day.slots.includes(slot?.startTime ?? "")
   );
   if (!slot || !visibleDay) {
     return invalid("Esse horário não está disponível na agenda atual.", 409);
   }
 
   const supabase = getSupabaseAdmin();
-  const { data: existing, error: existingError } = await supabase
+  const { error: expireError } = await supabase
     .from("edu_reading_requests")
-    .select("id")
+    .update({ status: "expired", updated_at: now.toISOString() })
+    .eq("status", "payment_pending")
+    .lt("checkout_expires_at", now.toISOString());
+  if (expireError) return unavailable();
+
+  const { data: bookings, error: existingError } = await supabase
+    .from("edu_reading_requests")
+    .select("date_key, start_time, end_time")
     .eq("date_key", dateKey)
-    .eq("start_time", startTime)
-    .in("status", [...ACTIVE_STATUSES])
-    .maybeSingle();
+    .in("status", [...EDU_READING_BLOCKING_STATUSES]);
   if (existingError) {
-    return NextResponse.json({ error: existingError.message }, { status: 500 });
+    return unavailable();
   }
-  if (existing) {
+
+  const busySlots: EduReadingBusySlot[] = (bookings ?? []).map((booking) => ({
+    dateKey: booking.date_key,
+    startTime: normalizeTime(booking.start_time),
+    endTime: normalizeTime(booking.end_time),
+  }));
+  if (!isEduReadingSlotAvailable(slot, busySlots)) {
     return invalid("Esse horário acabou de ser solicitado por outra pessoa. Escolha outro.", 409);
   }
 
@@ -134,11 +154,29 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
-    if (error.code === "23505") {
+    if (error.code === "23505" || error.code === "23P01") {
       return invalid("Esse horário acabou de ser solicitado por outra pessoa. Escolha outro.", 409);
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return unavailable();
   }
+  if (!data) return unavailable();
 
-  return NextResponse.json({ ok: true, request: data }, { status: 201 });
+  try {
+    const checkout = await createEduReadingCheckout(data.id);
+    return NextResponse.json(
+      {
+        ok: true,
+        checkoutUrl: checkout.paymentUrl,
+        expiresAt: checkout.expiresAt,
+      },
+      { status: 201 }
+    );
+  } catch {
+    await supabase
+      .from("edu_reading_requests")
+      .update({ status: "expired", updated_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .in("status", ["requested", "payment_pending"]);
+    return unavailable();
+  }
 }
