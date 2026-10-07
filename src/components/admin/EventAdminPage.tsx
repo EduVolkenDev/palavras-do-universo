@@ -237,12 +237,12 @@ export default function EventAdminPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f0e8] px-4 py-8 text-[#241b18] sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
+    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f7f0e8] px-3 py-6 text-[#241b18] sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto w-full min-w-0 max-w-6xl">
         <header className="flex flex-col gap-5 border-b border-[#d8c8ba] pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8e674d]">Palavras do Universo · Administração</p>
-            <h1 className="brand-serif mt-2 text-4xl leading-none text-[#2c1f1b]">Eventos de estabilidade</h1>
+            <h1 className="brand-serif mt-2 break-words text-3xl leading-tight text-[#2c1f1b] sm:text-4xl sm:leading-none">Eventos de estabilidade</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6f5d55]">
               Erros de navegador, assets que não carregam e saltos bruscos de rolagem ficam reunidos aqui para investigação.
             </p>
@@ -326,14 +326,14 @@ export default function EventAdminPage({
                       {event.error_name ? <p><strong>Erro:</strong> {event.error_name}</p> : null}
                       {event.user_id || event.anonymous_id ? <p><strong>Usuário:</strong> {event.user_id || event.anonymous_id}</p> : null}
                       {event.reading_id ? <p><strong>Leitura:</strong> {event.reading_id}</p> : null}
-                      {event.stack ? <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-lg bg-[#2c211f] p-3 text-[#fff7ed]">{event.stack}</pre> : null}
-                      <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-lg bg-white p-3">{formatJson({ viewport: event.viewport, scroll: event.scroll, context: event.context })}</pre>
+                      {event.stack ? <pre className="max-h-56 max-w-full overflow-auto whitespace-pre-wrap break-words rounded-lg bg-[#2c211f] p-3 text-[#fff7ed]">{event.stack}</pre> : null}
+                      <pre className="max-h-56 max-w-full overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white p-3">{formatJson({ viewport: event.viewport, scroll: event.scroll, context: event.context })}</pre>
                       {event.user_agent ? <p><strong>Navegador:</strong> {event.user_agent}</p> : null}
                     </div>
                   </details>
                   {isExpanded ? <section className="mt-4 rounded-xl border border-[#b9d9d0] bg-[#eef8f4] p-4 text-sm leading-6 text-[#315d56]" aria-label="Análise do evento"><p><strong>Impacto:</strong> {analysis.impact}</p><p className="mt-2"><strong>Próximo passo:</strong> {analysis.recommendation}</p>{note ? <p className="mt-2"><strong>Decisão registrada:</strong> {note}</p> : null}</section> : null}
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-2 lg:max-w-[18rem] lg:justify-end">
+                <div className="flex w-full min-w-0 flex-wrap gap-2 lg:w-auto lg:max-w-[18rem] lg:justify-end">
                   <button type="button" onClick={() => { setExpandedAnalysis(isExpanded ? null : key); void updateStatus(ids, "reviewed", "Investigado no painel: causa, impacto e próximo passo revisados."); }} disabled={savingId === event.id} className="inline-flex items-center gap-2 rounded-full border border-[#bdd7d0] bg-[#eff8f4] px-4 py-2.5 text-xs font-bold text-[#35685c] disabled:opacity-50"><Eye size={15} />Analisar</button>
                   {event.status !== "resolved" ? <button type="button" onClick={() => { if (window.confirm(`Confirmar que ${ids.length > 1 ? "estas ocorrências" : "esta ocorrência"} foi corrigida${ids.length > 1 ? "s" : ""}?`)) void updateStatus(ids, "resolved", "Correção confirmada após verificação da versão publicada."); }} disabled={savingId === event.id} className="inline-flex items-center gap-2 rounded-full bg-[#2f7762] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50"><CheckCircle2 size={15} />Confirmar correção</button> : null}
                   {event.status !== "ignored" ? <button type="button" onClick={() => { if (window.confirm(`Arquivar ${ids.length > 1 ? "estas ocorrências" : "esta ocorrência"} como ruído ou caso sem ação?`)) void updateStatus(ids, "ignored", "Arquivado como caso isolado ou sem ação necessária."); }} disabled={savingId === event.id} className="inline-flex items-center gap-2 rounded-full border border-[#d1b8b0] bg-[#fff7f5] px-4 py-2.5 text-xs font-bold text-[#7b4f47] disabled:opacity-50"><XCircle size={15} />Arquivar</button> : null}
