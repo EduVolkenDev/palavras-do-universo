@@ -139,12 +139,12 @@ export default function FeedbackAdminPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f0e8] px-4 py-8 text-[#241b18] sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
+    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f7f0e8] px-3 py-6 text-[#241b18] sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto w-full min-w-0 max-w-6xl">
         <header className="flex flex-col gap-5 border-b border-[#d8c8ba] pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8e674d]">Palavras do Universo · Administração</p>
-            <h1 className="brand-serif mt-2 text-4xl leading-none text-[#2c1f1b]">Feedbacks recebidos</h1>
+            <h1 className="brand-serif mt-2 break-words text-3xl leading-tight text-[#2c1f1b] sm:text-4xl sm:leading-none">Feedbacks recebidos</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6f5d55]">
               Revise cada mensagem antes de qualquer uso público. Nada é publicado automaticamente.
             </p>
@@ -197,14 +197,14 @@ export default function FeedbackAdminPage({
                     <time dateTime={item.created_at}>{formatDate(item.created_at)}</time>
                     {item.resonance_score ? <span>· Nota {item.resonance_score}/5</span> : null}
                   </div>
-                  <blockquote className="mt-4 whitespace-pre-line text-lg leading-8 text-[#342622]">“{item.message}”</blockquote>
+                  <blockquote className="mt-4 break-words whitespace-pre-line text-lg leading-8 text-[#342622]">“{item.message}”</blockquote>
                   <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#806b60]">
                     <span>{item.allow_testimonial ? "Autorizou uso editorial" : "Uso editorial não autorizado"}</span>
                     {item.display_name ? <span>Nome: {item.display_name}</span> : null}
                     <span>Idioma: {item.locale}</span>
                   </div>
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-2 lg:max-w-[18rem] lg:justify-end">
+                <div className="flex w-full min-w-0 flex-wrap gap-2 lg:w-auto lg:max-w-[18rem] lg:justify-end">
                   {item.status !== "published" ? <button type="button" onClick={() => void updateStatus(item.id, "published")} disabled={savingId === item.id} className="inline-flex items-center gap-2 rounded-full bg-[#2f7762] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50"><CheckCircle2 size={15} />Aprovar</button> : null}
                   {item.status !== "archived" ? <button type="button" onClick={() => void updateStatus(item.id, "archived")} disabled={savingId === item.id} className="inline-flex items-center gap-2 rounded-full border border-[#d1b8b0] bg-[#fff7f5] px-4 py-2.5 text-xs font-bold text-[#7b4f47] disabled:opacity-50"><Archive size={15} />Recusar</button> : null}
                   {item.status === "archived" ? <button type="button" onClick={() => void updateStatus(item.id, "new")} disabled={savingId === item.id} className="inline-flex items-center gap-2 rounded-full border border-[#cdbbab] bg-white px-4 py-2.5 text-xs font-bold text-[#604b42] disabled:opacity-50"><RotateCcw size={15} />Reabrir</button> : null}
