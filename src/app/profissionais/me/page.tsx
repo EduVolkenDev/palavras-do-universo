@@ -357,13 +357,13 @@ export default function ProfessionalManagerPage() {
           <div className="max-w-2xl">
             <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/22 bg-white/[0.05] px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[#f5d896]">
               <Sparkles size={14} />
-              Gestão do profissional
+              Seu espaço profissional
             </p>
             <h1 className="brand-serif text-5xl font-semibold leading-[0.95] tracking-[-0.06em] text-[#fff7e8] sm:text-6xl">
-              Cadastre e publique seu perfil com controle fino de acesso.
+              Apresente seu trabalho com clareza e escolha como quer atender.
             </h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-[#d6c9be]">
-              Apresente seu trabalho, suas formas de atendimento e as faixas de acesso que deseja oferecer. Você controla quando o perfil entra no ar.
+              Organize seu perfil, suas formas de atendimento e as faixas de acesso que deseja oferecer. Você decide quando publicar cada mudança.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
@@ -389,7 +389,7 @@ export default function ProfessionalManagerPage() {
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-2">
                 <ShieldCheck size={14} className="text-[#a7d7c5]" />
-                Ofertas sempre sincronizadas
+                Ofertas sob seu controle
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-2">
                 <CalendarRange size={14} className="text-[#a7d7c5]" />
@@ -405,7 +405,7 @@ export default function ProfessionalManagerPage() {
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
-                  Checklist de publicação
+                  Pronto para publicar
                 </p>
                 <h2 className="brand-serif mt-2 text-2xl font-semibold text-[#fff7e8]">
                   {profile.displayName || "Perfil ainda não calibrado"}
@@ -415,7 +415,7 @@ export default function ProfessionalManagerPage() {
 
             <div className="grid gap-3 text-sm text-[#cfc4b9]">
               <div className="flex items-center justify-between gap-3 rounded-[18px] border border-white/10 bg-black/20 px-4 py-3">
-                <span>Handle público</span>
+                <span>Endereço do perfil</span>
                 <strong className="text-[#fff7e8]">{normalizeHandle(profile.handle) || "defina um nome curto"}</strong>
               </div>
               <div className="flex items-center justify-between gap-3 rounded-[18px] border border-white/10 bg-black/20 px-4 py-3">
@@ -423,7 +423,7 @@ export default function ProfessionalManagerPage() {
                 <strong className="text-[#fff7e8]">{completeness}/6</strong>
               </div>
               <div className="flex items-center justify-between gap-3 rounded-[18px] border border-white/10 bg-black/20 px-4 py-3">
-                <span>Status público</span>
+                <span>Visibilidade</span>
                 <strong className="text-[#fff7e8]">{profile.isPublished ? "Publicado" : "Rascunho"}</strong>
               </div>
             </div>
@@ -431,7 +431,7 @@ export default function ProfessionalManagerPage() {
             <p className="rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-[#cfc4b9]">
               {loading
                 ? "Carregando seu perfil e suas ofertas com segurança..."
-                : "Salve para atualizar o perfil público e manter suas ofertas em sincronia."}
+                : "Salve para atualizar o que as pessoas veem no seu perfil e manter suas ofertas alinhadas."}
             </p>
 
             {publishedPreview ? (
@@ -444,7 +444,7 @@ export default function ProfessionalManagerPage() {
               </Link>
             ) : (
               <p className="rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-[#cfc4b9]">
-                Quando marcar como publicado e salvar, o perfil pode ser acessado por <code>/profissionais/{normalizeHandle(profile.handle) || "handle"}</code>.
+                Marque o perfil como publicado e salve para que as pessoas possam encontrá-lo no marketplace.
               </p>
             )}
           </div>
@@ -627,7 +627,7 @@ export default function ProfessionalManagerPage() {
                     setProfile((current) => ({ ...current, isPublished: event.target.checked }))
                   }
                 />
-                Publicar no marketplace
+                Mostrar meu perfil no marketplace
               </label>
               <div className="flex items-center gap-3 rounded-[18px] border border-white/10 bg-black/20 px-4 py-3 text-sm">
                 <BadgeCheck
@@ -704,9 +704,6 @@ export default function ProfessionalManagerPage() {
                       <div className="flex flex-wrap items-center gap-2 text-xs text-[#cfc4b9]">
                         <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
                           Oferta {index + 1}
-                        </span>
-                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                          ID {offer.id || "novo"}
                         </span>
                       </div>
                       <button
@@ -854,7 +851,7 @@ export default function ProfessionalManagerPage() {
                         </select>
                       </label>
                       <p className="flex items-end rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-[#cfc4b9]">
-                        Ao salvar, esta lista se torna a versão pública das suas ofertas. Itens removidos deixam de aparecer no perfil.
+                        Ao salvar, estas serão as ofertas exibidas no seu perfil. Itens removidos deixam de aparecer.
                       </p>
                     </div>
                   </article>
