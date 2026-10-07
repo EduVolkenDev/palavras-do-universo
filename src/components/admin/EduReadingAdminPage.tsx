@@ -123,12 +123,12 @@ export default function EduReadingAdminPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f0e8] px-4 py-8 text-[#241b18] sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
+    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f7f0e8] px-3 py-6 text-[#241b18] sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto w-full min-w-0 max-w-6xl">
         <header className="flex flex-col gap-5 border-b border-[#d8c8ba] pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8e674d]">Palavras do Universo · Administração</p>
-            <h1 className="brand-serif mt-2 text-4xl leading-none text-[#2c1f1b]">Leituras com Edu</h1>
+            <h1 className="brand-serif mt-2 break-words text-3xl leading-tight text-[#2c1f1b] sm:text-4xl sm:leading-none">Leituras com Edu</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6f5d55]">Confirme o horário primeiro. O link Stripe só é criado depois dessa confirmação.</p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -152,9 +152,9 @@ export default function EduReadingAdminPage({
                   <h2 className="mt-4 text-xl font-semibold text-[#2c1f1b]">{request.client_name} · {request.offer_title}</h2>
                   <p className="mt-2 text-sm font-semibold capitalize text-[#6f5134]">{formatDate(request)} · {request.start_time.slice(0, 5)}–{request.end_time.slice(0, 5)} · {request.timezone}</p>
                   <p className="mt-2 text-sm text-[#765f54]">{request.client_email} · {formatPrice(request.amount_cents, request.currency)}</p>
-                  {request.intention ? <p className="mt-4 whitespace-pre-line text-sm leading-6 text-[#4f403a]">“{request.intention}”</p> : null}
+                  {request.intention ? <p className="mt-4 break-words whitespace-pre-line text-sm leading-6 text-[#4f403a]">“{request.intention}”</p> : null}
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-2 lg:max-w-[20rem] lg:justify-end">
+                <div className="flex w-full min-w-0 flex-wrap gap-2 lg:w-auto lg:max-w-[20rem] lg:justify-end">
                   {request.status === "requested" ? <><button type="button" onClick={() => void act(request.id, "confirm")} disabled={actionId === request.id} className="inline-flex items-center gap-2 rounded-full bg-[#2f7762] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50"><CheckCircle2 size={15} />Confirmar e gerar link</button><button type="button" onClick={() => void act(request.id, "decline")} disabled={actionId === request.id} className="inline-flex items-center gap-2 rounded-full border border-[#d1b8b0] bg-[#fff7f5] px-4 py-2.5 text-xs font-bold text-[#7b4f47] disabled:opacity-50"><XCircle size={15} />Recusar</button></> : null}
                   {request.status === "payment_pending" && request.payment_url ? <><button type="button" onClick={() => void copyPaymentLink(request.payment_url!)} className="inline-flex items-center gap-2 rounded-full bg-[#241b18] px-4 py-2.5 text-xs font-bold text-white"><Clipboard size={15} />Copiar link</button><a href={request.payment_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-[#cdbbab] bg-white px-4 py-2.5 text-xs font-bold text-[#604b42]">Abrir checkout <ExternalLink size={14} /></a></> : null}
                   {request.status === "paid" ? <span className="inline-flex items-center gap-2 rounded-full bg-[#e4f6ee] px-4 py-2.5 text-xs font-bold text-[#1c6650]"><CheckCircle2 size={15} />Pagamento confirmado</span> : null}
