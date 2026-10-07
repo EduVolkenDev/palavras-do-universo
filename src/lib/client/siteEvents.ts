@@ -232,16 +232,19 @@ function extractError(reason: unknown) {
   };
 }
 
-function isElementLoadError(event: Event) {
-  return event.target instanceof HTMLElement;
+function isVisualAssetLoadError(event: Event) {
+  return (
+    event.target instanceof HTMLImageElement ||
+    event.target instanceof HTMLVideoElement
+  );
 }
 
 function recordElementLoadError(event: Event) {
-  const target = event.target as HTMLElement;
+  const target = event.target as HTMLImageElement | HTMLVideoElement;
   const source =
-    target.getAttribute("src") ??
-    target.getAttribute("href") ??
-    target.getAttribute("poster") ??
+    target.currentSrc ||
+    target.getAttribute("src") ||
+    target.getAttribute("poster") ||
     "";
 
   recordSiteEvent({
@@ -275,10 +278,15 @@ export function installSiteEventTelemetry() {
   window.addEventListener(
     "error",
     (event) => {
-      if (isElementLoadError(event)) {
+      if (isVisualAssetLoadError(event)) {
         recordElementLoadError(event);
         return;
       }
+
+      // Script, stylesheet, and preload failures are not visual media failures.
+      // In particular, third-party analytics beacons should not pollute the
+      // stability dashboard as broken images.
+      if (event.target instanceof Element) return;
 
       recordSiteEvent({
         eventType: "browser.error",
@@ -307,24 +315,66 @@ export function installSiteEventTelemetry() {
 
   let previousY = window.scrollY;
   let highestY = window.scrollY;
-  let lastHashChangeAt = 0;
   let lastScrollAt = Date.now();
+  let lastUserScrollIntentAt = 0;
+  let suppressScrollDetectionUntil = 0;
+  let observedRoute = routePath();
 
-  window.addEventListener("hashchange", () => {
-    lastHashChangeAt = Date.now();
-  });
+  const suppressScrollDetection = () => {
+    suppressScrollDetectionUntil = Date.now() + 2_000;
+  };
+
+  const markUserScrollIntent = (event: Event) => {
+    if (event instanceof KeyboardEvent) {
+      if (!["Home", "PageUp", "ArrowUp", " "].includes(event.key)) return;
+    }
+    lastUserScrollIntentAt = Date.now();
+  };
+
+  window.addEventListener("wheel", markUserScrollIntent, { passive: true });
+  window.addEventListener("touchmove", markUserScrollIntent, { passive: true });
+  window.addEventListener("keydown", markUserScrollIntent, { passive: true });
+  window.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const link = target.closest("a[href]");
+      const control = target.closest("button, [role='button']");
+      if (control) suppressScrollDetection();
+      if (link instanceof HTMLAnchorElement) {
+        const destination = new URL(link.href, window.location.href);
+        if (destination.origin === window.location.origin) suppressScrollDetection();
+      }
+    },
+    { capture: true, passive: true }
+  );
+
+  window.addEventListener("popstate", suppressScrollDetection);
+  window.addEventListener("hashchange", suppressScrollDetection);
 
   window.addEventListener(
     "scroll",
     () => {
       const now = Date.now();
       const currentY = window.scrollY;
+      const currentRoute = routePath();
+      if (currentRoute !== observedRoute) {
+        observedRoute = currentRoute;
+        previousY = currentY;
+        highestY = currentY;
+        suppressScrollDetection();
+        lastScrollAt = now;
+        return;
+      }
+
       const maxY = Math.max(highestY, currentY);
       const jumpedToTop =
         maxY > 900 &&
         previousY > 700 &&
         currentY < 80 &&
-        now - lastHashChangeAt > 1_500 &&
+        now > suppressScrollDetectionUntil &&
+        now - lastUserScrollIntentAt > 2_500 &&
         document.visibilityState === "visible";
 
       if (jumpedToTop) {

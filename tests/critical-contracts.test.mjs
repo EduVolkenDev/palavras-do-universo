@@ -241,7 +241,7 @@ test("astrology placements combine planet, sign, house, degree and real aspects"
   assert.match(interpretation, /return aspects[\s\S]*\.filter/);
 });
 
-test("the real astrology map stays private and does not depend on fictional preview data", async () => {
+test("personal astrology data stays private and does not depend on fictional preview data", async () => {
   const natalRoute = await source("src/app/api/astrology/natal/route.ts");
   const experience = await source("src/components/astrology/AstrologyChartExperience.tsx");
   const chartStyles = await source("src/components/astrology/AstrologyChartExperience.module.css");
@@ -264,6 +264,7 @@ test("the astrology campaign keeps context through auth, unknown birth time, che
   const landingPage = await source("src/app/astrologia/page.tsx");
   const landing = await source("src/components/astrology/AstrologyOverview.tsx");
   const mapPage = await source("src/app/astrologia/mapa/page.tsx");
+  const mapEntry = await source("src/components/astrology/AstrologyMapEntry.tsx");
   const mapExperience = await source("src/components/astrology/AstrologyChartExperience.tsx");
   const birthProfile = await source("src/components/astrology/AstrologyBirthProfileCard.tsx");
   const natalChart = await source("src/lib/astrology/natal-chart.ts");
@@ -272,7 +273,12 @@ test("the astrology campaign keeps context through auth, unknown birth time, che
   assert.doesNotMatch(landingPage, /product === "mapa_astral"/);
   assert.match(landing, /appendMarketingAttribution\(mapQuery, attribution\)/);
   assert.match(landing, /formatProductPrice\("mapa_astral"/);
-  assert.match(mapPage, /buildLoginPath\(mapPath\)/);
+  assert.match(mapPage, /if \(!user\) return <AstrologyMapEntry mapPath=\{mapPath\} \/>/);
+  assert.doesNotMatch(mapPage, /redirect\(buildLoginPath/);
+  assert.match(mapEntry, /buildLoginPath\(mapPath, \{ lang: locale \}\)/);
+  assert.match(mapEntry, /Start with the free layer|Começar pela camada gratuita/);
+  assert.match(mapEntry, /only when you choose to prepare your personal map|só é necessária quando você decidir preparar seu mapa pessoal/);
+  assert.match(mapEntry, /formatProductPrice\("mapa_astral", currency\)/);
   assert.match(mapExperience, /\/api\/checkout\/confirm/);
   assert.match(mapExperience, /returnTo:/);
   assert.match(mapExperience, /normalizeMarketingAttribution/);
@@ -324,4 +330,53 @@ test("voucher invitations validate delivery and keep a recovery path", async () 
   assert.match(service, /emailLocale/);
   assert.match(admin, /Idioma do e-mail/);
   assert.match(admin, /value="pt-BR"/);
+});
+
+test("the Now Lab asks for one lightweight reflection instead of a four-step questionnaire", async () => {
+  const page = await source("src/app/lab/page.tsx");
+
+  assert.match(page, /const answerKeys: AnswerKey\[\] = \["signal"\]/);
+  assert.match(page, /useState<0 \| 1>\(0\)/);
+  assert.match(page, /aria-valuemax=\{2\}/);
+  assert.match(page, /if \(step === 1 && arrivalKey && practiceKey\)/);
+  assert.match(page, /language\.answerOptions\[activeAnswerKey\]/);
+  assert.match(page, /language\.skipFinalAnswer/);
+  assert.doesNotMatch(page, /language\.prompts\[step - 2\]/);
+});
+
+test("site telemetry only labels failed images and videos as visual asset errors", async () => {
+  const telemetry = await source("src/lib/client/siteEvents.ts");
+
+  assert.match(telemetry, /event\.target instanceof HTMLImageElement/);
+  assert.match(telemetry, /event\.target instanceof HTMLVideoElement/);
+  assert.match(telemetry, /if \(event\.target instanceof Element\) return/);
+  assert.match(telemetry, /lastUserScrollIntentAt/);
+  assert.match(telemetry, /suppressScrollDetectionUntil/);
+});
+
+test("event dashboard separates campaign metrics and probable telemetry noise from actionable incidents", async () => {
+  const dashboard = await source("src/components/admin/EventAdminPage.tsx");
+
+  assert.match(dashboard, /function isMarketingEvent/);
+  assert.match(dashboard, /function isProbableNoiseEvent/);
+  assert.match(dashboard, /Métricas de campanha/);
+  assert.match(dashboard, /Ruído provável/);
+  assert.doesNotMatch(dashboard, /O bloco foi removido da versão atual/);
+  assert.doesNotMatch(dashboard, /A função já existe no código atual/);
+});
+
+test("astrology artwork always provides a valid local image source", async () => {
+  const experience = await source("src/components/astrology/AstrologyChartExperience.tsx");
+
+  assert.match(experience, /function astrologyImageSource\(source: unknown\)/);
+  assert.match(experience, /return PDU_ASSETS\.astrology\.orbitalMap/);
+  assert.doesNotMatch(experience, /<Image src=\{PDU_ASSETS\.astrology\.planets\[body\]\}/);
+});
+
+test("astrology sign interpretation fails safely for unexpected chart values", async () => {
+  const interpretation = await source("src/lib/astrology/interpretations.ts");
+
+  assert.match(interpretation, /const unavailableSignInterpretation: Localized<SignInterpretation>/);
+  assert.match(interpretation, /Object\.prototype\.hasOwnProperty\.call\(signInterpretations, sign\)/);
+  assert.match(interpretation, /\(interpretation \?\? unavailableSignInterpretation\)/);
 });

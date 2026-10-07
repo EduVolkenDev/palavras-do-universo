@@ -38,7 +38,7 @@ import {
 
 type AnswerKey = "signal" | "care" | "nextStep";
 
-const answerKeys: AnswerKey[] = ["signal", "care", "nextStep"];
+const answerKeys: AnswerKey[] = ["signal"];
 
 function getStoredLabContinuity() {
   const practicePayloads = getStoredLabPracticePayloads();
@@ -89,6 +89,8 @@ const copy = {
     noCards: "Sem cartas. Sem respostas prontas.",
     choosePractice: "Escolha o que você precisa sustentar agora",
     choosePracticeHint: "Você não precisa saber explicar. Escolha o que parece mais próximo — ou siga sem escrever.",
+    choosePracticeHintLabel: "UM COMEÇO SEM PRESSÃO",
+    answerHintLabel: "RESPONDA DO SEU JEITO",
     practices: {
       clarity_checkin: { title: "Dar nome ao momento", text: "Quando tudo parece misturado e você precisa encontrar um fio." },
       decision_pause: { title: "Abrir espaço para decidir", text: "Quando uma escolha pede calma antes de qualquer movimento." },
@@ -115,10 +117,6 @@ const copy = {
       overloaded: { title: "Preciso diminuir o ruído", text: "O corpo pede menos pressão e mais espaço para respirar." },
       ready: { title: "Quero me mover com intenção", text: "A direção existe; falta transformar vontade em um gesto." },
     },
-    prompts: [
-      { label: "O que merece um pouco da sua atenção hoje?", helper: "Escolha uma opção. Escrever é só se você quiser." },
-      { label: "Que pequeno passo cabe agora?", helper: "Pode ser algo simples — ou apenas fazer uma pausa." },
-    ],
     step: "Passo",
     of: "de",
     next: "Continuar",
@@ -147,8 +145,8 @@ const copy = {
     resultBody: "Leve esta página como uma pequena âncora. O que importa agora é reconhecer o próximo gesto sem transformar clareza em cobrança.",
     arrivalLabel: "Como você chegou",
     signalLabel: "O que está vivo",
-    careLabel: "O que pede cuidado",
-    nextStepLabel: "Seu próximo gesto",
+    careLabel: "Prática escolhida",
+    nextStepLabel: "Um gesto possível",
     restart: "Fazer outra prática",
     readingCta: "Abrir uma leitura depois",
     universeCta: "Abrir Meu Universo",
@@ -178,6 +176,8 @@ const copy = {
     noCards: "No cards. No ready-made answers.",
     choosePractice: "Choose what you need to hold right now",
     choosePracticeHint: "You do not need to explain it. Choose what feels closest — or continue without writing.",
+    choosePracticeHintLabel: "A GENTLE PLACE TO BEGIN",
+    answerHintLabel: "ANSWER IN YOUR OWN WAY",
     practices: {
       clarity_checkin: { title: "Name the moment", text: "When everything feels mixed together and you need to find a thread." },
       decision_pause: { title: "Make room to decide", text: "When a choice needs calm before any movement." },
@@ -204,10 +204,6 @@ const copy = {
       overloaded: { title: "I need to lower the noise", text: "Your body is asking for less pressure and more room to breathe." },
       ready: { title: "I want to move with intention", text: "The direction is there; now it needs to become a gesture." },
     },
-    prompts: [
-      { label: "What could use a little of your attention today?", helper: "Choose an option. Writing is only if you want to." },
-      { label: "What small step feels possible now?", helper: "It can be something simple — or just taking a pause." },
-    ],
     step: "Step",
     of: "of",
     next: "Continue",
@@ -236,8 +232,8 @@ const copy = {
     resultBody: "Keep this page as a small anchor. What matters now is recognizing the next gesture without turning clarity into pressure.",
     arrivalLabel: "How you arrived",
     signalLabel: "What is alive",
-    careLabel: "What asks for care",
-    nextStepLabel: "Your next gesture",
+    careLabel: "Chosen practice",
+    nextStepLabel: "One possible gesture",
     restart: "Start another practice",
     readingCta: "Open a reading later",
     universeCta: "Open My Universe",
@@ -267,7 +263,7 @@ export default function LabPage() {
   const [practiceKey, setPracticeKey] = useState<LabPracticeKey | null>(null);
   const [arrivalKey, setArrivalKey] = useState<LabArrivalKey | null>(null);
   const [arrivalSkipped, setArrivalSkipped] = useState(false);
-  const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
+  const [step, setStep] = useState<0 | 1>(0);
   const [answers, setAnswers] = useState<Record<AnswerKey, string>>({
     signal: "",
     care: "",
@@ -330,16 +326,14 @@ export default function LabPage() {
 
   const selectedPractice = practiceKey ? language.practices[practiceKey] : null;
   const selectedArrival = arrivalKey ? language.arrivals[arrivalKey] : null;
-  const prompt = step > 0
-    ? step === 1 && practiceKey
-      ? language.openingPrompts[practiceKey]
-      : language.prompts[step - 2]
+  const prompt = step === 1 && practiceKey
+    ? language.openingPrompts[practiceKey]
     : null;
   const activeAnswerKey = step > 0 ? answerKeys[step - 1] : null;
   const canAdvance = Boolean(
     step === 0
       ? practiceKey && arrivalKey
-      : activeAnswerKey && answers[activeAnswerKey].trim().length >= (step === 3 ? 4 : 3)
+      : activeAnswerKey && answers[activeAnswerKey].trim().length >= 3
   );
 
   const lastPracticeDate = useMemo(() => {
@@ -398,7 +392,7 @@ export default function LabPage() {
         [activeAnswerKey]: current[activeAnswerKey].trim() || language.skippedAnswers[activeAnswerKey],
       }));
     }
-    if (step === 3 && arrivalKey && practiceKey) {
+    if (step === 1 && arrivalKey && practiceKey) {
       setSaving(true);
       const payload: LabPracticePayload = {
         savedAt: new Date().toISOString(),
@@ -406,7 +400,7 @@ export default function LabPage() {
         practiceKey,
         arrivalKey,
         signal: answers.signal.trim() || language.skippedAnswers.signal,
-        care: answers.care.trim() || language.skippedAnswers.care,
+        care: answers.care.trim() || language.practices[practiceKey].title,
         nextStep: answers.nextStep.trim() || language.skippedAnswers.nextStep,
       };
       saveLocalPracticeMessage(payload);
@@ -416,7 +410,7 @@ export default function LabPage() {
       void syncLocalUniverseToAccount();
       return;
     }
-    setStep((current) => (current + 1) as 0 | 1 | 2 | 3);
+    setStep((current) => (current + 1) as 0 | 1);
   }
 
   function reset() {
@@ -542,7 +536,17 @@ export default function LabPage() {
              <div>
                 <p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#8a6b3f]">{practiceKey ? arrivalSkipped && step > 0 ? language.arrivalSkippedEyebrow : language.arrivalEyebrow : language.choosePractice}</p>
                 <h2 className="brand-serif mt-4 text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl">{practiceKey ? arrivalSkipped && step > 0 ? language.arrivalSkippedTitle : language.arrivalTitle : language.choosePractice}</h2>
-                <p className="mt-4 text-sm leading-6 text-[#6f615a]">{practiceKey ? arrivalSkipped && step > 0 ? language.arrivalSkippedSubtitle : language.arrivalSubtitle : language.choosePracticeHint}</p>
+                {practiceKey ? (
+                  <p className="mt-4 text-sm leading-6 text-[#6f615a]">{arrivalSkipped && step > 0 ? language.arrivalSkippedSubtitle : language.arrivalSubtitle}</p>
+                ) : (
+                  <aside className="pdu-guidance-note pdu-guidance-note--light mt-5">
+                    <span className="pdu-guidance-note__icon"><Sparkles size={16} aria-hidden="true" /></span>
+                    <div>
+                      <p className="pdu-guidance-note__label">{language.choosePracticeHintLabel}</p>
+                      <p className="pdu-guidance-note__copy">{language.choosePracticeHint}</p>
+                    </div>
+                  </aside>
+                )}
                {continuity.latest ? (
                   <div className="mt-8 rounded-2xl border border-[#d8cfb9] bg-[#f3f5ec] p-4">
                     <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#59705a]">{language.lastPractice}</p>
@@ -560,9 +564,9 @@ export default function LabPage() {
 
               <div>
                 <div className="mb-6 flex items-center justify-between gap-4">
-                  <p className="text-xs font-semibold text-[#8a6b3f]">{practiceKey ? `${language.step} ${step + 1} ${language.of} 4` : language.choosePractice}</p>
-                  <div className="flex gap-1.5" role="progressbar" aria-label={`${language.step} ${step + 1} ${language.of} 4`} aria-valuemin={1} aria-valuemax={4} aria-valuenow={step + 1}>
-                    {[0, 1, 2, 3].map((item) => <span key={item} className={`h-1.5 w-10 rounded-full sm:w-14 ${practiceKey && item <= step ? "bg-[#2b211c]" : "bg-[#e5d8c6]"}`} aria-hidden="true" />)}
+                  <p className="text-xs font-semibold text-[#8a6b3f]">{practiceKey ? `${language.step} ${step + 1} ${language.of} 2` : language.choosePractice}</p>
+                  <div className="flex gap-1.5" role="progressbar" aria-label={`${language.step} ${step + 1} ${language.of} 2`} aria-valuemin={1} aria-valuemax={2} aria-valuenow={step + 1}>
+                    {[0, 1].map((item) => <span key={item} className={`h-1.5 w-10 rounded-full sm:w-14 ${practiceKey && item <= step ? "bg-[#2b211c]" : "bg-[#e5d8c6]"}`} aria-hidden="true" />)}
                   </div>
                 </div>
 
@@ -572,7 +576,7 @@ export default function LabPage() {
                       const Icon = practiceIcons[key];
                       const item = language.practices[key];
                       return (
-                        <button key={key} type="button" aria-pressed={false} onClick={() => beginPractice(key)} className={`group rounded-2xl border border-[#e4d3ba] bg-[#fffdf8] p-5 text-left transition hover:-translate-y-0.5 hover:border-[#bda77f] ${key === "self_care_reset" ? "sm:col-span-2" : ""}`}>
+                        <button key={key} type="button" onClick={() => beginPractice(key)} className={`group rounded-2xl border border-[#e4d3ba] bg-[#fffdf8] p-5 text-left transition hover:-translate-y-0.5 hover:border-[#bda77f] ${key === "self_care_reset" ? "sm:col-span-2" : ""}`}>
                           <span className="mb-5 inline-flex rounded-full bg-[#f2e8d8] p-2 text-[#8a6b3f]"><Icon size={18} /></span>
                           <span className="block text-base font-semibold text-[#332720]">{item.title}</span>
                           <span className="mt-2 block text-sm leading-5 text-[#6f615a]">{item.text}</span>
@@ -605,7 +609,13 @@ export default function LabPage() {
                     <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#8a6b3f]">{language.step} {step}</p>
                     <h3 className="brand-serif mt-4 text-3xl font-semibold leading-tight text-[#332720] sm:text-4xl">{prompt?.label}</h3>
                     <p className="mt-3 text-sm leading-6 text-[#6f615a]">{prompt?.helper}</p>
-                    <p className="mt-5 text-xs font-semibold text-[#8a6b3f]">{language.quickAnswerHint}</p>
+                    <aside className="pdu-guidance-note pdu-guidance-note--light mt-5">
+                      <span className="pdu-guidance-note__icon"><Sparkles size={16} aria-hidden="true" /></span>
+                      <div>
+                        <p className="pdu-guidance-note__label">{language.answerHintLabel}</p>
+                        <p className="pdu-guidance-note__copy">{language.quickAnswerHint}</p>
+                      </div>
+                    </aside>
                     {activeAnswerKey ? (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {language.answerOptions[activeAnswerKey].map((option) => {
@@ -626,10 +636,10 @@ export default function LabPage() {
 
                 {selectedArrival && !arrivalSkipped && step > 0 ? <p className="mt-4 text-sm text-[#6f615a]"><span className="font-semibold text-[#8a6b3f]">{language.arrivalLabel}: </span>{selectedArrival.title}</p> : null}
                 {practiceKey ? <div className="mt-6 flex flex-wrap justify-between gap-3">
-                 <button type="button" onClick={() => setStep((current) => (current > 0 ? (current - 1) as 0 | 1 | 2 | 3 : 0))} disabled={step === 0 || saving} className="inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-[#8a6b3f] disabled:cursor-not-allowed disabled:opacity-35 hover:bg-[#f4eadb]"><ArrowLeft size={16} />{language.back}</button>
+                 <button type="button" onClick={() => setStep(0)} disabled={step === 0 || saving} className="inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-[#8a6b3f] disabled:cursor-not-allowed disabled:opacity-35 hover:bg-[#f4eadb]"><ArrowLeft size={16} />{language.back}</button>
                  <div className="flex flex-wrap justify-end gap-2">
-                   {step > 0 ? <button type="button" onClick={() => advance(true)} disabled={saving} className="inline-flex min-h-11 items-center rounded-full px-4 py-3 text-sm font-semibold text-[#8a6b3f] transition hover:bg-[#f4eadb] disabled:opacity-50">{step === 3 ? language.skipFinalAnswer : language.skipAnswer}</button> : null}
-                   <button type="button" onClick={() => advance()} disabled={!canAdvance || saving} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#2b211c] px-5 py-3 text-sm font-semibold text-[#fff8eb] transition hover:bg-[#45342a] disabled:cursor-not-allowed disabled:opacity-40">{saving ? language.saving : step === 3 ? language.finish : language.next}<ArrowRight size={16} /></button>
+                   {step > 0 ? <button type="button" onClick={() => advance(true)} disabled={saving} className="inline-flex min-h-11 items-center rounded-full px-4 py-3 text-sm font-semibold text-[#8a6b3f] transition hover:bg-[#f4eadb] disabled:opacity-50">{language.skipFinalAnswer}</button> : null}
+                   <button type="button" onClick={() => advance()} disabled={!canAdvance || saving} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#2b211c] px-5 py-3 text-sm font-semibold text-[#fff8eb] transition hover:bg-[#45342a] disabled:cursor-not-allowed disabled:opacity-40">{saving ? language.saving : step === 1 ? language.finish : language.next}<ArrowRight size={16} /></button>
                  </div>
                 </div> : null}
               </div>

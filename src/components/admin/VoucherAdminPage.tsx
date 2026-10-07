@@ -8,14 +8,13 @@ import {
   PauseCircle,
   Percent,
   RefreshCw,
-  ShieldCheck,
   Sparkles,
   Ticket,
   Trash2,
   XCircle,
 } from "lucide-react";
-import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import AdminPageFrame from "@/components/admin/AdminPageFrame";
 import { useI18n } from "@/components/I18nProvider";
 import { pricingPlans, productCards } from "@/lib/product/catalog";
 
@@ -369,55 +368,16 @@ export default function VoucherAdminPage({
   }
 
   return (
-    <main className="ritual-texture min-h-screen bg-[#120f16] px-4 py-6 text-[#f3eadf] sm:px-6 sm:py-8">
-      <section className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-        <header className="rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(244,213,141,0.2),transparent_24%),linear-gradient(180deg,rgba(24,21,31,0.96),rgba(11,9,16,0.94))] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.34)] sm:p-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#5e5137] bg-[#1b1713] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#f4d58d]">
-                <ShieldCheck size={14} />
-                {t("Admin do Oráculo")}
-              </div>
-              <h1 className="brand-serif mt-4 text-4xl font-semibold leading-none sm:text-5xl">
-                {t("Convites e vouchers sob controle total.")}
-              </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-[#cdbfae] sm:text-base">
-                {t(
-                  "Crie acessos, descontos e links de resgate do Palavras do Universo com pausa, cancelamento, exclusão lógica e transferência de usuário."
-                )}
-              </p>
-            </div>
-
-            <div className="flex flex-col items-start gap-3 sm:items-end">
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-[#dbcfc1]">
-                <strong className="block text-[#fff7e8]">{ownerEmail || "Owner"}</strong>
-                <span>{t("Acesso restrito por OWNER_ACCESS.")}</span>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => void loadVouchers()}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#4e473f] bg-[#18141d] px-4 py-2 text-sm font-semibold text-[#efe2d2] transition hover:border-[#f4d58d] hover:text-white"
-                >
-                  <RefreshCw size={16} />
-                  {t("Atualizar")}
-                </button>
-                <Link
-                  href="/admin/feedback"
-                  className="inline-flex items-center gap-2 rounded-full border border-[#8faea3] bg-[#10251f] px-4 py-2 text-sm font-semibold text-[#c6eadb]"
-                >
-                  Feedbacks
-                </Link>
-                <Link
-                  href="/meu-universo"
-                  className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1b1713]"
-                >
-                  {t("Voltar ao Meu Universo")}
-                </Link>
-              </div>
-            </div>
-          </div>
-        </header>
+    <AdminPageFrame
+      path="/admin/codigos"
+      eyebrow="Acessos · Gestão de vouchers"
+      title={t("Convites e vouchers sob controle.")}
+      description={t("Crie e acompanhe acessos, descontos e links de resgate, com pausa, cancelamento, exclusão lógica e transferência.")}
+      ownerEmail={ownerEmail}
+      hasSupabase={hasSupabase}
+      actions={<button type="button" onClick={() => void loadVouchers()} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#f0d79f] px-4 py-2 text-sm font-bold text-[#2b2033] transition hover:bg-[#f7e4b7]"><RefreshCw size={15} />{t("Atualizar")}</button>}
+    >
+      <section className="ritual-texture flex flex-col gap-6 rounded-[28px] bg-[#120f16] p-4 text-[#f3eadf] shadow-[0_22px_55px_rgba(39,25,35,0.16)] sm:rounded-[32px] sm:p-6">
 
         {!hasSupabase ? (
           <section className="rounded-[24px] border border-[#62433f] bg-[#251717] p-5 text-[#f6d9d5]">
@@ -1051,6 +1011,6 @@ export default function VoucherAdminPage({
           </article>
         </section>
       </section>
-    </main>
+    </AdminPageFrame>
   );
 }

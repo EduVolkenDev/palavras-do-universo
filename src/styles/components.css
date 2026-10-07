@@ -511,7 +511,10 @@
   z-index: 20;
   display: grid;
   width: min(21rem, 70vw);
+  max-height: calc(100dvh - 6rem);
   gap: 0.2rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid rgba(244, 213, 141, 0.2);
   border-radius: 1.25rem;
   padding: 0.7rem;
@@ -778,14 +781,8 @@
     min-width: 0;
     flex: 1 1 auto;
     gap: 1rem;
-    overflow-x: auto;
+    overflow: visible;
     padding-inline: 0.75rem;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  .pdu-site-header__nav::-webkit-scrollbar {
-    display: none;
   }
 
   .pdu-site-header__nav a {
@@ -800,6 +797,46 @@
 
   .pdu-site-header__nav {
     gap: 1.5rem;
+  }
+}
+
+@media (min-width: 820px) and (max-width: 1023px) {
+  .pdu-site-header__nav {
+    gap: 0.5rem;
+    padding-inline: 0.25rem;
+  }
+
+  .pdu-site-header__profile {
+    padding-right: 0.38rem;
+  }
+
+  .pdu-site-header__profile-copy {
+    display: none;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 819px) {
+  .pdu-site-header,
+  .pdu-site-header[data-condensed="true"] {
+    --pdu-header-wordmark-width: 8rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 819px) {
+  .pdu-site-header__nav {
+    display: none;
+  }
+
+  .pdu-site-header__mobile-actions {
+    display: flex;
+  }
+
+  .pdu-site-header__mobile-toggle {
+    display: inline-flex;
+  }
+
+  .pdu-mobile-menu {
+    display: block;
   }
 }
 
@@ -11746,4 +11783,124 @@ body:has(.pdu-not-found) .pdu-lume-ambient {
 .pdu-reading-route #leitura {
   opacity: 1;
   transform: none;
+}
+
+/* Clear, calm hierarchy for instructions and supporting guidance. */
+.pdu-guidance-note {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(138, 107, 63, 0.2);
+  border-left: 3px solid #9a7947;
+  border-radius: 0 1rem 1rem 0;
+  background: linear-gradient(110deg, #f5eddf, #fffaf2 82%);
+  color: #514438;
+}
+
+.pdu-guidance-note__icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid rgba(138, 107, 63, 0.2);
+  border-radius: 50%;
+  background: #fffaf2;
+  color: #80623a;
+}
+
+.pdu-guidance-note__label {
+  margin: 0;
+  color: #80623a;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.pdu-guidance-note__copy {
+  margin: 0.3rem 0 0;
+  color: #514438;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.pdu-guidance-note--dark {
+  border-color: rgba(255, 255, 255, 0.12);
+  border-left-color: #f2cb76;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.035));
+  color: #d8ccc0;
+}
+
+.pdu-guidance-note--dark .pdu-guidance-note__icon {
+  border-color: rgba(242, 203, 118, 0.3);
+  background: rgba(242, 203, 118, 0.1);
+  color: #f2cb76;
+}
+
+.pdu-guidance-note--dark .pdu-guidance-note__label {
+  color: #f2cb76;
+}
+
+.pdu-guidance-note--dark .pdu-guidance-note__copy {
+  color: #e5ddcf;
+}
+
+.pdu-campaign-step__number {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid rgba(158, 123, 70, 0.36);
+  border-radius: 50%;
+  background: rgba(255, 250, 242, 0.72);
+  color: #70542d;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.06em;
+}
+
+.pdu-campaign-step:hover .pdu-campaign-step__number {
+  border-color: #5c40a4;
+  background: #f0eafa;
+}
+
+@media (min-width: 640px) {
+  .pdu-campaign-step__number {
+    width: 3rem;
+    height: 3rem;
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 768px) {
+  body:has(.pdu-astrology-map-entry) .pdu-language-switcher {
+    top: calc(1rem + env(safe-area-inset-top));
+    right: calc(1rem + env(safe-area-inset-right));
+    bottom: auto;
+  }
+
+  body:has(.pdu-astrology-map-entry) .pdu-lume-ambient__button {
+    top: calc(4.5rem + env(safe-area-inset-top));
+    right: calc(1rem + env(safe-area-inset-right));
+    bottom: auto;
+    width: 3.25rem;
+    height: 3.25rem;
+    justify-content: center;
+    padding: 0.2rem;
+  }
+
+  body:has(.pdu-astrology-map-entry) .pdu-lume-ambient__orb {
+    width: 2.8rem;
+    height: 2.8rem;
+  }
+
+  body:has(.pdu-astrology-map-entry) .pdu-lume-ambient__copy,
+  body:has(.pdu-astrology-map-entry) .pdu-lume-ambient__signal,
+  body:has(.pdu-astrology-map-entry) .pdu-lume-ambient__spark {
+    display: none;
+  }
 }

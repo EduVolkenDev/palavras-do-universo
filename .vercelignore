@@ -5,6 +5,7 @@
 .next
 node_modules
 .vercel
+/marketing/
 supabase/.temp
 .DS_Store
 *.log

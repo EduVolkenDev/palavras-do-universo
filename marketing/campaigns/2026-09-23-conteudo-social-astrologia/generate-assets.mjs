@@ -529,12 +529,12 @@ function libraryCard({ format, sequence, eyebrowText, titleLines, bodyLines = []
 
 function themeForPost(post, index = 0) {
   const themesByPillar = {
-    "Promoção": ["gold", "plum", "rose"],
-    "Explicação": ["paper", "sage", "indigo"],
-    "Demonstração": ["indigo", "paper", "sage"],
-    "Alcance": ["rose", "indigo", "plum"],
+    "Oferta": ["gold", "plum", "rose"],
+    "Educação": ["paper", "sage", "indigo"],
+    "Experiência": ["indigo", "rose", "sage"],
+    "Curiosidade": ["rose", "indigo", "plum"],
+    "Interação": ["sage", "paper", "rose"],
     "Confiança": ["paper", "plum", "sage"],
-    "Conversão": ["gold", "plum", "indigo"],
   };
   const options = themesByPillar[post.pillar] ?? ["plum"];
   return options[index % options.length];
@@ -542,12 +542,12 @@ function themeForPost(post, index = 0) {
 
 function layoutForPost(post, index = 0) {
   const layoutsByPillar = {
-    "Promoção": ["poster", "split", "center"],
-    "Explicação": ["editorial", "split", "panel", "center"],
-    "Demonstração": ["panel", "split", "editorial"],
-    "Alcance": ["center", "split", "poster"],
+    "Oferta": ["poster", "split", "center"],
+    "Educação": ["editorial", "split", "panel", "center"],
+    "Experiência": ["center", "panel", "split"],
+    "Curiosidade": ["center", "split", "poster"],
+    "Interação": ["panel", "center", "editorial"],
     "Confiança": ["editorial", "center", "panel"],
-    "Conversão": ["poster", "split", "center"],
   };
   const options = layoutsByPillar[post.pillar] ?? ["editorial"];
   return options[index % options.length];
@@ -565,6 +565,10 @@ const artCatalog = {
   placement: "public/assets/astrology/sections/generated/planet-sign-house.webp",
   transits: "public/assets/astrology/sections/generated/transits-orbit.webp",
   zodiac: "public/assets/zodiac.webp",
+  daily: "public/assets/pdu-home-daily-reading-book-cards.webp",
+  portal: "public/assets/portal.webp",
+  lume: "public/assets/lume-oracle.webp",
+  reading: "public/assets/pdu-home-reading-book.webp",
   aries: "public/assets/astrology/zodiac-signs/pdu-aries.webp",
   taurus: "public/assets/astrology/zodiac-signs/pdu-tauro.webp",
   gemini: "public/assets/astrology/zodiac-signs/pdu-gemini.webp",
@@ -582,20 +586,20 @@ const artCatalog = {
 const artSequences = {
   "01": ["map"],
   "02": ["natal", "sun", "moon", "map", "placement"],
-  "03": ["map", "natal", "map", "aspects", "natal"],
-  "04": ["zodiac", "natal", "placement", "map", "zodiac"],
+  "03": ["zodiac", "sun", "moon", "houses", "natal"],
+  "04": ["moon", "moon", "reading", "lume", "moon"],
   "05": ["placement", "sun", "zodiac", "houses", "aspects"],
-  "06": ["natal"],
+  "06": ["sun"],
   "07": ["houses", "houses", "natal", "placement", "houses"],
-  "08": ["map", "natal", "sun", "houses", "transits"],
+  "08": ["portal", "daily", "reading", "map", "lume"],
   "09": ["aspects", "venus", "mars", "aspects", "aspects"],
-  "10": ["map"],
+  "10": ["natal"],
   "11": ["natal", "aspects", "placement", "houses", "natal"],
-  "12": ["natal", "map", "aspects", "map", "natal"],
-  "13": ["natal", "sun", "moon", "map", "natal"],
+  "12": ["daily", "moon", "sun", "reading", "lume"],
+  "13": ["portal", "daily", "reading", "map", "lume"],
   "14": ["aspects", "moonTaurus", "houses", "aspects", "natal"],
   "15": ["map"],
-  "16": ["zodiac", "sun", "map", "aspects", "natal"],
+  "16": ["zodiac", "daily", "reading", "lume", "portal"],
 };
 
 function artForPost(post, index, format) {
@@ -628,12 +632,12 @@ function artForPost(post, index, format) {
   const planetArt = planetKeys.has(key);
   const layout = layoutForPost(post, index);
   const positionIndex = (Number(post.id) + index) % 2;
-  const gravity = layout === "center" || ["zodiac", "natal", "houses", "aspects", "placement", "transits"].includes(key)
+  const gravity = layout === "center" || ["zodiac", "natal", "houses", "aspects", "placement", "transits", "daily", "portal", "lume", "reading"].includes(key)
     ? "south"
     : layout === "split"
       ? "southeast"
       : positionIndex === 0 ? "southeast" : "southwest";
-  const detailedArt = ["zodiac", "natal", "houses", "aspects", "placement", "transits"].includes(key);
+  const detailedArt = ["zodiac", "natal", "houses", "aspects", "placement", "transits", "daily", "portal", "lume", "reading"].includes(key);
   const width = key === "map"
     ? (vertical ? 1120 : 930)
     : key === "zodiac"
@@ -658,284 +662,350 @@ function artForPost(post, index, format) {
 
 const libraryPosts = [
   {
-    id: "01",
-    slug: "mapa-completo-3990",
-    kind: "static",
-    pillar: "Promoção",
-    title: "Mapa Astral Completo",
-    eyebrow: "CONHEÇA O SEU CÉU POR INTEIRO",
-    titleLines: ["Mapa Astral", "Completo"],
-    price: "R$39,90",
-    priceNote: "pagamento único · sem assinatura",
-    bodyLines: ["Planetas, casas, aspectos e influências", "explicados em linguagem clara."],
-    cta: "Comece pela camada gratuita",
-    caption: "Seu signo solar é uma parte da história — não a história inteira. O Mapa Astral Completo organiza planetas, casas, aspectos e influências em uma linguagem que você consegue acompanhar.\n\nR$39,90, pagamento único e sem assinatura. Antes de decidir, você pode conhecer gratuitamente a primeira camada com Sol, Lua e Ascendente.\n\nAcesse palavrasdouniverso.com/astrologia.",
+    id: "01", slug: "mapa-completo-3990", kind: "static", pillar: "Oferta", offer: true, product: "mapa_astral",
+    title: "Mapa Astral Completo", eyebrow: "CONHEÇA O SEU CÉU POR INTEIRO", titleLines: ["Mapa Astral", "Completo"],
+    price: "R$39,90", priceNote: "pagamento único · sem assinatura",
+    bodyLines: ["Planetas, casas, aspectos e influências", "explicados em linguagem clara."], cta: "Comece pela camada gratuita",
+    caption: "Seu signo solar é uma parte da história — não a história inteira. O Mapa Astral Completo organiza planetas, casas e aspectos em uma linguagem que você consegue acompanhar.\n\nR$39,90, pagamento único e sem assinatura. Antes de decidir, você pode conhecer gratuitamente a primeira camada com Sol, Lua e Ascendente.\n\nAcesse palavrasdouniverso.com/astrologia.",
+    en: {
+      title: "Complete Birth Chart", eyebrow: "DISCOVER YOUR WHOLE SKY", titleLines: ["Complete", "Birth Chart"],
+      price: "£17.00", priceNote: "one-time payment · no subscription",
+      bodyLines: ["Planets, houses, and aspects", "explained in clear language."], cta: "Start with the free layer",
+      caption: "Your Sun sign is one part of the story — not the whole story. The Complete Birth Chart organises planets, houses, and aspects in language you can follow.\n\n£17.00 as a one-time payment, with no subscription. Before deciding, you can explore the first layer with Sun, Moon, and Rising for free.\n\nVisit palavrasdouniverso.com/astrologia.",
+    },
   },
   {
-    id: "02",
-    slug: "sol-lua-ascendente",
-    kind: "carousel",
-    pillar: "Explicação",
-    title: "Sol, Lua e Ascendente",
-    eyebrow: "OS TRÊS PILARES",
-    titleLines: ["Você é mais", "do que o seu", "signo solar."],
-    bodyLines: ["Sol, Lua e Ascendente respondem", "a perguntas diferentes."],
-    cta: "Deslize para entender",
-    caption: "Sol, Lua e Ascendente não são três versões da mesma coisa.\n\nO Sol fala de identidade e direção. A Lua, de cuidado e pertencimento. O Ascendente, da sua presença e da forma como você encontra o mundo.\n\nEles formam uma primeira camada — não um resumo completo. Conheça a sua gratuitamente em palavrasdouniverso.com/astrologia.",
+    id: "02", slug: "sol-lua-ascendente", kind: "carousel", pillar: "Educação",
+    title: "Sol, Lua e Ascendente", eyebrow: "TRÊS PERGUNTAS DIFERENTES", titleLines: ["Você é mais", "do que o seu", "signo solar."],
+    bodyLines: ["Sol, Lua e Ascendente iluminam", "partes diferentes da experiência."], cta: "Deslize para perceber",
+    caption: "Sol, Lua e Ascendente não são três versões da mesma coisa.\n\nO Sol fala de identidade e direção. A Lua, de cuidado e pertencimento. O Ascendente, da sua presença e da forma como você encontra o mundo.\n\nQual desses três pontos você conhece melhor em si? Salve para voltar quando quiser observar com mais calma.",
     slides: [
-      { eyebrow: "OS TRÊS PILARES", title: ["Você é mais", "do que o seu", "signo solar."], body: ["Sol, Lua e Ascendente respondem", "a perguntas diferentes."] },
-      { eyebrow: "SOL · IDENTIDADE E DIREÇÃO", title: ["Quem você está", "se tornando?"], body: ["O Sol fala de vitalidade, intenção", "e do centro que orienta escolhas."] },
+      { eyebrow: "TRÊS PERGUNTAS DIFERENTES", title: ["Você é mais", "do que o seu", "signo solar."], body: ["Sol, Lua e Ascendente iluminam", "partes diferentes da experiência."] },
+      { eyebrow: "SOL · IDENTIDADE E DIREÇÃO", title: ["O que mantém", "você vivo", "por dentro?"], body: ["O Sol fala de vitalidade, intenção", "e do centro que orienta escolhas."] },
       { eyebrow: "LUA · CUIDADO E PERTENCIMENTO", title: ["Do que você", "precisa para", "se sentir em casa?"], body: ["A Lua ajuda a perceber necessidades", "emocionais, ritmos e formas de cuidado."] },
-      { eyebrow: "ASCENDENTE · PRESENÇA E ENTRADA", title: ["Como você", "encontra o", "mundo?"], body: ["O Ascendente abre a sequência das casas", "e mostra um modo de chegar à experiência."] },
-      { eyebrow: "UM COMEÇO, NÃO UM RESUMO", title: ["Três pontos.", "Uma conversa", "muito maior."], body: ["Planetas, casas e aspectos aprofundam", "a linguagem do seu mapa."], cta: "Conheça sua primeira camada" },
+      { eyebrow: "ASCENDENTE · PRESENÇA E ENTRADA", title: ["Como você", "chega ao", "mundo?"], body: ["O Ascendente fala da entrada", "e do primeiro contato com a experiência."] },
+      { eyebrow: "UMA PAUSA PARA SE OBSERVAR", title: ["Qual pergunta", "tocou você", "hoje?"], body: ["Não procure uma resposta perfeita.", "Perceba o que já está vivo."], cta: "Salve para voltar" },
     ],
+    en: {
+      title: "Sun, Moon, and Rising", eyebrow: "THREE DIFFERENT QUESTIONS", titleLines: ["You are more", "than your", "Sun sign."],
+      bodyLines: ["Sun, Moon, and Rising illuminate", "different parts of experience."], cta: "Swipe and notice",
+      caption: "Sun, Moon, and Rising are not three versions of the same thing.\n\nThe Sun speaks to identity and direction. The Moon, to care and belonging. The Rising sign, to your presence and the way you meet the world.\n\nWhich of these three points do you recognise most clearly in yourself? Save this for a quieter moment.",
+      slides: [
+        { eyebrow: "THREE DIFFERENT QUESTIONS", title: ["You are more", "than your", "Sun sign."], body: ["Sun, Moon, and Rising illuminate", "different parts of experience."] },
+        { eyebrow: "SUN · IDENTITY AND DIRECTION", title: ["What keeps you", "alive on", "the inside?"], body: ["The Sun speaks to vitality, intention,", "and the centre that guides your choices."] },
+        { eyebrow: "MOON · CARE AND BELONGING", title: ["What do you need", "to feel at home?"], body: ["The Moon helps reveal emotional needs,", "rhythms, and ways of caring."] },
+        { eyebrow: "RISING · PRESENCE AND ENTRY", title: ["How do you", "enter the", "world?"], body: ["The Rising sign speaks to beginnings", "and your first contact with experience."] },
+        { eyebrow: "A MOMENT TO NOTICE", title: ["Which question", "stayed with", "you today?"], body: ["Do not look for a perfect answer.", "Notice what is already alive."], cta: "Save for later" },
+      ],
+    },
   },
   {
-    id: "03",
-    slug: "como-funciona",
-    kind: "carousel",
-    pillar: "Demonstração",
-    title: "Como funciona",
-    eyebrow: "DO NASCIMENTO AO MAPA",
-    titleLines: ["Como abrir", "o seu mapa", "no PDU."],
-    bodyLines: ["Um processo claro, em camadas", "e sem conhecimento prévio."],
-    cta: "Veja o passo a passo",
-    caption: "Você não precisa entender astrologia antes de começar.\n\nInforme data, hora e local de nascimento. O PDU calcula o seu céu natal e abre a primeira camada com Sol, Lua e Ascendente. Depois, você pode navegar por visão geral, planetas, casas e aspectos.\n\nComece gratuitamente em palavrasdouniverso.com/astrologia.",
+    id: "03", slug: "mesmo-signo-vidas-diferentes", kind: "carousel", pillar: "Curiosidade",
+    title: "Mesmo signo, vidas diferentes", eyebrow: "UMA CURIOSIDADE DO MAPA", titleLines: ["Por que duas", "pessoas do mesmo", "signo são diferentes?"],
+    bodyLines: ["Porque o signo solar", "nunca conta a história sozinho."], cta: "Deslize para descobrir",
+    caption: "Duas pessoas podem nascer sob o mesmo signo solar e ainda assim perceber, escolher e reagir de formas muito diferentes.\n\nA Lua muda as necessidades emocionais. O Ascendente muda a forma de entrar na experiência. Casas e aspectos dão contexto. E nenhuma leitura substitui a história vivida.\n\nMarque alguém do mesmo signo que você — mas completamente diferente.",
     slides: [
-      { eyebrow: "COMO FUNCIONA", title: ["Do nascimento", "ao seu mapa", "em cinco passos."], body: ["Sem jargão e sem promessas", "sobre o futuro."] },
-      { eyebrow: "PASSO 01", title: ["Informe data,", "hora e local", "de nascimento."], body: ["Esses dados permitem calcular", "o céu daquele momento e lugar."] },
-      { eyebrow: "PASSO 02", title: ["Abra a primeira", "camada gratuita."], body: ["Conheça Sol, Lua e Ascendente", "dentro do seu próprio mapa."] },
-      { eyebrow: "PASSO 03", title: ["Explore por", "camadas."], body: ["Visão geral, planetas, casas", "e aspectos em navegação simples."] },
-      { eyebrow: "PASSO 04", title: ["Escolha como", "aprofundar."], body: ["Mapa completo por R$39,90 ou", "Círculo por R$49,90/mês."], cta: "Comece gratuitamente" },
+      { eyebrow: "UMA CURIOSIDADE DO MAPA", title: ["Mesmo signo.", "Vidas muito", "diferentes."], body: ["O signo solar não conta", "a história sozinho."] },
+      { eyebrow: "A LUA MUDA O RITMO", title: ["Necessidades", "emocionais não", "são iguais."], body: ["Cada pessoa encontra segurança", "e pertencimento de um jeito."] },
+      { eyebrow: "O ASCENDENTE MUDA A ENTRADA", title: ["O mundo encontra", "cada pessoa", "por uma porta."], body: ["Presença e primeira impressão", "também fazem parte do mapa."] },
+      { eyebrow: "CASAS E ASPECTOS DÃO CONTEXTO", title: ["O símbolo muda", "quando encontra", "outras camadas."], body: ["Uma posição nunca existe", "completamente isolada."] },
+      { eyebrow: "E EXISTE A VIDA VIVIDA", title: ["Mapa não é", "molde de", "personalidade."], body: ["História, cultura e escolhas", "continuam importando."], cta: "Envie para alguém do mesmo signo" },
     ],
+    en: {
+      title: "Same sign, different lives", eyebrow: "A CHART CURIOSITY", titleLines: ["Why can two", "people with the", "same sign differ?"],
+      bodyLines: ["Because the Sun sign", "never tells the story alone."], cta: "Swipe to discover",
+      caption: "Two people can share the same Sun sign and still perceive, choose, and respond in very different ways.\n\nThe Moon changes emotional needs. The Rising sign changes how someone enters experience. Houses and aspects provide context. And no reading replaces a lived story.\n\nTag someone who shares your sign but feels completely different.",
+      slides: [
+        { eyebrow: "A CHART CURIOSITY", title: ["Same sign.", "Very different", "lives."], body: ["The Sun sign never tells", "the story alone."] },
+        { eyebrow: "THE MOON CHANGES THE RHYTHM", title: ["Emotional needs", "are not", "the same."], body: ["Each person finds safety", "and belonging differently."] },
+        { eyebrow: "RISING CHANGES THE ENTRY", title: ["The world meets", "each person through", "a different door."], body: ["Presence and first impressions", "are part of the chart too."] },
+        { eyebrow: "HOUSES AND ASPECTS ADD CONTEXT", title: ["A symbol changes", "when it meets", "other layers."], body: ["No placement exists", "entirely on its own."] },
+        { eyebrow: "AND THERE IS LIVED EXPERIENCE", title: ["A chart is not", "a personality", "template."], body: ["History, culture, and choices", "still matter."], cta: "Share with someone of your sign" },
+      ],
+    },
   },
   {
-    id: "04",
-    slug: "mais-que-seu-signo",
-    kind: "video",
-    pillar: "Alcance",
-    title: "Mais que o seu signo",
-    eyebrow: "VÍDEO CURTO",
-    titleLines: ["Você é mais", "do que o seu", "signo."],
-    bodyLines: ["O mapa começa onde", "o signo solar termina."],
-    cta: "Comece gratuitamente",
-    caption: "Você é muito mais do que o seu signo solar.\n\nSol, Lua e Ascendente são apenas a primeira camada. O mapa completo conecta planetas, casas e aspectos à sua experiência.\n\nConheça a primeira camada gratuitamente no link do perfil.\n\n#mapaastral #astrologia #mapanatal #autoconhecimento #palavrasdouniverso",
+    id: "04", slug: "pausa-da-lua", kind: "video", pillar: "Experiência",
+    title: "Uma pausa guiada pela Lua", eyebrow: "UM MINUTO PARA VOCÊ", titleLines: ["Do que você", "precisa para", "se sentir em casa?"],
+    bodyLines: ["Não responda depressa.", "Perceba primeiro."], cta: "Respire e fique um instante",
+    caption: "Uma pausa pequena para uma pergunta que nem sempre cabe na pressa: do que você precisa para se sentir em casa dentro da própria vida?\n\nTalvez seja silêncio. Talvez seja limite. Talvez seja uma conversa que você vem adiando.\n\nNão precisa responder agora. Apenas perceba o que o corpo reconheceu primeiro.\n\n#pausa #autopercepcao #lua #palavrasdouniverso",
     frames: [
-      { eyebrow: "VOCÊ É MAIS DO QUE UM SIGNO", title: ["O seu mapa", "não termina", "no Sol."], body: ["Ele começa ali."] },
-      { eyebrow: "PRIMEIRA CAMADA", title: ["Sol. Lua.", "Ascendente."], body: ["Identidade, cuidado", "e presença."] },
-      { eyebrow: "O MAPA GANHA PROFUNDIDADE", title: ["Planetas.", "Casas.", "Aspectos."], body: ["Símbolos em conversa,", "não rótulos isolados."] },
-      { eyebrow: "MAPA COMPLETO", title: ["R$39,90"], body: ["Pagamento único.", "Sem assinatura."] },
-      { eyebrow: "A PRIMEIRA CAMADA É GRATUITA", title: ["Comece pelo", "seu céu."], body: ["palavrasdouniverso.com", "/astrologia"], cta: "Abrir minha astrologia" },
+      { eyebrow: "UM MINUTO PARA VOCÊ", title: ["Respire sem", "tentar resolver", "nada."], body: ["Só volte para onde você está."] },
+      { eyebrow: "A PERGUNTA DA LUA", title: ["Do que você", "precisa para", "se sentir em casa?"], body: ["Dentro do corpo.", "Dentro da própria vida."] },
+      { eyebrow: "NÃO PROCURE A RESPOSTA CERTA", title: ["Perceba o que", "veio primeiro."], body: ["Uma imagem. Uma palavra.", "Uma sensação."] },
+      { eyebrow: "CUIDADO TAMBÉM É LIMITE", title: ["O que você pode", "não carregar", "hoje?"], body: ["Uma escolha pequena já conta."] },
+      { eyebrow: "LEVE A PERGUNTA COM VOCÊ", title: ["O que faz você", "se sentir", "em casa?"], body: ["Volte quando precisar."], cta: "Salve esta pausa" },
     ],
+    en: {
+      title: "A pause guided by the Moon", eyebrow: "ONE MINUTE FOR YOU", titleLines: ["What do you need", "to feel", "at home?"],
+      bodyLines: ["Do not answer too quickly.", "Notice first."], cta: "Breathe and stay a moment",
+      caption: "A small pause for a question that does not always fit inside a busy day: what do you need to feel at home within your own life?\n\nPerhaps it is silence. Perhaps it is a boundary. Perhaps it is a conversation you have been postponing.\n\nYou do not need to answer now. Just notice what your body recognised first.\n\n#pause #selfawareness #moon #palavrasdouniverso",
+      frames: [
+        { eyebrow: "ONE MINUTE FOR YOU", title: ["Breathe without", "trying to fix", "anything."], body: ["Simply return to where you are."] },
+        { eyebrow: "THE MOON'S QUESTION", title: ["What do you need", "to feel", "at home?"], body: ["Inside your body.", "Inside your own life."] },
+        { eyebrow: "DO NOT SEEK THE RIGHT ANSWER", title: ["Notice what", "came first."], body: ["An image. A word.", "A sensation."] },
+        { eyebrow: "CARE CAN ALSO BE A BOUNDARY", title: ["What can you", "choose not to", "carry today?"], body: ["One small choice still matters."] },
+        { eyebrow: "TAKE THE QUESTION WITH YOU", title: ["What helps you", "feel at", "home?"], body: ["Return whenever you need."], cta: "Save this pause" },
+      ],
+    },
   },
   {
-    id: "05",
-    slug: "planeta-signo-casa",
-    kind: "carousel",
-    pillar: "Explicação",
-    title: "Planeta, signo e casa",
-    eyebrow: "TRÊS PARTES DA MESMA FRASE",
-    titleLines: ["Planeta, signo,", "casa."],
-    bodyLines: ["Três peças da mesma frase."],
-    cta: "Aprenda a ler",
-    caption: "Uma posição astrológica não é apenas um signo.\n\nO planeta mostra o que está falando. O signo mostra como essa parte se expressa. A casa mostra onde esse tema encontra a vida concreta. Os aspectos revelam como diferentes partes do mapa conversam.\n\nNenhuma dessas peças funciona sozinha. Conheça o seu mapa em palavrasdouniverso.com/astrologia.",
+    id: "05", slug: "planeta-signo-casa", kind: "carousel", pillar: "Educação",
+    title: "Planeta, signo e casa", eyebrow: "TRÊS PARTES DA MESMA FRASE", titleLines: ["Planeta, signo,", "casa."],
+    bodyLines: ["O quê. Como. Onde."], cta: "Aprenda a ler",
+    caption: "Uma posição astrológica não é apenas um signo.\n\nO planeta mostra o que está falando. O signo mostra como essa parte se expressa. A casa mostra onde esse tema encontra a vida concreta. Os aspectos revelam como diferentes partes do mapa conversam.\n\nExperimente ler assim: planeta é o verbo, signo é o modo e casa é o cenário.",
     slides: [
-      { eyebrow: "COMO LER UM POSICIONAMENTO", title: ["Planeta, signo,", "casa."], body: ["Três partes da mesma frase."] },
+      { eyebrow: "COMO LER UM POSICIONAMENTO", title: ["Planeta, signo,", "casa."], body: ["O quê. Como. Onde."] },
       { eyebrow: "O PLANETA", title: ["O que está", "falando?"], body: ["O planeta representa uma função", "ou parte da experiência."] },
       { eyebrow: "O SIGNO", title: ["Como essa parte", "se expressa?"], body: ["O signo dá linguagem, ritmo", "e qualidade ao planeta."] },
       { eyebrow: "A CASA", title: ["Onde esse tema", "encontra a vida?"], body: ["A casa aponta uma área concreta", "da experiência vivida."] },
-      { eyebrow: "NENHUMA PARTE FUNCIONA SOZINHA", title: ["O mapa é uma", "conversa."], body: ["Aspectos mostram como essas partes", "fluem, criam atrito ou pedem integração."], cta: "Abra o seu mapa" },
+      { eyebrow: "UMA FRASE SIMBÓLICA", title: ["Verbo + modo", "+ cenário."], body: ["Uma forma simples de começar", "a observar o mapa."], cta: "Salve este guia" },
     ],
+    en: {
+      title: "Planet, sign, and house", eyebrow: "THREE PARTS OF ONE SENTENCE", titleLines: ["Planet, sign,", "house."],
+      bodyLines: ["What. How. Where."], cta: "Learn to read",
+      caption: "An astrological placement is not only a sign.\n\nThe planet shows what is speaking. The sign shows how that part expresses itself. The house shows where the theme meets everyday life. Aspects reveal how different parts of the chart communicate.\n\nTry reading it this way: the planet is the verb, the sign is the manner, and the house is the setting.",
+      slides: [
+        { eyebrow: "HOW TO READ A PLACEMENT", title: ["Planet, sign,", "house."], body: ["What. How. Where."] },
+        { eyebrow: "THE PLANET", title: ["What is", "speaking?"], body: ["The planet represents a function", "or part of experience."] },
+        { eyebrow: "THE SIGN", title: ["How does it", "express itself?"], body: ["The sign gives the planet", "language, rhythm, and quality."] },
+        { eyebrow: "THE HOUSE", title: ["Where does this", "meet life?"], body: ["The house points to a concrete", "area of lived experience."] },
+        { eyebrow: "A SYMBOLIC SENTENCE", title: ["Verb + manner", "+ setting."], body: ["A simple way to begin", "observing a chart."], cta: "Save this guide" },
+      ],
+    },
   },
   {
-    id: "06",
-    slug: "primeira-camada-gratuita",
-    kind: "static",
-    pillar: "Promoção",
-    title: "Primeira camada gratuita",
-    eyebrow: "COMECE SEM PAGAR",
-    titleLines: ["Conheça Sol,", "Lua e", "Ascendente."],
-    bodyLines: ["A primeira camada do seu mapa", "está aberta gratuitamente."],
-    cta: "Começar agora",
-    caption: "Você pode conhecer a primeira camada do seu mapa sem pagar.\n\nSol, Lua e Ascendente respondem a perguntas diferentes sobre identidade, necessidades emocionais e presença. O PDU explica cada ponto em linguagem clara.\n\nComece gratuitamente em palavrasdouniverso.com/astrologia.",
+    id: "06", slug: "escolha-um-simbolo", kind: "static", pillar: "Interação",
+    title: "Escolha um símbolo", eyebrow: "SEM PENSAR DEMAIS", titleLines: ["Sol.", "Lua.", "Ascendente."],
+    bodyLines: ["Qual palavra chamou você primeiro?", "Conte nos comentários."], cta: "Escolha antes de ler a legenda",
+    caption: "Sem pesquisar e sem tentar acertar: qual palavra chamou você primeiro — Sol, Lua ou Ascendente?\n\nSol pode falar do que quer ganhar forma. Lua, do que precisa ser cuidado. Ascendente, da maneira como você está chegando a uma nova experiência.\n\nNão é um teste nem uma previsão. É apenas uma porta para perceber onde a sua atenção pousou hoje.",
+    en: {
+      title: "Choose a symbol", eyebrow: "WITHOUT OVERTHINKING", titleLines: ["Sun.", "Moon.", "Rising."],
+      bodyLines: ["Which word called you first?", "Tell us in the comments."], cta: "Choose before reading",
+      caption: "Without searching and without trying to get it right: which word called you first — Sun, Moon, or Rising?\n\nSun can speak to what wants to take shape. Moon, to what needs care. Rising, to how you are entering a new experience.\n\nThis is not a test or a prediction. It is simply a doorway into noticing where your attention landed today.",
+    },
   },
   {
-    id: "07",
-    slug: "o-que-sao-casas",
-    kind: "carousel",
-    pillar: "Explicação",
-    title: "O que são as casas",
-    eyebrow: "AS DOZE CASAS",
-    titleLines: ["Onde o céu", "se torna", "pessoal."],
-    bodyLines: ["Casas são áreas da vida,", "não previsões de acontecimentos."],
-    cta: "Entenda em cinco telas",
-    caption: "As casas astrológicas mostram onde a história de um planeta ganha contexto na vida.\n\nElas não são rótulos de personalidade nem garantias de acontecimentos. A sequência das casas parte do Ascendente e organiza diferentes áreas da experiência.\n\nNo mapa completo, você vê como essa estrutura se forma no seu próprio céu. palavrasdouniverso.com/astrologia.",
+    id: "07", slug: "o-que-sao-casas", kind: "carousel", pillar: "Educação",
+    title: "O que são as casas", eyebrow: "AS DOZE CASAS", titleLines: ["Onde o céu", "encontra", "a vida."],
+    bodyLines: ["Casas são áreas da experiência,", "não previsões de acontecimentos."], cta: "Entenda em cinco telas",
+    caption: "As casas astrológicas mostram onde a história de um planeta ganha contexto na vida.\n\nElas não são rótulos de personalidade nem garantias de acontecimentos. Relações, trabalho, casa, criatividade e outros territórios aparecem como campos de experiência.\n\nQual área da sua vida parece estar pedindo mais presença agora?",
     slides: [
-      { eyebrow: "AS DOZE CASAS", title: ["Onde o céu", "se torna", "pessoal."], body: ["Casas são áreas da vida,", "não previsões."] },
+      { eyebrow: "AS DOZE CASAS", title: ["Onde o céu", "encontra", "a vida."], body: ["Casas são áreas da experiência,", "não previsões."] },
       { eyebrow: "UMA ÁREA DE EXPERIÊNCIA", title: ["A casa mostra", "onde um tema", "ganha contexto."], body: ["Ela não define quem você é", "e não funciona isoladamente."] },
-      { eyebrow: "O ASCENDENTE ABRE A SEQUÊNCIA", title: ["Cada mapa", "organiza as casas", "de um jeito próprio."], body: ["Por isso data, hora e local", "de nascimento importam."] },
-      { eyebrow: "UM PLANETA EM UMA CASA", title: ["O que encontra", "um onde."], body: ["A função do planeta encontra", "uma área concreta da vida."] },
-      { eyebrow: "NÃO É EVENTO GARANTIDO", title: ["É uma lente", "simbólica."], body: ["Um modo de perceber onde um tema", "pode pedir atenção."], cta: "Veja suas casas" },
+      { eyebrow: "O ASCENDENTE ABRE A SEQUÊNCIA", title: ["Cada mapa", "organiza as casas", "de um jeito próprio."], body: ["Por isso a hora e o local", "de nascimento importam."] },
+      { eyebrow: "UM PLANETA EM UMA CASA", title: ["Uma função", "encontra um", "território da vida."], body: ["O símbolo ganha cenário", "e experiência concreta."] },
+      { eyebrow: "UMA PERGUNTA, NÃO UMA SENTENÇA", title: ["Onde este tema", "pede presença?"], body: ["A casa abre observação.", "Não fecha o futuro."], cta: "Salve para consultar" },
     ],
+    en: {
+      title: "What are houses?", eyebrow: "THE TWELVE HOUSES", titleLines: ["Where the sky", "meets", "life."],
+      bodyLines: ["Houses are areas of experience,", "not predictions of events."], cta: "Understand in five slides",
+      caption: "Astrological houses show where a planet's story gains context in life.\n\nThey are not personality labels or guarantees of events. Relationships, work, home, creativity, and other territories appear as fields of experience.\n\nWhich area of your life seems to be asking for more presence now?",
+      slides: [
+        { eyebrow: "THE TWELVE HOUSES", title: ["Where the sky", "meets", "life."], body: ["Houses are areas of experience,", "not predictions."] },
+        { eyebrow: "AN AREA OF EXPERIENCE", title: ["A house shows", "where a theme", "gains context."], body: ["It does not define who you are", "and never works alone."] },
+        { eyebrow: "RISING OPENS THE SEQUENCE", title: ["Every chart", "organises houses", "in its own way."], body: ["That is why birth time", "and place matter."] },
+        { eyebrow: "A PLANET IN A HOUSE", title: ["A function meets", "a territory", "of life."], body: ["The symbol gains a setting", "and concrete experience."] },
+        { eyebrow: "A QUESTION, NOT A SENTENCE", title: ["Where does this", "ask for presence?"], body: ["A house opens observation.", "It does not close the future."], cta: "Save for reference" },
+      ],
+    },
   },
   {
-    id: "08",
-    slug: "por-dentro-do-mapa",
-    kind: "video",
-    pillar: "Demonstração",
-    title: "Por dentro do mapa",
-    eyebrow: "DEMONSTRAÇÃO",
-    titleLines: ["O que você", "encontra dentro", "do mapa?"],
-    bodyLines: ["Uma experiência organizada", "por camadas."],
-    cta: "Veja por dentro",
-    caption: "Por dentro do mapa, você encontra uma visão geral e áreas separadas para planetas, casas e aspectos.\n\nA primeira camada apresenta Sol, Lua e Ascendente. O mapa completo aprofunda posicionamentos e as relações entre os símbolos.\n\nComece gratuitamente no link do perfil.\n\n#mapaastral #astrologia #demonstracao #palavrasdouniverso",
+    id: "08", slug: "por-dentro-do-pdu", kind: "video", pillar: "Experiência",
+    title: "Por dentro do PDU", eyebrow: "NÃO É SÓ UM MAPA", titleLines: ["Um lugar para", "parar, perceber", "e continuar."],
+    bodyLines: ["Carta do dia, leituras, astrologia,", "Lume e memória da sua jornada."], cta: "Veja as portas do PDU",
+    caption: "O Palavras do Universo não foi criado para entregar uma frase pronta e encerrar a conversa.\n\nVocê pode abrir uma carta do dia, fazer uma leitura, conhecer o seu mapa, conversar com Lume e guardar percepções no Meu Universo. Cada porta tem um ritmo, mas todas devolvem a escolha para você.\n\nQual dessas experiências você gostaria de conhecer primeiro?",
     frames: [
-      { eyebrow: "POR DENTRO DO MAPA", title: ["Uma experiência", "organizada por", "camadas."], body: ["Você não precisa entender", "astrologia antes de entrar."] },
-      { eyebrow: "VISÃO GERAL", title: ["Sol, Lua e", "Ascendente."], body: ["A primeira leitura do", "seu céu de nascimento."] },
-      { eyebrow: "PLANETAS", title: ["Cada símbolo", "ganha contexto."], body: ["Posição, signo, casa", "e relações com o mapa."] },
-      { eyebrow: "CASAS E ASPECTOS", title: ["Onde os temas", "vivem e como", "conversam."], body: ["Uma leitura em camadas,", "não uma sentença."] },
-      { eyebrow: "COMECE GRATUITAMENTE", title: ["Abra a sua", "primeira camada."], body: ["palavrasdouniverso.com", "/astrologia"], cta: "Entrar na astrologia" },
+      { eyebrow: "POR DENTRO DO PDU", title: ["Não é só", "um mapa."], body: ["É um espaço para voltar", "a si com mais clareza."] },
+      { eyebrow: "CARTA DO DIA", title: ["Um símbolo para", "acompanhar", "o agora."], body: ["Sem prever o seu dia.", "Com uma pergunta para vivê-lo."] },
+      { eyebrow: "LEITURAS", title: ["Cartas em", "conversa com", "uma questão real."], body: ["Linguagem simbólica", "sem respostas automáticas."] },
+      { eyebrow: "ASTROLOGIA", title: ["Um céu lido", "por camadas."], body: ["Planetas, casas e aspectos", "encontrando a vida vivida."] },
+      { eyebrow: "LUME + MEU UNIVERSO", title: ["Uma presença para", "continuar a", "conversa."], body: ["Reflexões e memória", "sem tirar sua autonomia."], cta: "Qual porta você abriria?" },
     ],
+    en: {
+      title: "Inside PDU", eyebrow: "MORE THAN A CHART", titleLines: ["A place to", "pause, notice,", "and continue."],
+      bodyLines: ["Daily card, readings, astrology,", "Lume, and memory of your journey."], cta: "See the doors of PDU",
+      caption: "Palavras do Universo was not created to deliver a ready-made sentence and end the conversation.\n\nYou can open a daily card, explore a reading, discover your chart, talk with Lume, and keep insights in Meu Universo. Each doorway has its own rhythm, but every one returns the choice to you.\n\nWhich experience would you like to explore first?",
+      frames: [
+        { eyebrow: "INSIDE PDU", title: ["More than", "a chart."], body: ["A space to return", "to yourself with clarity."] },
+        { eyebrow: "DAILY CARD", title: ["A symbol to", "accompany", "the present."], body: ["Not to predict your day.", "To offer a question for it."] },
+        { eyebrow: "READINGS", title: ["Cards in", "conversation with", "a real question."], body: ["Symbolic language", "without automatic answers."] },
+        { eyebrow: "ASTROLOGY", title: ["A sky read", "in layers."], body: ["Planets, houses, and aspects", "meeting lived experience."] },
+        { eyebrow: "LUME + MEU UNIVERSO", title: ["A presence to", "continue the", "conversation."], body: ["Reflection and memory", "without taking your autonomy."], cta: "Which door would you open?" },
+      ],
+    },
   },
   {
-    id: "09",
-    slug: "o-que-sao-aspectos",
-    kind: "carousel",
-    pillar: "Explicação",
-    title: "O que são aspectos",
-    eyebrow: "CONVERSAS NO CÉU",
-    titleLines: ["Aspectos mostram", "como os símbolos", "se relacionam."],
-    bodyLines: ["Eles não tornam um planeta", "bom ou ruim."],
-    cta: "Entenda a relação",
-    caption: "Aspectos são relações geométricas entre os planetas do mapa.\n\nEles não tornam um símbolo bom ou ruim. Mostram se duas partes da experiência tendem a fluir, criar atrito ou pedir integração. No mapa completo, você vê quais planetas conversam no seu próprio céu.\n\nConheça a primeira camada gratuitamente em palavrasdouniverso.com/astrologia.",
+    id: "09", slug: "o-que-sao-aspectos", kind: "carousel", pillar: "Educação",
+    title: "O que são aspectos", eyebrow: "CONVERSAS NO CÉU", titleLines: ["Aspectos mostram", "como os símbolos", "se relacionam."],
+    bodyLines: ["Fluxo, tensão e integração", "também fazem parte da leitura."], cta: "Entenda a relação",
+    caption: "Aspectos são relações geométricas entre os planetas do mapa.\n\nEles não tornam um símbolo bom ou ruim. Mostram se duas partes da experiência tendem a fluir, criar atrito ou pedir integração.\n\nPense em duas necessidades suas que nem sempre concordam. O que poderia ser uma terceira via entre elas?",
     slides: [
       { eyebrow: "CONVERSAS NO CÉU", title: ["Aspectos mostram", "como os símbolos", "se relacionam."], body: ["Eles conectam diferentes", "partes do mapa."] },
-      { eyebrow: "NÃO EXISTE PLANETA BOM OU RUIM", title: ["Uma relação", "pode fluir…"], body: ["Alguns aspectos indicam recursos", "que se integram com mais facilidade."] },
-      { eyebrow: "TENSÃO TAMBÉM É INFORMAÇÃO", title: ["…ou criar", "atrito."], body: ["Outros mostram contrastes", "que pedem consciência e trabalho."] },
-      { eyebrow: "INTEGRAÇÃO", title: ["Duas partes", "podem pedir", "uma terceira via."], body: ["O aspecto abre uma pergunta.", "Não fecha uma conclusão."] },
-      { eyebrow: "NO SEU MAPA", title: ["Quais planetas", "estão em", "conversa?"], body: ["O mapa completo apresenta", "as relações ativas do seu céu."], cta: "Conheça o seu mapa" },
+      { eyebrow: "FLUXO", title: ["Algumas partes", "se reconhecem", "com facilidade."], body: ["Recursos podem circular", "de modo mais espontâneo."] },
+      { eyebrow: "TENSÃO", title: ["Outras partes", "pedem trabalho", "e consciência."], body: ["Atrito não é castigo.", "Também produz movimento."] },
+      { eyebrow: "INTEGRAÇÃO", title: ["Duas necessidades", "podem pedir", "uma terceira via."], body: ["O aspecto abre uma pergunta.", "Não fecha uma conclusão."] },
+      { eyebrow: "TRAGA PARA A VIDA", title: ["O que em você", "precisa conversar", "melhor?"], body: ["Observe sem escolher", "um lado depressa demais."], cta: "Guarde esta pergunta" },
     ],
+    en: {
+      title: "What are aspects?", eyebrow: "CONVERSATIONS IN THE SKY", titleLines: ["Aspects show", "how symbols", "relate."],
+      bodyLines: ["Flow, tension, and integration", "also belong in a reading."], cta: "Understand the relationship",
+      caption: "Aspects are geometric relationships between planets in a chart.\n\nThey do not make a symbol good or bad. They show whether two parts of experience tend to flow, create friction, or ask for integration.\n\nThink of two needs within you that do not always agree. What could become a third way between them?",
+      slides: [
+        { eyebrow: "CONVERSATIONS IN THE SKY", title: ["Aspects show", "how symbols", "relate."], body: ["They connect different", "parts of the chart."] },
+        { eyebrow: "FLOW", title: ["Some parts", "recognise each", "other easily."], body: ["Resources can circulate", "more spontaneously."] },
+        { eyebrow: "TENSION", title: ["Other parts", "ask for work", "and awareness."], body: ["Friction is not punishment.", "It can also create movement."] },
+        { eyebrow: "INTEGRATION", title: ["Two needs may", "ask for", "a third way."], body: ["An aspect opens a question.", "It does not close a conclusion."] },
+        { eyebrow: "BRING IT INTO LIFE", title: ["What in you", "needs a better", "conversation?"], body: ["Observe before choosing", "one side too quickly."], cta: "Keep this question" },
+      ],
+    },
   },
   {
-    id: "10",
-    slug: "circulo-4990",
-    kind: "static",
-    pillar: "Promoção",
-    title: "Círculo do Universo",
-    eyebrow: "PARA QUEM QUER CONTINUIDADE",
-    titleLines: ["Círculo do", "Universo"],
-    price: "R$49,90/mês",
-    priceNote: "mapa completo incluído",
-    bodyLines: ["Leituras premium e histórico para", "reconhecer padrões ao longo do tempo."],
-    cta: "Conhecer o Círculo",
-    caption: "O Círculo do Universo é para quem quer continuidade.\n\nPor R$49,90/mês, o mapa completo fica incluído enquanto a assinatura estiver ativa, junto com leituras premium e histórico para reconhecer padrões ao longo do tempo.\n\nConheça em palavrasdouniverso.com/astrologia.",
+    id: "10", slug: "o-que-o-mapa-nao-diz", kind: "static", pillar: "Curiosidade",
+    title: "O que o mapa não diz", eyebrow: "UM LIMITE IMPORTANTE", titleLines: ["Seu mapa não", "sabe quem você", "vai escolher ser."],
+    bodyLines: ["Ele oferece linguagem e contexto.", "A vida continua sendo sua."], cta: "Mais perguntas, menos rótulos",
+    caption: "Um mapa pode mostrar símbolos, relações e temas. Mas ele não conhece toda a sua história, não prevê cada escolha e não decide quem você será.\n\nA leitura ganha sentido quando encontra contexto, consciência e vida vivida.\n\nQual rótulo você gostaria de deixar de carregar?",
+    en: {
+      title: "What a chart cannot say", eyebrow: "AN IMPORTANT LIMIT", titleLines: ["Your chart does", "not know who you", "will choose to be."],
+      bodyLines: ["It offers language and context.", "Your life remains yours."], cta: "More questions, fewer labels",
+      caption: "A chart can show symbols, relationships, and themes. But it does not know your whole story, predict every choice, or decide who you will become.\n\nA reading gains meaning when it meets context, awareness, and lived experience.\n\nWhich label would you like to stop carrying?",
+    },
   },
   {
-    id: "11",
-    slug: "astrologia-sem-destino",
-    kind: "carousel",
-    pillar: "Confiança",
-    title: "Astrologia sem determinismo",
-    eyebrow: "NÃO É DESTINO FIXO",
-    titleLines: ["O mapa não", "decide por", "você."],
-    bodyLines: ["Ele oferece contexto para", "perceber padrões e escolhas."],
-    cta: "Veja nossa abordagem",
-    caption: "No Palavras do Universo, astrologia não é destino fixo.\n\nO mapa não garante acontecimentos, não substitui cuidado profissional e não retira sua liberdade de escolha. Ele funciona como uma linguagem simbólica para perceber padrões, necessidades, talentos e o tempo das decisões.\n\nO céu oferece contexto. A escolha continua sendo sua.",
+    id: "11", slug: "astrologia-sem-destino", kind: "carousel", pillar: "Confiança",
+    title: "Astrologia sem determinismo", eyebrow: "NÃO É DESTINO FIXO", titleLines: ["O mapa não", "decide por", "você."],
+    bodyLines: ["Ele oferece contexto para", "perceber padrões e escolhas."], cta: "Conheça nossa abordagem",
+    caption: "No Palavras do Universo, astrologia não é destino fixo.\n\nO mapa não garante acontecimentos, não substitui cuidado profissional e não retira sua liberdade de escolha. Ele funciona como uma linguagem simbólica para perceber padrões, necessidades e possibilidades.\n\nO céu oferece contexto. A escolha continua sendo sua.",
     slides: [
       { eyebrow: "ASTROLOGIA SEM DETERMINISMO", title: ["O mapa não", "decide por", "você."], body: ["Ele oferece contexto."] },
-      { eyebrow: "NÃO É PREVISÃO FECHADA", title: ["Nenhum símbolo", "garante um", "acontecimento."], body: ["Astrologia não transforma", "possibilidade em sentença."] },
-      { eyebrow: "É UMA LINGUAGEM SIMBÓLICA", title: ["Padrões.", "Necessidades.", "Talentos."], body: ["Símbolos ganham sentido quando", "encontram a experiência vivida."] },
-      { eyebrow: "CONTEXTO PARA ESCOLHAS", title: ["Mais perguntas.", "Menos rótulos."], body: ["O mapa pode ampliar percepção", "sem retirar responsabilidade."] },
-      { eyebrow: "A ESCOLHA CONTINUA SENDO SUA", title: ["Seu céu pode", "acompanhar.", "Nunca mandar."], body: ["Comece pela primeira", "camada gratuita."], cta: "Conheça a proposta" },
+      { eyebrow: "NÃO É PREVISÃO FECHADA", title: ["Nenhum símbolo", "garante um", "acontecimento."], body: ["Possibilidade não precisa", "virar sentença."] },
+      { eyebrow: "É UMA LINGUAGEM SIMBÓLICA", title: ["Padrões.", "Necessidades.", "Possibilidades."], body: ["Símbolos ganham sentido quando", "encontram a experiência vivida."] },
+      { eyebrow: "CONTEXTO PARA ESCOLHAS", title: ["Mais perguntas.", "Menos rótulos."], body: ["Percepção pode crescer", "sem retirar responsabilidade."] },
+      { eyebrow: "A ESCOLHA CONTINUA SENDO SUA", title: ["Seu céu pode", "acompanhar.", "Nunca mandar."], body: ["Use a linguagem.", "Preserve a sua autonomia."], cta: "Compartilhe esta abordagem" },
     ],
+    en: {
+      title: "Astrology without determinism", eyebrow: "NOT A FIXED DESTINY", titleLines: ["A chart does", "not decide", "for you."],
+      bodyLines: ["It offers context for", "noticing patterns and choices."], cta: "Discover our approach",
+      caption: "At Palavras do Universo, astrology is not fixed destiny.\n\nA chart does not guarantee events, replace professional care, or remove your freedom to choose. It works as a symbolic language for noticing patterns, needs, and possibilities.\n\nThe sky offers context. The choice remains yours.",
+      slides: [
+        { eyebrow: "ASTROLOGY WITHOUT DETERMINISM", title: ["A chart does", "not decide", "for you."], body: ["It offers context."] },
+        { eyebrow: "NOT A CLOSED PREDICTION", title: ["No symbol", "guarantees an", "event."], body: ["Possibility does not need", "to become a sentence."] },
+        { eyebrow: "A SYMBOLIC LANGUAGE", title: ["Patterns.", "Needs.", "Possibilities."], body: ["Symbols gain meaning when", "they meet lived experience."] },
+        { eyebrow: "CONTEXT FOR CHOICES", title: ["More questions.", "Fewer labels."], body: ["Awareness can grow without", "removing responsibility."] },
+        { eyebrow: "THE CHOICE REMAINS YOURS", title: ["Your sky may", "accompany you.", "Never command."], body: ["Use the language.", "Keep your autonomy."], cta: "Share this approach" },
+      ],
+    },
   },
   {
-    id: "12",
-    slug: "mapa-ou-circulo",
-    kind: "video",
-    pillar: "Conversão",
-    title: "Mapa ou Círculo",
-    eyebrow: "QUAL ESCOLHER?",
-    titleLines: ["Mapa ou", "Círculo?"],
-    bodyLines: ["A escolha depende do tipo", "de experiência que você quer."],
-    cta: "Compare as opções",
-    caption: "Mapa ou Círculo?\n\nEscolha o Mapa Astral Completo por R$39,90 se você quer conhecer o seu céu em uma compra única. Escolha o Círculo por R$49,90/mês se quer o mapa dentro de uma experiência contínua, com leituras premium e histórico.\n\nComece gratuitamente no link do perfil.",
+    id: "12", slug: "tres-perguntas-para-hoje", kind: "video", pillar: "Experiência",
+    title: "Três perguntas para hoje", eyebrow: "UMA EXPERIÊNCIA DE UM MINUTO", titleLines: ["Três perguntas.", "Nenhuma resposta", "automática."],
+    bodyLines: ["Escolha a que encontrou você."], cta: "Leve uma pergunta",
+    caption: "Três perguntas para atravessar o dia com um pouco mais de presença:\n\nO que quer ganhar forma?\nO que precisa ser cuidado?\nComo você deseja chegar?\n\nEscolha apenas uma. Anote em algum lugar e volte a ela antes de dormir.\n\n#reflexao #presenca #palavrasdouniverso",
     frames: [
-      { eyebrow: "QUAL ESCOLHER?", title: ["Mapa ou", "Círculo?"], body: ["Duas formas de continuar", "depois da camada gratuita."] },
-      { eyebrow: "MAPA ASTRAL COMPLETO", title: ["R$39,90"], body: ["Pagamento único.", "Sem assinatura."] },
-      { eyebrow: "CÍRCULO DO UNIVERSO", title: ["R$49,90/mês"], body: ["Mapa completo incluído,", "leituras e histórico."] },
-      { eyebrow: "ESCOLHA O MAPA", title: ["Se você quer", "conhecer o seu", "céu uma vez."], body: ["Uma leitura completa", "em pagamento único."] },
-      { eyebrow: "ESCOLHA O CÍRCULO", title: ["Se você quer", "acompanhar", "seus ciclos."], body: ["Comece gratuitamente", "no link do perfil."], cta: "Abrir minha astrologia" },
+      { eyebrow: "UMA EXPERIÊNCIA DE UM MINUTO", title: ["Não procure", "uma resposta", "automática."], body: ["Escolha a pergunta", "que encontrou você."] },
+      { eyebrow: "PERGUNTA DO SOL", title: ["O que quer", "ganhar forma", "através de você?"], body: ["Uma intenção.", "Um gesto concreto."] },
+      { eyebrow: "PERGUNTA DA LUA", title: ["O que precisa", "ser cuidado", "hoje?"], body: ["Sem exagerar.", "Sem abandonar."] },
+      { eyebrow: "PERGUNTA DO ASCENDENTE", title: ["Como você", "deseja chegar", "ao que vem?"], body: ["Com pressa? Com presença?", "Com qual limite?"] },
+      { eyebrow: "ESCOLHA UMA", title: ["Leve a pergunta", "com você."], body: ["Volte a ela antes de dormir."], cta: "Salve para hoje" },
     ],
+    en: {
+      title: "Three questions for today", eyebrow: "A ONE-MINUTE EXPERIENCE", titleLines: ["Three questions.", "No automatic", "answers."],
+      bodyLines: ["Choose the one that found you."], cta: "Take one question with you",
+      caption: "Three questions for moving through the day with a little more presence:\n\nWhat wants to take shape?\nWhat needs care?\nHow do you want to arrive?\n\nChoose only one. Write it somewhere and return to it before sleep.\n\n#reflection #presence #palavrasdouniverso",
+      frames: [
+        { eyebrow: "A ONE-MINUTE EXPERIENCE", title: ["Do not look", "for an automatic", "answer."], body: ["Choose the question", "that found you."] },
+        { eyebrow: "THE SUN'S QUESTION", title: ["What wants", "to take shape", "through you?"], body: ["An intention.", "One concrete gesture."] },
+        { eyebrow: "THE MOON'S QUESTION", title: ["What needs", "care today?"], body: ["Without exaggerating.", "Without abandoning."] },
+        { eyebrow: "THE RISING QUESTION", title: ["How do you", "want to arrive", "at what comes next?"], body: ["With urgency? With presence?", "With what boundary?"] },
+        { eyebrow: "CHOOSE ONE", title: ["Take the question", "with you."], body: ["Return to it before sleep."], cta: "Save for today" },
+      ],
+    },
   },
   {
-    id: "13",
-    slug: "gratuito-vs-completo",
-    kind: "carousel",
-    pillar: "Demonstração",
-    title: "Gratuito vs. completo",
-    eyebrow: "O QUE ABRE EM CADA CAMADA",
-    titleLines: ["O que é gratuito", "e o que vem no", "mapa completo?"],
-    bodyLines: ["Comece entendendo antes", "de escolher."],
-    cta: "Compare as camadas",
-    caption: "Você não precisa comprar antes de entender a proposta.\n\nA primeira camada gratuita apresenta Sol, Lua e Ascendente e abre a linguagem básica do mapa. O Mapa Astral Completo aprofunda os posicionamentos pessoais, casas, aspectos e influências por R$39,90, em pagamento único.\n\nComece gratuitamente em palavrasdouniverso.com/astrologia.",
+    id: "13", slug: "experiencia-pdu", kind: "carousel", pillar: "Experiência",
+    title: "A experiência PDU", eyebrow: "UMA EXPERIÊNCIA QUE CONTINUA", titleLines: ["Entrar.", "Perceber.", "Guardar."],
+    bodyLines: ["O PDU acompanha perguntas", "sem entregar respostas prontas."], cta: "Conheça as camadas",
+    caption: "A experiência do Palavras do Universo não termina quando uma carta vira ou quando um mapa aparece.\n\nVocê entra por uma pergunta, encontra símbolos com contexto, guarda o que fez sentido e pode continuar a conversa depois. O objetivo não é fazer você depender de uma resposta. É ajudar você a perceber melhor.\n\nO que faria uma experiência simbólica realmente cuidar do seu tempo?",
     slides: [
-      { eyebrow: "GRATUITO VS. COMPLETO", title: ["O que abre", "em cada", "camada?"], body: ["Comece entendendo", "antes de escolher."] },
-      { eyebrow: "PRIMEIRA CAMADA GRATUITA", title: ["Sol, Lua e", "Ascendente."], body: ["Uma introdução ao seu céu", "e à linguagem do mapa."] },
-      { eyebrow: "LINGUAGEM BÁSICA ABERTA", title: ["Significados que", "você consegue", "acompanhar."], body: ["Sem exigir conhecimento", "prévio de astrologia."] },
-      { eyebrow: "MAPA COMPLETO · R$39,90", title: ["Posicionamentos", "pessoais em", "profundidade."], body: ["Planetas, casas, aspectos", "e influências do seu mapa."] },
-      { eyebrow: "PAGAMENTO ÚNICO", title: ["Aprofunde quando", "fizer sentido."], body: ["Sem assinatura para quem", "quer apenas o mapa."], cta: "Comece gratuitamente" },
+      { eyebrow: "A EXPERIÊNCIA PDU", title: ["Entrar.", "Perceber.", "Guardar."], body: ["Uma jornada que respeita", "o seu próprio ritmo."] },
+      { eyebrow: "ENTRAR POR UMA PERGUNTA", title: ["A vida vem", "antes do", "símbolo."], body: ["A experiência começa", "no que é real para você."] },
+      { eyebrow: "ENCONTRAR CONTEXTO", title: ["Nada de frases", "soltas ou", "genéricas."], body: ["Símbolos em relação", "com a pergunta e o momento."] },
+      { eyebrow: "GUARDAR O QUE FEZ SENTIDO", title: ["Sua jornada", "não precisa", "sumir."], body: ["Percepções podem voltar", "quando o tempo mudar."] },
+      { eyebrow: "CONTINUAR SEM DEPENDER", title: ["Mais autonomia.", "Menos resposta", "pronta."], body: ["O PDU acompanha.", "A escolha permanece sua."], cta: "Como seria para você?" },
     ],
+    en: {
+      title: "The PDU experience", eyebrow: "AN EXPERIENCE THAT CONTINUES", titleLines: ["Enter.", "Notice.", "Keep."],
+      bodyLines: ["PDU accompanies questions", "without ready-made answers."], cta: "Discover the layers",
+      caption: "The Palavras do Universo experience does not end when a card turns or a chart appears.\n\nYou enter through a question, meet symbols with context, keep what felt meaningful, and continue the conversation later. The aim is not to make you depend on an answer. It is to help you notice more clearly.\n\nWhat would make a symbolic experience truly respect your time?",
+      slides: [
+        { eyebrow: "THE PDU EXPERIENCE", title: ["Enter.", "Notice.", "Keep."], body: ["A journey that respects", "your own rhythm."] },
+        { eyebrow: "ENTER THROUGH A QUESTION", title: ["Life comes", "before the", "symbol."], body: ["The experience begins", "with what is real for you."] },
+        { eyebrow: "MEET CONTEXT", title: ["No loose", "or generic", "phrases."], body: ["Symbols in relationship", "with the question and moment."] },
+        { eyebrow: "KEEP WHAT FELT MEANINGFUL", title: ["Your journey", "does not need", "to disappear."], body: ["Insights can return", "when time changes."] },
+        { eyebrow: "CONTINUE WITHOUT DEPENDING", title: ["More autonomy.", "Fewer ready-made", "answers."], body: ["PDU accompanies.", "The choice remains yours."], cta: "What would this mean to you?" },
+      ],
+    },
   },
   {
-    id: "14",
-    slug: "mapa-e-conversa",
-    kind: "carousel",
-    pillar: "Explicação",
-    title: "O mapa é uma conversa",
-    eyebrow: "NÃO EXISTE POSICIONAMENTO ISOLADO",
-    titleLines: ["O mapa é uma", "conversa."],
-    bodyLines: ["Um símbolo muda quando encontra", "casa, aspectos e história."],
-    cta: "Veja por que",
-    caption: "Não existe posicionamento isolado.\n\nDuas pessoas com Lua em Touro não vivem exatamente a mesma frase. Casa, aspectos, outros planetas, contexto de vida e história pessoal mudam a forma como o símbolo ganha sentido.\n\nO mapa é uma conversa — não uma coleção de rótulos. Conheça o seu em palavrasdouniverso.com/astrologia.",
+    id: "14", slug: "mapa-e-conversa", kind: "carousel", pillar: "Curiosidade",
+    title: "O mapa é uma conversa", eyebrow: "NÃO EXISTE POSICIONAMENTO ISOLADO", titleLines: ["Lua em Touro", "não significa", "uma pessoa igual."],
+    bodyLines: ["Casa, aspectos e história", "mudam a frase."], cta: "Veja por quê",
+    caption: "Duas pessoas com Lua em Touro não vivem exatamente a mesma frase.\n\nA casa mostra onde essa Lua encontra a vida. Os aspectos mostram com quais outras partes ela conversa. O contexto e a história pessoal mudam a forma como o símbolo ganha sentido.\n\nO mapa é uma conversa — não uma coleção de rótulos.",
     slides: [
       { eyebrow: "NÃO EXISTE POSICIONAMENTO ISOLADO", title: ["O mapa é uma", "conversa."], body: ["Cada símbolo encontra", "outros símbolos."] },
       { eyebrow: "O MESMO SIGNO NÃO É A MESMA FRASE", title: ["Lua em Touro", "não significa", "uma pessoa igual."], body: ["O signo é apenas uma", "das camadas da leitura."] },
       { eyebrow: "A CASA MUDA O CONTEXTO", title: ["Onde esse tema", "encontra a vida?"], body: ["A área da experiência modifica", "a forma de viver o símbolo."] },
-      { eyebrow: "ASPECTOS CRIAM RELAÇÕES", title: ["Quais planetas", "estão em", "conversa?"], body: ["Aspectos mostram relações de", "fluxo, tensão e integração."] },
-      { eyebrow: "A SUA HISTÓRIA IMPORTA", title: ["Símbolo + mapa", "+ vida vivida."], body: ["É assim que a linguagem", "começa a se tornar pessoal."], cta: "Abra o seu mapa" },
+      { eyebrow: "ASPECTOS CRIAM RELAÇÕES", title: ["Com quem essa", "Lua está", "conversando?"], body: ["Fluxo, tensão e integração", "mudam a frase."] },
+      { eyebrow: "A SUA HISTÓRIA IMPORTA", title: ["Símbolo + mapa", "+ vida vivida."], body: ["É assim que a linguagem", "começa a se tornar pessoal."], cta: "Sem rótulos fáceis" },
     ],
+    en: {
+      title: "A chart is a conversation", eyebrow: "NO PLACEMENT EXISTS ALONE", titleLines: ["Moon in Taurus", "does not mean", "the same person."],
+      bodyLines: ["House, aspects, and history", "change the sentence."], cta: "See why",
+      caption: "Two people with Moon in Taurus do not live exactly the same sentence.\n\nThe house shows where that Moon meets life. Aspects show which other parts it speaks with. Context and personal history change how the symbol gains meaning.\n\nA chart is a conversation — not a collection of labels.",
+      slides: [
+        { eyebrow: "NO PLACEMENT EXISTS ALONE", title: ["A chart is a", "conversation."], body: ["Every symbol meets", "other symbols."] },
+        { eyebrow: "THE SAME SIGN IS NOT THE SAME SENTENCE", title: ["Moon in Taurus", "does not mean", "the same person."], body: ["The sign is only one", "layer of the reading."] },
+        { eyebrow: "THE HOUSE CHANGES CONTEXT", title: ["Where does this", "theme meet life?"], body: ["The area of experience changes", "how the symbol is lived."] },
+        { eyebrow: "ASPECTS CREATE RELATIONSHIPS", title: ["Who is this", "Moon speaking", "with?"], body: ["Flow, tension, and integration", "change the sentence."] },
+        { eyebrow: "YOUR STORY MATTERS", title: ["Symbol + chart", "+ lived life."], body: ["That is how language", "begins to become personal."], cta: "Beyond easy labels" },
+      ],
+    },
   },
   {
-    id: "15",
-    slug: "dois-caminhos",
-    kind: "static",
-    pillar: "Promoção",
-    title: "Dois caminhos",
-    eyebrow: "ESCOLHA COMO CONTINUAR",
-    titleLines: ["Um mapa para", "se reconhecer.", "Um círculo para", "continuar."],
-    bodyLines: ["Mapa completo · R$39,90", "Círculo · R$49,90/mês"],
-    cta: "Comece gratuitamente",
-    caption: "Duas formas de continuar depois da primeira camada gratuita.\n\nMapa Astral Completo por R$39,90, pagamento único, para conhecer o seu céu sem assinatura. Círculo do Universo por R$49,90/mês para ter o mapa dentro de uma experiência contínua.\n\nComece em palavrasdouniverso.com/astrologia.",
+    id: "15", slug: "como-aprofundar", kind: "static", pillar: "Oferta", offer: true,
+    title: "Como aprofundar", eyebrow: "QUANDO FIZER SENTIDO CONTINUAR", titleLines: ["Um mapa para", "conhecer.", "Um círculo para", "acompanhar."],
+    bodyLines: ["Mapa completo · R$39,90", "Círculo · R$49,90/mês"], cta: "Primeiro, conheça a experiência",
+    caption: "Se a primeira camada abriu uma pergunta que você quer compreender melhor, existem duas formas de continuar.\n\nO Mapa Astral Completo custa R$39,90 em pagamento único. O Círculo do Universo custa R$49,90 por mês e inclui o mapa enquanto a assinatura estiver ativa, além de leituras premium e histórico.\n\nVocê não precisa decidir antes de experimentar a camada gratuita.",
+    en: {
+      title: "How to go deeper", eyebrow: "WHEN CONTINUING MAKES SENSE", titleLines: ["A chart to", "discover.", "A circle to", "continue."],
+      bodyLines: ["Complete chart · £17.00", "Circle · £20.00/month"], cta: "Experience it first",
+      caption: "If the first layer opened a question you want to understand more deeply, there are two ways to continue.\n\nThe Complete Birth Chart is £17.00 as a one-time payment. The Circle is £20.00 per month and includes the chart while your subscription is active, plus premium readings and history.\n\nYou do not need to decide before experiencing the free layer.",
+    },
   },
   {
-    id: "16",
-    slug: "comece-pelo-seu-ceu",
-    kind: "video",
-    pillar: "Conversão",
-    title: "Comece pelo seu céu",
-    eyebrow: "CONVITE FINAL",
-    titleLines: ["Comece pelo", "seu céu."],
-    bodyLines: ["A primeira camada", "é gratuita."],
-    cta: "Abrir minha astrologia",
-    caption: "O céu não decide por você. Ele ajuda você a se ler.\n\nComece pela primeira camada gratuita. Conheça Sol, Lua e Ascendente e decida depois se quer continuar com o Mapa Astral Completo ou com o Círculo do Universo.\n\nAcesse palavrasdouniverso.com/astrologia.\n\n#mapaastral #astrologia #mapanatal #palavrasdouniverso",
+    id: "16", slug: "continue-sendo-seu", kind: "video", pillar: "Experiência",
+    title: "Continue sendo seu", eyebrow: "UM MANIFESTO PDU", titleLines: ["Nenhum símbolo", "conhece você", "por inteiro."],
+    bodyLines: ["A leitura abre espaço.", "Você continua escrevendo."], cta: "Leve essa ideia com você",
+    caption: "Nenhuma carta, planeta ou leitura conhece você por inteiro.\n\nUm símbolo pode iluminar uma pergunta. Uma conversa pode organizar algo que estava sem nome. Uma pausa pode devolver presença. Mas a sua vida continua maior do que qualquer interpretação.\n\nO Palavras do Universo existe para acompanhar essa conversa — não para tomar o seu lugar nela.\n\n#palavrasdouniverso #simbolos #autonomia #presenca",
     frames: [
-      { eyebrow: "NÃO É DESTINO FIXO", title: ["O céu não", "decide por", "você."], body: ["Ele ajuda você", "a se ler."] },
-      { eyebrow: "PRIMEIRA CAMADA GRATUITA", title: ["Sol. Lua.", "Ascendente."], body: ["Comece entendendo", "a sua linguagem."] },
-      { eyebrow: "MAPA COMPLETO", title: ["R$39,90"], body: ["Pagamento único."] },
-      { eyebrow: "CÍRCULO DO UNIVERSO", title: ["R$49,90/mês"], body: ["Mapa completo +", "experiência contínua."] },
-      { eyebrow: "COMECE AGORA", title: ["Abra o seu", "céu."], body: ["palavrasdouniverso.com", "/astrologia"], cta: "Entrar na astrologia" },
+      { eyebrow: "UM MANIFESTO PDU", title: ["Nenhum símbolo", "conhece você", "por inteiro."], body: ["E isso é importante."] },
+      { eyebrow: "UMA CARTA PODE ILUMINAR", title: ["Uma pergunta", "que ainda não", "tinha nome."], body: ["Sem encerrar a conversa."] },
+      { eyebrow: "UM MAPA PODE DAR CONTEXTO", title: ["Para padrões,", "necessidades", "e escolhas."], body: ["Sem transformar possibilidade", "em sentença."] },
+      { eyebrow: "UMA PAUSA PODE DEVOLVER PRESENÇA", title: ["O próximo passo", "não precisa ser", "grandioso."], body: ["Precisa caber na vida real."] },
+      { eyebrow: "VOCÊ CONTINUA ESCREVENDO", title: ["A leitura abre", "espaço."], body: ["A vida continua sendo sua."], cta: "Guarde esta lembrança" },
     ],
+    en: {
+      title: "Keep being your own", eyebrow: "A PDU MANIFESTO", titleLines: ["No symbol", "knows you", "completely."],
+      bodyLines: ["A reading opens space.", "You keep writing."], cta: "Take this idea with you",
+      caption: "No card, planet, or reading knows you completely.\n\nA symbol can illuminate a question. A conversation can organise something that had no name. A pause can return presence. But your life remains larger than any interpretation.\n\nPalavras do Universo exists to accompany that conversation — not to take your place within it.\n\n#palavrasdouniverso #symbols #autonomy #presence",
+      frames: [
+        { eyebrow: "A PDU MANIFESTO", title: ["No symbol", "knows you", "completely."], body: ["And that matters."] },
+        { eyebrow: "A CARD CAN ILLUMINATE", title: ["A question", "that did not", "have a name."], body: ["Without ending the conversation."] },
+        { eyebrow: "A CHART CAN OFFER CONTEXT", title: ["For patterns,", "needs,", "and choices."], body: ["Without turning possibility", "into a sentence."] },
+        { eyebrow: "A PAUSE CAN RETURN PRESENCE", title: ["The next step", "does not need", "to be grand."], body: ["It needs to fit real life."] },
+        { eyebrow: "YOU KEEP WRITING", title: ["A reading opens", "space."], body: ["Your life remains yours."], cta: "Keep this reminder" },
+      ],
+    },
   },
 ];
 
@@ -980,6 +1050,24 @@ for (const post of libraryPosts) {
         layout: mainLayout,
       }),
     });
+    if (post.en) {
+      pieces.push({
+        path: `library/feed/post-${post.id}-${post.slug}-en.jpg`,
+        ...portrait,
+        art: artForPost(post, 0, "feed"),
+        ...libraryCard({
+          format: "feed",
+          eyebrowText: post.en.eyebrow,
+          titleLines: post.en.titleLines,
+          bodyLines: post.en.bodyLines,
+          price: post.en.price,
+          priceNote: post.en.priceNote,
+          ctaText: post.en.cta,
+          theme: mainTheme,
+          layout: mainLayout,
+        }),
+      });
+    }
   }
 
   if (post.kind === "carousel") {
@@ -1046,6 +1134,86 @@ for (const post of libraryPosts) {
       frames: framePaths,
       output: `library/video/post-${post.id}-${post.slug}/post-${post.id}-${post.slug}.mp4`,
     });
+    if (post.en?.frames) {
+      const englishFramePaths = [];
+      post.en.frames.forEach((frame, index) => {
+        const framePath = `library/video/post-${post.id}-${post.slug}-en/frame-${String(index + 1).padStart(2, "0")}.jpg`;
+        englishFramePaths.push(framePath);
+        pieces.push({
+          path: framePath,
+          ...story,
+          art: artForPost(post, index, "video"),
+          ...libraryCard({
+            format: "video",
+            sequence: `${String(index + 1).padStart(2, "0")} / ${String(post.en.frames.length).padStart(2, "0")}`,
+            eyebrowText: frame.eyebrow,
+            titleLines: frame.title,
+            bodyLines: frame.body,
+            ctaText: frame.cta,
+            theme: themeForPost(post, index),
+            layout: layoutForPost(post, index),
+          }),
+        });
+      });
+      pieces.push({
+        path: `library/video/post-${post.id}-${post.slug}-en/cover.jpg`,
+        ...story,
+        art: artForPost(post, 0, "video"),
+        ...libraryCard({
+          format: "video",
+          eyebrowText: post.en.eyebrow,
+          titleLines: post.en.titleLines,
+          bodyLines: post.en.bodyLines,
+          ctaText: post.en.cta,
+          theme: mainTheme,
+          layout: mainLayout,
+        }),
+      });
+      videoBuilds.push({
+        frames: englishFramePaths,
+        output: `library/video/post-${post.id}-${post.slug}-en/post-${post.id}-${post.slug}-en.mp4`,
+      });
+    }
+  }
+
+  if (post.en) {
+    pieces.push({
+      path: `library/status/status-${post.id}-${post.slug}-en.jpg`,
+      ...story,
+      art: artForPost(post, 0, "status"),
+      ...libraryCard({
+        format: "status",
+        sequence: `${post.id} / 16`,
+        eyebrowText: post.en.eyebrow,
+        titleLines: post.en.titleLines,
+        bodyLines: post.en.bodyLines,
+        price: post.en.price,
+        priceNote: post.en.priceNote,
+        ctaText: post.en.cta,
+        theme: mainTheme,
+        layout: mainLayout,
+      }),
+    });
+
+    if (post.kind === "carousel") {
+      post.en.slides.forEach((slide, index) => {
+        pieces.push({
+          path: `library/feed/post-${post.id}-${post.slug}-en/slide-${String(index + 1).padStart(2, "0")}.jpg`,
+          ...portrait,
+          art: artForPost(post, index, "feed"),
+          ...libraryCard({
+            format: "feed",
+            sequence: `${String(index + 1).padStart(2, "0")} / ${String(post.en.slides.length).padStart(2, "0")}`,
+            eyebrowText: slide.eyebrow,
+            titleLines: slide.title,
+            bodyLines: slide.body,
+            ctaText: slide.cta,
+            theme: themeForPost(post, index),
+            layout: layoutForPost(post, index),
+          }),
+        });
+      });
+    }
   }
 }
 
@@ -1184,16 +1352,20 @@ const libraryOverviewPaths = libraryPosts.map((post) => {
 });
 buildContactSheet(libraryOverviewPaths, libraryContactSheet, "library");
 
-const days = ["Segunda", "Quarta", "Sexta", "Domingo"];
 const publishFolderName = (post) => `POST_${post.id}_${post.slug.replaceAll("-", "_").toUpperCase()}`;
+const campaignStart = new Date("2026-09-24T00:00:00Z");
+const weekdays = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 const calendarRows = libraryPosts.map((post, index) => {
   const week = Math.floor(index / 4) + 1;
-  const day = days[index % 4];
+  const publicationDate = new Date(campaignStart);
+  publicationDate.setUTCDate(campaignStart.getUTCDate() + index);
+  const date = publicationDate.toLocaleDateString("pt-BR", { timeZone: "UTC", day: "2-digit", month: "2-digit", year: "numeric" });
+  const day = weekdays[publicationDate.getUTCDay()];
   const asset = `SEMANA_${week}/${publishFolderName(post)}`;
   const format = post.kind === "static" ? "Post" : post.kind === "carousel" ? "Carrossel" : "Reels / TikTok";
-  return `| ${week} | ${day} | ${post.id} | ${post.pillar} | ${post.title} | ${format} | \`${asset}\` |`;
+  return `| ${date} | ${day} | ${post.id} | ${post.pillar} | ${post.title} | ${format} | \`${asset}\` |`;
 });
-const calendar = `# Calendário de conteúdo — 4 semanas\n\nPublique quatro vezes por semana. Cada pasta de post já contém a arte, a legenda e o Status correspondentes.\n\n| Semana | Dia | Post | Pilar | Tema | Formato | Pasta |\n| ---: | --- | ---: | --- | --- | --- | --- |\n${calendarRows.join("\n")}\n\n## Rotina simples\n\n1. Entre na pasta da semana e abra o post do dia.\n2. Publique a arte ou o vídeo e copie \`LEGENDA.md\`.\n3. Publique também \`STATUS.jpg\` no WhatsApp Status e no Instagram Stories.\n4. No Instagram Stories, adicione o sticker de link para https://palavrasdouniverso.com/astrologia.\n5. Nos vídeos, adicione uma música instrumental diretamente no Instagram ou TikTok; os MP4s estão sem música e sem marca-d'água.\n`;
+const calendar = `# Calendário diário — 16 dias\n\nA sequência foi construída para primeiro despertar curiosidade, oferecer valor e criar vínculo. Apenas os posts 01 e 15 apresentam preço; os demais entregam educação, interação, confiança ou uma pequena experiência PDU.\n\nPublique um conteúdo por dia, às 08:40 (Europe/London). Cada pasta contém versões PT e EN para Feed ou vídeo, Stories e WhatsApp Status.\n\n| Data | Dia | Post | Pilar | Tema | Formato | Pasta |\n| --- | --- | ---: | --- | --- | --- | --- |\n${calendarRows.join("\n")}\n\n## Rotina por publicação\n\n1. Abra a pasta do post do dia e confirme no registro que ele ainda não foi publicado.\n2. Publique PT e EN no mesmo conteúdo, mantendo cada idioma em sua própria sequência.\n3. Publique no Instagram Feed ou Reels, Instagram Stories, TikTok e WhatsApp Status.\n4. Nos conteúdos editoriais, priorize a pergunta, a conversa e o salvamento; não acrescente preço por conta própria.\n5. Use o link específico do canal somente quando ele fizer sentido para o conteúdo.\n6. Marque a publicação em \`../REGISTRO_PUBLICACOES.md\` somente depois de confirmar visualmente que ela está no ar.\n`;
 writeFileSync(join(outputRoot, "library/CONTENT_CALENDAR.md"), calendar);
 
 const captions = libraryPosts.map((post) => {
@@ -1207,9 +1379,9 @@ writeFileSync(join(outputRoot, "library/START_HERE.md"), startHere);
 
 mkdirSync(publishRoot, { recursive: true });
 copyFileSync(libraryContactSheet, join(publishRoot, "VISAO_GERAL.jpg"));
-writeFileSync(join(publishRoot, "CALENDARIO_4_SEMANAS.md"), calendar);
+writeFileSync(join(publishRoot, "CALENDARIO_DIARIO.md"), calendar);
 
-const publicStartHere = `# Comece aqui\n\nEsta é a única pasta que você precisa usar para publicar. Cada post está completo dentro de sua própria pasta: arte, legenda e Status.\n\n## Publique hoje\n\n1. Abra \`SEMANA_1/POST_01_MAPA_COMPLETO_3990\`.\n2. Publique \`ARTE_FEED.jpg\` no Instagram.\n3. Copie o texto de \`LEGENDA.md\`.\n4. Publique \`STATUS.jpg\` no WhatsApp Status e no Instagram Stories.\n\n## Para Reels e TikTok\n\nAbra \`SEMANA_1/POST_04_MAIS_QUE_SEU_SIGNO\` e publique \`VIDEO.mp4\` nos dois canais. O vídeo está sem música e sem marca-d'água para você escolher um áudio dentro do Instagram ou TikTok.\n\n## Amanhã\n\nAbra \`SEMANA_1/POST_02_SOL_LUA_ASCENDENTE\` e publique, na ordem, as cinco imagens da pasta \`CARROSSEL\`.\n\nDepois, siga \`CALENDARIO_4_SEMANAS.md\`.\n`;
+const publicStartHere = `# Comece aqui\n\nEsta pasta não é um catálogo de preços. A sequência editorial entrega curiosidade, aprendizado, perguntas e pequenas experiências antes de apresentar qualquer oferta. Apenas os posts 01 e 15 falam de preço.\n\n## Hoje — 25/09/2026\n\n1. Abra \`SEMANA_1/POST_02_SOL_LUA_ASCENDENTE\`.\n2. No Instagram e no TikTok, publique primeiro as cinco imagens de \`CARROSSEL_PT\` e depois as cinco de \`CARROSSEL_EN\`.\n3. Copie a legenda bilíngue de \`LEGENDA.md\`. Ela termina com uma pergunta, não com uma venda.\n4. Publique \`STATUS_PT.jpg\` e \`STATUS_EN.jpg\` no Instagram Stories e no WhatsApp Status.\n5. Registre cada publicação em \`../REGISTRO_PUBLICACOES.md\` somente depois de confirmar que está no ar.\n\n## Todos os dias\n\nSiga \`CALENDARIO_DIARIO.md\`, sempre às 08:40 (Europe/London). Não transforme posts informativos em anúncios ao publicá-los. A campanha é pública em Feed/Reels, Stories, TikTok e WhatsApp Status; não envie mensagens individuais.\n`;
 writeFileSync(join(publishRoot, "00_COMECE_AQUI.md"), publicStartHere);
 
 for (const [index, post] of libraryPosts.entries()) {
@@ -1218,17 +1390,33 @@ for (const [index, post] of libraryPosts.entries()) {
   mkdirSync(postRoot, { recursive: true });
 
   const statusSource = join(outputRoot, `library/status/status-${post.id}-${post.slug}.jpg`);
-  copyFileSync(statusSource, join(postRoot, "STATUS.jpg"));
+  copyFileSync(statusSource, join(postRoot, post.en ? "STATUS_PT.jpg" : "STATUS.jpg"));
+  if (post.en) {
+    copyFileSync(
+      join(outputRoot, `library/status/status-${post.id}-${post.slug}-en.jpg`),
+      join(postRoot, "STATUS_EN.jpg"),
+    );
+  }
 
   if (post.kind === "static") {
     copyFileSync(
       join(outputRoot, `library/feed/post-${post.id}-${post.slug}.jpg`),
       join(postRoot, "ARTE_FEED.jpg"),
     );
+    copyFileSync(
+      join(outputRoot, `library/feed/post-${post.id}-${post.slug}.jpg`),
+      join(postRoot, "ARTE_FEED_PT.jpg"),
+    );
+    if (post.en) {
+      copyFileSync(
+        join(outputRoot, `library/feed/post-${post.id}-${post.slug}-en.jpg`),
+        join(postRoot, "ARTE_FEED_EN.jpg"),
+      );
+    }
   }
 
   if (post.kind === "carousel") {
-    const carouselRoot = join(postRoot, "CARROSSEL");
+    const carouselRoot = join(postRoot, post.en ? "CARROSSEL_PT" : "CARROSSEL");
     mkdirSync(carouselRoot, { recursive: true });
     post.slides.forEach((_, slideIndex) => {
       const slideNumber = String(slideIndex + 1).padStart(2, "0");
@@ -1237,6 +1425,17 @@ for (const [index, post] of libraryPosts.entries()) {
         join(carouselRoot, `${slideNumber}.jpg`),
       );
     });
+    if (post.en) {
+      const englishCarouselRoot = join(postRoot, "CARROSSEL_EN");
+      mkdirSync(englishCarouselRoot, { recursive: true });
+      post.en.slides.forEach((_, slideIndex) => {
+        const slideNumber = String(slideIndex + 1).padStart(2, "0");
+        copyFileSync(
+          join(outputRoot, `library/feed/post-${post.id}-${post.slug}-en/slide-${slideNumber}.jpg`),
+          join(englishCarouselRoot, `${slideNumber}.jpg`),
+        );
+      });
+    }
   }
 
   if (post.kind === "video") {
@@ -1245,20 +1444,44 @@ for (const [index, post] of libraryPosts.entries()) {
       join(postRoot, "VIDEO.mp4"),
     );
     copyFileSync(
+      join(outputRoot, `library/video/post-${post.id}-${post.slug}/post-${post.id}-${post.slug}.mp4`),
+      join(postRoot, "VIDEO_PT.mp4"),
+    );
+    copyFileSync(
       join(outputRoot, `library/video/post-${post.id}-${post.slug}/cover.jpg`),
       join(postRoot, "CAPA.jpg"),
     );
+    copyFileSync(
+      join(outputRoot, `library/video/post-${post.id}-${post.slug}/cover.jpg`),
+      join(postRoot, "CAPA_PT.jpg"),
+    );
+    if (post.en?.frames) {
+      copyFileSync(
+        join(outputRoot, `library/video/post-${post.id}-${post.slug}-en/post-${post.id}-${post.slug}-en.mp4`),
+        join(postRoot, "VIDEO_EN.mp4"),
+      );
+      copyFileSync(
+        join(outputRoot, `library/video/post-${post.id}-${post.slug}-en/cover.jpg`),
+        join(postRoot, "CAPA_EN.jpg"),
+      );
+    }
   }
 
-  const trackedLink = `https://palavrasdouniverso.com/astrologia?utm_source=social&utm_medium=organic_social&utm_campaign=conteudo_astrologia_4_semanas&utm_content=post_${post.id}`;
+  const trackedLink = (source, medium, language, currency) => {
+    const product = post.product ? `&product=${post.product}` : "";
+    return `https://palavrasdouniverso.com/astrologia?currency=${currency}${product}&utm_source=${source}&utm_medium=${medium}&utm_campaign=conteudo_astrologia_diario&utm_content=post_${post.id}&lang=${language}`;
+  };
   const publishingNote = post.kind === "carousel"
-    ? "Publique as imagens de CARROSSEL na ordem numérica."
+    ? "Publique primeiro CARROSSEL_PT e depois CARROSSEL_EN, mantendo cada idioma em sua própria sequência."
     : post.kind === "video"
-      ? "Publique VIDEO.mp4 no Instagram Reels e no TikTok. Use CAPA.jpg como capa."
-      : "Publique ARTE_FEED.jpg no Instagram.";
+      ? "Publique VIDEO_PT.mp4 e VIDEO_EN.mp4 no Instagram Reels e no TikTok. Use as capas do mesmo idioma."
+      : "Publique ARTE_FEED_PT.jpg e ARTE_FEED_EN.jpg no Instagram.";
+  const priceSection = post.offer
+    ? "\n\n## Preços oficiais deste post de oferta\n\nMapa Astral Completo: **R$39,90 / £17.00**, pagamento único.\n\nCírculo do Universo: **R$49,90/mês / £20.00/month**."
+    : "";
   writeFileSync(
     join(postRoot, "LEGENDA.md"),
-    `# Post ${post.id} — ${post.title}\n\n${publishingNote}\n\n## Legenda\n\n${post.caption}\n\n## Link rastreável\n\n${trackedLink}\n`,
+    `# Post ${post.id} — ${post.title}${post.en ? ` / ${post.en.title}` : ""}\n\n**Pilar editorial:** ${post.pillar}\n\n${publishingNote}\n\n## Legenda PT-BR\n\n${post.caption}\n${post.en ? `\n\n---\n\n## Caption EN-GB\n\n${post.en.caption}` : ""}\n\n## Links por canal\n\nUse o link apenas quando a publicação pedir uma continuação no site. Em posts de conversa ou reflexão, a pergunta pode ser o encerramento.\n\n| Canal | PT-BR · BRL | EN-GB · GBP |\n| --- | --- | --- |\n| Instagram | ${trackedLink("instagram", "organic_social", "pt", "BRL")} | ${trackedLink("instagram", "organic_social", "en", "GBP")} |\n| Instagram Stories | ${trackedLink("instagram", "story", "pt", "BRL")} | ${trackedLink("instagram", "story", "en", "GBP")} |\n| TikTok | ${trackedLink("tiktok", "organic_social", "pt", "BRL")} | ${trackedLink("tiktok", "organic_social", "en", "GBP")} |\n| WhatsApp Status | ${trackedLink("whatsapp", "status", "pt", "BRL")} | ${trackedLink("whatsapp", "status", "en", "GBP")} |${priceSection}\n`,
   );
 }
 

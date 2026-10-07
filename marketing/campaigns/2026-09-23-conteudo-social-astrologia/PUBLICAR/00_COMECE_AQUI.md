@@ -1,20 +1,15 @@
 # Comece aqui
 
-Esta é a única pasta que você precisa usar para publicar. Cada post está completo dentro de sua própria pasta: arte, legenda e Status.
+Esta pasta não é um catálogo de preços. A sequência editorial entrega curiosidade, aprendizado, perguntas e pequenas experiências antes de apresentar qualquer oferta. Apenas os posts 01 e 15 falam de preço.
 
-## Publique hoje
+## Hoje — 25/09/2026
 
-1. Abra `SEMANA_1/POST_01_MAPA_COMPLETO_3990`.
-2. Publique `ARTE_FEED.jpg` no Instagram.
-3. Copie o texto de `LEGENDA.md`.
-4. Publique `STATUS.jpg` no WhatsApp Status e no Instagram Stories.
+1. Abra `SEMANA_1/POST_02_SOL_LUA_ASCENDENTE`.
+2. No Instagram e no TikTok, publique primeiro as cinco imagens de `CARROSSEL_PT` e depois as cinco de `CARROSSEL_EN`.
+3. Copie a legenda bilíngue de `LEGENDA.md`. Ela termina com uma pergunta, não com uma venda.
+4. Publique `STATUS_PT.jpg` e `STATUS_EN.jpg` no Instagram Stories e no WhatsApp Status.
+5. Registre cada publicação em `../REGISTRO_PUBLICACOES.md` somente depois de confirmar que está no ar.
 
-## Para Reels e TikTok
+## Todos os dias
 
-Abra `SEMANA_1/POST_04_MAIS_QUE_SEU_SIGNO` e publique `VIDEO.mp4` nos dois canais. O vídeo está sem música e sem marca-d'água para você escolher um áudio dentro do Instagram ou TikTok.
-
-## Amanhã
-
-Abra `SEMANA_1/POST_02_SOL_LUA_ASCENDENTE` e publique, na ordem, as cinco imagens da pasta `CARROSSEL`.
-
-Depois, siga `CALENDARIO_4_SEMANAS.md`.
+Siga `CALENDARIO_DIARIO.md`, sempre às 08:40 (Europe/London). Não transforme posts informativos em anúncios ao publicá-los. A campanha é pública em Feed/Reels, Stories, TikTok e WhatsApp Status; não envie mensagens individuais.

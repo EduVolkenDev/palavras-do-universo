@@ -253,8 +253,8 @@ export default function ClarezaUrgenteCampaign({
           </div>
           <div className="grid divide-y divide-[#241923]/15 border-y border-[#241923]/15">
             {copy.steps.map((step) => (
-              <div key={step.number} className="pdu-campaign-step group grid gap-4 py-7 sm:grid-cols-[5rem_1fr] sm:gap-8">
-                <span className="pdu-campaign-step__number font-mono text-sm font-semibold tracking-[0.2em] text-[#9e7b46]">
+              <div key={step.number} className="pdu-campaign-step group grid grid-cols-[2.5rem_minmax(0,1fr)] gap-4 py-7 sm:grid-cols-[4rem_minmax(0,1fr)] sm:gap-8">
+                <span className="pdu-campaign-step__number font-mono">
                   {step.number}
                 </span>
                 <div className="relative">

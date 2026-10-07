@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import AdminPageFrame from "@/components/admin/AdminPageFrame";
 
 const TEST_PRODUCT_KEY = "teste_checkout_50";
 
@@ -159,31 +159,15 @@ export default function InternalCheckoutTestPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f0e8] px-4 py-8 text-[#241b18] sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-3xl">
-        <header className="border-b border-[#d8c8ba] pb-6">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8e674d]">
-            Palavras do Universo · Ensaio interno
-          </p>
-          <h1 className="brand-serif mt-3 text-4xl leading-none text-[#2c1f1b] sm:text-5xl">
-            Checkout mínimo, ponta a ponta
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-[#6f5d55]">
-            Esta área valida apenas a criação do Checkout, o pagamento e a entrega do acesso pelo webhook.
-            Ela não aparece no catálogo público e não altera os preços comerciais.
-          </p>
-        </header>
-
-        <div className="mt-5 flex flex-wrap items-center gap-2 text-xs text-[#765f54]">
-          <span className="rounded-full border border-[#cdbbab] bg-white/60 px-3 py-1.5">
-            Proprietário: {ownerEmail || "conta autorizada"}
-          </span>
-          <span className="rounded-full border border-[#cdbbab] bg-white/60 px-3 py-1.5">
-            Supabase: {hasSupabase ? "conectado" : "indisponível"}
-          </span>
-        </div>
-
-        <section className="mt-8 rounded-[2rem] border border-[#d8c8ba] bg-[#fffaf3]/85 p-6 shadow-[0_20px_60px_rgba(75,46,30,0.09)] sm:p-8">
+    <AdminPageFrame
+      path="/admin/teste-checkout"
+      eyebrow="Laboratório · Ensaio interno"
+      title="Checkout mínimo, ponta a ponta"
+      description="Valide criação do Checkout, pagamento e entrega de acesso pelo webhook. Este produto de teste não aparece no catálogo público nem altera os preços comerciais."
+      ownerEmail={ownerEmail}
+      hasSupabase={hasSupabase}
+    >
+        <section className="rounded-[30px] border border-[#ded0bf] bg-[#fffaf3]/90 p-5 shadow-[0_22px_58px_rgba(65,43,32,0.09)] sm:p-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9a754f]">Produto oculto</p>
@@ -255,10 +239,6 @@ export default function InternalCheckoutTestPage({
         <p className="mt-6 text-xs leading-5 text-[#806f65]">
           O acesso é liberado somente depois de um evento confirmado pela Stripe. Nunca informe chaves secretas nesta página.
         </p>
-        <Link href="/" className="mt-5 inline-flex text-sm font-semibold text-[#73563e] underline underline-offset-4">
-          Voltar ao portal
-        </Link>
-      </div>
-    </main>
+    </AdminPageFrame>
   );
 }

@@ -3072,6 +3072,17 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                       <small>{t("Organize o que você está vivendo")}</small>
                     </span>
                   </Link>
+                  <Link
+                    href="/profissionais"
+                    role="menuitem"
+                    onClick={() => setExploreMenuOpen(false)}
+                  >
+                    <HandHeart size={16} aria-hidden="true" />
+                    <span>
+                      <strong>{t("Profissionais")}</strong>
+                      <small>{t("Apoio humano")}</small>
+                    </span>
+                  </Link>
                 </div>
               ) : null}
             </div>
@@ -3081,9 +3092,6 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
             >
               <MoonStar size={15} aria-hidden="true" />
               {t("Astrologia")}
-            </Link>
-            <Link href="/profissionais" className="pdu-site-header__nav-link">
-              {t("Profissionais")}
             </Link>
             <Link
               href="/meu-universo"
@@ -3101,12 +3109,12 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
           </nav>
 
           <Link
-            href="/astrologia"
+            href="/clareza-urgente"
             onClick={() => setExploreMenuOpen(false)}
             className="pdu-site-header__cta hidden items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1c1308] shadow-[0_14px_38px_rgba(244,213,141,0.22)] hover:bg-[#ffe3a3] sm:inline-flex"
           >
-            <MoonStar size={16} />
-            {t("Conhecer Astrologia")}
+            <ArrowRight size={16} aria-hidden="true" />
+            {t("Preciso de clareza urgente")}
           </Link>
 
           <div className="pdu-site-header__mobile-actions flex items-center gap-2 md:hidden">
@@ -3227,13 +3235,10 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                 <Link href="/lab" onClick={() => setMobileMenuOpen(false)}>
                   {t("Laboratório")}
                 </Link>
+                <Link href="/profissionais" onClick={() => setMobileMenuOpen(false)}>
+                  {t("Conhecer profissionais")}
+                </Link>
               </nav>
-            </div>
-            <div className="pdu-mobile-menu__group pdu-mobile-menu__group--last">
-              <p>{t("Apoio humano")}</p>
-              <Link href="/profissionais" onClick={() => setMobileMenuOpen(false)}>
-                {t("Conhecer profissionais")}
-              </Link>
             </div>
             <Link
               href={buildLoginPath("/meu-universo")}

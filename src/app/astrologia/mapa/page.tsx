@@ -1,7 +1,6 @@
-import { redirect } from "next/navigation";
 import { AstrologyBirthProfileCard } from "@/components/astrology/AstrologyBirthProfileCard";
+import { AstrologyMapEntry } from "@/components/astrology/AstrologyMapEntry";
 import { AstrologyChartExperience } from "@/components/astrology/AstrologyChartExperience";
-import { buildLoginPath } from "@/lib/auth/redirect";
 import { normalizeLocale } from "@/lib/i18n/config";
 import { readAstrologyBirthData } from "@/lib/astrology/birth-data";
 import {
@@ -18,6 +17,7 @@ export const metadata = {
 const MAP_QUERY_KEYS = new Set([
   "product",
   "currency",
+  "lang",
   "campaign",
   "utm_source",
   "utm_medium",
@@ -40,7 +40,7 @@ function buildCurrentMapPath(params: Record<string, string | string[] | undefine
 export default async function AstrologyMapPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const mapPath = buildCurrentMapPath(await searchParams);
   const user = await getAuthenticatedUser();
-  if (!user) redirect(buildLoginPath(mapPath));
+  if (!user) return <AstrologyMapEntry mapPath={mapPath} />;
 
   const locale = normalizeLocale(user.user_metadata?.locale ?? "pt-BR");
   let birthData = null;

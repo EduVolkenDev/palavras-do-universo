@@ -231,6 +231,27 @@ const signInterpretations: Record<ZodiacSign, Localized<SignInterpretation>> = {
   pisces: { pt: { label: "Peixes", element: "Água", mode: "Mutável", tone: "sensibilidade, imaginação e percepção do invisível", gifts: "compaixão, criatividade e capacidade de sentir nuances", tension: "confusão de limites, idealização e fuga quando algo dói", question: "Como honrar o que sinto sem perder o chão?" }, en: { label: "Pisces", element: "Water", mode: "Mutable", tone: "sensitivity, imagination, and perception of the invisible", gifts: "compassion, creativity, and the ability to feel nuance", tension: "blurred boundaries, idealization, and escape when something hurts", question: "How can I honor what I feel without losing the ground?" } },
 };
 
+const unavailableSignInterpretation: Localized<SignInterpretation> = {
+  pt: {
+    label: "Signo indisponível",
+    element: "Não calculado",
+    mode: "Não calculado",
+    tone: "Este posicionamento não pôde ser confirmado neste cálculo.",
+    gifts: "Não há uma interpretação personalizada disponível para este dado.",
+    tension: "Confira os dados do mapa e tente novamente antes de interpretar este posicionamento.",
+    question: "O que vale a pena confirmar antes de seguir?",
+  },
+  en: {
+    label: "Sign unavailable",
+    element: "Not calculated",
+    mode: "Not calculated",
+    tone: "This placement could not be confirmed in this calculation.",
+    gifts: "A personalized interpretation is not available for this data.",
+    tension: "Check the map details and try again before interpreting this placement.",
+    question: "What is worth confirming before moving on?",
+  },
+};
+
 const houseInterpretations: Record<number, Localized<HouseInterpretation>> = {
   1: { pt: { label: "Casa 1", area: "presença e começo", explanation: "A primeira casa fala da forma como você chega ao mundo: corpo, presença, iniciativa e a impressão que a sua energia causa antes das palavras.", question: "Que versão de mim está pronta para ocupar o próprio espaço?" }, en: { label: "House 1", area: "presence and beginnings", explanation: "The first house speaks about how you arrive in the world: body, presence, initiative, and the impression your energy makes before words.", question: "What version of me is ready to take up its own space?" } },
   2: { pt: { label: "Casa 2", area: "recursos e valores", explanation: "A segunda casa fala do que sustenta você: dinheiro, talentos, corpo, autoestima e os valores que orientam o que merece ser preservado.", question: "O que tem valor para mim além do que pode ser medido?" }, en: { label: "House 2", area: "resources and values", explanation: "The second house speaks about what sustains you: money, talents, body, self-worth, and the values that guide what deserves to be preserved.", question: "What is valuable to me beyond what can be measured?" } },
@@ -263,7 +284,11 @@ export function getAscendantInterpretation(locale: AstrologyLocale) {
 }
 
 export function getSignInterpretation(sign: ZodiacSign, locale: AstrologyLocale) {
-  return signInterpretations[sign][locale === "en" ? "en" : "pt"];
+  const interpretation = Object.prototype.hasOwnProperty.call(signInterpretations, sign)
+    ? signInterpretations[sign]
+    : null;
+
+  return (interpretation ?? unavailableSignInterpretation)[locale === "en" ? "en" : "pt"];
 }
 
 export function getHouseInterpretation(house: number, locale: AstrologyLocale) {

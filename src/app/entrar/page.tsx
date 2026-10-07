@@ -857,11 +857,11 @@ export default function EntrarPage() {
             <p className="text-sm leading-6 text-[#4d3c31]">
               {isEn ? (
                 <>
-                  To open the free first layer and then choose whether to unlock <strong>{product.title}</strong> ({product.price}, one-time payment), sign in or create your free account.
+                  <strong>{product.title}</strong> is <strong>{product.price}</strong> as a one-time payment. Sign in or create your free account to open the first free layer, then decide whether to unlock the complete reading.
                 </>
               ) : (
                 <>
-                  Para abrir a primeira camada gratuita e depois escolher se quer liberar <strong>{product.title}</strong> ({product.price}, pagamento único), entre ou crie sua conta grátis.
+                  <strong>{product.title}</strong> custa <strong>{product.price}</strong> em pagamento único. Entre ou crie sua conta grátis para abrir a primeira camada gratuita e depois decidir se quer liberar a leitura completa.
                 </>
               )}
             </p>

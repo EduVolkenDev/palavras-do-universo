@@ -57,6 +57,20 @@ type AstrologySelection = NatalBody | "Ascendant";
 type Chart = Pick<NatalChart, "locationLabel" | "timePrecision" | "houseSystem" | "ascendant" | "positions" | "aspects">;
 type ChartLoadFailure = "birth-data-required" | "session-expired" | "unavailable";
 
+function astrologyImageSource(source: unknown) {
+  if (typeof source === "string" && source.trim()) return source;
+  if (source && typeof source === "object") {
+    const candidate = source as { src?: unknown; default?: unknown };
+    if (typeof candidate.src === "string" && candidate.src.trim()) return candidate.src;
+    if (typeof candidate.default === "string" && candidate.default.trim()) return candidate.default;
+    if (candidate.default && typeof candidate.default === "object") {
+      const nested = candidate.default as { src?: unknown };
+      if (typeof nested.src === "string" && nested.src.trim()) return nested.src;
+    }
+  }
+  return PDU_ASSETS.astrology.orbitalMap;
+}
+
 const zodiacSigns: ZodiacSign[] = [
   "aries",
   "taurus",
@@ -294,16 +308,29 @@ export function AstrologyChartExperience() {
               {isEnglish ? "My Universe" : "Meu Universo"}
             </Link>
           </div>
-          <div className="mt-12 grid items-end gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-            <div>
+          <div className="mt-12 grid items-center gap-8 lg:grid-cols-[1.04fr_0.96fr] lg:gap-4">
+            <div className="relative z-10 lg:pb-8">
               <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]"><Sparkles size={15} /> {isEnglish ? "Your natal sky" : "O seu céu de nascimento"}</p>
               <h1 className="brand-serif mt-5 max-w-3xl text-5xl font-semibold leading-[0.98] sm:text-7xl">{isEnglish ? "A map for the way you are becoming." : "Um mapa para o jeito como você está se tornando."}</h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-[#d8ccc0]">{isEnglish ? "Astrology here is a symbolic language for noticing patterns, needs, talents, and the timing of your choices." : "Aqui, a astrologia é uma linguagem simbólica para reconhecer padrões, necessidades, talentos e o tempo das suas escolhas."}</p>
             </div>
-            <div className="rounded-[28px] border border-[#f4d58d]/25 bg-white/[0.07] p-6 backdrop-blur-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d9c49f]">{isEnglish ? "Birth place" : "Local de nascimento"}</p>
-              <p className="mt-2 text-lg text-[#fff7e8]">{chart.locationLabel}</p>
-              <p className="mt-3 text-xs leading-5 text-[#bfb5ad]">{hasBirthTime ? (isEnglish ? "Calculated from your local birth time and the historical time rule for that date." : "Calculado a partir da sua hora local de nascimento e da regra histórica daquele dia.") : (isEnglish ? "Birth time was not provided. Rising sign and houses stay hidden until you add it; no time was guessed." : "O horário de nascimento não foi informado. Ascendente e casas ficam ocultos até você adicioná-lo; nenhuma hora foi inventada.")}</p>
+            <div className="relative -mx-4 min-h-[30rem] overflow-hidden sm:-mx-6 sm:min-h-[34rem] lg:-mr-16 lg:ml-[-5rem] lg:min-h-[39rem] lg:overflow-visible">
+              <div className="pointer-events-none absolute inset-x-[8%] top-[6%] h-[74%] rounded-full bg-[radial-gradient(circle,rgba(244,213,141,0.18)_0%,rgba(112,73,165,0.16)_38%,transparent_70%)] blur-2xl" aria-hidden="true" />
+              <div className="pointer-events-none absolute inset-[-4%_-10%_8%_-18%] sm:inset-[-6%_-8%_4%_-16%] lg:inset-[-8%_-2%_2%_-18%]" aria-hidden="true">
+                <Image
+                  src={astrologyImageSource(PDU_ASSETS.astrology.mapHero)}
+                  alt=""
+                  fill
+                  sizes="(max-width: 639px) 120vw, (max-width: 1023px) 92vw, 47rem"
+                  preload
+                  className="scale-[1.22] object-contain object-[62%_center] drop-shadow-[0_0_54px_rgba(244,213,141,0.24)] sm:scale-[1.16] lg:scale-[1.28] lg:object-right"
+                />
+              </div>
+              <div className="absolute inset-x-4 bottom-2 z-10 rounded-[28px] border border-[#f4d58d]/30 bg-[#2a2234]/80 p-5 shadow-[0_24px_70px_rgba(12,8,18,0.36)] backdrop-blur-xl sm:inset-x-10 sm:bottom-4 sm:p-6 lg:inset-x-auto lg:bottom-6 lg:left-[18%] lg:right-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e8cd91]">{isEnglish ? "Birth place" : "Local de nascimento"}</p>
+                <p className="mt-2 text-lg text-[#fff7e8]">{chart.locationLabel}</p>
+                <p className="mt-3 text-xs leading-5 text-[#d4c8c0]">{hasBirthTime ? (isEnglish ? "Calculated from your local birth time and the historical time rule for that date." : "Calculado a partir da sua hora local de nascimento e da regra histórica daquele dia.") : (isEnglish ? "Birth time was not provided. Rising sign and houses stay hidden until you add it; no time was guessed." : "O horário de nascimento não foi informado. Ascendente e casas ficam ocultos até você adicioná-lo; nenhuma hora foi inventada.")}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -353,7 +380,7 @@ export function AstrologyChartExperience() {
               </div>
             </div>
             <div className="relative mx-auto h-64 w-64 sm:h-72 sm:w-72">
-              <Image src={PDU_ASSETS.astrology.orbitalMap} alt="" fill sizes="18rem" className="object-contain opacity-90 drop-shadow-[0_0_42px_rgba(244,213,141,0.28)]" />
+              <Image src={astrologyImageSource(PDU_ASSETS.astrology.orbitalMap)} alt="" fill sizes="18rem" className="object-contain opacity-90 drop-shadow-[0_0_42px_rgba(244,213,141,0.28)]" />
               <div className="absolute inset-[22%] rounded-full border border-[#f4d58d]/45" aria-hidden="true" />
             </div>
           </div>
@@ -395,7 +422,7 @@ export function AstrologyChartExperience() {
               </div>
             </div>
             <div className="relative overflow-hidden rounded-[30px] bg-[#e8dccb] p-6 sm:p-8">
-              <Image src={PDU_ASSETS.astrology.myMap} alt="" fill sizes="(max-width: 1024px) 100vw, 30rem" className="object-cover opacity-35" />
+              <Image src={astrologyImageSource(PDU_ASSETS.astrology.myMap)} alt="" fill sizes="(max-width: 1024px) 100vw, 30rem" className="object-cover opacity-35" />
               <div className="relative z-10">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#6f5134]">{isEnglish ? "A personal map is a conversation" : "Um mapa pessoal é uma conversa"}</p>
                 <h3 className="brand-serif mt-3 text-3xl font-semibold text-[#241b18]">{isEnglish ? "There is no isolated placement." : "Não existe posicionamento isolado."}</h3>
@@ -495,7 +522,7 @@ function CoreCard({
   const artwork = body === "Ascendant" ? PDU_ASSETS.astrology.mapHero : PDU_ASSETS.astrology.planets[body];
   return (
     <button type="button" onClick={onSelect} aria-expanded={expanded} data-body={body} className={`${styles.coreCard} group relative overflow-hidden rounded-[26px] border p-6 text-left shadow-[0_18px_50px_rgba(80,57,34,0.07)] transition hover:-translate-y-1 ${expanded ? "border-[#8a6b3f] ring-2 ring-[#f4d58d]/35" : "border-[#d8c3a6]"}`}>
-      <span className={styles.coreArtwork} aria-hidden="true"><Image src={artwork} alt="" fill sizes="(max-width: 767px) 11rem, 12rem" className="object-contain" /></span>
+      <span className={styles.coreArtwork} aria-hidden="true"><Image src={astrologyImageSource(artwork)} alt="" fill sizes="(max-width: 767px) 11rem, 12rem" className="object-contain" /></span>
       <div className="relative flex items-center justify-between gap-3"><span className="grid h-10 w-10 place-items-center rounded-full border border-[#caa96c]/50 text-[#8a6b3f]">{icon}</span><span className="text-xs font-semibold uppercase tracking-[0.15em] text-[#9a7b4b]">{eyebrow}</span></div>
       <div className={styles.coreHeading}>
         <h3 className="brand-serif text-3xl font-semibold">{title}</h3>
@@ -518,7 +545,7 @@ function PlacementDetail({ body, position, aspects, locale }: { body: AstrologyS
       <div className="grid gap-0 lg:grid-cols-[0.7fr_1.3fr]">
         <div className="relative min-h-[15rem] overflow-hidden bg-[#241b18] p-6 text-[#fff7e8] sm:p-8">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(244,213,141,0.22),transparent_34%),linear-gradient(145deg,#241b18,#171225)]" />
-          <Image src={body === "Ascendant" ? PDU_ASSETS.astrology.mapHero : PDU_ASSETS.astrology.planets[body]} alt="" fill sizes="(max-width: 1024px) 100vw, 28rem" className="object-contain opacity-60" />
+          <Image src={astrologyImageSource(body === "Ascendant" ? PDU_ASSETS.astrology.mapHero : PDU_ASSETS.astrology.planets[body])} alt="" fill sizes="(max-width: 1024px) 100vw, 28rem" className="object-contain opacity-60" />
           <div className="relative z-10 flex min-h-[13rem] flex-col justify-end">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]">{copy.label}</p>
             <p className="brand-serif mt-2 text-3xl font-semibold">{formatPlacement(position.sign, position.degreesInSign, locale)}</p>
@@ -556,7 +583,7 @@ function MiniLesson({ title, text, artwork }: { title: string; text: string; art
   return (
     <div className="flex items-center gap-4 rounded-2xl border border-[#e6d8c3] bg-white/70 p-4 sm:block">
       <span className={`${styles.pillarArtwork} relative block h-16 w-16 shrink-0 sm:mb-3 sm:h-24 sm:w-full`} aria-hidden="true">
-        <Image src={artwork} alt="" fill sizes="(max-width: 639px) 4rem, 9rem" className="object-contain" />
+        <Image src={astrologyImageSource(artwork)} alt="" fill sizes="(max-width: 639px) 4rem, 9rem" className="object-contain" />
       </span>
       <div>
         <p className="font-semibold text-[#332720]">{title}</p>
@@ -668,7 +695,7 @@ function PlanetLibrary({ chart, positionMap, personalizedBodies, locale, expande
             >
               <div className={styles.planetLead}>
                 <span className={styles.planetArtwork} aria-hidden="true">
-                  <Image src={PDU_ASSETS.astrology.planets[body]} alt="" fill sizes="(max-width: 767px) 11rem, 13rem" className="object-contain" />
+                  <Image src={astrologyImageSource(PDU_ASSETS.astrology.planets[body])} alt="" fill sizes="(max-width: 767px) 11rem, 13rem" className="object-contain" />
                 </span>
                 <div className={styles.planetHeading}>
                   <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#8a6b3f]">{copy.label}</p>

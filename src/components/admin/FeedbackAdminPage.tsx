@@ -4,15 +4,14 @@ import {
   Archive,
   CheckCircle2,
   Clock3,
-  ExternalLink,
   MessageCircleHeart,
   RefreshCw,
   RotateCcw,
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import AdminPageFrame from "@/components/admin/AdminPageFrame";
 
 type FeedbackStatus = "new" | "reviewed" | "published" | "archived";
 
@@ -76,11 +75,11 @@ export default function FeedbackAdminPage({
     [feedback]
   );
 
-  const summaryCards: Array<{ label: string; value: number; Icon: LucideIcon }> = [
-    { label: "Total", value: summary.total, Icon: MessageCircleHeart },
-    { label: "Pendentes", value: summary.pending, Icon: Clock3 },
-    { label: "Aprovados", value: summary.published, Icon: CheckCircle2 },
-    { label: "Com autorização", value: summary.testimonials, Icon: ShieldCheck },
+  const summaryCards: Array<{ label: string; value: number; detail: string; tone: string; Icon: LucideIcon }> = [
+    { label: "Total", value: summary.total, detail: "mensagens recebidas", tone: "#73549b", Icon: MessageCircleHeart },
+    { label: "Pendentes", value: summary.pending, detail: "aguardam revisão", tone: "#a97935", Icon: Clock3 },
+    { label: "Aprovados", value: summary.published, detail: "liberados para uso", tone: "#477e70", Icon: CheckCircle2 },
+    { label: "Com autorização", value: summary.testimonials, detail: "uso editorial permitido", tone: "#4d8190", Icon: ShieldCheck },
   ];
 
   async function loadFeedback() {
@@ -139,43 +138,22 @@ export default function FeedbackAdminPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f0e8] px-4 py-8 text-[#241b18] sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
-        <header className="flex flex-col gap-5 border-b border-[#d8c8ba] pb-6 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8e674d]">Palavras do Universo · Administração</p>
-            <h1 className="brand-serif mt-2 text-4xl leading-none text-[#2c1f1b]">Feedbacks recebidos</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6f5d55]">
-              Revise cada mensagem antes de qualquer uso público. Nada é publicado automaticamente.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/admin/eventos" className="inline-flex items-center gap-2 rounded-full border border-[#cdbbab] bg-white/60 px-4 py-2 text-sm font-semibold text-[#604b42]">
-              Eventos
-              <ExternalLink size={14} />
-            </Link>
-            <Link href="/admin/codigos" className="inline-flex items-center gap-2 rounded-full border border-[#cdbbab] bg-white/60 px-4 py-2 text-sm font-semibold text-[#604b42]">
-              Códigos
-              <ExternalLink size={14} />
-            </Link>
-            <button type="button" onClick={() => void loadFeedback()} className="inline-flex items-center gap-2 rounded-full bg-[#241b18] px-4 py-2 text-sm font-semibold text-[#fff7ed] disabled:opacity-50" disabled={loading}>
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-              Atualizar
-            </button>
-          </div>
-        </header>
+    <AdminPageFrame
+      path="/admin/feedback"
+      eyebrow="Vozes · Revisão editorial"
+      title="Feedbacks recebidos"
+      description="Leia cada mensagem com cuidado antes de qualquer uso público. Nada é publicado automaticamente."
+      ownerEmail={ownerEmail}
+      hasSupabase={hasSupabase}
+      actions={<button type="button" onClick={() => void loadFeedback()} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#f0d79f] px-4 py-2 text-sm font-bold text-[#2b2033] disabled:opacity-50" disabled={loading}><RefreshCw size={14} className={loading ? "animate-spin" : ""} />Atualizar</button>}
+    >
 
-        <div className="mt-6 flex flex-wrap items-center gap-2 text-xs text-[#765f54]">
-          <ShieldCheck size={15} className="text-[#3f786a]" />
-          Acesso de proprietário: {ownerEmail || "conta autorizada"}
-          {!hasSupabase ? " · Supabase indisponível neste ambiente" : ""}
-        </div>
-
-        <section className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Resumo dos feedbacks">
-          {summaryCards.map(({ label, value, Icon }) => (
-            <div key={label} className="rounded-2xl border border-[#dfd0c4] bg-white/72 p-4 shadow-[0_12px_34px_rgba(75,46,30,0.06)]">
-              <div className="flex items-center justify-between gap-3 text-[#805f4e]"><span className="text-xs font-bold uppercase tracking-[0.14em]">{label}</span><Icon size={17} /></div>
-              <strong className="mt-3 block text-3xl font-semibold text-[#2c1f1b]">{value}</strong>
+        <section className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4" aria-label="Resumo dos feedbacks">
+          {summaryCards.map(({ label, value, detail, tone, Icon }) => (
+            <div key={label} className="group relative overflow-hidden rounded-[23px] border border-[#e3d5c5] bg-[#fffaf3]/85 p-4 shadow-[0_12px_34px_rgba(75,46,30,0.055)] transition duration-200 hover:-translate-y-0.5 hover:border-[#c4a66f]/60 sm:p-5">
+              <span className="absolute inset-x-0 top-0 h-[2px] opacity-75" style={{ backgroundColor: tone }} aria-hidden="true" />
+              <div className="flex items-center justify-between gap-3 text-[#806b60]"><span className="text-[10px] font-bold uppercase tracking-[0.16em] sm:text-[11px]">{label}</span><span className="grid h-8 w-8 place-items-center rounded-full border border-[#e6d8c7] bg-white/70" style={{ color: tone }}><Icon size={15} /></span></div>
+              <div className="mt-3 flex items-end justify-between gap-2"><strong className="font-serif text-3xl font-semibold leading-none tracking-tight text-[#2c1f1b]">{value}</strong><span className="mb-0.5 text-right text-[10px] leading-4 text-[#9a887d]">{detail}</span></div>
             </div>
           ))}
         </section>
@@ -213,7 +191,6 @@ export default function FeedbackAdminPage({
             </article>
           ))}
         </section>
-      </div>
-    </main>
+    </AdminPageFrame>
   );
 }

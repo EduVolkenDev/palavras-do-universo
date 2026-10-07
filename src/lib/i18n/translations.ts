@@ -5,6 +5,7 @@ const en: Record<string, string> = {
   "Ritual": "Ritual",
   "Astrologia": "Astrology",
   "Conhecer Astrologia": "Explore astrology",
+  "Preciso de clareza urgente": "I need urgent clarity",
   "Entrar na Astrologia": "Enter astrology",
   "Meu céu, meu pulso, meu mapa e meu tempo": "My sky, my rhythm, my chart, and my time",
   "Profissionais": "Professionals",
