@@ -369,16 +369,16 @@ export default function VoucherAdminPage({
   }
 
   return (
-    <main className="ritual-texture min-h-screen bg-[#120f16] px-4 py-6 text-[#f3eadf] sm:px-6 sm:py-8">
-      <section className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-        <header className="rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(244,213,141,0.2),transparent_24%),linear-gradient(180deg,rgba(24,21,31,0.96),rgba(11,9,16,0.94))] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.34)] sm:p-8">
+    <main className="ritual-texture min-h-screen w-full max-w-full overflow-x-hidden bg-[#120f16] px-3 py-5 text-[#f3eadf] sm:px-6 sm:py-8">
+      <section className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6">
+        <header className="min-w-0 rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(244,213,141,0.2),transparent_24%),linear-gradient(180deg,rgba(24,21,31,0.96),rgba(11,9,16,0.94))] p-4 shadow-[0_30px_90px_rgba(0,0,0,0.34)] sm:rounded-[28px] sm:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
+            <div className="min-w-0 max-w-3xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-[#5e5137] bg-[#1b1713] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#f4d58d]">
                 <ShieldCheck size={14} />
                 {t("Admin do Oráculo")}
               </div>
-              <h1 className="brand-serif mt-4 text-4xl font-semibold leading-none sm:text-5xl">
+              <h1 className="brand-serif mt-4 break-words text-3xl font-semibold leading-tight sm:text-5xl sm:leading-none">
                 {t("Convites e vouchers sob controle total.")}
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-[#cdbfae] sm:text-base">
@@ -388,29 +388,29 @@ export default function VoucherAdminPage({
               </p>
             </div>
 
-            <div className="flex flex-col items-start gap-3 sm:items-end">
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-[#dbcfc1]">
-                <strong className="block text-[#fff7e8]">{ownerEmail || "Owner"}</strong>
+            <div className="flex min-w-0 w-full flex-col items-stretch gap-3 lg:w-auto lg:items-end">
+              <div className="min-w-0 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-[#dbcfc1] lg:w-auto">
+                <strong className="block break-all text-[#fff7e8]">{ownerEmail || "Owner"}</strong>
                 <span>{t("Acesso restrito por OWNER_ACCESS.")}</span>
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap lg:w-auto">
                 <button
                   type="button"
                   onClick={() => void loadVouchers()}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#4e473f] bg-[#18141d] px-4 py-2 text-sm font-semibold text-[#efe2d2] transition hover:border-[#f4d58d] hover:text-white"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#4e473f] bg-[#18141d] px-4 py-2 text-sm font-semibold text-[#efe2d2] transition hover:border-[#f4d58d] hover:text-white sm:w-auto"
                 >
                   <RefreshCw size={16} />
                   {t("Atualizar")}
                 </button>
                 <Link
                   href="/admin/feedback"
-                  className="inline-flex items-center gap-2 rounded-full border border-[#8faea3] bg-[#10251f] px-4 py-2 text-sm font-semibold text-[#c6eadb]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#8faea3] bg-[#10251f] px-4 py-2 text-sm font-semibold text-[#c6eadb] sm:w-auto"
                 >
                   Feedbacks
                 </Link>
                 <Link
                   href="/meu-universo"
-                  className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1b1713]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1b1713] sm:w-auto"
                 >
                   {t("Voltar ao Meu Universo")}
                 </Link>
@@ -425,7 +425,7 @@ export default function VoucherAdminPage({
           </section>
         ) : null}
 
-        <section className="grid gap-4 md:grid-cols-4">
+        <section className="grid min-w-0 gap-4 sm:grid-cols-2 md:grid-cols-4">
           {[
             { label: t("Total"), value: summary.total, icon: Ticket },
             { label: t("Ativos"), value: summary.active, icon: CheckCircle2 },
@@ -464,8 +464,8 @@ export default function VoucherAdminPage({
           </div>
         ) : null}
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-          <article className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(21,18,28,0.96),rgba(9,8,14,0.96))] p-5 sm:p-6">
+        <section className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+          <article className="min-w-0 rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(21,18,28,0.96),rgba(9,8,14,0.96))] p-4 sm:rounded-[28px] sm:p-6">
             <div className="flex items-center gap-3">
               <Sparkles size={18} className="text-[#f4d58d]" />
               <h2 className="brand-serif text-2xl font-semibold">
@@ -479,14 +479,14 @@ export default function VoucherAdminPage({
             </p>
 
             <form onSubmit={handleCreate} className="mt-5 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
                 <label className="space-y-2">
                   <span className="text-sm font-semibold text-[#f3eadf]">{t("Rótulo")}</span>
                   <input
                     value={form.label}
                     onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
                     required
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                    className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                     placeholder={t("Ex: Convite fundador do Círculo")}
                   />
                 </label>
@@ -495,7 +495,7 @@ export default function VoucherAdminPage({
                   <input
                     value={form.code}
                     onChange={(event) => setForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))}
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                    className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                     placeholder="PDU-FOUNDER"
                   />
                 </label>
@@ -507,12 +507,12 @@ export default function VoucherAdminPage({
                   value={form.description}
                   onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
                   rows={3}
-                  className="w-full rounded-[22px] border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                  className="w-full min-w-0 max-w-full rounded-[22px] border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                   placeholder={t("Contexto interno para você saber onde esse voucher será usado.")}
                 />
               </label>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
                 <label className="space-y-2">
                   <span className="text-sm font-semibold text-[#f3eadf]">{t("Tipo")}</span>
                   <select
@@ -541,7 +541,7 @@ export default function VoucherAdminPage({
                         };
                       })
                     }
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                    className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                   >
                     <option value="invite">{t("Convite")}</option>
                     <option value="discount">{t("Desconto")}</option>
@@ -576,7 +576,7 @@ export default function VoucherAdminPage({
                         };
                       })
                     }
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                    className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                   >
                     {ALL_PRODUCT_OPTIONS.map((option) => (
                       <option key={option.key} value={option.key}>
@@ -617,7 +617,7 @@ export default function VoucherAdminPage({
                         onChange={(event) =>
                           setForm((current) => ({ ...current, grantUsageLimit: event.target.value }))
                         }
-                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                        className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                         placeholder="1"
                       />
                     </label>
@@ -628,7 +628,7 @@ export default function VoucherAdminPage({
                         onChange={(event) =>
                           setForm((current) => ({ ...current, grantExpiresDays: event.target.value }))
                         }
-                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                        className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                         placeholder={t("Vazio = sem expiração")}
                       />
                     </label>
@@ -649,7 +649,7 @@ export default function VoucherAdminPage({
                         onChange={(event) =>
                           setForm((current) => ({ ...current, discountPercent: event.target.value }))
                         }
-                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                        className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                         placeholder="20"
                       />
                     </label>
@@ -660,7 +660,7 @@ export default function VoucherAdminPage({
                         onChange={(event) =>
                           setForm((current) => ({ ...current, maxUses: event.target.value }))
                         }
-                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                        className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                         placeholder="1"
                       />
                     </label>
@@ -691,13 +691,13 @@ export default function VoucherAdminPage({
                     onChange={(event) =>
                       setForm((current) => ({ ...current, maxUses: event.target.value }))
                     }
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                    className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                     placeholder="1"
                   />
                 </label>
               )}
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
                 <label className="space-y-2">
                   <span className="text-sm font-semibold text-[#f3eadf]">{t("Nome do destinatário")}</span>
                   <input
@@ -706,7 +706,7 @@ export default function VoucherAdminPage({
                       setForm((current) => ({ ...current, targetName: event.target.value }))
                     }
                     required={Boolean(form.targetEmail.trim())}
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                    className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                     placeholder="Max"
                   />
                 </label>
@@ -718,7 +718,7 @@ export default function VoucherAdminPage({
                     onChange={(event) =>
                       setForm((current) => ({ ...current, targetEmail: event.target.value }))
                     }
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                    className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                     placeholder="alguem@exemplo.com"
                   />
                 </label>
@@ -732,7 +732,7 @@ export default function VoucherAdminPage({
                         emailLocale: event.target.value as VoucherEmailLocale,
                       }))
                     }
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                    className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                   >
                     <option value="pt-BR">{t("Português")}</option>
                     <option value="en">English</option>
@@ -746,7 +746,7 @@ export default function VoucherAdminPage({
                     onChange={(event) =>
                       setForm((current) => ({ ...current, expiresAt: event.target.value }))
                     }
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                    className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                   />
                 </label>
               </div>
@@ -773,7 +773,7 @@ export default function VoucherAdminPage({
             </form>
           </article>
 
-          <article className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(21,18,28,0.96),rgba(9,8,14,0.96))] p-5 sm:p-6">
+          <article className="min-w-0 rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(21,18,28,0.96),rgba(9,8,14,0.96))] p-4 sm:rounded-[28px] sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="brand-serif text-2xl font-semibold">
@@ -842,7 +842,7 @@ export default function VoucherAdminPage({
                               <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#a59a8e]">
                                 {t("Tipo")}
                               </dt>
-                              <dd className="mt-2 text-sm text-[#fff7e8]">
+                              <dd className="mt-2 break-words text-sm text-[#fff7e8]">
                                 {t(
                                   voucher.kind === "invite"
                                     ? "Convite"
@@ -856,7 +856,7 @@ export default function VoucherAdminPage({
                               <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#a59a8e]">
                                 {t("Uso")}
                               </dt>
-                              <dd className="mt-2 text-sm text-[#fff7e8]">
+                              <dd className="mt-2 break-words text-sm text-[#fff7e8]">
                                 {voucher.times_used}/{voucher.max_uses}
                               </dd>
                             </div>
@@ -864,7 +864,7 @@ export default function VoucherAdminPage({
                               <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#a59a8e]">
                                 {t("Público")}
                               </dt>
-                              <dd className="mt-2 text-sm text-[#fff7e8]">
+                              <dd className="mt-2 break-words text-sm text-[#fff7e8]">
                                 {voucher.target_email || (voucher.transferable ? t("Qualquer conta") : t("Sem restrição"))}
                               </dd>
                             </div>
@@ -872,7 +872,7 @@ export default function VoucherAdminPage({
                               <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#a59a8e]">
                                 {t("Produtos")}
                               </dt>
-                              <dd className="mt-2 text-sm text-[#fff7e8]">
+                              <dd className="mt-2 break-words text-sm text-[#fff7e8]">
                                 {joinProducts(
                                   isGrantKind(voucher.kind)
                                     ? voucher.grant_product_keys
@@ -884,7 +884,7 @@ export default function VoucherAdminPage({
                               <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#a59a8e]">
                                 {t("Desconto")}
                               </dt>
-                              <dd className="mt-2 text-sm text-[#fff7e8]">
+                              <dd className="mt-2 break-words text-sm text-[#fff7e8]">
                                 {voucher.discount_percent ? `${voucher.discount_percent}%` : "—"}
                               </dd>
                             </div>
@@ -892,7 +892,7 @@ export default function VoucherAdminPage({
                               <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#a59a8e]">
                                 {t("Expiração")}
                               </dt>
-                              <dd className="mt-2 text-sm text-[#fff7e8]">
+                              <dd className="mt-2 break-words text-sm text-[#fff7e8]">
                                 {voucher.expires_at
                                   ? new Date(voucher.expires_at).toLocaleString()
                                   : voucher.grant_expires_days
@@ -903,7 +903,7 @@ export default function VoucherAdminPage({
                           </dl>
                         </div>
 
-                        <div className="flex w-full max-w-[320px] flex-col gap-3">
+                        <div className="flex w-full min-w-0 max-w-none flex-col gap-3 lg:max-w-[320px]">
                           <button
                             type="button"
                             onClick={() => void copyText(voucher.share_url)}
@@ -932,7 +932,7 @@ export default function VoucherAdminPage({
                                       [voucher.id]: event.target.value,
                                     }))
                                   }
-                                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                                  className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                                   placeholder="Max"
                                 />
                               </label>
@@ -1004,7 +1004,7 @@ export default function VoucherAdminPage({
                             "Troque o e-mail alvo do voucher. Se o acesso já foi entregue, você pode mover também os entitlements vinculados."
                           )}
                         </p>
-                        <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+                        <div className="mt-3 grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
                           <input
                             type="email"
                             value={transferEmail[voucher.id] ?? ""}
@@ -1015,7 +1015,7 @@ export default function VoucherAdminPage({
                               }))
                             }
                             placeholder="novo@destino.com"
-                            className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
+                            className="w-full min-w-0 max-w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-[#f4d58d]"
                           />
                           <button
                             type="button"
