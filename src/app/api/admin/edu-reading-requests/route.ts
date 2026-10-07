@@ -17,6 +17,7 @@ const REQUEST_STATUSES = new Set([
 
 const REQUEST_FIELDS =
   "id, created_at, updated_at, offer_id, offer_title, client_name, client_email, intention, locale, currency, amount_cents, date_key, start_time, end_time, timezone, status, stripe_checkout_id, payment_url, confirmed_at, confirmed_by, paid_at, declined_at, notes";
+const WAITLIST_FIELDS = "id, email, locale, created_at, updated_at";
 
 type AdminBody = {
   action?: unknown;
@@ -50,7 +51,15 @@ export async function GET(request: Request) {
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true, requests: data ?? [] });
+
+  const { data: waitlist, error: waitlistError } = await getSupabaseAdmin()
+    .from("edu_reading_waitlist")
+    .select(WAITLIST_FIELDS)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (waitlistError) return NextResponse.json({ error: waitlistError.message }, { status: 500 });
+
+  return NextResponse.json({ ok: true, requests: data ?? [], waitlist: waitlist ?? [] });
 }
 
 export async function POST(request: Request) {

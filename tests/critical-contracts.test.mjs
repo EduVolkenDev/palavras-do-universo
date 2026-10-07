@@ -362,3 +362,21 @@ test("Edu bookings hold a real London time only through secure payment", async (
   assert.match(migration, /exclude using gist/);
   assert.match(migration, /interval '30 minutes'/);
 });
+
+test("Edu waitlist stores only a private, deduplicated contact", async () => {
+  const page = await source("src/components/EduReadingComingSoon.tsx");
+  const route = await source("src/app/api/edu-reading/waitlist/route.ts");
+  const admin = await source("src/app/api/admin/edu-reading-requests/route.ts");
+  const migration = await source("supabase/migrations/20261007014319_create_edu_reading_waitlist.sql");
+
+  assert.match(page, /lista de espera|waitlist/i);
+  assert.match(route, /checkRateLimit/);
+  assert.match(route, /strict: true/);
+  assert.match(route, /\.upsert\(/);
+  assert.match(route, /onConflict: "email"/);
+  assert.match(route, /Do not distinguish a new address from an existing one/);
+  assert.match(admin, /edu_reading_waitlist/);
+  assert.match(migration, /email text not null unique/);
+  assert.match(migration, /enable row level security/);
+  assert.match(migration, /revoke all on public\.edu_reading_waitlist from public, anon, authenticated/);
+});

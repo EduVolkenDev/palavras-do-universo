@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { EduReadingPage } from "@/components/EduReading";
+import { EduReadingComingSoon } from "@/components/EduReadingComingSoon";
 
 export const metadata: Metadata = {
-  title: "Leitura com o Edu | Palavras do Universo",
-  description: "Conheça Edu, criador do Palavras do Universo, e converse sobre uma leitura de tarot realizada por ele.",
+  title: "Leituras com o Edu em breve | Palavras do Universo",
+  description: "As leituras individuais com o Edu estão sendo preparadas com cuidado. Entre na lista de espera para receber o aviso de abertura da agenda.",
 };
 
 export default function EduReadingRoute() {
-  return <EduReadingPage />;
+  return <EduReadingComingSoon />;
 }

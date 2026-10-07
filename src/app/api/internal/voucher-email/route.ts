@@ -16,36 +16,85 @@ function unauthorized() {
   return Response.json({ ok: false }, { status: 401, headers: { "cache-control": "no-store" } });
 }
 
-function isVoucherEmailInput(value: unknown): value is VoucherEmailInput {
-  if (!value || typeof value !== "object") return false;
-  const voucher = value as Record<string, unknown>;
-  const requiredStrings = ["id", "code", "label", "share_url"];
-  if (requiredStrings.some((key) => typeof voucher[key] !== "string" || !(voucher[key] as string).trim())) {
-    return false;
+function parseVoucherEmailInput(value: unknown):
+  | { voucher: VoucherEmailInput; invalidFields: [] }
+  | { voucher: null; invalidFields: string[] } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { voucher: null, invalidFields: ["body"] };
   }
-  if (!/^[a-zA-Z0-9_-]{1,100}$/.test(voucher.id as string)) return false;
-  if ((voucher.code as string).length > 120 || (voucher.label as string).length > 240) return false;
-  if (voucher.description !== null && typeof voucher.description !== "string") return false;
-  if (typeof voucher.description === "string" && voucher.description.length > 1200) return false;
-  if (voucher.kind !== "invite" && voucher.kind !== "discount" && voucher.kind !== "hybrid") return false;
-  if (voucher.email_locale !== "pt-BR" && voucher.email_locale !== "en") return false;
-  if (voucher.target_email !== null && typeof voucher.target_email !== "string") return false;
-  if (typeof voucher.target_email === "string") {
-    if (voucher.target_email.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(voucher.target_email)) return false;
-  }
-  if (voucher.recipient_name !== null && typeof voucher.recipient_name !== "string") return false;
-  if (typeof voucher.recipient_name === "string" && voucher.recipient_name.length > 240) return false;
-  if (voucher.primary_title !== null && typeof voucher.primary_title !== "string") return false;
-  if (typeof voucher.primary_title === "string" && voucher.primary_title.length > 240) return false;
-  if (voucher.grant_expires_days !== null && typeof voucher.grant_expires_days !== "number") return false;
 
-  try {
-    const shareUrl = new URL(voucher.share_url as string);
-    if (shareUrl.origin !== CANONICAL_SITE || !shareUrl.pathname.startsWith("/")) return false;
-  } catch {
-    return false;
+  const input = value as Record<string, unknown>;
+  const invalidFields: string[] = [];
+  const requiredText = (field: string, max: number) => {
+    const candidate = input[field];
+    if (typeof candidate !== "string" || !candidate.trim() || candidate.length > max) {
+      invalidFields.push(field);
+      return "";
+    }
+    return candidate.trim();
+  };
+
+  const id = requiredText("id", 100);
+  const code = requiredText("code", 120);
+  const label = requiredText("label", 240);
+  if (id && !/^[a-zA-Z0-9_-]+$/.test(id)) invalidFields.push("id");
+  if (code && !/^[a-zA-Z0-9_-]+$/.test(code)) invalidFields.push("code");
+
+  const kind = input.kind;
+  if (kind !== "invite" && kind !== "discount" && kind !== "hybrid") {
+    invalidFields.push("kind");
   }
-  return true;
+
+  const nullableText = (field: string, max: number) => {
+    const candidate = input[field];
+    if (candidate === undefined || candidate === null) return null;
+    if (typeof candidate !== "string" || candidate.length > max) {
+      invalidFields.push(field);
+      return null;
+    }
+    return candidate.trim() || null;
+  };
+
+  const description = nullableText("description", 1200);
+  const recipientName = nullableText("recipient_name", 240);
+  const primaryTitle = nullableText("primary_title", 240);
+  const targetEmail = nullableText("target_email", 320);
+  if (targetEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {
+    invalidFields.push("target_email");
+  }
+
+  const expiryDays = input.grant_expires_days;
+  if (
+    expiryDays !== undefined &&
+    expiryDays !== null &&
+    (typeof expiryDays !== "number" || !Number.isFinite(expiryDays))
+  ) {
+    invalidFields.push("grant_expires_days");
+  }
+
+  const locale = input.email_locale;
+  if (locale !== undefined && locale !== "pt-BR" && locale !== "en") {
+    invalidFields.push("email_locale");
+  }
+
+  if (invalidFields.length > 0) return { voucher: null, invalidFields };
+
+  return {
+    voucher: {
+      id,
+      code,
+      label,
+      description,
+      kind: kind as VoucherEmailInput["kind"],
+      share_url: `${CANONICAL_SITE}/voucher/${encodeURIComponent(code)}`,
+      primary_title: primaryTitle,
+      target_email: targetEmail,
+      recipient_name: recipientName,
+      grant_expires_days: typeof expiryDays === "number" ? expiryDays : null,
+      email_locale: locale === "en" ? "en" : "pt-BR",
+    },
+    invalidFields: [],
+  };
 }
 
 export async function POST(request: Request) {
@@ -76,11 +125,15 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ ok: false }, { status: 400, headers: { "cache-control": "no-store" } });
   }
-  if (!isVoucherEmailInput(voucher)) {
+  const parsed = parseVoucherEmailInput(voucher);
+  if (!parsed.voucher) {
+    console.error("[voucher-email] signed payload rejected", {
+      invalidFields: parsed.invalidFields,
+    });
     return Response.json({ ok: false }, { status: 400, headers: { "cache-control": "no-store" } });
   }
 
-  const delivery = await sendVoucherEmailDirectlyFromNode(voucher);
+  const delivery = await sendVoucherEmailDirectlyFromNode(parsed.voucher);
   const status = delivery.status === "sent" ? 200 : delivery.status === "skipped" ? 200 : 502;
   return Response.json(
     { ok: delivery.status === "sent", delivery: delivery.status },

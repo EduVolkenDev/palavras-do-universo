@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   Clipboard,
   ExternalLink,
+  Mail,
   RefreshCw,
   ShieldCheck,
   XCircle,
@@ -26,6 +27,13 @@ type ReadingRequest = {
   timezone: string;
   status: "requested" | "confirmed_pending_payment" | "payment_pending" | "paid" | "declined" | "expired" | "cancelled";
   payment_url: string | null;
+};
+
+type WaitlistEntry = {
+  id: string;
+  email: string;
+  locale: "pt-BR" | "en";
+  created_at: string;
 };
 
 const STATUS_LABELS: Record<ReadingRequest["status"], string> = {
@@ -72,6 +80,7 @@ export default function EduReadingAdminPage({
   hasSupabase: boolean;
 }) {
   const [requests, setRequests] = useState<ReadingRequest[]>([]);
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState("");
   const [error, setError] = useState("");
@@ -82,9 +91,12 @@ export default function EduReadingAdminPage({
     setError("");
     try {
       const response = await fetch("/api/admin/edu-reading-requests", { cache: "no-store" });
-      const data = (await response.json()) as { requests?: ReadingRequest[]; error?: string };
-      if (!response.ok || !Array.isArray(data.requests)) throw new Error(data.error || "Não foi possível carregar os pedidos.");
+      const data = (await response.json()) as { requests?: ReadingRequest[]; waitlist?: WaitlistEntry[]; error?: string };
+      if (!response.ok || !Array.isArray(data.requests) || !Array.isArray(data.waitlist)) {
+        throw new Error(data.error || "Não foi possível carregar os pedidos.");
+      }
       setRequests(data.requests);
+      setWaitlist(data.waitlist);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Não foi possível carregar os pedidos.");
     } finally {
@@ -129,7 +141,8 @@ export default function EduReadingAdminPage({
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8e674d]">Palavras do Universo · Administração</p>
             <h1 className="brand-serif mt-2 break-words text-3xl leading-tight text-[#2c1f1b] sm:text-4xl sm:leading-none">Leituras com Edu</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6f5d55]">Confirme o horário primeiro. O link Stripe só é criado depois dessa confirmação.</p>
+            <h1 className="brand-serif mt-2 break-words text-3xl leading-tight text-[#2c1f1b] sm:text-4xl sm:leading-none">Leituras com Edu</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6f5d55]">Acompanhe pedidos de atendimento e a lista de espera. Confirme o horário antes de criar o link Stripe.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href="/admin/eventos" className="inline-flex items-center gap-2 rounded-full border border-[#cdbbab] bg-white/60 px-4 py-2 text-sm font-semibold text-[#604b42]">Eventos <ExternalLink size={14} /></Link>
@@ -163,6 +176,31 @@ export default function EduReadingAdminPage({
               </div>
             </article>
           ))}
+        </section>
+
+        <section className="mt-12 border-t border-[#d8c8ba] pt-8" aria-live="polite" aria-labelledby="edu-waitlist-heading">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8e674d]">Abertura da agenda</p>
+              <h2 id="edu-waitlist-heading" className="brand-serif mt-2 text-3xl text-[#2c1f1b]">Lista de espera</h2>
+              <p className="mt-2 text-sm leading-6 text-[#6f5d55]">Envie o primeiro aviso a estes contatos quando as leituras individuais estiverem prontas.</p>
+            </div>
+            {!loading ? <span className="w-fit rounded-full border border-[#cdbbab] bg-white/60 px-3 py-1.5 text-xs font-bold text-[#604b42]">{waitlist.length} {waitlist.length === 1 ? "contato" : "contatos"}</span> : null}
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {loading ? <div className="rounded-2xl border border-[#dfd0c4] bg-white/72 p-6 text-sm text-[#765f54]">Carregando lista de espera…</div> : null}
+            {!loading && waitlist.length === 0 ? <div className="rounded-2xl border border-dashed border-[#cdbbab] bg-white/52 p-8 text-center text-sm text-[#765f54]">Ainda não há contatos na lista de espera.</div> : null}
+            {waitlist.map((entry) => (
+              <article key={entry.id} className="flex flex-col gap-3 rounded-2xl border border-[#dfd0c4] bg-white/82 p-4 shadow-[0_12px_32px_rgba(75,46,30,0.05)] sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-[#2c1f1b]"><Mail size={15} className="shrink-0 text-[#8e674d]" />{entry.email}</p>
+                  <p className="mt-1 text-xs text-[#765f54]">Entrou em {new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.created_at))} · {entry.locale === "en" ? "inglês" : "português"}</p>
+                </div>
+                <a href={`mailto:${entry.email}`} className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-[#cdbbab] bg-white px-4 py-2 text-xs font-bold text-[#604b42]">Preparar e-mail <ExternalLink size={14} /></a>
+              </article>
+            ))}
+          </div>
         </section>
       </div>
     </main>
