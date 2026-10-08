@@ -2,6 +2,11 @@
 
 Data: 2026-05-12
 
+> Documento histórico. A nova direção de arte e o plano de execução estão em
+> [`DIRECAO-DE-ARTE-VOLYNX.md`](./DIRECAO-DE-ARTE-VOLYNX.md). Em caso de
+> conflito, o documento novo prevalece para a branch
+> `codex/art-direction-experience`.
+
 Objetivo: adaptar a disciplina visual do Upscayl para o Palavras do Universo sem copiar codigo, marca ou estrutura da Volynx. A direcao aqui e criar um santuario digital moderno: futurista, suave no scroll, organico, ritualistico e mobile-first.
 
 ## Veredito

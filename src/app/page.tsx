@@ -1255,8 +1255,13 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
   const [publishedTestimonials, setPublishedTestimonials] = useState<
     PublishedTestimonial[]
   >([]);
+  const [testimonialsPaused, setTestimonialsPaused] = useState(false);
   const visibleTestimonials =
     publishedTestimonials.length > 0 ? publishedTestimonials : testimonials;
+  const carouselTestimonials =
+    visibleTestimonials.length > 1
+      ? [...visibleTestimonials, ...visibleTestimonials]
+      : visibleTestimonials;
 
   useEffect(() => {
     let cancelled = false;
@@ -3064,12 +3069,12 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
           </nav>
 
           <Link
-            href="/astrologia"
+            href="/clareza-urgente"
             onClick={() => setExploreMenuOpen(false)}
             className="pdu-site-header__cta hidden items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1c1308] shadow-[0_14px_38px_rgba(244,213,141,0.22)] hover:bg-[#ffe3a3] sm:inline-flex"
           >
-            <MoonStar size={16} />
-            {t("Conhecer Astrologia")}
+            <Sparkles size={16} />
+            {t("Quero clareza agora")}
           </Link>
 
           <div className="pdu-site-header__mobile-actions flex items-center gap-2 md:hidden">
@@ -4762,27 +4767,55 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
             </h2>
           </div>
 
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {visibleTestimonials.map((t) => (
-              <blockquote
-                key={t.id}
-                className="flex flex-col rounded-[10px] border border-white/10 bg-white/[0.04] p-6"
+          <div
+            className={`pdu-testimonials__carousel mt-10 ${testimonialsPaused ? "is-paused" : ""}`}
+            role="region"
+            aria-roledescription="carrossel"
+            aria-label="Feedbacks da comunidade"
+            onMouseEnter={() => setTestimonialsPaused(true)}
+            onMouseLeave={() => setTestimonialsPaused(false)}
+            onFocus={() => setTestimonialsPaused(true)}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                setTestimonialsPaused(false);
+              }
+            }}
+          >
+            <div className="pdu-testimonials__viewport">
+              <div className="pdu-testimonials__track">
+                {carouselTestimonials.map((t, index) => (
+                  <blockquote
+                    key={`${t.id}-${index}`}
+                    className="pdu-testimonials__card flex flex-col rounded-[10px] border border-white/10 bg-white/[0.04] p-6"
+                    aria-hidden={index >= visibleTestimonials.length ? true : undefined}
+                  >
+                    <Quote size={20} className="mb-4 shrink-0 text-[#f4d58d]/50" />
+                    <p className="flex-1 text-sm leading-7 text-[#d8ccc0]">{t.text}</p>
+                    <footer className="mt-5 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-[#fff7e8]">{t.name}</p>
+                        <p className="text-xs text-[#8d837b]">{t.location}</p>
+                      </div>
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: t.stars }).map((_, i) => (
+                          <Star key={i} size={13} className="fill-[#f4d58d] text-[#f4d58d]" />
+                        ))}
+                      </div>
+                    </footer>
+                  </blockquote>
+                ))}
+              </div>
+            </div>
+            {visibleTestimonials.length > 1 ? (
+              <button
+                type="button"
+                className="pdu-testimonials__pause"
+                aria-pressed={testimonialsPaused}
+                onClick={() => setTestimonialsPaused((paused) => !paused)}
               >
-                <Quote size={20} className="mb-4 shrink-0 text-[#f4d58d]/50" />
-                <p className="flex-1 text-sm leading-7 text-[#d8ccc0]">{t.text}</p>
-                <footer className="mt-5 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-[#fff7e8]">{t.name}</p>
-                    <p className="text-xs text-[#8d837b]">{t.location}</p>
-                  </div>
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: t.stars }).map((_, i) => (
-                      <Star key={i} size={13} className="fill-[#f4d58d] text-[#f4d58d]" />
-                    ))}
-                  </div>
-                </footer>
-              </blockquote>
-            ))}
+                {testimonialsPaused ? "Continuar movimento" : "Pausar movimento"}
+              </button>
+            ) : null}
           </div>
 
           <div className="pdu-feedback-invitation mt-10">

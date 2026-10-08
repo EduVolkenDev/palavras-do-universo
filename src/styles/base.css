@@ -66,3 +66,9 @@ a:active {
     linear-gradient(90deg, rgba(36, 27, 24, 0.05) 1px, transparent 1px);
   background-size: 28px 28px;
 }
+/* Next's fill images provide an inline object-fit: cover default. Respect
+   explicit contain utilities so transparent editorial artwork keeps its
+   complete silhouette inside the visual frame. */
+img.object-contain {
+  object-fit: contain !important;
+}

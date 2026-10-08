@@ -8610,6 +8610,71 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
   }
 }
 
+.pdu-testimonials__carousel {
+  --testimonial-gap: 1.25rem;
+  position: relative;
+}
+
+.pdu-testimonials__viewport {
+  overflow: hidden;
+  padding: 0.25rem 0.15rem 1rem;
+  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+}
+
+.pdu-testimonials__track {
+  display: flex;
+  width: max-content;
+  gap: var(--testimonial-gap);
+  animation: pdu-testimonials-marquee 42s linear infinite;
+}
+
+.pdu-testimonials__carousel:hover .pdu-testimonials__track,
+.pdu-testimonials__carousel:focus-within .pdu-testimonials__track,
+.pdu-testimonials__carousel.is-paused .pdu-testimonials__track {
+  animation-play-state: paused;
+}
+
+.pdu-testimonials__card {
+  flex: 0 0 min(82vw, 25rem);
+  min-height: 15rem;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+}
+
+.pdu-testimonials__pause {
+  display: block;
+  margin: 0.15rem auto 0;
+  border: 1px solid rgba(244, 213, 141, 0.34);
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: #d8ccc0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.pdu-testimonials__pause:hover,
+.pdu-testimonials__pause:focus-visible {
+  border-color: rgba(244, 213, 141, 0.72);
+  background: rgba(244, 213, 141, 0.12);
+  color: #fff7e8;
+}
+
+@keyframes pdu-testimonials-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-50% - (var(--testimonial-gap) / 2)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdu-testimonials__track {
+    animation: none;
+  }
+}
+
 .pdu-feedback-trigger {
   display: inline-flex;
   align-items: center;

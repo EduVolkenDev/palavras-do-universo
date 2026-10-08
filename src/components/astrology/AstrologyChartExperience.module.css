@@ -93,11 +93,13 @@
 }
 
 .coreSignImage {
+  object-fit: contain !important;
   mix-blend-mode: screen;
   filter: saturate(1.08) drop-shadow(0 12px 22px rgba(87, 51, 122, 0.3));
 }
 
 .placementSignArtwork {
+  object-fit: contain !important;
   opacity: 0.86;
   mix-blend-mode: screen;
   filter: saturate(1.08) drop-shadow(0 18px 28px rgba(130, 91, 190, 0.35));
