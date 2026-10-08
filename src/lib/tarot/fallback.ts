@@ -340,55 +340,55 @@ const EN_OPENINGS: Record<string, readonly string[]> = {
 
 const PT_POSITION_CONTEXT: readonly (readonly string[])[] = [
   [
-    "{card} enquadra {question}: {keyword} aparece como o primeiro sinal a ser lido antes de decidir o próximo passo.",
-    "Na situação, {card} traz {keyword} para dentro de {question}; comece separando fato, desejo e medo.",
-    "{card} mostra o terreno inicial de {question}: antes de agir, reconheça onde {keyword} já está organizando a cena.",
-    "A primeira camada de {question} passa por {card}; leia esse tema como contexto vivo, não como resposta fechada.",
+    "Na sua pergunta sobre {theme}, {keyword} indica por onde começar.",
+    "No começo da leitura, observe onde {keyword} já aparece no cotidiano.",
+    "Seu ponto de partida é perceber como {keyword} influencia sua escolha.",
+    "Use {keyword} como pista inicial, sem concluir tudo a partir dela.",
   ],
   [
-    "{card} mostra a tensão dentro de {question}: {keyword} virou ponto de pressão e pede uma resposta menos automática.",
-    "No obstáculo, {card} revela onde {question} pode estar sendo atravessada por excesso, defesa ou pressa.",
-    "{card} não bloqueia a resposta; ele mostra onde {keyword} precisa ser visto antes que você escolha no impulso.",
-    "A sombra de {question} aparece em {card}: algo pede pausa para que {keyword} não vire repetição.",
+    "Como tensão, {keyword} pede pausa antes de uma decisão automática.",
+    "Observe se {keyword} virou pressão na sua questão sobre {theme}.",
+    "Essa posição mostra onde {keyword} precisa de mais cuidado.",
+    "Antes de reagir, perceba o que {keyword} desperta em você.",
   ],
   [
-    "{card} leva a resposta para ação: use {keyword} para fazer uma escolha possível, em vez de esperar a situação inteira ficar certa.",
-    "Como direção, {card} pede que {question} vire um gesto concreto guiado por {keyword}.",
-    "{card} aponta o movimento mais limpo: transforme esse tema em uma decisão pequena, visível e realizável.",
-    "A saída aberta por {card} não exige certeza total; ela pede um passo que confirme {keyword} no mundo real.",
+    "Como direção, transforme {keyword} em um próximo passo possível.",
+    "Use {keyword} para escolher um gesto concreto hoje.",
+    "Essa posição convida a levar {keyword} para a prática.",
+    "Experimente um passo pequeno orientado por {keyword}.",
   ],
   [
-    "Nesta camada, {card} acrescenta {keyword} ao mapa de {question}; leia a relação com as outras posições antes de concluir.",
-    "{card} amplia {question} por meio de {keyword}; essa posição ganha sentido no diálogo com o conjunto.",
-    "A posição ocupada por {card} revela uma nuance de {keyword} que reorganiza a leitura de {question}.",
-    "{card} pede que {keyword} seja integrado ao restante da tirada, sem transformar uma única carta em sentença.",
+    "Aqui, {keyword} ganha sentido na relação com as outras cartas.",
+    "Esta camada ajuda a ligar {keyword} ao tema de {theme}.",
+    "Veja como {keyword} modifica o conjunto antes de concluir.",
+    "Leia {keyword} como parte do mapa, não como sentença.",
   ],
 ];
 
 const EN_POSITION_CONTEXT: readonly (readonly string[])[] = [
   [
-    "{card} frames {question}: {keyword} appears as the first signal to read before deciding what comes next.",
-    "In the situation, {card} brings {keyword} into {question}; begin by separating fact, desire, and fear.",
-    "{card} shows the starting ground of {question}: before acting, notice where {keyword} is already shaping the scene.",
-    "The first layer of {question} moves through {card}; read this theme as living context, not a closed answer.",
+    "For your question about {theme}, {keyword} suggests where to begin.",
+    "At the start of this reading, notice where {keyword} already appears in daily life.",
+    "Begin by noticing how {keyword} influences your choice.",
+    "Use {keyword} as a first clue without drawing the whole conclusion from it.",
   ],
   [
-    "{card} shows the tension inside {question}: {keyword} is becoming a point of pressure and asks for a less automatic response.",
-    "As the obstacle, {card} reveals where {question} may be crossed by excess, defense, or haste.",
-    "{card} does not block the answer; it shows where {keyword} needs to be seen before you choose from impulse.",
-    "The shadow of {question} appears through {card}: something asks for pause so {keyword} does not become repetition.",
+    "As a tension, {keyword} asks for a pause before an automatic response.",
+    "Notice whether {keyword} has become pressure in your question about {theme}.",
+    "This position shows where {keyword} needs more care.",
+    "Before reacting, notice what {keyword} brings up for you.",
   ],
   [
-    "{card} turns the answer toward action: use {keyword} to make one possible choice instead of waiting for the whole situation to become certain.",
-    "As direction, {card} asks {question} to become one concrete gesture guided by {keyword}.",
-    "{card} points to the cleanest movement: turn this theme into a small, visible, doable decision.",
-    "The way opened by {card} does not demand total certainty; it asks for one step that confirms {keyword} in real life.",
+    "As a direction, turn {keyword} into one possible next step.",
+    "Let {keyword} guide one concrete gesture today.",
+    "This position invites you to put {keyword} into practice.",
+    "Try one small step guided by {keyword}.",
   ],
   [
-    "In this layer, {card} adds {keyword} to the map of {question}; read its relationship with the other positions before concluding.",
-    "{card} expands {question} through {keyword}; this position gains meaning in dialogue with the whole spread.",
-    "The position held by {card} reveals a nuance of {keyword} that reorganizes the reading of {question}.",
-    "{card} asks you to integrate {keyword} with the rest of the spread without turning one card into a verdict.",
+    "Here, {keyword} gains meaning alongside the other cards.",
+    "This layer connects {keyword} to your question about {theme}.",
+    "Notice how {keyword} changes the whole picture before concluding.",
+    "Read {keyword} as part of the map, not a verdict.",
   ],
 ];
 
@@ -551,11 +551,6 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     draw.reversed ? draw.card.reversed : draw.card.upright;
   const label = (draw: (typeof localizedSpread)[number]) =>
     `${draw.card.name}${draw.reversed ? (isEnglish ? " (reversed)" : " (reversa)") : ""}`;
-  const limitWords = (text: string, limit: number) => {
-    const clean = text.replace(/\s+/g, " ").trim();
-    const words = clean.split(/\s+/).filter(Boolean);
-    return words.length > limit ? `${words.slice(0, limit).join(" ")}...` : clean;
-  };
   const completeSentences = (text: string, maxWords: number) => {
     const sentences =
       text
@@ -573,41 +568,25 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     return selected.join(" ") || sentences[0] || "";
   };
   const cleanQuestion = question.replace(/\s+/g, " ").trim();
-  const shortQuestion =
-    cleanQuestion.length > 96 ? `${cleanQuestion.slice(0, 93).trim()}...` : cleanQuestion;
   const contextualMeaning = (draw: (typeof localizedSpread)[number], index: number) => {
-    const cardMeaning = meaning(draw).replace(/\s+/g, " ").replace(/[.!?]\s.*$/, "").trim();
     const keyword = draw.card.keywords[0] ?? (isEnglish ? "presence" : "presença");
-    const simpleMeaning = (draw.card.guide?.core || cardMeaning || keyword)
+    const cardMeaning = (draw.reversed ? meaning(draw) : draw.card.guide?.core || meaning(draw))
       .replace(/\s+/g, " ")
       .trim();
-    const questionPart = shortQuestion
-      ? isEnglish
-        ? `your question "${shortQuestion}"`
-        : `sua pergunta "${shortQuestion}"`
-      : isEnglish
-        ? "this moment"
-        : "este momento";
     const templates = isEnglish ? EN_POSITION_CONTEXT : PT_POSITION_CONTEXT;
     const template = pickVariant(
       templates[index] ?? templates[3] ?? templates[0],
       seed,
       `position-context:${index}:${draw.card.key}:${draw.reversed ? "r" : "u"}`
     );
-
-    const positionLine = fillTemplate(template, {
-      card: label(draw),
+    const application = fillTemplate(template, {
       keyword,
-      meaning: cardMeaning || keyword,
-      question: questionPart,
+      theme: copy.label,
     });
-    const practicalMeaning = limitWords(cardMeaning || keyword, 7);
-    const bridge = isEnglish ? "In simple terms:" : "Em termos simples:";
-    const application = isEnglish ? "Here:" : "Aqui:";
-    return `${bridge} ${limitWords(simpleMeaning, 13)} ${application} ${limitWords(
-      positionLine,
-      12
-    )} ${isEnglish ? "In practice:" : "Na prática:"} ${practicalMeaning}.`;
+    const description = cardMeaning || (isEnglish
+      ? `This card highlights ${keyword}.`
+      : `Esta carta destaca ${keyword}.`);
+    return `${description} ${application}`;
   };
 
   const contextualOpening = isEnglish
@@ -631,8 +610,12 @@ export function generateFallbackReading(params: FallbackReadingParams) {
       ? `Este mapa de ${localizedSpread.length} posições começa em ${label(situation)}, atravessa ${label(midpoint)} e aponta para ${label(direction)}.`
       : `A resposta é ler a situação por ${label(situation)}, perceber a tensão em ${label(obstacle)} e agir pela direção de ${label(direction)}.`;
   const questionOpening = isEnglish
-    ? `For "${shortQuestion}",`
-    : `Para "${shortQuestion}",`;
+    ? cleanQuestion && cleanQuestion.length <= 240
+      ? `For "${cleanQuestion}",`
+      : `Regarding your question about ${copy.label},`
+    : cleanQuestion && cleanQuestion.length <= 240
+      ? `Para "${cleanQuestion}",`
+      : `Sobre sua pergunta a respeito de ${copy.label},`;
   const directAnswer = compactPresenceLine
     ? `${questionOpening} ${compactPresenceLine} ${directCore}`
     : `${questionOpening} ${directCore}`;
@@ -643,11 +626,8 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     : "";
   const mantra = pick(copy.mantras, "mantra");
   const cardLine = (draw: (typeof localizedSpread)[number], index: number) => {
-    const keyword = draw.card.keywords[0] ?? (isEnglish ? "presence" : "presença");
     const text = contextualMeaning(draw, index);
-    return isEnglish
-      ? `- ${draw.position}: ${label(draw)} — ${limitWords(text || keyword, 38)}`
-      : `- ${draw.position}: ${label(draw)} — ${limitWords(text || keyword, 38)}`;
+    return `- ${draw.position}: ${label(draw)} — ${text}`;
   };
   const mapLine = isEnglish
     ? hasExtendedSpread
@@ -666,7 +646,7 @@ export function generateFallbackReading(params: FallbackReadingParams) {
     isEnglish
       ? `Let ${label(direction)} guide one concrete action you can complete today.`
       : `Deixe ${label(direction)} guiar uma ação concreta que você consiga concluir hoje.`,
-  ]).map((action) => limitWords(action, 18)).slice(0, 3);
+  ]).map((action) => completeSentences(action, 18)).slice(0, 3);
   const recommendedQuestion = pick(copy.questions, "question");
 
   const lines = isEnglish

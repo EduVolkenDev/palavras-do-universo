@@ -1153,6 +1153,7 @@ export async function POST(req: Request) {
 	- Complete todas as seções dentro do limite; corte explicações secundárias antes de aumentar o texto.
 	- Nenhum parágrafo pode ter mais de 2 frases curtas ou mais de 220 caracteres.
 	- Bullets devem ter no máximo 34 palavras.
+	- Escreva frases completas. Não interrompa explicações com reticências (... ou …).
 	- Use palavras simples, de conversa adulta e clara. Evite termos raros, místicos demais ou acadêmicos.
 	- Não repita a mesma ideia com outras palavras. Se algo já foi dito, avance.
 	- Não use aberturas genéricas como "as cartas mostram que" em todas as seções.

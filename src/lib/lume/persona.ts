@@ -325,8 +325,7 @@ function getActiveReadingExcerpt(result: string) {
   return source
     .filter((line) => !heading.test(line))
     .slice(0, 2)
-    .join(" ")
-    .slice(0, 460);
+    .join(" ");
 }
 
 function findActiveReadingCard(cards: ActiveReadingCardContext[], text: string) {
@@ -348,6 +347,27 @@ function asksAboutActiveReading(text: string) {
   }
 
   return /(signific|represent|interpret|explic|explain|resum|summary|entend|understand|resultado|result|esta leitura|essa leitura|this reading|current reading|carta|card|arcano|tirada|spread)/.test(text);
+}
+
+export function isSpecificReadingQuestion(input: string) {
+  const text = normalize(input);
+  const asksForMeaning =
+    /(explic|interpreta|resum|entend|signific|quer dizer|por que|porque|explain|interpret|summary|understand|meaning|what does|why)/.test(text);
+  const refersToReading =
+    /(leitura|tirada|resultado|interpretacao|esse trecho|essa parte|voce disse|reading|spread|result|interpretation|this passage|this part|you said)/.test(text);
+  return asksForMeaning && refersToReading;
+}
+
+export function getMissingReadingReply(locale: Locale): LumeReply {
+  return locale === "en"
+    ? {
+        text: "I cannot see the text of that reading yet, so I do not want to guess what it means. Open the reading and ask me again, or paste the passage that felt unclear and I can explain it with you.",
+        action: { label: "Open my reading", href: "/#leitura" },
+      }
+    : {
+        text: "Ainda não consigo ver o texto dessa leitura, então não quero inventar uma explicação. Abra a leitura e pergunte novamente, ou cole aqui o trecho que ficou confuso para eu explicar com você.",
+        action: { label: "Abrir minha leitura", href: "/#leitura" },
+      };
 }
 
 type LumeQuestionIntent =
@@ -595,6 +615,10 @@ export function replyToLume(
     activeReading && activeReading.locale === locale
       ? getActiveReadingExcerpt(activeReading.result)
       : "";
+
+  if (!activeReading && isSpecificReadingQuestion(input)) {
+    return getMissingReadingReply(locale);
+  }
 
   if (activeReading && asksAboutActiveReading(text)) {
     const mentionedCard = findActiveReadingCard(activeReadingCards, text);

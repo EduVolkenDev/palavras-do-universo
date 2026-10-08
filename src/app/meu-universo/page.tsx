@@ -61,8 +61,11 @@ import {
 } from "@/lib/i18n/reading-profile";
 import { localizeTarotCard, translateOraclePosition } from "@/lib/i18n/oracle";
 import { CARDS } from "@/lib/tarot/cards";
+import { repairLegacyReading } from "@/lib/tarot/legacy-reading-repair";
+import { useReadingTranslation } from "@/lib/client/useReadingTranslation";
+import { ReadingTranslationStatus } from "@/components/ReadingTranslationStatus";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
-import { LumePresence } from "@/components/LumeGuide";
+import { LUME_READING_FOCUS_EVENT, LumePresence, requestLumeOpen } from "@/components/LumeGuide";
 import { UniverseVisualGuide } from "@/components/UniverseVisualGuide";
 import { AstrologyBirthProfileCard } from "@/components/astrology/AstrologyBirthProfileCard";
 import {
@@ -144,6 +147,25 @@ type UniverseStat = {
 type SelectedHistoryItem =
   | { kind: "reading"; reading: Reading }
   | { kind: "saved-reading"; message: SavedMessage };
+
+function historyReadingForLume(item: SelectedHistoryItem) {
+  if (item.kind === "reading") {
+    return { ...item.reading, result: repairLegacyReading(item.reading).text };
+  }
+
+  const payload = item.message.payload;
+  if (!isSavedReadingPayload(payload)) return null;
+  return {
+    ...payload,
+    readingId: item.message.reading_id,
+    result: repairLegacyReading({
+      question: asString(payload.question),
+      interpretation: asString(payload.result),
+      locale: payload.locale,
+      spread: payload.spreadCards,
+    }).text,
+  };
+}
 
 const paidReadingProducts = productCards.filter((product) => product.mode === "paid");
 
@@ -304,8 +326,6 @@ function isSavedReadingPayload(value: unknown): value is {
 }
 
 function getMessageDedupeKey(message: SavedMessage) {
-  if (message.client_key) return `client:${message.client_key}`;
-
   if (message.message_type === "reading" && isSavedReadingPayload(message.payload)) {
     if (message.reading_id) return `reading:${message.reading_id}`;
 
@@ -313,6 +333,8 @@ function getMessageDedupeKey(message: SavedMessage) {
     const spreadLine = asString(message.payload.spreadLine);
     if (question || spreadLine) return `reading:${question}:${spreadLine}`;
   }
+
+  if (message.client_key) return `client:${message.client_key}`;
 
   if (
     message.message_type === "daily_card" &&
@@ -552,21 +574,6 @@ function localizeHistoryCards(cards: ReadingSpreadCard[], locale: Locale) {
       lifeQuestion: localizedCard?.guide.question ?? card.lifeQuestion,
     };
   });
-}
-
-function buildLocalizedHistorySummary(cards: ReadingSpreadCard[], locale: Locale) {
-  const heading = locale === "en" ? "Localized reading summary" : "Resumo localizado da leitura";
-  const reversedSuffix = locale === "en" ? " (reversed)" : " reversa";
-
-  return [
-    heading,
-    ...cards.map(
-      (card) =>
-        `${card.position}: ${card.name}${card.reversed ? reversedSuffix : ""}. ${
-          card.coreMeaning ?? card.meaning
-        } ${card.meaning}`
-    ),
-  ].join("\n\n");
 }
 
 function formatDate(value: string, locale: Locale) {
@@ -2473,7 +2480,17 @@ export default function MeuUniversoPage() {
         </div>
 
         {selectedHistoryItem ? (
-          <HistoryReadingDialog item={selectedHistoryItem} onClose={() => setSelectedHistoryItem(null)} />
+          <HistoryReadingDialog
+            item={selectedHistoryItem}
+            onClose={() => setSelectedHistoryItem(null)}
+            onAskLume={() => {
+              const reading = historyReadingForLume(selectedHistoryItem);
+              if (!reading) return;
+              window.dispatchEvent(new CustomEvent(LUME_READING_FOCUS_EVENT, { detail: reading }));
+              setSelectedHistoryItem(null);
+              requestLumeOpen();
+            }}
+          />
         ) : null}
 
       </section>
@@ -2932,10 +2949,17 @@ function ReadingArticle({
   const { locale, t } = useI18n();
   const spreadCards = localizeHistoryCards(normalizeSpreadCards(reading.spread), locale);
   const readingLocale = normalizeLocale(reading.locale);
-  const interpretation =
-    reading.locale && readingLocale !== locale
-      ? buildLocalizedHistorySummary(spreadCards, locale)
-      : reading.interpretation;
+  const hasDifferentLanguage = Boolean(reading.locale && readingLocale !== locale);
+  const interpretation = repairLegacyReading(reading).text;
+  const translation = useReadingTranslation({
+    enabled: !compact && hasDifferentLanguage,
+    readingId: reading.mode === "local" ? null : reading.id,
+    sourceText: interpretation,
+    sourceLocale: readingLocale,
+    targetLocale: locale,
+    question: reading.question,
+    spread: reading.spread,
+  });
   const reversedSuffix = locale === "en" ? " (reversed)" : " reversa";
   const spreadLine = spreadCards
     .map((card) => {
@@ -3054,7 +3078,7 @@ function ReadingArticle({
                       </p>
                     ) : null}
                     {card.meaning ? (
-                      <p className="mt-2 line-clamp-3 text-left text-[0.72rem] leading-4 text-[#6f615a]">
+                      <p className="mt-2 text-left text-[0.72rem] leading-4 text-[#6f615a]">
                         <span className="font-semibold text-[#8a6b3f]">
                           {locale === "en" ? "Here: " : "Aqui: "}
                         </span>
@@ -3082,8 +3106,13 @@ function ReadingArticle({
           </>
         ) : null}
 
-        <p className="mt-4 whitespace-pre-line text-sm leading-6 text-[#5c4b42]">
-          {interpretation}
+        {hasDifferentLanguage && translation.status !== "ready" ? (
+          <div className="mt-4">
+            <ReadingTranslationStatus locale={locale} status={translation.status} onRetry={translation.retry} />
+          </div>
+        ) : null}
+        <p className="mt-4 whitespace-pre-line text-sm leading-6 text-[#5c4b42]" data-i18n-ignore>
+          {hasDifferentLanguage && translation.status === "ready" ? translation.text : interpretation}
         </p>
       </div>
     </article>
@@ -3131,7 +3160,7 @@ function SavedReadingPreview({ message, onOpen }: { message: SavedMessage; onOpe
   );
 }
 
-function HistoryReadingDialog({ item, onClose }: { item: SelectedHistoryItem; onClose: () => void }) {
+function HistoryReadingDialog({ item, onClose, onAskLume }: { item: SelectedHistoryItem; onClose: () => void; onAskLume: () => void }) {
   const { locale } = useI18n();
 
   useEffect(() => {
@@ -3153,6 +3182,13 @@ function HistoryReadingDialog({ item, onClose }: { item: SelectedHistoryItem; on
           <button type="button" onClick={onClose} className="grid h-10 w-10 place-items-center rounded-full border border-[#d8c3a6] bg-white text-[#4d3c31] transition hover:bg-[#f8efe2]" aria-label={locale === "en" ? "Close reading" : "Fechar leitura"}><X size={18} /></button>
         </div>
         {item.kind === "reading" ? <ReadingArticle reading={item.reading} /> : <SavedMessageArticle message={item.message} />}
+        <button
+          type="button"
+          onClick={onAskLume}
+          className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-[#8a6b3f]/35 bg-[#241b18] px-5 py-2.5 text-sm font-semibold text-[#fff7e8] transition hover:bg-[#3a2c25] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6b3f]"
+        >
+          {locale === "en" ? "Ask Lume about this reading" : "Perguntar à Lume sobre esta leitura"}
+        </button>
       </section>
     </div>
   );
@@ -3160,10 +3196,27 @@ function HistoryReadingDialog({ item, onClose }: { item: SelectedHistoryItem; on
 
 function SavedMessageArticle({ message }: { message: SavedMessage }) {
   const { locale, t } = useI18n();
+  const readingPayload = message.message_type === "reading" && isSavedReadingPayload(message.payload)
+    ? message.payload : null;
+  const sourceLocale = normalizeLocale(readingPayload?.locale);
+  const repairedResult = readingPayload ? repairLegacyReading({
+    question: asString(readingPayload.question),
+    interpretation: asString(readingPayload.result),
+    locale: asString(readingPayload.locale),
+    spread: readingPayload.spreadCards,
+  }).text : "";
+  const translation = useReadingTranslation({
+    enabled: Boolean(readingPayload?.locale && sourceLocale !== locale),
+    readingId: message.reading_id,
+    sourceText: repairedResult,
+    sourceLocale,
+    targetLocale: locale,
+    question: asString(readingPayload?.question),
+    spread: readingPayload?.spreadCards,
+  });
   if (message.message_type === "reading" && isSavedReadingPayload(message.payload)) {
     const theme = asString(message.payload.theme);
     const question = asString(message.payload.question);
-    const result = asString(message.payload.result);
     const spreadType = asString(message.payload.spreadType);
     const spreadLabel = localizeSpreadLabel(
       spreadType,
@@ -3175,10 +3228,7 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
       normalizeSpreadCards(message.payload.spreadCards),
       locale
     );
-    const displayedResult =
-      message.payload.locale && messageLocale !== locale
-        ? buildLocalizedHistorySummary(spreadCards, locale)
-        : result;
+    const hasDifferentLanguage = Boolean(message.payload.locale && messageLocale !== locale);
 
     return (
       <article className="overflow-hidden rounded-lg border border-[#e4d3ba] bg-[#fbf6ee]">
@@ -3230,7 +3280,7 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
                     ) : (
                       <div className="h-24 w-16 rounded-md bg-[#e7dcc9]" />
                     )}
-                    <p className="mt-2 line-clamp-2 text-[0.68rem] leading-4 text-[#6f615a]">
+                    <p className="mt-2 text-[0.68rem] leading-4 text-[#6f615a]">
                       {name}
                     </p>
                   </div>
@@ -3239,8 +3289,13 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
             </div>
           ) : null}
 
-          <p className="mt-3 line-clamp-5 text-sm leading-6 text-[#6f615a]">
-            {displayedResult}
+          {hasDifferentLanguage && translation.status !== "ready" ? (
+            <div className="mt-3">
+              <ReadingTranslationStatus locale={locale} status={translation.status} onRetry={translation.retry} />
+            </div>
+          ) : null}
+          <p className="mt-3 whitespace-pre-line text-sm leading-6 text-[#6f615a]" data-i18n-ignore>
+            {hasDifferentLanguage && translation.status === "ready" ? translation.text : repairedResult}
           </p>
         </div>
       </article>

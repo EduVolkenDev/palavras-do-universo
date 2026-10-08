@@ -176,6 +176,9 @@ export function validateReadingQuality(
     .trim();
 
   if (!cleanText) return { ok: false, reason: "empty reading" };
+  if (/(?:\.{3,}|…)/u.test(cleanText)) {
+    return { ok: false, reason: "reading contains unfinished ellipsis" };
+  }
   if (cleanText.length > params.maxCharacters) {
     return { ok: false, reason: "reading exceeded character limit" };
   }

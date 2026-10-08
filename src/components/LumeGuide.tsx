@@ -3,7 +3,7 @@
 import { ArrowRight, Send, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/I18nProvider";
@@ -12,6 +12,7 @@ import { PDU_ASSETS } from "@/lib/pdu-assets";
 import {
   getLumeSurface,
   getLumeWelcome,
+  isSpecificReadingQuestion,
   LUME_NAME,
   LUME_QUESTION_EVENT,
   replyToLume,
@@ -29,6 +30,7 @@ import {
   type JourneyReadingRecord,
 } from "@/lib/personalization/journey";
 import { getLabPracticeContinuity } from "@/lib/lab/practice";
+import { repairLegacyReading } from "@/lib/tarot/legacy-reading-repair";
 import {
   getLocalActiveReading,
   getLocalImpactCommitments,
@@ -46,6 +48,21 @@ type LumeMessage = {
 
 const LUME_OPEN_EVENT = "pdu-open-lume";
 const LUME_JOURNEY_UPDATE_EVENT = "pdu:journey-updated";
+export const LUME_READING_FOCUS_EVENT = "pdu:lume-reading-focus";
+
+function getCompleteLocalReading() {
+  const reading = getLocalActiveReading();
+  if (!reading) return null;
+  return {
+    ...reading,
+    result: repairLegacyReading({
+      question: reading.question,
+      interpretation: reading.result,
+      locale: reading.locale,
+      spread: reading.spread_cards,
+    }).text,
+  };
+}
 
 export function requestLumeOpen() {
   if (typeof window !== "undefined") {
@@ -70,6 +87,7 @@ export default function LumeGuide() {
   const scope = `${locale}:${surface}`;
   const contextScope = `${locale}:${pathname}`;
   const [userContext, setUserContext] = useState<UserContext | null>(null);
+  const [focusedReading, setFocusedReading] = useState<NonNullable<UserContext["activeReading"]> | null>(null);
   const [loadedContextScope, setLoadedContextScope] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -80,6 +98,13 @@ export default function LumeGuide() {
   }>(() => ({ scope, messages: [initialMessage(surface, locale)] }));
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const closeLume = useCallback(() => {
+    setOpen(false);
+    if (focusedReading) {
+      setFocusedReading(null);
+      setConversation({ scope, messages: [initialMessage(surface, locale)] });
+    }
+  }, [focusedReading, locale, scope, surface]);
 
   useEffect(() => {
     if (!open || loadedContextScope === contextScope) return;
@@ -135,17 +160,18 @@ export default function LumeGuide() {
           actionsData && typeof actionsData === "object" && actionsData !== null
             ? (actionsData as { commitments?: unknown }).commitments
             : [];
-        const localActiveReadingRecord = getLocalActiveReading();
+        const readings = (Array.isArray(remoteReadings) ? remoteReadings : []) as JourneyReadingRecord[];
+        const localActiveReadingRecord = getCompleteLocalReading();
         const localActiveReading = localActiveReadingAsSavedMessage(
           localActiveReadingRecord
         );
-        const activeReading = normalizeActiveReading(localActiveReadingRecord);
+        const activeReading = normalizeActiveReading(localActiveReadingRecord)
+          ?? normalizeActiveReading(readings[0]);
         const messages = [
           ...(Array.isArray(remoteMessages) ? remoteMessages : []),
           ...(localActiveReading ? [localActiveReading] : []),
           ...getLocalSavedMessages(),
         ] as JourneyMessageRecord[];
-        const readings = (Array.isArray(remoteReadings) ? remoteReadings : []) as JourneyReadingRecord[];
         const actions = [
           ...(Array.isArray(remoteActions) ? remoteActions : []),
           ...getLocalImpactCommitments(),
@@ -208,6 +234,19 @@ export default function LumeGuide() {
   }, []);
 
   useEffect(() => {
+    const focusReading = (event: Event) => {
+      setFocusedReading(normalizeActiveReading((event as CustomEvent<unknown>).detail));
+      setConversation({ scope, messages: [initialMessage(surface, locale)] });
+    };
+    window.addEventListener(LUME_READING_FOCUS_EVENT, focusReading);
+    return () => window.removeEventListener(LUME_READING_FOCUS_EVENT, focusReading);
+  }, [locale, scope, surface]);
+
+  useEffect(() => {
+    setFocusedReading(null);
+  }, [pathname]);
+
+  useEffect(() => {
     if (!open) return;
 
     const previousFocus = document.activeElement instanceof HTMLElement
@@ -215,7 +254,7 @@ export default function LumeGuide() {
       : null;
     const frameId = window.requestAnimationFrame(() => closeButtonRef.current?.focus());
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") closeLume();
     };
     window.addEventListener("keydown", closeOnEscape);
 
@@ -224,17 +263,26 @@ export default function LumeGuide() {
       window.removeEventListener("keydown", closeOnEscape);
       previousFocus?.focus?.();
     };
-  }, [open]);
+  }, [closeLume, open]);
 
   if (pathname.startsWith("/admin") || pathname === "/clareza-urgente" || pathname === "/lab") return null;
 
-  const welcome = getLumeWelcome(surface, locale, userContext);
+  const welcome = focusedReading
+    ? {
+        text: locale === "en"
+          ? "I have the reading you selected, including its question and cards. Which passage or card would you like me to explain?"
+          : "Estou com a leitura que você selecionou, incluindo a pergunta e as cartas. Qual trecho ou carta você quer que eu explique?",
+        suggestions: locale === "en"
+          ? ["Explain this reading in simple words", "What does the first card mean here?"]
+          : ["Explique esta leitura em palavras simples", "O que significa a primeira carta aqui?"],
+      }
+    : getLumeWelcome(surface, locale, userContext);
   const messages = conversation.scope === scope
     ? conversation.messages
     : [initialMessage(surface, locale, userContext)];
   const visibleMessages =
     messages.length === 1 && messages[0]?.role === "lume"
-      ? [initialMessage(surface, locale, userContext)]
+      ? [{ id: 0, role: "lume" as const, ...welcome }]
       : messages;
   const latestSuggestions = visibleMessages.length === 1
     ? welcome.suggestions ?? []
@@ -244,6 +292,13 @@ export default function LumeGuide() {
   async function askLume(question: string) {
     const cleanQuestion = question.trim();
     if (!cleanQuestion || aiPending) return;
+
+    // The reading can finish after the panel opens, before its async context
+    // refresh completes. Read the current local result at submission time.
+    const currentReading = focusedReading ?? normalizeActiveReading(getCompleteLocalReading());
+    let questionContext = currentReading
+      ? { ...(userContext ?? createUserContext(null, "none")), activeReading: currentReading }
+      : userContext;
 
     const currentMessages = visibleMessages;
     const userMessageId = currentMessages.length + 1;
@@ -257,7 +312,29 @@ export default function LumeGuide() {
     setInput("");
     setAiPending(true);
 
-    const localReply = replyToLume(cleanQuestion, surface, locale, userContext);
+    // Account sync can clear the browser copy before the panel's background
+    // refresh finishes. Resolve that reading from the signed-in history now.
+    if (!questionContext?.activeReading && isSpecificReadingQuestion(cleanQuestion)) {
+      try {
+        const response = await fetch("/api/readings?limit=1", { cache: "no-store" });
+        if (response.ok) {
+          const payload = await response.json() as { readings?: unknown };
+          const latest = Array.isArray(payload.readings)
+            ? normalizeActiveReading(payload.readings[0])
+            : null;
+          if (latest) {
+            questionContext = {
+              ...(questionContext ?? createUserContext(null, "none")),
+              activeReading: latest,
+            };
+          }
+        }
+      } catch {
+        // The honest no-reading reply remains available offline.
+      }
+    }
+
+    const localReply = replyToLume(cleanQuestion, surface, locale, questionContext);
     let reply = localReply;
     try {
       const response = await fetch("/api/lume", {
@@ -267,7 +344,7 @@ export default function LumeGuide() {
           question: cleanQuestion,
           surface,
           locale,
-          context: userContext,
+          context: questionContext,
         }),
       });
       const data = (await response.json().catch(() => null)) as
@@ -304,8 +381,12 @@ export default function LumeGuide() {
   }
 
   function toggleLume() {
-    if (!open) setLoadedContextScope(null);
-    setOpen(!open);
+    if (open) {
+      closeLume();
+    } else {
+      setLoadedContextScope(null);
+      setOpen(true);
+    }
   }
 
   function handleLumeAction(action: LumeAction) {
@@ -319,7 +400,7 @@ export default function LumeGuide() {
         new CustomEvent<string>(LUME_QUESTION_EVENT, { detail: action.question })
       );
     }
-    setOpen(false);
+    closeLume();
   }
 
   return (
@@ -360,7 +441,7 @@ export default function LumeGuide() {
             </div>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={closeLume}
               ref={closeButtonRef}
               className="rounded-full p-2 text-[#cfc4b9] transition hover:bg-white/10 hover:text-white"
               aria-label={locale === "en" ? "Close Lume" : "Fechar Lume"}

@@ -63,6 +63,9 @@ import {
   updateLocalImpactCommitment,
 } from "@/lib/client/localUniverse";
 import { syncLocalUniverseToAccount } from "@/lib/client/syncLocalUniverse";
+import { useReadingTranslation } from "@/lib/client/useReadingTranslation";
+import { ReadingTranslationStatus } from "@/components/ReadingTranslationStatus";
+import { repairLegacyReading } from "@/lib/tarot/legacy-reading-repair";
 import { usePduAtmosphere } from "@/lib/ui/usePduAtmosphere";
 import { usePduScrollRecovery } from "@/lib/ui/usePduScrollRecovery";
 import { usePushNotifications } from "@/lib/push/usePushNotifications";
@@ -979,59 +982,6 @@ function normalizeReadingSpreadCards(value: unknown): ApiOk["spread"] {
   });
 }
 
-function buildLocalizedReadingText(params: {
-  cards: ReadingSpreadCard[];
-  locale: Locale;
-  dailyOpening: DailyMessage;
-}) {
-  const isEnglish = params.locale === "en";
-  const reversedSuffix = isEnglish ? " (reversed)" : " reversa";
-  const title = isEnglish
-    ? "READING IN THE SELECTED LANGUAGE"
-    : "LEITURA NO IDIOMA SELECIONADO";
-  const direct = isEnglish
-    ? `Read this answer through the question you opened and the ${params.cards.length} cards now visible.`
-    : `Leia esta resposta a partir da pergunta que você abriu e das ${params.cards.length} cartas agora visíveis.`;
-  const advice = isEnglish
-    ? "Choose one small, visible action today before trying to solve the whole path."
-    : "Escolha uma ação pequena e visível hoje antes de tentar resolver todo o caminho.";
-  const cardLines = params.cards.map((card) => {
-    const name = `${card.name}${card.reversed ? reversedSuffix : ""}`;
-    const guide = card.coreMeaning
-      ? isEnglish
-        ? `Represents: ${card.coreMeaning}`
-        : `Representa: ${card.coreMeaning}`
-      : "";
-    const application = card.meaning
-      ? isEnglish
-        ? `In this question: ${card.meaning}`
-        : `Nesta pergunta: ${card.meaning}`
-      : "";
-    return `- ${card.position}: ${name} — ${[guide, application]
-      .filter(Boolean)
-      .join(" ")}`;
-  });
-
-  return [
-    title,
-    "",
-    isEnglish ? "1) DIRECT ANSWER" : "1) RESPOSTA DIRETA",
-    direct,
-    "",
-    isEnglish ? "2) CARDS" : "2) CARTAS",
-    ...cardLines,
-    "",
-    isEnglish ? "3) ADVICE" : "3) CONSELHO",
-    advice,
-    "",
-    isEnglish ? "4) MANTRA" : "4) MANTRA",
-    params.dailyOpening.affirmation ||
-      (isEnglish
-        ? "I can listen with honesty and move with calm."
-        : "Eu posso me escutar com honestidade e agir com calma."),
-  ].join("\n");
-}
-
 function getReadingAction(reading: string, fallback: string) {
   const match = reading.match(
     /(?:^|\n)\s*(?:\d+[).]\s*)?(?:AÇÕES|ACOES|ACTIONS)\s*\n+([\s\S]*?)(?=\n\s*(?:\d+[).]\s*)?(?:FECHAMENTO|CLOSING|INTEGRAÇÃO|INTEGRATION|RITUAL|RESUMO|SUMMARY)\b|$)/i
@@ -1515,7 +1465,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
       }
 
       const storedReading = getLocalActiveReading();
-      if (storedReading && storedReading.locale === locale) {
+      if (storedReading) {
         setTheme(storedReading.theme);
         setReadingProductKey(storedReading.product_key);
         setSuggestedQuestionSource(storedReading.suggested_question_source);
@@ -2480,6 +2430,24 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
   const readingQuestion = question.trim();
   const readingNeedsLocaleSurface =
     activeReading && resultLocale !== null && resultLocale !== locale;
+  const completeResult = repairLegacyReading({
+    question: readingQuestion,
+    interpretation: result,
+    locale: resultLocale ?? locale,
+    spread: spreadCards,
+  }).text;
+  const readingTranslation = useReadingTranslation({
+    enabled: readingNeedsLocaleSurface && !loading,
+    readingId,
+    sourceText: completeResult,
+    sourceLocale: resultLocale ?? locale,
+    targetLocale: locale,
+    question: readingQuestion,
+    spread: spreadCards,
+  });
+  const translatedReadingReady = !readingNeedsLocaleSurface || readingTranslation.status === "ready";
+  const displayedResult = readingNeedsLocaleSurface && readingTranslation.status === "ready"
+    ? readingTranslation.text : completeResult;
   const localizedSpreadLine = shownSpread.length
     ? shownSpread
         .map(
@@ -2488,14 +2456,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
         )
         .join(" | ")
     : spreadLine;
-  const readingText =
-    readingNeedsLocaleSurface
-      ? buildLocalizedReadingText({
-          cards: localizedSpreadCards,
-          locale,
-          dailyOpening,
-        })
-      : result ||
+  const readingText = displayedResult ||
     [
       "MANTRA",
       dailyOpening.affirmation,
@@ -2519,13 +2480,11 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
         : dailyOpening.message;
   const openingAdvice = loading
     ? t("Lume recolheu as cartas anteriores e está formando um caminho novo para esta pergunta.")
-    : activeReading && readingNeedsLocaleSurface
-      ? locale === "en"
-        ? `Choose one small action from the ${shownSpread.length} cards and test it today.`
-        : `Escolha uma ação pequena a partir das ${shownSpread.length} cartas e teste hoje.`
+    : activeReading && !translatedReadingReady
+      ? locale === "en" ? "Your reading’s guidance is being adapted into English." : "O conselho da sua leitura está sendo adaptado para português."
       : activeReading
         ? getReadingAction(
-            result,
+            displayedResult,
             locale === "en"
               ? "Read the " +
                 shownSpread.length +
@@ -2543,10 +2502,10 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
           : dailyOpening.advice;
   const openingAffirmation = loading
     ? t("Eu deixo Lume abrir a leitura nova antes de concluir.")
-    : activeReading && readingNeedsLocaleSurface
-      ? dailyOpening.affirmation
+    : activeReading && !translatedReadingReady
+      ? locale === "en" ? "Your reading’s affirmation will appear with the complete translation." : "A afirmação da sua leitura aparecerá com a tradução completa."
       : activeReading
-        ? getReadingMantra(result, dailyOpening.affirmation)
+        ? getReadingMantra(displayedResult, dailyOpening.affirmation)
         : hasSelectedPremiumSpread
           ? locale === "en"
             ? "I can look at the whole map before turning one card into a conclusion."
@@ -2570,7 +2529,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
       coreMeaning: card.coreMeaning || dailyCard?.coreMeaning,
       lifeQuestion: card.lifeQuestion || dailyCard?.lifeQuestion,
       insight: getCardInsightFromReading(
-        result,
+        translatedReadingReady ? displayedResult : "",
         { ...card, keyword: card.keyword || dailyCard?.keyword },
         card.meaning || dailyCard?.meaning,
         {
@@ -3980,12 +3939,17 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                 ))}
               </div>
             )}
-            <div className="pdu-reading-transcript">
+            <div className="pdu-reading-transcript" data-i18n-ignore>
               <div className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
                 {loading
                   ? t("Lume está escolhendo suas cartas")
                   : localizedSpreadLine || t("Mensagem do Universo")}
               </div>
+              {result && readingNeedsLocaleSurface && readingTranslation.status !== "ready" ? (
+                <div className="mb-4">
+                  <ReadingTranslationStatus locale={locale} status={readingTranslation.status} onRetry={readingTranslation.retry} tone="dark" />
+                </div>
+              ) : null}
               <div
                 key={result ? readingId ?? spreadLine : "reading-preview"}
                 className="pdu-reading-blocks min-h-72"

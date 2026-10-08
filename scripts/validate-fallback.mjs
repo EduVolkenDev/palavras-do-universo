@@ -5,6 +5,7 @@ import ts from "typescript";
 
 const root = process.cwd();
 const temp = await mkdtemp(join(tmpdir(), "pdu-fallback-"));
+let cardGuides;
 
 async function compile(source, target) {
   const code = await readFile(join(root, source), "utf8");
@@ -68,6 +69,7 @@ function spreadFor(locale, offset = 0) {
         ...source,
         keywords: [locale === "en" ? source.enKeyword : source.keywords[0]],
         name: locale === "en" ? source.enName : source.name,
+        guide: cardGuides[source.key][locale === "en" ? "en" : "pt"],
       },
       position,
       reversed: index === 1,
@@ -93,13 +95,22 @@ function params(overrides = {}) {
 
 try {
   await compile("src/lib/daily/seed.ts", "src/lib/daily/seed.js");
+  await compile("src/lib/tarot/cardCatalog.ts", "src/lib/tarot/cardCatalog.js");
+  await compile("src/lib/tarot/card-guides.ts", "src/lib/tarot/card-guides.js");
+  await compile("src/lib/tarot/cards.ts", "src/lib/tarot/cards.js");
   await compile("src/lib/tarot/fallback.ts", "src/lib/tarot/fallback.js");
+  await compile("src/lib/tarot/reading-quality.ts", "src/lib/tarot/reading-quality.js");
+  cardGuides = (await import(join(temp, "src/lib/tarot/card-guides.js"))).CARD_GUIDES;
+  const realCards = (await import(join(temp, "src/lib/tarot/cards.js"))).CARDS;
   const fallbackModule = await import(join(temp, "src/lib/tarot/fallback.js"));
   const generate = fallbackModule.generateFallbackReading;
+  const validate = (await import(join(temp, "src/lib/tarot/reading-quality.js"))).validateReadingQuality;
 
   const baseline = generate(params());
   assert(baseline === generate(params()), "Same context must produce the same fallback");
   assert(baseline.length <= 7_500, "Portuguese fallback exceeded premium limit");
+  assert(!/(?:\.{3,}|…)/u.test(baseline), "Portuguese fallback contains unfinished ellipses");
+  assert(validate(baseline, { expectedCards: 3, locale: "pt-BR", maxCharacters: 5_200, paidProduct: true }).ok, "Portuguese fallback failed the reading quality contract");
   assert(baseline.includes("Oito de Espadas"), "Direction card is missing");
   assert(baseline.includes("Caminho das 3 Cartas"), "Product context is missing");
   assert(
@@ -182,6 +193,36 @@ try {
     "English fallback leaked generic or broken card-description language"
   );
   assert(english.length <= 7_500, "English fallback exceeded premium limit");
+  assert(!/(?:\.{3,}|…)/u.test(english), "English fallback contains unfinished ellipses");
+  assert(validate(english, { expectedCards: 3, locale: "en", maxCharacters: 5_200, paidProduct: true }).ok, "English fallback failed the reading quality contract");
+
+  const completeQuestion = "Como posso organizar as minhas prioridades e conversar com a minha equipe sobre prazos, responsabilidades e expectativas, sem perder a calma ou transformar cada decisão em uma nova urgência?";
+  const longQuestion = generate(params({ question: completeQuestion }));
+  assert(!/(?:\.{3,}|…)/u.test(longQuestion), "Long questions must not be cut mid-thought");
+  assert(longQuestion.includes(completeQuestion), "A real, moderately long question must stay specific in the fallback");
+
+  for (const card of realCards) {
+    const spread = [card, realCards[0], realCards[1]].map((item, index) => ({
+      card: item,
+      position: ["SITUAÇÃO", "OBSTÁCULO", "DIREÇÃO"][index],
+      reversed: index === 1,
+    }));
+    const reading = generate(params({ spread }));
+    const cardLines = reading.split("\n").filter((line) => line.startsWith("- ") && line.includes(" — "));
+    assert(!/(?:\.{3,}|…)/u.test(reading), `${card.name} produced unfinished ellipses`);
+    assert(cardLines.every((line) => line.length <= 320), `${card.name} produced an overlong card line`);
+    assert(cardLines.every((line) => line.split(/\s+/).length <= 41), `${card.name} produced a card line over 40 words`);
+  }
+
+  const extendedSpread = realCards.slice(0, 12).map((card, index) => ({
+    card,
+    position: `POSIÇÃO ${index + 1}`,
+    reversed: index % 3 === 1,
+  }));
+  const extendedReading = generate(params({ productKey: "o_espelho", spread: extendedSpread }));
+  assert(!/(?:\.{3,}|…)/u.test(extendedReading), "Twelve-card fallback contains unfinished ellipses");
+  assert(validate(extendedReading, { expectedCards: 12, locale: "pt-BR", maxCharacters: 6_800, paidProduct: true }).ok,
+    "Twelve-card fallback failed the paid reading quality contract");
 
   const spreadVariant = generate(params({ spread: spreadFor("pt-BR", 3) }));
   assert(spreadVariant !== baseline, "Card combination must change the fallback");

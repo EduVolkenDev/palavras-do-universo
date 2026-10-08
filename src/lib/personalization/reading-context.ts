@@ -158,7 +158,9 @@ function normalizeActiveReadingCard(value: unknown): ActiveReadingCardContext | 
 export function normalizeActiveReading(value: unknown): ActiveReadingContext | null {
   if (!isRecord(value)) return null;
 
-  const cardSource = value.spreadCards ?? value.spread_cards;
+  // Lume sends an already normalized ActiveReadingContext back to the API.
+  // Keep its `cards` on this second pass as well as the stored reading shapes.
+  const cardSource = value.cards ?? value.spreadCards ?? value.spread_cards ?? value.spread;
   const cards = Array.isArray(cardSource)
     ? cardSource
         .flatMap((card) => {
@@ -168,11 +170,11 @@ export function normalizeActiveReading(value: unknown): ActiveReadingContext | n
         .slice(0, 12)
     : [];
   const question = trimText(value.question, 600);
-  const result = trimReadingResult(value.result ?? value.interpretation, 8000);
+  const result = trimReadingResult(value.result ?? value.interpretation, 16000);
   if (!question && !result && !cards.length) return null;
 
   return {
-    readingId: trimText(value.readingId ?? value.reading_id, 120) || null,
+    readingId: trimText(value.readingId ?? value.reading_id ?? value.id, 120) || null,
     locale: trimText(value.locale, 32) || "pt-BR",
     theme: trimText(value.theme, 120),
     productKey: trimText(value.productKey ?? value.product_key, 120),
@@ -182,7 +184,7 @@ export function normalizeActiveReading(value: unknown): ActiveReadingContext | n
     spreadLine: trimText(value.spreadLine ?? value.spread_line, 1200),
     cards,
     result,
-    updatedAt: trimText(value.updatedAt ?? value.updated_at ?? value.savedAt, 80),
+    updatedAt: trimText(value.updatedAt ?? value.updated_at ?? value.savedAt ?? value.created_at, 80),
   };
 }
 

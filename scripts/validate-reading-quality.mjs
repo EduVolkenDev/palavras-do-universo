@@ -104,6 +104,16 @@ try {
   );
 
   assert(
+    !validate(validPtFree.replace("existe energia disponível, mas ela precisa virar ação clara.", "existe energia disponível, mas ela precisa..."), {
+      expectedCards: 3,
+      locale: "pt-BR",
+      maxCharacters: 3_000,
+      paidProduct: false,
+    }).ok,
+    "Reading with an unfinished explanation passed"
+  );
+
+  assert(
       !validate(`${validPtFree}\n${"texto ".repeat(500)}`, {
       expectedCards: 3,
       locale: "pt-BR",
