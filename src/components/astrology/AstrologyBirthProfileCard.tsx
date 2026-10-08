@@ -339,9 +339,19 @@ export function AstrologyBirthProfileCard({
   return (
     <section id="preparar-meu-mapa" className="mt-8 overflow-hidden rounded-[30px] border border-[#241b18]/10 bg-[#fffaf2] shadow-[0_30px_90px_rgba(80,57,34,0.12)]">
       <div className="grid gap-0 lg:grid-cols-[0.82fr_1.18fr]">
-        <div className="relative overflow-hidden bg-[#241b18] p-6 text-[#fff7e8] sm:p-8 lg:self-start">
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-[#f4d58d]/20 bg-[radial-gradient(circle,rgba(244,213,141,0.24),transparent_66%)]" aria-hidden="true" />
-          <div className="relative z-10">
+        <div className="relative isolate overflow-hidden bg-[#241b18] p-6 text-[#fff7e8] sm:p-8">
+          <Image
+            src={PDU_ASSETS.astrology.orbitalMap}
+            alt=""
+            aria-hidden
+            fill
+            sizes="(max-width: 640px) calc(100vw - 2rem), (max-width: 1024px) calc(100vw - 3rem), 42vw"
+            className="pointer-events-none absolute inset-0 z-0 select-none object-cover object-center opacity-70"
+          />
+          <div className="pointer-events-none absolute inset-0 z-10 bg-[#241b18]/40" aria-hidden />
+          <div className="pointer-events-none absolute inset-0 z-20 bg-[linear-gradient(180deg,rgba(36,27,24,0.62)_0%,rgba(36,27,24,0.42)_42%,rgba(36,27,24,0.88)_100%)]" aria-hidden />
+          <div className="pointer-events-none absolute -right-16 -top-16 z-20 h-44 w-44 rounded-full border border-[#f4d58d]/20 bg-[radial-gradient(circle,rgba(244,213,141,0.24),transparent_66%)] sm:-right-20 sm:-top-20 sm:h-64 sm:w-64" aria-hidden />
+          <div className="relative z-30">
             <p className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/25 bg-white/[0.06] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
               <Sparkles size={13} />
               {copy.eyebrow}
