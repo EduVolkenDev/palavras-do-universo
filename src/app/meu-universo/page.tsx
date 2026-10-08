@@ -803,6 +803,42 @@ export default function MeuUniversoPage() {
     () => messages.filter((message) => message.message_type !== "reading"),
     [messages]
   );
+  const latestHistoryItem = useMemo<SelectedHistoryItem | null>(() => {
+    const historyItems: SelectedHistoryItem[] = [
+      ...readings.map((reading) => ({ kind: "reading" as const, reading })),
+      ...savedReadingMessages.map((message) => ({
+        kind: "saved-reading" as const,
+        message,
+      })),
+    ];
+
+    return (
+      historyItems.sort((first, second) => {
+        const firstDate =
+          first.kind === "reading"
+            ? first.reading.created_at
+            : first.message.created_at;
+        const secondDate =
+          second.kind === "reading"
+            ? second.reading.created_at
+            : second.message.created_at;
+        return new Date(secondDate).getTime() - new Date(firstDate).getTime();
+      })[0] ?? null
+    );
+  }, [readings, savedReadingMessages]);
+  const latestHistoryTitle =
+    latestHistoryItem?.kind === "reading"
+      ? latestHistoryItem.reading.question ||
+        (latestHistoryItem.reading.theme
+          ? localizeTheme(latestHistoryItem.reading.theme, locale)
+          : locale === "en"
+            ? "Saved reading"
+            : "Leitura salva")
+      : latestHistoryItem?.kind === "saved-reading" &&
+          isSavedReadingPayload(latestHistoryItem.message.payload)
+        ? asString(latestHistoryItem.message.payload.question) ||
+          (locale === "en" ? "Saved reading" : "Leitura salva")
+        : "";
   const labContinuity = useMemo(
     () =>
       getLabPracticeContinuity(
@@ -1522,57 +1558,15 @@ export default function MeuUniversoPage() {
 
         <UniverseVisualGuide
           locale={locale}
-          latestReading={readings[0]}
-          recurringTheme={journeySnapshot.recurringThemes[0]}
-          hasReadingHistory={readingHistoryCount > 0}
-          savedCount={otherSavedMessages.length}
-          activeCommitmentCount={commitments.filter((commitment) =>
-            ["committed", "deferred"].includes(commitment.status)
-          ).length}
+          resumeReading={
+            latestHistoryItem
+              ? {
+                  title: latestHistoryTitle,
+                  onOpen: () => setSelectedHistoryItem(latestHistoryItem),
+                }
+              : null
+          }
         />
-
-        <section className="mt-8 overflow-hidden rounded-[28px] border border-[#d8c3a6] bg-[#fffaf2] p-5 shadow-[0_24px_70px_rgba(80,57,34,0.08)] sm:p-7">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">
-            {locale === "en" ? "A clear guide" : "Um guia claro"}
-          </p>
-          <h2 className="brand-serif mt-2 text-3xl font-semibold text-[#241b18] sm:text-4xl">
-            {locale === "en" ? "What you can do here." : "O que você pode fazer aqui."}
-          </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6f615a]">
-            {locale === "en" ? "Choose one door. The rest can wait." : "Escolha uma porta. O resto pode esperar."}
-          </p>
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
-            {[
-              { visual: PDU_ASSETS.productIcons.threeCardPath, title: locale === "en" ? "Open a reading" : "Abrir uma leitura", text: locale === "en" ? "Ask one question and receive a reading." : "Faça uma pergunta e receba uma leitura.", href: "/#leitura" },
-              { visual: PDU_ASSETS.astrology.mapHero, title: locale === "en" ? "See your birth map" : "Ver seu mapa astral", text: locale === "en" ? "Your birth data and personal sky live here." : "Seus dados de nascimento e céu pessoal ficam aqui.", href: "/astrologia/mapa" },
-              { visual: PDU_ASSETS.surfaces.access, title: locale === "en" ? "See your access" : "Ver meus acessos", text: locale === "en" ? "Find the readings and subscriptions available to you." : "Encontre as leituras e assinaturas liberadas para você.", href: "#acessos" },
-            ].map((item) => (
-              <Link
-                key={item.title}
-                href={item.href}
-                className="group grid min-h-[15.5rem] grid-cols-[minmax(0,1.08fr)_minmax(10.5rem,0.92fr)] overflow-hidden rounded-2xl border border-[#e4d3ba] bg-white/80 transition hover:-translate-y-0.5 hover:border-[#c4a678] hover:bg-white"
-              >
-                <div className="flex min-w-0 flex-col p-5">
-                  <strong className="block text-lg text-[#332720]">{item.title}</strong>
-                  <span className="mt-2 block text-sm leading-6 text-[#6f615a]">{item.text}</span>
-                  <span className="mt-auto inline-flex items-center gap-1 pt-5 text-xs font-semibold uppercase tracking-[0.12em] text-[#8a6b3f]">
-                    {locale === "en" ? "Open" : "Abrir"}
-                    <ArrowRight size={13} />
-                  </span>
-                </div>
-                <div className="relative min-h-[15.5rem] border-l border-[#e4d3ba] bg-[radial-gradient(circle_at_50%_44%,#fffdf8_0%,#f4ead8_68%,#e9d8bb_100%)] p-2">
-                  <Image
-                    src={item.visual}
-                    alt=""
-                    fill
-                    sizes="(min-width: 768px) 18rem, 46vw"
-                    className="pointer-events-none object-contain object-center"
-                  />
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
 
         <div className="pdu-universe-stats mt-8 grid gap-3 md:grid-cols-4">
           {stats.map((stat) => (
@@ -2410,11 +2404,16 @@ export default function MeuUniversoPage() {
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6b3f]">
-                  Últimas leituras
+                  {locale === "en" ? "Your reading history" : "Seu histórico de leituras"}
                 </p>
                 <h2 className="brand-serif mt-1 text-3xl font-semibold">
-                  Caminhos abertos
+                  {locale === "en" ? "All your readings" : "Todas as suas leituras"}
                 </h2>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-[#6f615a]">
+                  {locale === "en"
+                    ? "Start with the most recent one. Click anywhere on a card to open the complete reading."
+                    : "Comece pela mais recente. Clique em qualquer parte de um card para abrir a leitura completa."}
+                </p>
               </div>
               <BookOpen size={22} className="text-[#b46b68]" />
             </div>
@@ -2938,29 +2937,40 @@ function ReadingArticle({
   if (compact) {
     return (
       <article id={`leitura-${reading.id}`} className="scroll-mt-28 overflow-hidden rounded-2xl border border-[#e4d3ba] bg-[#fbf6ee] p-4 transition hover:border-[#c4a678] hover:bg-white">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
-          <span className="rounded-full bg-[#e7dcc9] px-2 py-1">{reading.theme ? localizeTheme(reading.theme, locale) : t("Leitura")}</span>
-          <span className="rounded-full bg-[#e7dcc9] px-2 py-1">{spreadLabel}</span>
-          <span className="inline-flex items-center gap-1"><Clock size={13} />{formatDate(reading.created_at, locale)}</span>
-        </div>
-        <h3 className="mt-3 font-semibold text-[#332720]">{reading.question || "Leitura salva"}</h3>
-        {spreadCards.length ? (
-          <div className="mt-4 flex gap-2 overflow-hidden" aria-label={t("Cartas da leitura")}>
-            {spreadCards.slice(0, 4).map((card, index) => (
-              <div key={`${card.cardKey || card.name}-${index}`} className="min-w-14 text-center">
-                {card.assetPath ? (
-                  <Image src={card.assetPath} alt={`${t("Carta da leitura")}: ${card.name}`} width={72} height={116} className={`mx-auto h-20 w-14 rounded-md object-cover shadow-[0_10px_20px_rgba(60,42,24,0.16)] ${card.reversed ? "rotate-180" : ""}`} />
-                ) : (
-                  <div className="mx-auto h-20 w-14 rounded-md bg-[#e7dcc9]" />
-                )}
-                <p className="mt-1 line-clamp-1 text-[0.62rem] font-semibold text-[#6f615a]">{card.name}</p>
-              </div>
-            ))}
-            {spreadCards.length > 4 ? <span className="self-center text-xs font-semibold text-[#8a6b3f]">+{spreadCards.length - 4}</span> : null}
+        <button
+          type="button"
+          onClick={onOpen}
+          className="group block w-full rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-[#8a6b3f] focus-visible:ring-offset-4"
+          aria-label={
+            locale === "en"
+              ? `Open reading: ${reading.question || "saved reading"}`
+              : `Abrir leitura: ${reading.question || "leitura salva"}`
+          }
+        >
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
+            <span className="rounded-full bg-[#e7dcc9] px-2 py-1">{reading.theme ? localizeTheme(reading.theme, locale) : t("Leitura")}</span>
+            <span className="rounded-full bg-[#e7dcc9] px-2 py-1">{spreadLabel}</span>
+            <span className="inline-flex items-center gap-1"><Clock size={13} />{formatDate(reading.created_at, locale)}</span>
           </div>
-        ) : null}
-        <button type="button" onClick={onOpen} className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#241b18] px-4 py-2 text-sm font-semibold text-[#fff7e8] transition hover:bg-[#3a2c25]">
-          {locale === "en" ? "Open reading" : "Abrir leitura"}<ArrowRight size={14} />
+          <h3 className="mt-3 font-semibold text-[#332720]">{reading.question || "Leitura salva"}</h3>
+          {spreadCards.length ? (
+            <div className="mt-4 flex gap-2 overflow-hidden" aria-label={t("Cartas da leitura")}>
+              {spreadCards.slice(0, 4).map((card, index) => (
+                <div key={`${card.cardKey || card.name}-${index}`} className="min-w-14 text-center">
+                  {card.assetPath ? (
+                    <Image src={card.assetPath} alt={`${t("Carta da leitura")}: ${card.name}`} width={72} height={116} className={`mx-auto h-20 w-14 rounded-md object-cover shadow-[0_10px_20px_rgba(60,42,24,0.16)] ${card.reversed ? "rotate-180" : ""}`} />
+                  ) : (
+                    <div className="mx-auto h-20 w-14 rounded-md bg-[#e7dcc9]" />
+                  )}
+                  <p className="mt-1 line-clamp-1 text-[0.62rem] font-semibold text-[#6f615a]">{card.name}</p>
+                </div>
+              ))}
+              {spreadCards.length > 4 ? <span className="self-center text-xs font-semibold text-[#8a6b3f]">+{spreadCards.length - 4}</span> : null}
+            </div>
+          ) : null}
+          <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#241b18] px-4 py-2 text-sm font-semibold text-[#fff7e8] transition group-hover:bg-[#3a2c25]">
+            {locale === "en" ? "Open reading" : "Abrir leitura"}<ArrowRight size={14} />
+          </span>
         </button>
       </article>
     );
@@ -3078,23 +3088,34 @@ function SavedReadingPreview({ message, onOpen }: { message: SavedMessage; onOpe
 
   return (
     <article className="overflow-hidden rounded-2xl border border-[#e4d3ba] bg-[#fbf6ee] p-4 transition hover:border-[#c4a678] hover:bg-white">
-      <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
-        <span className="rounded-full bg-[#e7dcc9] px-2 py-1">{spreadLabel}</span>
-        <span className="inline-flex items-center gap-1"><Clock size={13} />{formatDate(message.created_at, locale)}</span>
-      </div>
-      <h3 className="mt-3 font-semibold text-[#332720]">{question}</h3>
-      {cards.length ? <div className="mt-4 flex gap-2 overflow-hidden">{cards.slice(0, 4).map((card, index) => {
-        const assetPath = normalizeAssetPath(card.assetPath);
-        return <div key={`${card.cardKey || card.name}-${index}`} className="min-w-14 text-center">
-          {assetPath ? (
-            <Image src={assetPath} alt={`${t("Carta da leitura")}: ${card.name}`} width={72} height={116} className={`mx-auto h-20 w-14 rounded-md object-cover shadow-[0_10px_20px_rgba(60,42,24,0.16)] ${card.reversed ? "rotate-180" : ""}`} />
-          ) : (
-            <div className="mx-auto h-20 w-14 rounded-md bg-[#e7dcc9]" />
-          )}
-          <p className="mt-1 line-clamp-1 text-[0.62rem] font-semibold text-[#6f615a]">{card.name}</p>
-        </div>;
-      })}</div> : null}
-      <button type="button" onClick={onOpen} className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#241b18] px-4 py-2 text-sm font-semibold text-[#fff7e8] transition hover:bg-[#3a2c25]">{locale === "en" ? "Open reading" : "Abrir leitura"}<ArrowRight size={14} /></button>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="group block w-full rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-[#8a6b3f] focus-visible:ring-offset-4"
+        aria-label={
+          locale === "en"
+            ? `Open reading: ${question}`
+            : `Abrir leitura: ${question}`
+        }
+      >
+        <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
+          <span className="rounded-full bg-[#e7dcc9] px-2 py-1">{spreadLabel}</span>
+          <span className="inline-flex items-center gap-1"><Clock size={13} />{formatDate(message.created_at, locale)}</span>
+        </div>
+        <h3 className="mt-3 font-semibold text-[#332720]">{question}</h3>
+        {cards.length ? <div className="mt-4 flex gap-2 overflow-hidden">{cards.slice(0, 4).map((card, index) => {
+          const assetPath = normalizeAssetPath(card.assetPath);
+          return <div key={`${card.cardKey || card.name}-${index}`} className="min-w-14 text-center">
+            {assetPath ? (
+              <Image src={assetPath} alt={`${t("Carta da leitura")}: ${card.name}`} width={72} height={116} className={`mx-auto h-20 w-14 rounded-md object-cover shadow-[0_10px_20px_rgba(60,42,24,0.16)] ${card.reversed ? "rotate-180" : ""}`} />
+            ) : (
+              <div className="mx-auto h-20 w-14 rounded-md bg-[#e7dcc9]" />
+            )}
+            <p className="mt-1 line-clamp-1 text-[0.62rem] font-semibold text-[#6f615a]">{card.name}</p>
+          </div>;
+        })}</div> : null}
+        <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#241b18] px-4 py-2 text-sm font-semibold text-[#fff7e8] transition">{locale === "en" ? "Open reading" : "Abrir leitura"}<ArrowRight size={14} /></span>
+      </button>
     </article>
   );
 }
