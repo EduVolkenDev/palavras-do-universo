@@ -97,9 +97,11 @@ export default function ProfessionalsMarketplacePage() {
         if (!response.ok || !data || !("professionals" in data)) {
           throw new Error((data && "error" in data && data.error) || "Não foi possível carregar o marketplace.");
         }
+        setError("");
         setProfessionals(data.professionals);
       })
       .catch((caught) => {
+        if (controller.signal.aborted) return;
         setError(caught instanceof Error ? caught.message : "Não foi possível carregar o marketplace.");
       })
       .finally(() => setLoading(false));
@@ -235,10 +237,10 @@ export default function ProfessionalsMarketplacePage() {
               {t("Marketplace de cuidado")}
             </p>
             <h1 className="brand-serif text-5xl font-semibold leading-[0.95] tracking-[-0.06em] text-[#fff7e8] sm:text-6xl">
-              {t("Conecte pessoas a profissionais que respeitam acesso, preço social e atendimento gratuito.")}
+              {t("Encontre profissionais para uma conversa com presença, ética e acesso claro.")}
             </h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-[#d6c9be]">
-              {t("Aqui, cada profissional publica sua presença, define sua faixa de acesso e recebe briefings privados. O sistema organiza descoberta, clareza de oferta e contato sem expor ninguém em público.")}
+              {t("Explore perfis, especialidades, idiomas e formas de atendimento. Quando fizer sentido, envie um briefing privado para começar a conversa com contexto.")}
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <a
@@ -390,11 +392,11 @@ export default function ProfessionalsMarketplacePage() {
                 {t("Profissionais disponíveis")}
               </p>
               <h2 className="brand-serif mt-2 text-3xl font-semibold text-[#fff7e8]">
-                {t("Descoberta pública com política de acesso explícita.")}
+                {t("Escolha com clareza antes de iniciar uma conversa.")}
               </h2>
             </div>
             <p className="max-w-xl text-sm leading-6 text-[#cfc4b9]">
-              {t("O catálogo abaixo lista perfis publicados e serviços com faixa de preço visível. Se quiser publicar o seu, a API de gestão já está pronta para ser ligada ao painel.")}
+              {t("Veja perfis publicados, formas de atendimento e faixas de acesso disponíveis. Se você atua como profissional, apresente seu trabalho por aqui.")}
             </p>
           </div>
 
@@ -603,7 +605,7 @@ export default function ProfessionalsMarketplacePage() {
               {selectedProfessional?.displayName || t("Enviar briefing")}
             </h2>
             <p className="mt-2 text-sm leading-6 text-[#cfc4b9]">
-              {t("O briefing entra no painel do profissional e o contato continua privado entre as partes.")}
+              {t("Seu pedido chega ao profissional de forma privada, com o contexto necessário para uma resposta cuidadosa.")}
             </p>
           </div>
 

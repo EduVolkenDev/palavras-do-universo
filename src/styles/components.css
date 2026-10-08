@@ -8429,10 +8429,6 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
     transition: none;
   }
 
-  .pdu-home::before,
-  .pdu-home::after,
-  .pdu-veil,
-  .pdu-hero-stars,
   .pdu-hero-side::before,
   .pdu-hero-side::after,
   .pdu-hero-mark::after,
@@ -10968,10 +10964,43 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
     contain: layout paint;
   }
 
+  /* Keep a quiet, static sky on compact screens after the motion budget is reduced. */
+  .pdu-home {
+    background:
+      radial-gradient(circle at 50% 22%, rgba(111, 70, 156, 0.28), transparent 20rem),
+      radial-gradient(circle at 12% 8%, rgba(91, 67, 151, 0.34), transparent 24rem),
+      radial-gradient(circle at 92% 28%, rgba(42, 105, 113, 0.2), transparent 22rem),
+      linear-gradient(180deg, #070711 0%, #111022 38%, #090910 100%);
+  }
+
   .pdu-home::before,
   .pdu-home::after,
   .pdu-veil,
-  .pdu-hero-stars,
+  .pdu-hero-stars {
+    display: block;
+  }
+
+  .pdu-home::before {
+    background:
+      radial-gradient(circle at 52% 12%, rgba(244, 213, 141, 0.18), rgba(167, 215, 197, 0.08) 34%, transparent 70%),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+      linear-gradient(rgba(255, 255, 255, 0.032) 1px, transparent 1px);
+    background-size: auto, 96px 96px, 96px 96px;
+  }
+
+  .pdu-home::after {
+    opacity: 0.1;
+    background-size: 140px 140px;
+  }
+
+  .pdu-veil {
+    opacity: 0.24;
+  }
+
+  .pdu-hero-stars {
+    opacity: 0.32;
+  }
+
   .pdu-hero-side::before,
   .pdu-hero-side::after,
   .pdu-hero-mark::after,

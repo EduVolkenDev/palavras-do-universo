@@ -76,7 +76,7 @@ export const PDU_ASSET_STORIES = {
   professionals: {
     eyebrow: "Cuidado com presença",
     title: "Quando a reflexão pede uma conversa humana.",
-    description: "O espaço dos profissionais precisa parecer acolhedor, ético e vivo — não um diretório genérico.",
+    description: "Encontre uma conversa humana com contexto, cuidado e clareza sobre cada forma de atendimento.",
     items: [
       { src: PDU_ASSETS.symbolic.consultation, alt: "Cena simbólica de consulta", label: "Encontro", title: "Encontrar a pessoa certa", text: "A escolha começa por linguagem, especialidade e disponibilidade claras." },
       { src: PDU_ASSETS.symbolic.feather, alt: "Pena rosa e violeta com símbolos", label: "Escuta", title: "Falar com delicadeza", text: "Um símbolo para conversas que precisam de espaço e cuidado." },
@@ -99,7 +99,7 @@ export const PDU_ASSET_STORIES = {
   professionalStudio: {
     eyebrow: "Estúdio profissional",
     title: "Construa uma presença que as pessoas consigam reconhecer.",
-    description: "O painel de edição também merece inspiração: cada campo preenchido deve aproximar o profissional da própria voz.",
+    description: "Apresente seu trabalho com uma linguagem que combine com você e ajude cada pessoa a escolher com mais segurança.",
     items: [
       { src: PDU_ASSETS.symbolic.dock, alt: "Dock simbólico azul", label: "Base", title: "Organizar o próprio espaço", text: "Um símbolo de estrutura para montar perfil, oferta e disponibilidade." },
       { src: PDU_ASSETS.symbolic.dreamFilter, alt: "Filtro dos sonhos cósmico", label: "Curadoria", title: "Escolher o que deixar passar", text: "A clareza do perfil também nasce de bons limites." },
