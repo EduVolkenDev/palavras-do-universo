@@ -3,21 +3,17 @@
 import {
   ArrowRight,
   BadgeCheck,
-  BookOpen,
   Bookmark,
   Check,
   CircleDollarSign,
-  ChevronDown,
   Compass,
-  Ear,
   ExternalLink,
   Feather,
-  Flower2,
   HandHeart,
   Heart,
   History,
-  Leaf,
   LifeBuoy,
+  LockKeyhole,
   Menu,
   MoonStar,
   Quote,
@@ -26,88 +22,39 @@ import {
   Sparkles,
   Star,
   Sun,
-  Users,
   X,
   type LucideIcon,
   UserRound,
 } from "lucide-react";
 import Image from "next/image";
-import { type CSSProperties, use, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { buildLoginPath } from "@/lib/auth/redirect";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import {
-  getPricingPlanPrice,
   pricingPlans,
   productCards,
 } from "@/lib/product/catalog";
-import { ProductCurrencySwitch } from "@/components/ProductCurrencySwitch";
-import { formatProductPrice } from "@/lib/product/pricing";
-import { useProductCurrency } from "@/lib/product/useProductCurrency";
 import type { DailyMessage } from "@/lib/daily/message";
 import {
   PRODUCT_DEFAULT_QUESTIONS,
   PRODUCT_THEMES,
 } from "@/lib/product/access";
 import {
-  getLocalActiveReading,
-  getLocalReadingDraft,
   getOrCreateLocalUserId,
   removeLocalImpactCommitments,
   removeLocalSavedMessages,
-  saveLocalActiveReading,
   saveLocalImpactCommitment,
-  saveLocalReadingDraft,
-  saveLocalReadingMessage,
-  type LocalActiveReading,
+  saveLocalMessage,
   type LocalImpactCommitment,
   updateLocalImpactCommitment,
 } from "@/lib/client/localUniverse";
-import { syncLocalUniverseToAccount } from "@/lib/client/syncLocalUniverse";
 import { usePduAtmosphere } from "@/lib/ui/usePduAtmosphere";
-import { usePduScrollRecovery } from "@/lib/ui/usePduScrollRecovery";
 import { usePushNotifications } from "@/lib/push/usePushNotifications";
 import { useI18n } from "@/components/I18nProvider";
-import {
-  appendMarketingAttribution,
-  normalizeMarketingAttribution,
-} from "@/lib/marketing/attribution";
-import {
-  localizeReadingProfileValue,
-  READING_PROFILE_BOUNDARIES,
-  READING_PROFILE_DESIRED_SHIFTS,
-  READING_PROFILE_FOCUS_AREAS,
-  READING_PROFILE_GUIDANCE_TONES,
-  READING_PROFILE_PHASES,
-} from "@/lib/i18n/reading-profile";
-import FeedbackDialog from "@/components/FeedbackDialog";
-import { normalizeLocale, type Locale } from "@/lib/i18n/config";
-import {
-  localizeDailyMessage,
-  localizeTarotCard,
-  translateOraclePosition,
-} from "@/lib/i18n/oracle";
+import { getCardEnglishName, translateOraclePosition } from "@/lib/i18n/oracle";
 import {
   getImpactAction,
-  IMPACT_ACTIONS,
   IMPACT_AREA_LABELS,
   getRecommendedImpactActions,
-  type ImpactAction,
 } from "@/lib/impact/actions";
-import { CARDS } from "@/lib/tarot/cards";
-import { getSpreadForProduct } from "@/lib/tarot/spreads";
-import { PDU_ASSETS } from "@/lib/pdu-assets";
-import { EduReadingHomeSection } from "@/components/EduReading";
-import VoucherCodeEntry from "@/components/vouchers/VoucherCodeEntry";
-import { LUME_NAME, LUME_QUESTION_EVENT } from "@/lib/lume/persona";
-import { LumePresence, requestLumeOpen } from "@/components/LumeGuide";
-import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
-import {
-  EMPTY_READING_PROFILE,
-  getProfileCompletion,
-  hasProfileSignal,
-  normalizeReadingProfile,
-  type ReadingProfile,
-} from "@/lib/personalization/reading-context";
 
 type ApiOk = {
   ok: true;
@@ -115,174 +62,20 @@ type ApiOk = {
   theme: string;
   question: string;
   mode: string;
-  spreadType: string;
-  spreadLabel: string;
   spread: {
     position: string;
     cardKey: string;
-    keyword?: string;
     name: string;
     reversed: boolean;
     meaning?: string;
-    coreMeaning?: string;
-    lifeQuestion?: string;
     assetPath: string;
   }[];
   interpretation: string;
 };
 
-type ReadingSpreadCard = ApiOk["spread"][number];
-type ReadingTextBlock = {
-  lines: string[];
-  title: string | null;
-};
-
-function formatReadingDate(value: string, locale: Locale) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-
-  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-}
-
-function ReadingHistoryNotice({
-  locale,
-  updatedAt,
-  compact = false,
-  onStartNew,
-}: {
-  locale: Locale;
-  updatedAt: string;
-  compact?: boolean;
-  onStartNew?: () => void;
-}) {
-  const isEnglish = locale === "en";
-  const dateLabel = formatReadingDate(updatedAt, locale);
-
-  if (compact) {
-    return (
-      <div className="pdu-reading-history-notice pdu-reading-history-notice--compact" role="status">
-        <History size={16} aria-hidden="true" />
-        <span>
-          <strong>{isEnglish ? "Previous reading" : "Tirada já lida"}</strong>
-          <small>
-            {dateLabel
-              ? isEnglish
-                ? `Reviewing the cards opened on ${dateLabel}.`
-                : `Revendo as cartas abertas em ${dateLabel}.`
-              : isEnglish
-                ? "Reviewing cards opened in an earlier session."
-                : "Revendo cartas abertas em uma sessão anterior."}
-          </small>
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <aside className="pdu-reading-history-notice" role="status" aria-live="polite">
-      <span className="pdu-reading-history-notice__icon" aria-hidden="true">
-        <History size={18} />
-      </span>
-      <div className="pdu-reading-history-notice__copy">
-        <p>{isEnglish ? "Reading history" : "Histórico de leitura"}</p>
-        <strong>{isEnglish ? "This is a previous reading" : "Esta é uma tirada já lida"}</strong>
-        <span>
-          {isEnglish
-            ? "These cards were opened earlier. You are reviewing this reading, not starting a new one."
-            : "Estas cartas foram abertas antes. Você está revendo esta leitura, não iniciando uma nova."}
-        </span>
-        {dateLabel ? (
-          <small>
-            {isEnglish ? `Opened on ${dateLabel}.` : `Aberta em ${dateLabel}.`}
-          </small>
-        ) : null}
-      </div>
-      {onStartNew ? (
-        <button type="button" onClick={onStartNew} className="pdu-reading-history-notice__action">
-          {isEnglish ? "Start a new reading" : "Começar nova leitura"}
-          <ArrowRight size={14} aria-hidden="true" />
-        </button>
-      ) : null}
-    </aside>
-  );
-}
-
-const IMPACT_ACTION_VISUALS: Record<
-  string,
-  {
-    image: string;
-    icon: LucideIcon;
-    accent: string;
-    glow: string;
-  }
-> = {
-  mensagem_de_cuidado: {
-    image: PDU_ASSETS.impact.careMessage,
-    icon: Heart,
-    accent: "#ff5fd7",
-    glow: "rgba(255, 95, 215, 0.48)",
-  },
-  cuidar_do_espaco_comum: {
-    image: PDU_ASSETS.impact.sharedSpace,
-    icon: Users,
-    accent: "#38ead7",
-    glow: "rgba(56, 234, 215, 0.44)",
-  },
-  reduzir_desperdicio: {
-    image: PDU_ASSETS.impact.reduceWaste,
-    icon: Leaf,
-    accent: "#f2a34d",
-    glow: "rgba(242, 163, 77, 0.5)",
-  },
-  escutar_com_presenca: {
-    image: PDU_ASSETS.impact.listenPresence,
-    icon: Ear,
-    accent: "#f255de",
-    glow: "rgba(242, 85, 222, 0.44)",
-  },
-  ajuda_com_habilidade: {
-    image: PDU_ASSETS.impact.shareSkill,
-    icon: BookOpen,
-    accent: "#45bfff",
-    glow: "rgba(69, 191, 255, 0.5)",
-  },
-  resolver_pendencia: {
-    image: PDU_ASSETS.impact.resolvePending,
-    icon: Flower2,
-    accent: "#ff4aa5",
-    glow: "rgba(255, 74, 165, 0.5)",
-  },
-};
-
-const IMPACT_ACTION_DISPLAY_ORDER = [
-  "mensagem_de_cuidado",
-  "cuidar_do_espaco_comum",
-  "reduzir_desperdicio",
-  "escutar_com_presenca",
-  "ajuda_com_habilidade",
-  "resolver_pendencia",
-] as const;
-
-const IMPACT_ACTION_CARD_ORDER = IMPACT_ACTION_DISPLAY_ORDER.map((key) =>
-  IMPACT_ACTIONS.find((action) => action.key === key)
-).filter((action): action is ImpactAction => Boolean(action));
-
-const DEFAULT_IMPACT_ACTION_VISUAL = {
-  image: PDU_ASSETS.symbolic.hand,
-  icon: Sparkles,
-  accent: "#f4d58d",
-  glow: "rgba(244, 213, 141, 0.42)",
-};
-
 type ApiPaywall = {
   error: string;
   paywall: true;
-  kind: "free_limit" | "auth" | "access";
-  productKey?: string;
 };
 
 type ApiRepeat = {
@@ -297,13 +90,17 @@ type ApiError = {
   error: string;
 };
 
-type HeroMarkCandidate = {
-  assetPath: string;
-  mobileAssetPath?: string;
-};
-
 const READING_PORTAL_MINIMUM_MS = 1200;
-const READING_REQUEST_TIMEOUT_MS = 45_000;
+
+const glossyIcons = {
+  book: "/icons/pdu/glossy/book.webp",
+  bookmark: "/icons/pdu/glossy/bookmark.webp",
+  heart: "/icons/pdu/glossy/heart.webp",
+  meditation: "/icons/pdu/glossy/meditation.webp",
+  moon: "/icons/pdu/glossy/moon.webp",
+  shield: "/icons/pdu/glossy/shield.webp",
+  sprout: "/icons/pdu/glossy/sprout.webp",
+} as const;
 
 const themeOptions = [
   { value: "love", label: "Amor", icon: Heart },
@@ -313,46 +110,26 @@ const themeOptions = [
   { value: "spirit", label: "Espiritual", icon: MoonStar },
 ];
 
-const readingMoodOptions = [
-  { value: "career", label: "Com energia para agir", icon: Sparkles },
-  { value: "spirit", label: "Com o ânimo baixo", icon: MoonStar },
-] as const;
-
-const quickStartOptions = [
+const journeySteps = [
   {
-    label: "Ler cartas",
-    text: "Faça uma pergunta e abra uma leitura de 3 cartas.",
-    href: "#leitura",
-    assetPath: PDU_ASSETS.productIcons.threeCardPath,
+    label: "1. Mensagem",
+    text: "Grátis. Abre o clima do dia com uma orientação curta.",
+    icon: Sparkles,
+    assetPath: glossyIcons.moon,
   },
   {
-    label: "Ver meu mapa",
-    text: "Entenda seu céu de nascimento no seu ritmo.",
-    href: "/astrologia/mapa",
-    assetPath: PDU_ASSETS.astrology.mapHero,
+    label: "2. Leitura",
+    text: "Você faz uma pergunta e recebe 3 cartas com direção prática.",
+    icon: Compass,
+    assetPath: glossyIcons.book,
   },
   {
-    label: "Meus acessos",
-    text: "Veja o que já está liberado no seu Universo.",
-    href: "/meu-universo#acessos",
-    assetPath: PDU_ASSETS.surfaces.access,
+    label: "3. Meu Universo",
+    text: "Salva padrões, cartas e decisões para acompanhar sua jornada.",
+    icon: Bookmark,
+    assetPath: glossyIcons.bookmark,
   },
-] as const;
-
-const heroArtifacts = [
-  {
-    label: "1. Mensagem do dia",
-    assetPath: PDU_ASSETS.homepage.dailyReadingBookCards,
-  },
-  {
-    label: "2. Carta do dia",
-    assetPath: PDU_ASSETS.productIcons.cardOfTheDay,
-  },
-  {
-    label: "4. Ritual",
-    assetPath: PDU_ASSETS.homepage.completedActionsChecklist,
-  },
-] as const;
+];
 
 const portalIntentOptions = [
   {
@@ -364,7 +141,7 @@ const portalIntentOptions = [
     from: "Ruído: tentar explicar tudo antes de sentir.",
     to: "Clareza: nomear o primeiro passo sem se violentar.",
     question: "O que eu preciso atravessar com mais presença agora?",
-    assetPath: PDU_ASSETS.editorial.portal,
+    assetPath: "/assets/portal.webp",
   },
   {
     id: "abrir",
@@ -375,7 +152,7 @@ const portalIntentOptions = [
     from: "Ruído: procurar garantia onde existe vínculo vivo.",
     to: "Clareza: ouvir o que o sentimento está tentando ensinar.",
     question: "Que chave emocional eu ainda não estou querendo enxergar?",
-    assetPath: PDU_ASSETS.editorial.key,
+    assetPath: "/assets/key.webp",
   },
   {
     id: "desembaçar",
@@ -386,7 +163,7 @@ const portalIntentOptions = [
     from: "Ruído: confundir urgência com chamado.",
     to: "Clareza: separar desejo, medo e movimento possível.",
     question: "Qual direção fica mais honesta quando eu retiro a pressa?",
-    assetPath: PDU_ASSETS.editorial.mirror,
+    assetPath: "/assets/mirror.webp",
   },
   {
     id: "firmar",
@@ -397,94 +174,20 @@ const portalIntentOptions = [
     from: "Ruído: esperar o momento perfeito para agir.",
     to: "Clareza: escolher uma atitude pequena, limpa e possível.",
     question: "Que gesto concreto sustenta melhor a minha energia hoje?",
-    assetPath: PDU_ASSETS.editorial.crystal,
+    assetPath: "/assets/CRYSTAL.webp",
   },
 ];
 
-const THEME_INTENT_ID: Record<string, string> = {
-  spirit: "atravessar",
-  love: "abrir",
-  career: "desembaçar",
-  money: "firmar",
-};
-
-const PT_POSITION_LABELS: Record<string, string> = {
-  SITUATION: "SITUAÇÃO",
-  OBSTACLE: "OBSTÁCULO",
-  DIRECTION: "DIREÇÃO",
-};
-
-const questionExamples: Record<Locale, readonly string[]> = {
-  "pt-BR": [
-    "O que eu preciso enxergar sobre esta decisão?",
-    "Por que continuo voltando a esse assunto?",
-    "Como posso atravessar melhor esta fase?",
-  ],
-  en: [
-    "What do I need to see about this decision?",
-    "Why do I keep returning to this subject?",
-    "How can I move through this phase better?",
-  ],
-};
+const ritualPrompts = [
+  "Respire antes de perguntar",
+  "Escolha um tema com honestidade",
+  "Leia como espelho, não sentença",
+];
 
 const readingOutcomeSteps = [
   { label: "Cartas", text: "Observe o símbolo antes de procurar resposta." },
   { label: "Direção", text: "Leia o que pede atenção neste momento." },
   { label: "Gesto", text: "Escolha uma atitude possível para as próximas 24h." },
-] as const;
-
-const ptCardInsightTemplates = [
-  [
-    "{card} enquadra {topic}{theme}: {keyword} aparece como primeiro sinal para ler antes de decidir.",
-    "Na situação, {card} traz {keyword} para {topic}{theme}; comece separando fato, desejo e medo.",
-    "{card} mostra o terreno inicial de {topic}{theme}: observe onde {keyword} já está organizando a cena.",
-    "A primeira camada passa por {card}; leia esse tema como contexto vivo, não como sentença.",
-  ],
-  [
-    "{card} mostra a tensão dentro de {topic}{theme}: {keyword} virou ponto de pressão e pede menos automático.",
-    "No obstáculo, {card} revela onde {topic}{theme} pode estar sendo atravessado por defesa, excesso ou pressa.",
-    "{card} mostra onde {keyword} precisa ser visto antes que a escolha saia no impulso.",
-    "A sombra aparece em {card}: faça uma pausa para que {keyword} não vire repetição.",
-  ],
-  [
-    "{card} leva a resposta para ação: use {keyword} para fazer uma escolha possível agora.",
-    "Como direção, {card} pede que {topic}{theme} vire um gesto concreto guiado por {keyword}.",
-    "{card} aponta o movimento mais limpo: transforme esse tema em uma decisão pequena e visível.",
-    "A saída aberta por {card} não exige certeza total; pede um passo que confirme {keyword}.",
-  ],
-  [
-    "Nesta posição, {card} acrescenta {keyword} ao mapa de {topic}{theme}; leia a relação com o conjunto antes de concluir.",
-    "{card} amplia {topic}{theme} por meio de {keyword}; esta camada ganha sentido no diálogo com as outras cartas.",
-    "A posição de {card} revela uma nuance de {keyword} que reorganiza o mapa sem virar sentença isolada.",
-    "Integre {keyword} ao restante da tirada: {card} é uma parte da resposta, não a resposta inteira.",
-  ],
-];
-
-const enCardInsightTemplates = [
-  [
-    "{card} frames {topic}{theme}: {keyword} appears as the first signal to read before deciding.",
-    "In the situation, {card} brings {keyword} into {topic}{theme}; begin by separating fact, desire, and fear.",
-    "{card} shows the starting ground of {topic}{theme}: notice where {keyword} is already shaping the scene.",
-    "The first layer moves through {card}; read this theme as living context, not a verdict.",
-  ],
-  [
-    "{card} shows the tension inside {topic}{theme}: {keyword} has become pressure and asks for less automatic response.",
-    "As the obstacle, {card} reveals where {topic}{theme} may be crossed by defense, excess, or haste.",
-    "{card} shows where {keyword} needs to be seen before the choice comes from impulse.",
-    "The shadow appears through {card}: pause so {keyword} does not become repetition.",
-  ],
-  [
-    "{card} turns the answer toward action: use {keyword} to make one possible choice now.",
-    "As direction, {card} asks {topic}{theme} to become one concrete gesture guided by {keyword}.",
-    "{card} points to the cleanest movement: turn this theme into a small, visible decision.",
-    "The way opened by {card} does not demand total certainty; it asks for one step that confirms {keyword}.",
-  ],
-  [
-    "In this position, {card} adds {keyword} to the map of {topic}{theme}; read its relationship with the whole before concluding.",
-    "{card} expands {topic}{theme} through {keyword}; this layer gains meaning in dialogue with the other cards.",
-    "The position of {card} reveals a nuance of {keyword} that reorganizes the map without becoming an isolated verdict.",
-    "Integrate {keyword} with the rest of the spread: {card} is part of the answer, not the entire answer.",
-  ],
 ];
 
 const experiencePillars = [
@@ -499,43 +202,16 @@ const experienceAccessPaths = [
     label: "Comece grátis",
     text: "Mensagem e Carta do Dia para criar o hábito sem compromisso.",
     icon: Sparkles,
-    assetPath: PDU_ASSETS.products.startFreeSpreadIcon,
-    href: "#leitura",
   },
   {
     label: "Resolva uma questão",
     text: "Leituras avulsas para amor, decisões ou clareza urgente.",
     icon: Compass,
-    assetPath: PDU_ASSETS.products.oneQuestionSpreadIcon,
-    href: "/tiradas",
   },
   {
     label: "Acompanhe sua jornada",
     text: "Círculo para histórico, padrões e experiências contínuas.",
     icon: History,
-    assetPath: PDU_ASSETS.products.journeyCircleSpreadIcon,
-    href: "/meu-universo",
-  },
-];
-
-const homeSpreadShowcaseCards = [
-  {
-    title: "O Diamante",
-    label: "Clareza prismática",
-    text: "Para quando a pergunta tem camadas e precisa de mais ângulo antes da resposta.",
-    href: "/tiradas/diamante",
-  },
-  {
-    title: "O Espelho",
-    label: "Relações e projeções",
-    text: "Para olhar vínculos com maturidade, limite e menos ansiedade sobre o outro.",
-    href: "/tiradas/o-espelho",
-  },
-  {
-    title: "Cruz Celta",
-    label: "Mapa amplo",
-    text: "Para fases complexas, decisões maiores e perguntas que pedem contexto inteiro.",
-    href: "/tiradas/cruz-celta",
   },
 ];
 
@@ -551,10 +227,10 @@ const atmosphereWords = [
 ];
 
 const floatingSymbols = [
-  { label: "Mensagens salvas", assetPath: PDU_ASSETS.homepage.savedMessagesBookmark },
-  { label: "Ciclos", assetPath: PDU_ASSETS.productIcons.weekEnergy },
-  { label: "Vínculos", assetPath: PDU_ASSETS.productIcons.loveSignals },
-  { label: "Ritual", assetPath: PDU_ASSETS.homepage.completedActionsChecklist },
+  { label: "lua", icon: MoonStar },
+  { label: "estrela", icon: Sparkles },
+  { label: "coração", icon: Heart },
+  { label: "bússola", icon: Compass },
 ];
 
 const universeFeatureTokens = [
@@ -566,31 +242,23 @@ const universeFeatureTokens = [
   "Padrões recorrentes",
 ];
 
-type PublishedTestimonial = {
-  id: string;
-  name: string;
-  location: string;
-  stars: number;
-  text: string;
-};
+const productActionClass =
+  "pdu-product-action mt-6 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold";
 
-const testimonials: PublishedTestimonial[] = [
+const testimonials = [
   {
-    id: "editorial-camila",
     name: "Camila R.",
     location: "São Paulo, SP",
     stars: 5,
     text: "Eu esperava algo genérico, mas a leitura foi cirúrgica. Nomeou exatamente o que eu não estava conseguindo verbalizar sobre minha situação no trabalho. Fiz a Clareza Urgente e tomei uma decisão que há meses eu adiava.",
   },
   {
-    id: "editorial-thiago",
     name: "Thiago M.",
     location: "Belo Horizonte, MG",
     stars: 5,
     text: "Nunca fui de tarot, mas o tom aqui é diferente — sem fatalismo, sem promessa vazia. É mais como uma conversa honesta com você mesmo mediada por símbolos. Já uso a mensagem diária todo dia antes de começar o trabalho.",
   },
   {
-    id: "editorial-fernanda",
     name: "Fernanda L.",
     location: "Florianópolis, SC",
     stars: 5,
@@ -607,52 +275,53 @@ const onboardingOptions: {
   icon: LucideIcon;
 }[] = [
   {
-    id: "em-movimento",
-    label: "Com energia para agir",
-    description: "Quero transformar o que estou sentindo em um próximo passo possível.",
-    signal: "movimento",
-    assetPath: PDU_ASSETS.productIcons.threeCardPath,
-    icon: Sparkles,
+    id: "atravessando",
+    label: "Atravessando uma transição",
+    description: "Algo mudou por dentro ou por fora e pede uma direção mais limpa.",
+    signal: "mudança",
+    assetPath: glossyIcons.moon,
+    icon: Compass,
   },
   {
-    id: "precisando-de-cuidado",
-    label: "Com o ânimo baixo",
-    description: "Quero olhar para o momento com menos pressão e mais cuidado.",
-    signal: "cuidado",
-    assetPath: PDU_ASSETS.symbolic.meditation,
-    icon: MoonStar,
-  },
-];
-
-const marketplaceSignals = [
-  {
-    title: "Perfil público",
-    text: "Bio, especialidades, idiomas e presença reconhecível.",
-    icon: UserRound,
+    id: "decidindo",
+    label: "No meio de uma decisão difícil",
+    description: "Existe um caminho pedindo escolha, limite ou coragem prática.",
+    signal: "decisão",
+    assetPath: glossyIcons.shield,
+    icon: ShieldCheck,
   },
   {
-    title: "Preço social",
-    text: "Cada profissional decide quando abrir uma faixa acessível.",
-    icon: HandHeart,
-  },
-  {
-    title: "Atendimento gratuito",
-    text: "Vagas solidárias e atendimento aberto por escolha do profissional.",
+    id: "amor",
+    label: "Vivendo uma questão afetiva",
+    description: "Um vínculo, desejo ou expectativa precisa ser olhado com presença.",
+    signal: "vínculo",
+    assetPath: glossyIcons.heart,
     icon: Heart,
   },
   {
-    title: "Briefing privado",
-    text: "A conversa começa com contexto e respeito, sem exposição pública.",
-    icon: ShieldCheck,
+    id: "criando",
+    label: "Criando algo novo",
+    description: "Uma ideia, fase ou projeto quer ganhar forma sem perder alma.",
+    signal: "criação",
+    assetPath: glossyIcons.sprout,
+    icon: Sparkles,
   },
-] as const;
+  {
+    id: "descansando",
+    label: "Buscando paz interior",
+    description: "O corpo e a mente pedem silêncio, integração e menos ruído.",
+    signal: "recolhimento",
+    assetPath: glossyIcons.meditation,
+    icon: MoonStar,
+  },
+];
 
 const fallbackSpread: DailyMessage["spread"] = [
   {
     position: "SITUAÇÃO",
     name: "A Lua",
     reversed: false,
-    assetPath: "/assets/major-18-the-moon.webp",
+    assetPath: "/tarot/cards/major-18-the-moon.webp",
     keyword: "sensibilidade",
     meaning: "Nem tudo que assusta é ameaça. Observe antes de concluir.",
   },
@@ -660,7 +329,7 @@ const fallbackSpread: DailyMessage["spread"] = [
     position: "OBSTÁCULO",
     name: "Sete de Paus",
     reversed: false,
-    assetPath: "/assets/wands-seven.webp",
+    assetPath: "/tarot/cards/wands-seven.webp",
     keyword: "posição",
     meaning: "Defenda o que importa sem se explicar para todos.",
   },
@@ -668,7 +337,7 @@ const fallbackSpread: DailyMessage["spread"] = [
     position: "DIREÇÃO",
     name: "A Estrela",
     reversed: false,
-    assetPath: "/assets/major-17-the-star.webp",
+    assetPath: "/tarot/cards/major-17-the-star.webp",
     keyword: "esperança",
     meaning: "Há uma luz discreta indicando caminho.",
   },
@@ -690,14 +359,49 @@ const fallbackDailyMessage: DailyMessage = {
   spread: fallbackSpread,
 };
 
-const readingExperienceVisuals: Record<string, string> = {
-  tirada_diamante: PDU_ASSETS.spreads.diamondMobile,
-  passaro_voando: PDU_ASSETS.spreads.flyingBirdMobile,
-  a_chave: PDU_ASSETS.spreads.keyMobile,
-  o_espelho: PDU_ASSETS.spreads.mirrorMobile,
-  cruz_celta: PDU_ASSETS.spreads.celticCrossMobile,
-  relacionar: PDU_ASSETS.spreads.relationshipMobile,
-  o_paradoxo: PDU_ASSETS.spreads.paradoxMobile,
+const productIconVisuals: Record<
+  string,
+  {
+    assetPath: string;
+    fallbackIcon: LucideIcon;
+    tone: "gold" | "mint" | "blue" | "rose";
+  }
+> = {
+  "Mensagem do Dia": {
+    assetPath: "/icons/pdu/mensagem-do-dia.webp",
+    fallbackIcon: Sparkles,
+    tone: "gold",
+  },
+  "Carta do Dia": {
+    assetPath: "/icons/pdu/carta-do-dia.webp",
+    fallbackIcon: MoonStar,
+    tone: "blue",
+  },
+  "Clareza Urgente": {
+    assetPath: "/icons/pdu/clareza-urgente.webp",
+    fallbackIcon: LifeBuoy,
+    tone: "rose",
+  },
+  "Caminho das 3 Cartas": {
+    assetPath: "/icons/pdu/caminho-3-cartas.webp",
+    fallbackIcon: Compass,
+    tone: "mint",
+  },
+  "Sinais do Amor": {
+    assetPath: "/icons/pdu/sinais-do-amor.webp",
+    fallbackIcon: Heart,
+    tone: "rose",
+  },
+  "Energia da Semana": {
+    assetPath: "/icons/pdu/energia-da-semana.webp",
+    fallbackIcon: Sun,
+    tone: "gold",
+  },
+  "Mapa do Momento": {
+    assetPath: "/icons/pdu/mapa-do-momento.webp",
+    fallbackIcon: UserRound,
+    tone: "blue",
+  },
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -717,28 +421,9 @@ function getReadingShareText(reading: string) {
   return reading.split("\n").filter(Boolean).slice(0, 4).join("\n");
 }
 
-function shouldUseInstantScroll() {
-  if (typeof window === "undefined") return true;
-
-  return (
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-    window.matchMedia("(max-width: 768px)").matches ||
-    window.matchMedia("(pointer: coarse)").matches
-  );
+function scrollToId(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
-
-function scrollToId(id: string, instant = false) {
-  document
-    .getElementById(id)
-    ?.scrollIntoView({
-      behavior: instant || shouldUseInstantScroll() ? "auto" : "smooth",
-    });
-}
-
-const fallbackHeroMark =
-  PDU_ASSETS.brand.heroMarkRotation[
-    PDU_ASSETS.brand.heroMarkRotation.length - 1
-  ];
 
 function isUuid(value: string | null) {
   return Boolean(
@@ -749,129 +434,37 @@ function isUuid(value: string | null) {
   );
 }
 
-const READING_SECTION_HEADING_RE =
-  /^(?:\d+[).]\s*)?(DIRECT ANSWER(?: TO THE QUESTION)?|RESPOSTA DIRETA(?: À PERGUNTA| A PERGUNTA)?|INITIAL LISTENING|ESCUTA INICIAL|MANTRA|SPREAD MAP|MAP OF THE SPREAD|MAPA DA TIRADA|THE THREE THREADS|TR[IÍ]ADE|CARDS|CARTAS|READING BY POSITION|LEITURA POR POSIÇÃO|ACTIONS|AÇÕES|ACOES|CLOSING|FECHAMENTO|INTEGRATION(?: RITUAL)?|INTEGRAÇÃO|RITUAL DE INTEGRAÇÃO|DIRECT SUMMARY|RESUMO DIRETO|SUMMARY|RESUMO|GANCHO|NEXT QUESTION|CONSELHO|ADVICE|READING IN THE SELECTED LANGUAGE|LEITURA NO IDIOMA SELECIONADO)\b\s*[:—-]?\s*(.*)$/i;
-
-function normalizeReadingSectionTitle(title: string) {
-  return title
-    .replace(/DIRECT ANSWER TO THE QUESTION/i, "DIRECT ANSWER")
-    .replace(/RESPOSTA DIRETA (À|A) PERGUNTA/i, "RESPOSTA DIRETA")
-    .replace(/MAP OF THE SPREAD/i, "SPREAD MAP")
-    .replace(/THE THREE THREADS/i, "CARDS")
-    .replace(/TR[IÍ]ADE/i, "CARTAS")
-    .replace(/READING BY POSITION/i, "CARDS")
-    .replace(/LEITURA POR POSIÇÃO/i, "CARTAS")
-    .replace(/INTEGRATION RITUAL/i, "INTEGRATION")
-    .replace(/RITUAL DE INTEGRAÇÃO/i, "INTEGRAÇÃO")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function cleanReadingLine(line: string) {
-  return line
-    .trim()
-    .replace(/^#{1,6}\s*/g, "")
-    .replace(/^\s*[-*_]{3,}\s*$/g, "")
-    .replace(/\*\*([^*]+)\*\*/g, "$1")
-    .replace(/\*([^*]+)\*/g, "$1")
-    .replace(/^>\s?/g, "")
-    .trim();
-}
-
-function splitReadingIntoBlocks(reading: string): ReadingTextBlock[] {
+function splitReadingIntoBlocks(reading: string) {
   const clean = reading
     .split("\n")
-    .map(cleanReadingLine)
+    .map((line) =>
+      line
+        .trim()
+        .replace(/^#{1,6}\s*/g, "")
+        .replace(/^\s*[-*_]{3,}\s*$/g, "")
+        .replace(/\*\*([^*]+)\*\*/g, "$1")
+        .replace(/\*([^*]+)\*/g, "$1")
+        .replace(/^>\s?/g, "")
+        .trim()
+    )
     .filter((line) => line && !/^[^\p{L}\p{N}]*palavras do universo$/iu.test(line))
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   if (!clean) return [];
 
-  const blocks: ReadingTextBlock[] = [];
-  let current: ReadingTextBlock = { lines: [], title: null };
+  const blocks = clean
+    .split(
+      /\n(?=(?:\d\)\s|DIRECT ANSWER|RESPOSTA DIRETA|INITIAL LISTENING|THE THREE THREADS|READING BY POSITION|ACTIONS|INTEGRATION|MANTRA|TR[IÍ]ADE|LEITURA|AÇÕES|ACOES|RESUMO|GANCHO))/i
+    )
+    .map((block) => block.trim())
+    .filter(Boolean);
 
-  const pushCurrent = () => {
-    if (current.title || current.lines.length) {
-      blocks.push({
-        lines: current.lines.filter(Boolean),
-        title: current.title,
-      });
-    }
-  };
-
-  clean.split("\n").forEach((line) => {
-    const normalizedLine = line.trim();
-    const heading = normalizedLine.match(READING_SECTION_HEADING_RE);
-    const isClosingDetail =
-      Boolean(heading?.[2]?.trim()) &&
-      /^(MANTRA|NEXT QUESTION)$/i.test(heading?.[1] ?? "") &&
-      /^(CLOSING|FECHAMENTO)$/i.test(current.title ?? "");
-
-    if (heading && !isClosingDetail) {
-      pushCurrent();
-      const trailing = heading[2]?.trim();
-      current = {
-        lines: trailing ? [trailing] : [],
-        title: normalizeReadingSectionTitle(heading[1]),
-      };
-      return;
-    }
-
-    current.lines.push(normalizedLine);
-  });
-
-  pushCurrent();
-
-  return blocks.length ? blocks : [{ lines: clean.split("\n"), title: null }];
+  return blocks.length ? blocks : [clean];
 }
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function stableTextHash(value: string) {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-async function fetchJsonWithTimeout(
-  input: RequestInfo | URL,
-  init: RequestInit,
-  timeoutMs: number
-) {
-  const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(input, {
-      ...init,
-      signal: controller.signal,
-    });
-    const text = await response.text();
-    let data: unknown = null;
-
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { error: "Resposta inválida do servidor" };
-    }
-
-    return { response, data };
-  } finally {
-    window.clearTimeout(timer);
-  }
-}
-
-function fillTextTemplate(template: string, values: Record<string, string>) {
-  return Object.entries(values).reduce(
-    (text, [key, value]) => text.replaceAll(`{${key}}`, value),
-    template
-  );
 }
 
 function firstMeaningfulLine(block: string) {
@@ -881,160 +474,24 @@ function firstMeaningfulLine(block: string) {
     .find(
       (line) =>
         line &&
-        !/^\d+[).]\s/.test(line) &&
-        !/^(MANTRA|TR[IÍ]ADE|CARTAS|CARDS|MAPA DA TIRADA|SPREAD MAP|FECHAMENTO|CLOSING|AÇÕES|ACOES|ACTIONS|INTEGRATION|INTEGRAÇÃO)$/i.test(line)
+        !/^\d\)\s/.test(line) &&
+        !/^(MANTRA|TR[IÍ]ADE|AÇÕES|ACOES|ACTIONS|INTEGRATION|INTEGRAÇÃO)$/i.test(
+          line
+        )
     );
 }
 
 function getReadingMantra(reading: string, fallback: string) {
-  const inline = reading.match(
-    /(?:^|\n)\s*(?:[-•]\s*)?Mantra\s*:\s*([^\n]+)/i
-  );
-  if (inline?.[1]?.trim()) {
-    return inline[1].trim().replace(/^[-•]\s*/, "") || fallback;
-  }
-
   const match = reading.match(
-    /(?:^|\n)\s*(?:\d+[).]\s*)?MANTRA\s*\n+([\s\S]*?)(?=\n\s*(?:\d+[).]\s*)?(?:TR[IÍ]ADE|THE THREE THREADS|CARTAS|CARDS|LEITURA|READING BY POSITION|AÇÕES|ACTIONS|FECHAMENTO|CLOSING|INTEGRAÇÃO|INTEGRATION)\b|$)/i
+    /(?:^|\n)\s*(?:\d\)\s*)?MANTRA\s*\n+([\s\S]*?)(?=\n\s*(?:\d\)\s*)?(?:TR[IÍ]ADE|THE THREE THREADS|LEITURA|READING BY POSITION|AÇÕES|ACTIONS|INTEGRAÇÃO|INTEGRATION)\b|$)/i
   );
   const line = match ? firstMeaningfulLine(match[1]) : "";
   return line?.replace(/^[-•]\s*/, "") || fallback;
 }
 
-function localizeReadingPosition(position: string, locale: Locale) {
-  if (locale === "en") {
-    return translateOraclePosition(position, locale);
-  }
-
-  return PT_POSITION_LABELS[position.toUpperCase()] ?? position;
-}
-
-function localizeReadingSpreadCard(
-  card: ReadingSpreadCard,
-  locale: Locale
-): ReadingSpreadCard {
-  const sourceCard = CARDS.find(
-    (item) => item.key === card.cardKey || item.name === card.name
-  );
-  const localizedCard = sourceCard ? localizeTarotCard(sourceCard, locale) : null;
-  const meaning = localizedCard
-    ? card.reversed
-      ? localizedCard.reversed
-      : localizedCard.upright
-    : card.meaning;
-
-  return {
-    ...card,
-    position: localizeReadingPosition(card.position, locale),
-    name: localizedCard?.name ?? card.name,
-    keyword: localizedCard?.keywords[0] ?? card.keyword,
-    meaning,
-    coreMeaning: localizedCard?.guide.core ?? card.coreMeaning,
-    lifeQuestion: localizedCard?.guide.question ?? card.lifeQuestion,
-    assetPath: localizedCard?.assetPath ?? card.assetPath,
-  };
-}
-
-function normalizeReadingSpreadCards(value: unknown): ApiOk["spread"] {
-  if (!Array.isArray(value)) return [];
-
-  return value.flatMap((item) => {
-    if (!isRecord(item)) return [];
-
-    const cardKey = typeof item.cardKey === "string" ? item.cardKey : "";
-    const name = typeof item.name === "string" ? item.name : "";
-    const sourceCard = CARDS.find(
-      (card) => card.key === cardKey || card.name === name
-    );
-    const position = typeof item.position === "string" ? item.position : "";
-    const assetPath =
-      sourceCard?.assetPath ??
-      (typeof item.assetPath === "string" ? item.assetPath : "");
-
-    if (!position || !name || !assetPath) return [];
-
-    return [
-      {
-        position,
-        cardKey: sourceCard?.key ?? cardKey,
-        keyword:
-          typeof item.keyword === "string"
-            ? item.keyword
-            : sourceCard?.keywords[0] ?? "",
-        name,
-        reversed: item.reversed === true,
-        meaning:
-          typeof item.meaning === "string"
-            ? item.meaning
-            : sourceCard?.upright ?? "",
-        coreMeaning:
-          sourceCard?.guide.core ??
-          (typeof item.coreMeaning === "string" ? item.coreMeaning : undefined),
-        lifeQuestion:
-          sourceCard?.guide.question ??
-          (typeof item.lifeQuestion === "string" ? item.lifeQuestion : undefined),
-        assetPath,
-      },
-    ];
-  });
-}
-
-function buildLocalizedReadingText(params: {
-  cards: ReadingSpreadCard[];
-  locale: Locale;
-  dailyOpening: DailyMessage;
-}) {
-  const isEnglish = params.locale === "en";
-  const reversedSuffix = isEnglish ? " (reversed)" : " reversa";
-  const title = isEnglish
-    ? "READING IN THE SELECTED LANGUAGE"
-    : "LEITURA NO IDIOMA SELECIONADO";
-  const direct = isEnglish
-    ? `Read this answer through the question you opened and the ${params.cards.length} cards now visible.`
-    : `Leia esta resposta a partir da pergunta que você abriu e das ${params.cards.length} cartas agora visíveis.`;
-  const advice = isEnglish
-    ? "Choose one small, visible action today before trying to solve the whole path."
-    : "Escolha uma ação pequena e visível hoje antes de tentar resolver todo o caminho.";
-  const cardLines = params.cards.map((card) => {
-    const name = `${card.name}${card.reversed ? reversedSuffix : ""}`;
-    const guide = card.coreMeaning
-      ? isEnglish
-        ? `Represents: ${card.coreMeaning}`
-        : `Representa: ${card.coreMeaning}`
-      : "";
-    const application = card.meaning
-      ? isEnglish
-        ? `In this question: ${card.meaning}`
-        : `Nesta pergunta: ${card.meaning}`
-      : "";
-    return `- ${card.position}: ${name} — ${[guide, application]
-      .filter(Boolean)
-      .join(" ")}`;
-  });
-
-  return [
-    title,
-    "",
-    isEnglish ? "1) DIRECT ANSWER" : "1) RESPOSTA DIRETA",
-    direct,
-    "",
-    isEnglish ? "2) CARDS" : "2) CARTAS",
-    ...cardLines,
-    "",
-    isEnglish ? "3) ADVICE" : "3) CONSELHO",
-    advice,
-    "",
-    isEnglish ? "4) MANTRA" : "4) MANTRA",
-    params.dailyOpening.affirmation ||
-      (isEnglish
-        ? "I can listen with honesty and move with calm."
-        : "Eu posso me escutar com honestidade e agir com calma."),
-  ].join("\n");
-}
-
 function getReadingAction(reading: string, fallback: string) {
   const match = reading.match(
-    /(?:^|\n)\s*(?:\d+[).]\s*)?(?:AÇÕES|ACOES|ACTIONS)\s*\n+([\s\S]*?)(?=\n\s*(?:\d+[).]\s*)?(?:FECHAMENTO|CLOSING|INTEGRAÇÃO|INTEGRATION|RITUAL|RESUMO|SUMMARY)\b|$)/i
+    /(?:^|\n)\s*(?:\d\)\s*)?(?:AÇÕES|ACOES|ACTIONS)\s*\n+([\s\S]*?)(?=\n\s*(?:\d\)\s*)?(?:INTEGRAÇÃO|INTEGRATION|RITUAL|RESUMO|SUMMARY)\b|$)/i
   );
   const line = match ? firstMeaningfulLine(match[1]) : "";
   return line?.replace(/^[-•]\s*/, "") || fallback;
@@ -1042,24 +499,11 @@ function getReadingAction(reading: string, fallback: string) {
 
 function getCardInsightFromReading(
   reading: string,
-  card: {
-    keyword?: string;
-    meaning?: string;
-    name: string;
-    position: string;
-    reversed?: boolean;
-  },
-  fallback?: string,
-  context?: {
-    dailyKey?: string;
-    index?: number;
-    locale: string;
-    question: string;
-    themeLabel?: string;
-  }
+  card: { position: string; name: string; reversed?: boolean; meaning?: string },
+  fallback?: string
 ) {
   const deckMeaning = card.meaning || fallback || "";
-  if (!reading) return getContextualCardInsight(card, deckMeaning, context);
+  if (!reading) return deckMeaning;
   const section = reading.match(
     new RegExp(
       `(?:^|\\n)\\s*(?:[-•]\\s*)?(?:${escapeRegExp(
@@ -1078,91 +522,11 @@ function getCardInsightFromReading(
   if (
     candidate &&
     candidate.length > 24 &&
-    !isGenericDeckMeaning(candidate, deckMeaning) &&
     !/^(significado prático|practical meaning|direção|direction)$/i.test(candidate)
   ) {
     return candidate;
   }
-  return getContextualCardInsight(card, deckMeaning, context);
-}
-
-function isGenericDeckMeaning(candidate: string, deckMeaning: string) {
-  const normalize = (value: string) =>
-    value
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^\p{L}\p{N}]+/gu, " ")
-      .trim();
-  const a = normalize(candidate);
-  const b = normalize(deckMeaning);
-  return Boolean(a && b && (a === b || a.includes(b) || b.includes(a)));
-}
-
-function getContextualCardInsight(
-  card: { position: string; name: string; reversed?: boolean; keyword?: string },
-  deckMeaning: string,
-  context?: { dailyKey?: string; index?: number; locale: string; question: string; themeLabel?: string }
-) {
-  const isEnglish = context?.locale === "en";
-  const position = card.position.toLowerCase();
-  const question = context?.question?.trim();
-  const topic = question
-    ? isEnglish
-      ? `your question "${question}"`
-      : `sua pergunta "${question}"`
-    : isEnglish
-      ? "this moment"
-      : "este momento";
-  const theme = context?.themeLabel
-    ? isEnglish
-      ? ` in ${context.themeLabel}`
-      : ` em ${context.themeLabel}`
-    : "";
-  const orientation = card.reversed
-    ? isEnglish
-      ? "as a point of resistance"
-      : "como ponto de resistência"
-    : isEnglish
-      ? "as a usable resource"
-      : "como recurso disponível";
-  const base = deckMeaning
-    .replace(/\s+/g, " ")
-    .replace(/[.!?]\s.*$/, "")
-    .trim();
-  const positionIndex =
-    typeof context?.index === "number"
-      ? context.index > 2
-        ? 3
-        : context.index
-      : position.includes("obst") || position.includes("shadow") || position.includes("sombra")
-        ? 1
-        : position.includes("dire") || position.includes("direction")
-          ? 2
-          : 0;
-  const templates = isEnglish ? enCardInsightTemplates : ptCardInsightTemplates;
-  const templateGroup = templates[positionIndex] ?? templates[0];
-  const hash = stableTextHash(
-    [
-      context?.dailyKey ?? "",
-      context?.question ?? "",
-      context?.themeLabel ?? "",
-      card.position,
-      card.name,
-      card.reversed ? "r" : "u",
-      base,
-    ].join("|")
-  );
-  const template = templateGroup[hash % templateGroup.length];
-
-  return fillTextTemplate(template, {
-    card: card.name,
-    keyword: card.keyword || base.split(" ")[0] || (isEnglish ? "presence" : "presença"),
-    meaning: base || (isEnglish ? "the first honest signal" : "o primeiro sinal honesto"),
-    theme,
-    topic,
-    orientation,
-  });
+  return deckMeaning;
 }
 
 function isPrefixPriceCadence(cadence: string) {
@@ -1177,7 +541,6 @@ function OnboardingIconOption({
   option: (typeof onboardingOptions)[number];
   onSelect: () => void;
 }) {
-  const { t } = useI18n();
   const Icon = option.icon;
 
   return (
@@ -1207,15 +570,15 @@ function OnboardingIconOption({
             />
           </span>
           <span className="rounded-full border border-white/10 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-[#a7d7c5]">
-            {t(option.signal)}
+            {option.signal}
           </span>
         </div>
         <div>
           <h3 className="text-base font-semibold leading-tight text-[#fff7e8]">
-            {t(option.label)}
+            {option.label}
           </h3>
           <p className="mt-2 text-sm leading-6 text-[#bfb5ad]">
-            {t(option.description)}
+            {option.description}
           </p>
         </div>
       </div>
@@ -1223,40 +586,23 @@ function OnboardingIconOption({
   );
 }
 
-export default function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ readingOnly?: string }>;
-}) {
-  return <HomeExperience readingOnly={use(searchParams).readingOnly === "1"} />;
-}
-
-function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
+export default function Home() {
   const { locale, t } = useI18n();
-  const { currency: productCurrency, setCurrency: setProductCurrency } =
-    useProductCurrency(locale);
   const [userId, setUserId] = useState("");
   const [theme, setTheme] = useState("love");
   const [portalIntentId, setPortalIntentId] = useState("atravessar");
   const [readingProductKey, setReadingProductKey] = useState("free_daily");
-  const [resumeCheckoutProduct, setResumeCheckoutProduct] = useState<string | null>(null);
   const [question, setQuestion] = useState(
     "O que eu preciso enxergar sobre o meu momento?"
   );
-  const [suggestedQuestionSource, setSuggestedQuestionSource] = useState(
-    "O que eu preciso enxergar sobre o meu momento?"
-  );
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<number | null>(null);
   const [result, setResult] = useState("");
-  const [resultLocale, setResultLocale] = useState<Locale | null>(null);
   const [spreadLine, setSpreadLine] = useState("");
   const [spreadCards, setSpreadCards] = useState<ApiOk["spread"]>([]);
   const [readingId, setReadingId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [saveNotice, setSaveNotice] = useState("");
-  const [readingNotice, setReadingNotice] = useState("");
-  const [readingOrigin, setReadingOrigin] = useState<"new" | "restored">("new");
-  const [restoredReadingAt, setRestoredReadingAt] = useState("");
   const [paywall, setPaywall] = useState<ApiPaywall | null>(null);
   const [repeat, setRepeat] = useState<ApiRepeat | null>(null);
   const [error, setError] = useState("");
@@ -1274,340 +620,33 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
   const [impactSaving, setImpactSaving] = useState(false);
   const [invitedBy, setInvitedBy] = useState("");
   const [showInvitedAction, setShowInvitedAction] = useState(false);
-  const [dailyOpening, setDailyOpening] = useState<DailyMessage>(() =>
-    localizeDailyMessage(fallbackDailyMessage, locale)
-  );
+  const [dailyOpening, setDailyOpening] =
+    useState<DailyMessage>(fallbackDailyMessage);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [onboardingFocusId, setOnboardingFocusId] = useState("");
-  const [onboardingStep, setOnboardingStep] = useState<"phase" | "profile">("phase");
-  const [onboardingProfileDraft, setOnboardingProfileDraft] =
-    useState<ReadingProfile>(EMPTY_READING_PROFILE);
-  const [readingStateHydrated, setReadingStateHydrated] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [exploreMenuOpen, setExploreMenuOpen] = useState(false);
-  const [headerCondensed, setHeaderCondensed] = useState(false);
-  const [heroMarks, setHeroMarks] = useState<HeroMarkCandidate[]>([
-    fallbackHeroMark,
-  ]);
-  const [heroMarkIndex, setHeroMarkIndex] = useState(0);
-  const [selectedHeroMark, setSelectedHeroMark] =
-    useState<HeroMarkCandidate>(fallbackHeroMark);
-  const hasRestoredReadingStateRef = useRef(false);
-  const lastAppliedSuggestedQuestionRef = useRef("");
-  const shouldScrollToOpenedReadingRef = useRef(false);
-  const startCheckoutRef = useRef<(productKey: string) => Promise<void>>(
-    async () => undefined
-  );
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [selectedSpreadCard, setSelectedSpreadCard] = useState<{
+    position: string;
+    name: string;
+    reversed: boolean;
+    assetPath: string;
+    insight?: string;
+  } | null>(null);
+  const spreadCardDialogRef = useRef<HTMLDialogElement>(null);
 
   usePduAtmosphere();
-  usePduScrollRecovery();
   const push = usePushNotifications();
-  const [publishedTestimonials, setPublishedTestimonials] = useState<
-    PublishedTestimonial[]
-  >([]);
-  const visibleTestimonials =
-    publishedTestimonials.length > 0 ? publishedTestimonials : testimonials;
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadPublishedTestimonials() {
-      try {
-        const response = await fetch("/api/testimonials", { cache: "no-store" });
-        const data = (await response.json()) as {
-          testimonials?: PublishedTestimonial[];
-        };
-        if (!cancelled && response.ok && Array.isArray(data.testimonials)) {
-          setPublishedTestimonials(data.testimonials);
-        }
-      } catch {
-        // Editorial fallback remains visible if the public feedback feed is unavailable.
-      }
-    }
-
-    void loadPublishedTestimonials();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!mobileMenuOpen && !exploreMenuOpen) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setMobileMenuOpen(false);
-        setExploreMenuOpen(false);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [exploreMenuOpen, mobileMenuOpen]);
-
-  useEffect(() => {
-    let frame = 0;
-
-    const updateHeaderState = () => {
-      if (frame) return;
-
-      frame = window.requestAnimationFrame(() => {
-        setHeaderCondensed(window.scrollY > 32);
-        frame = 0;
-      });
-    };
-
-    updateHeaderState();
-    window.addEventListener("scroll", updateHeaderState, { passive: true });
-    window.addEventListener("resize", updateHeaderState);
-
-    return () => {
-      window.removeEventListener("scroll", updateHeaderState);
-      window.removeEventListener("resize", updateHeaderState);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, []);
 
   useEffect(() => {
     setUserId(getOrCreateLocalUserId());
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function pickHeroMark() {
-      try {
-        const surface = window.matchMedia("(max-width: 768px)").matches
-          ? "mobile"
-          : "desktop";
-        const marks: HeroMarkCandidate[] = PDU_ASSETS.brand.heroMarkRotation.map(
-          (candidate) =>
-            surface === "mobile"
-              ? { assetPath: candidate.mobileAssetPath }
-              : {
-                  assetPath: candidate.assetPath,
-                  mobileAssetPath: candidate.mobileAssetPath,
-                }
-        );
-
-        if (cancelled) return;
-
-        if (marks.length === 0) {
-          setHeroMarks([fallbackHeroMark]);
-          setHeroMarkIndex(0);
-          setSelectedHeroMark(fallbackHeroMark);
-          return;
-        }
-
-        const randomizedMarks = [...marks];
-        const randomValues =
-          typeof window.crypto?.getRandomValues === "function"
-            ? window.crypto.getRandomValues(new Uint32Array(randomizedMarks.length))
-            : new Uint32Array(randomizedMarks.map(() => Date.now() + Math.random() * 1_000));
-
-        for (let index = randomizedMarks.length - 1; index > 0; index -= 1) {
-          const swapIndex = (randomValues[index] ?? 0) % (index + 1);
-          [randomizedMarks[index], randomizedMarks[swapIndex]] = [
-            randomizedMarks[swapIndex],
-            randomizedMarks[index],
-          ];
-        }
-
-        if (cancelled || randomizedMarks.length === 0) return;
-
-        try {
-          const lastHeroPath = window.localStorage.getItem("pdu_last_hero_mark");
-          if (randomizedMarks.length > 1 && randomizedMarks[0]?.assetPath === lastHeroPath) {
-            const firstMark = randomizedMarks.shift();
-            if (firstMark) randomizedMarks.push(firstMark);
-          }
-          window.localStorage.setItem(
-            "pdu_last_hero_mark",
-            randomizedMarks[0]?.assetPath ?? fallbackHeroMark.assetPath
-          );
-        } catch {
-          // A restricted storage context should not block the visual experience.
-        }
-
-        const firstMark = randomizedMarks[0];
-        const firstAssetPath =
-          surface === "mobile"
-            ? firstMark?.mobileAssetPath ?? firstMark?.assetPath
-            : firstMark?.assetPath;
-
-        if (!firstMark || !firstAssetPath) {
-          setHeroMarks([fallbackHeroMark]);
-          setHeroMarkIndex(0);
-          setSelectedHeroMark(fallbackHeroMark);
-          return;
-        }
-
-        setHeroMarks(randomizedMarks);
-        setHeroMarkIndex(0);
-        setSelectedHeroMark(firstMark);
-
-        randomizedMarks.slice(1).forEach((mark) => {
-          const preloadPath =
-            surface === "mobile" ? mark.mobileAssetPath ?? mark.assetPath : mark.assetPath;
-          if (!preloadPath) return;
-          const preload = new window.Image();
-          preload.src = preloadPath;
-        });
-      } catch {
-        if (cancelled) return;
-        setHeroMarks([fallbackHeroMark]);
-        setHeroMarkIndex(0);
-        setSelectedHeroMark(fallbackHeroMark);
-      }
-    }
-
-    void pickHeroMark();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    const nextMark = heroMarks[heroMarkIndex];
-    if (nextMark) setSelectedHeroMark(nextMark);
-  }, [heroMarkIndex, heroMarks]);
-
-  function handleHeroMarkError() {
-    setSelectedHeroMark(fallbackHeroMark);
-  }
-
-  useEffect(() => {
-    if (hasRestoredReadingStateRef.current) return;
-    hasRestoredReadingStateRef.current = true;
-
-    const params = new URLSearchParams(window.location.search);
-    const pendingLumeQuestion = window.sessionStorage.getItem("pdu_lume_question")?.trim() ?? "";
-    const hasRouteOverride =
-      params.has("product") ||
-      params.has("acao") ||
-      params.has("corrente") ||
-      params.has("continuar") ||
-      Boolean(pendingLumeQuestion);
-
-    if (pendingLumeQuestion) {
-      setSuggestedQuestionSource("");
-      setQuestion(pendingLumeQuestion);
-      window.sessionStorage.removeItem("pdu_lume_question");
-    } else if (!hasRouteOverride) {
-      const storedDraft = getLocalReadingDraft();
-      if (storedDraft) {
-        setTheme(storedDraft.theme);
-        setReadingProductKey(storedDraft.product_key);
-        setSuggestedQuestionSource(storedDraft.suggested_question_source);
-        setQuestion(
-          storedDraft.suggested_question_source
-            ? t(storedDraft.suggested_question_source)
-            : storedDraft.question
-        );
-        if (
-          portalIntentOptions.some(
-            (option) => option.id === storedDraft.portal_intent_id
-          )
-        ) {
-          setPortalIntentId(storedDraft.portal_intent_id);
-        }
-      }
-
-      const storedReading = getLocalActiveReading();
-      if (storedReading && storedReading.locale === locale) {
-        setTheme(storedReading.theme);
-        setReadingProductKey(storedReading.product_key);
-        setSuggestedQuestionSource(storedReading.suggested_question_source);
-        setQuestion(
-          storedReading.suggested_question_source
-            ? t(storedReading.suggested_question_source)
-            : storedReading.question
-        );
-        setSpreadLine(storedReading.spread_line);
-        setSpreadCards(normalizeReadingSpreadCards(storedReading.spread_cards));
-        setResult(storedReading.result);
-        setResultLocale(normalizeLocale(storedReading.locale));
-        setReadingId(storedReading.reading_id);
-        setReadingOrigin("restored");
-        setRestoredReadingAt(storedReading.updated_at);
-        if (
-          portalIntentOptions.some(
-            (option) => option.id === storedReading.portal_intent_id
-          )
-        ) {
-          setPortalIntentId(storedReading.portal_intent_id);
-        }
-      }
-    }
-
-    setReadingStateHydrated(true);
-  }, [locale, t]);
-
-  useEffect(() => {
-    const applyLumeQuestion = (event: Event) => {
-      const value = (event as CustomEvent<string>).detail?.trim();
-      if (!value) return;
-
-      setSuggestedQuestionSource("");
-      setQuestion(value);
-      clearReadingView();
-      window.requestAnimationFrame(() => scrollToId("leitura"));
-    };
-
-    window.addEventListener(LUME_QUESTION_EVENT, applyLumeQuestion);
-    return () => window.removeEventListener(LUME_QUESTION_EVENT, applyLumeQuestion);
-  }, []);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const hasIntentRoute =
-      params.has("product") ||
-      params.has("resume") ||
-      params.has("acao") ||
-      params.has("corrente") ||
-      params.has("continuar");
-    const storedFocus = localStorage.getItem("pdu_focus") ?? "";
-    if (storedFocus) setOnboardingFocusId(storedFocus);
-    const storedProfile = localStorage.getItem("pdu_onboarding_profile");
-    if (storedProfile) {
-      try {
-        setOnboardingProfileDraft(normalizeReadingProfile(JSON.parse(storedProfile)));
-      } catch {
-        localStorage.removeItem("pdu_onboarding_profile");
-      }
-    }
     const seen = localStorage.getItem("pdu_onboarding_done");
-    if (seen || hasIntentRoute) return;
-
-    let cancelledByUserIntent = false;
-    const cancelOnboarding = () => {
-      cancelledByUserIntent = true;
-    };
-
-    window.addEventListener("scroll", cancelOnboarding, { passive: true, once: true });
-    window.addEventListener("pointerdown", cancelOnboarding, { passive: true, once: true });
-    window.addEventListener("keydown", cancelOnboarding, { once: true });
-    window.addEventListener("focusin", cancelOnboarding, { once: true });
-
-    const timer = setTimeout(() => {
-      const activeElement = document.activeElement;
-      const isEditing =
-        activeElement instanceof HTMLInputElement ||
-        activeElement instanceof HTMLTextAreaElement ||
-        activeElement instanceof HTMLSelectElement;
-
-      if (cancelledByUserIntent || isEditing || window.scrollY > 160) return;
-      setShowOnboarding(true);
-    }, 9000);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("scroll", cancelOnboarding);
-      window.removeEventListener("pointerdown", cancelOnboarding);
-      window.removeEventListener("keydown", cancelOnboarding);
-      window.removeEventListener("focusin", cancelOnboarding);
-    };
+    if (!seen) {
+      // Small delay so the page renders first
+      const timer = setTimeout(() => setShowOnboarding(true), 1800);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   useEffect(() => {
@@ -1631,8 +670,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
         setDailyOpening(data.daily as DailyMessage);
       })
       .catch(() => {
-        // O fallback local mantém a home funcional sem trocar o idioma da abertura.
-        setDailyOpening(localizeDailyMessage(fallbackDailyMessage, locale));
+        // O fallback local mantém a home funcional se a abertura diária falhar.
       });
 
     return () => controller.abort();
@@ -1641,48 +679,8 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const product = params.get("product");
-    const resume = params.get("resume");
     const invitedActionKey = params.get("acao");
     const chainId = params.get("corrente");
-    const shouldContinue = params.has("continuar");
-
-    if (shouldContinue) {
-      let continuation: unknown = null;
-      try {
-        const stored = window.sessionStorage.getItem("pdu_continuity_prompt");
-        continuation = stored ? JSON.parse(stored) : null;
-        window.sessionStorage.removeItem("pdu_continuity_prompt");
-      } catch {
-        continuation = null;
-      }
-
-      clearReadingView();
-      setReadingProductKey("free_daily");
-
-      if (isRecord(continuation)) {
-        const continuationTheme =
-          typeof continuation.theme === "string" ? continuation.theme : "";
-        const continuationPrompt =
-          typeof continuation.prompt === "string"
-            ? continuation.prompt.trim()
-            : "";
-        const matchingTheme = themeOptions.find(
-          (option) => option.value === continuationTheme
-        );
-
-        if (matchingTheme) {
-          setTheme(matchingTheme.value);
-          const mappedIntentId = THEME_INTENT_ID[matchingTheme.value];
-          if (mappedIntentId) setPortalIntentId(mappedIntentId);
-        }
-        if (continuationPrompt) {
-          setSuggestedQuestionSource("");
-          setQuestion(continuationPrompt);
-        }
-      }
-
-      window.setTimeout(() => scrollToId("leitura"), 120);
-    }
 
     if (invitedActionKey) {
       const invitedAction = getImpactAction(invitedActionKey);
@@ -1695,40 +693,28 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
       }
     }
 
-    const isCheckoutProduct = Boolean(
-      product &&
-        (productCards.some((item) => item.productKey === product) ||
-          pricingPlans.some((item) => item.productKey === product))
-    );
-    if (resume === "checkout" && isCheckoutProduct && product) {
-      setResumeCheckoutProduct(product);
-    }
-
     if (!product || !PRODUCT_DEFAULT_QUESTIONS[product]) return;
 
     setReadingProductKey(product);
     setTheme(PRODUCT_THEMES[product] ?? "spirit");
-    setSuggestedQuestionSource(PRODUCT_DEFAULT_QUESTIONS[product]);
     setQuestion(PRODUCT_DEFAULT_QUESTIONS[product]);
-    if (!readingOnly || resume === "checkout") {
-      window.setTimeout(
-        () => scrollToId(resume === "checkout" ? "produtos" : "leitura"),
-        120
-      );
+    window.setTimeout(() => scrollToId("leitura"), 120);
+  }, []);
+
+  useEffect(() => {
+    const dialog = spreadCardDialogRef.current;
+    if (!dialog) return;
+    if (selectedSpreadCard) {
+      const id = window.setTimeout(() => { if (!dialog.open) dialog.showModal(); }, 80);
+      return () => clearTimeout(id);
     }
-  }, [readingOnly]);
+    if (dialog.open) dialog.close();
+  }, [selectedSpreadCard]);
 
   const selectedTheme = useMemo(
     () => themeOptions.find((option) => option.value === theme),
     [theme]
   );
-  const selectedSpreadConfig = useMemo(
-    () => getSpreadForProduct(readingProductKey),
-    [readingProductKey]
-  );
-  const selectedSpreadVisual =
-    readingExperienceVisuals[readingProductKey] ??
-    PDU_ASSETS.products.threeCardPathMobile;
   const SelectedThemeIcon = selectedTheme?.icon;
   const selectedPortalIntent = useMemo(
     () =>
@@ -1741,123 +727,22 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
     [t]
   );
   const impactActions = useMemo(() => getRecommendedImpactActions(theme), [theme]);
-  const impactActionCards = useMemo(() => IMPACT_ACTION_CARD_ORDER, []);
-  const selectedImpactAction = useMemo(
-    () => getImpactAction(impactActionKey) ?? impactActions[0],
-    [impactActionKey, impactActions]
-  );
-
-  useEffect(() => {
-    if (suggestedQuestionSource) {
-      const nextSuggestedQuestion = t(suggestedQuestionSource);
-      setQuestion((currentQuestion) => {
-        const current = currentQuestion.trim();
-        const canRefresh =
-          !current || current === lastAppliedSuggestedQuestionRef.current;
-
-        if (!canRefresh) {
-          if (current === nextSuggestedQuestion) {
-            lastAppliedSuggestedQuestionRef.current = nextSuggestedQuestion;
-          }
-          return currentQuestion;
-        }
-
-        lastAppliedSuggestedQuestionRef.current = nextSuggestedQuestion;
-        return nextSuggestedQuestion;
-      });
-    }
-  }, [locale, suggestedQuestionSource, t]);
-
-  useEffect(() => {
-    if (!readingStateHydrated) return;
-    saveLocalReadingDraft({
-      theme,
-      portalIntentId,
-      productKey: readingProductKey,
-      question,
-      suggestedQuestionSource,
-    });
-  }, [
-    question,
-    readingProductKey,
-    readingStateHydrated,
-    suggestedQuestionSource,
-    theme,
-    portalIntentId,
-  ]);
-
-  useEffect(() => {
-    if (!shouldScrollToOpenedReadingRef.current) return;
-    if (!loading && !result) return;
-
-    const timer = window.setTimeout(() => {
-      // During the ritual, show Lume's opening state. Once the new spread is
-      // ready, return to the top of the reading so the three cards are the
-      // first thing the person sees instead of opening below the fold.
-      scrollToId("reading-opened", true);
-      if (!loading && result) {
-        shouldScrollToOpenedReadingRef.current = false;
-      }
-    }, loading ? 180 : 90);
-
-    return () => window.clearTimeout(timer);
-  }, [loading, result]);
 
   const canRun = useMemo(
-    () => readingStateHydrated && !loading,
-    [loading, readingStateHydrated]
+    () => question.trim().length >= 8 && !loading,
+    [question, loading]
   );
-  const openReadingButtonDisabled = readingStateHydrated ? loading : undefined;
 
-  function restoreActiveReading(
-    storedReading: LocalActiveReading,
-    notice?: string
-  ) {
-    setReadingOrigin("restored");
-    setRestoredReadingAt(storedReading.updated_at);
-    setTheme(storedReading.theme);
-    setReadingProductKey(storedReading.product_key);
-    setSuggestedQuestionSource(storedReading.suggested_question_source);
-    setQuestion(
-      storedReading.suggested_question_source
-        ? t(storedReading.suggested_question_source)
-        : storedReading.question
-    );
-    setSpreadLine(storedReading.spread_line);
-    setSpreadCards(normalizeReadingSpreadCards(storedReading.spread_cards));
-    setResult(storedReading.result);
-    setResultLocale(normalizeLocale(storedReading.locale));
-    setReadingId(storedReading.reading_id);
-    saveLocalReadingMessage({
-      readingId: storedReading.reading_id,
-      payload: {
-        savedAt: storedReading.updated_at,
-        locale: storedReading.locale,
-        theme: storedReading.theme,
-        productKey: storedReading.product_key,
-        spreadType: storedReading.spread_type,
-        spreadLabel: storedReading.spread_label,
-        question: storedReading.question,
-        spreadLine: storedReading.spread_line,
-        spreadCards: storedReading.spread_cards,
-        result: storedReading.result,
-      },
-    });
-    if (
-      portalIntentOptions.some(
-        (option) => option.id === storedReading.portal_intent_id
-      )
-    ) {
-      setPortalIntentId(storedReading.portal_intent_id);
-    }
-    if (notice) setReadingNotice(notice);
-    shouldScrollToOpenedReadingRef.current = true;
-  }
+  async function run(customQuestion?: string) {
+    const q = (customQuestion ?? question).trim();
+    if (q.length < 8) return;
 
-  function clearReadingView() {
-    shouldScrollToOpenedReadingRef.current = false;
+    const activeUserId = userId || getOrCreateLocalUserId();
+    if (!userId) setUserId(activeUserId);
+
+    setLoading(true);
+    setStatus(null);
     setResult("");
-    setResultLocale(null);
     setSpreadLine("");
     setSpreadCards([]);
     setReadingId(null);
@@ -1866,41 +751,10 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
     setError("");
     setSaved(false);
     setSaveNotice("");
-    setReadingNotice("");
-    setReadingOrigin("new");
-    setRestoredReadingAt("");
-  }
-
-  function openDailyMessage() {
-    if (loading) return;
-
-    // A home-page entry should begin with the daily ritual, never with a
-    // restored spread from a previous question.
-    clearReadingView();
-    window.requestAnimationFrame(() => scrollToId("leitura"));
-  }
-
-  async function run(customQuestion?: string) {
-    const q = (customQuestion ?? question).trim();
-    if (q.length < 8) {
-      setPaywall(null);
-      setRepeat(null);
-      setError(t("Escreva uma pergunta com pelo menos 8 caracteres para abrir a leitura."));
-      return;
-    }
-
-    const activeUserId = userId || getOrCreateLocalUserId();
-    if (!userId) setUserId(activeUserId);
-    const previousActiveReading = getLocalActiveReading();
-
-    shouldScrollToOpenedReadingRef.current = true;
-    setLoading(true);
-    clearReadingView();
-    shouldScrollToOpenedReadingRef.current = true;
 
     try {
-      const [{ response: res, data }] = await Promise.all([
-        fetchJsonWithTimeout("/api/reading/create", {
+      const [res] = await Promise.all([
+        fetch("/api/reading/create", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -1908,56 +762,33 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
             theme,
             question: q,
             productKey: readingProductKey,
-            spreadType: selectedSpreadConfig.type,
             locale,
-            onboardingFocus: onboardingFocusOption
-              ? t(onboardingFocusOption.label)
-              : "",
-            onboardingSignal: onboardingFocusOption?.signal ?? "",
-            readingProfile: hasProfileSignal(onboardingProfileDraft)
-              ? onboardingProfileDraft
-              : undefined,
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           }),
-        }, READING_REQUEST_TIMEOUT_MS),
+        }),
         new Promise((resolve) =>
           window.setTimeout(resolve, READING_PORTAL_MINIMUM_MS)
         ),
       ]);
 
+      setStatus(res.status);
+
+      const text = await res.text();
+      let data: unknown = null;
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { error: "Resposta inválida do servidor" };
+      }
+
       if (res.status === 402 && isRecord(data)) {
-        const isFreeLimit =
-          data.code === "FREE_DAILY_LIMIT" || readingProductKey === "free_daily";
         setPaywall({
           error:
             typeof data.error === "string"
               ? data.error
               : "Free limit reached",
           paywall: true,
-          kind: isFreeLimit ? "free_limit" : "access",
-          productKey: readingProductKey,
-        });
-        if (isFreeLimit) {
-          if (previousActiveReading) {
-            restoreActiveReading(
-              previousActiveReading,
-              t("Você já usou a leitura gratuita de hoje. Reabrimos sua última tirada para você rever as cartas, o conselho e o caminho indicado.")
-            );
-          } else {
-            setError(
-              t("Você já usou a leitura gratuita de hoje. Crie uma conta grátis para proteger e rever esta tirada no Meu Universo, sem precisar assinar um plano.")
-            );
-          }
-        }
-        return;
-      }
-
-      if (res.status === 401 && isRecord(data) && data.code === "AUTH_REQUIRED") {
-        setPaywall({
-          error: typeof data.error === "string" ? data.error : "Authentication required",
-          paywall: true,
-          kind: "auth",
-          productKey: readingProductKey,
         });
         return;
       }
@@ -1969,7 +800,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
           message:
             typeof data.message === "string"
               ? data.message
-              : t("Vamos mudar o ângulo da pergunta."),
+              : "Vamos mudar o ângulo da pergunta.",
           suggestedRephrase:
             typeof data.suggestedRephrase === "string"
               ? data.suggestedRephrase
@@ -1994,12 +825,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
       }
 
       const ok = data as ApiOk;
-      const normalizedSpread = normalizeReadingSpreadCards(ok.spread);
-      if (!normalizedSpread.length) {
-        setError("A leitura abriu, mas as cartas não puderam ser carregadas. Tente novamente.");
-        return;
-      }
-      const line = normalizedSpread
+      const line = ok.spread
         .map((card) => {
           const reversed = card.reversed
             ? locale === "en"
@@ -2011,86 +837,27 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
         .join(" | ");
 
       setSpreadLine(line);
-      setSpreadCards(normalizedSpread);
+      setSpreadCards(ok.spread);
       setResult(ok.interpretation);
-      setResultLocale(locale);
       setReadingId(ok.readingId);
-      setReadingOrigin("new");
-      setRestoredReadingAt("");
-      saveLocalActiveReading({
-        locale,
-        theme,
-        portalIntentId,
-        productKey: readingProductKey,
-        spreadType: ok.spreadType,
-        spreadLabel: ok.spreadLabel,
-        question: q,
-        suggestedQuestionSource,
-        spreadLine: line,
-        spreadCards: normalizedSpread,
-        result: ok.interpretation,
-        readingId: ok.readingId,
-      });
-      saveLocalReadingMessage({
-        readingId: ok.readingId,
-        payload: {
-          savedAt: new Date().toISOString(),
-          locale,
-          theme,
-          productKey: readingProductKey,
-          spreadType: ok.spreadType,
-          spreadLabel: ok.spreadLabel,
-          question: q,
-          spreadLine: line,
-          spreadCards: normalizedSpread,
-          result: ok.interpretation,
-        },
-      });
+      window.setTimeout(() => scrollToId("cartas"), 260);
       if (!invitedBy && !impactCommitment) {
         const recommended = getRecommendedImpactActions(theme)[0];
         setImpactActionKey(recommended.key);
         setImpactPlan(recommended.suggestedPlan);
       }
     } catch (caught) {
-      const previousActiveReading = getLocalActiveReading();
-      if (previousActiveReading) {
-        restoreActiveReading(
-          previousActiveReading,
-          t("A conexão caiu durante a nova leitura. Reabrimos sua última tirada salva para você não perder o fio.")
-        );
-      }
-      const networkMessage =
-        caught instanceof DOMException && caught.name === "AbortError"
-          ? t("A leitura demorou mais que o esperado. Sua última tirada continua disponível e você pode tentar novamente em instantes.")
-          : t("A conexão oscilou antes da leitura abrir. Nada foi perdido; tente novamente quando a página estabilizar.");
-      setError(networkMessage);
+      setError(caught instanceof Error ? caught.message : "Falha de rede");
     } finally {
       setLoading(false);
     }
   }
 
-  function selectThemeOption(nextTheme: string) {
-    setTheme(nextTheme);
-
-    const mappedIntentId = THEME_INTENT_ID[nextTheme];
-    if (!mappedIntentId) return;
-
-    const mappedIntent = portalIntentOptions.find(
-      (option) => option.id === mappedIntentId
-    );
-    if (!mappedIntent) return;
-
-    setPortalIntentId(mappedIntent.id);
-
-    const trimmedQuestion = question.trim();
-    const translatedSuggestedQuestion = t(suggestedQuestionSource).trim();
-    const canRefreshSuggestedQuestion =
-      !trimmedQuestion || trimmedQuestion === translatedSuggestedQuestion;
-
-    if (canRefreshSuggestedQuestion) {
-      setSuggestedQuestionSource(mappedIntent.question);
-      setQuestion(t(mappedIntent.question));
-    }
+  function openPortalIntent(intent: (typeof portalIntentOptions)[number]) {
+    setPortalIntentId(intent.id);
+    setReadingProductKey("free_daily");
+    setTheme(intent.theme);
+    setQuestion(intent.question);
   }
 
   async function saveReading() {
@@ -2101,19 +868,16 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
 
     const payload = {
       savedAt: new Date().toISOString(),
-      locale,
       theme,
-      productKey: readingProductKey,
-      spreadType: selectedSpreadConfig.type,
-      spreadLabel: selectedSpreadConfig.label,
       question,
       spreadLine,
       spreadCards,
       result,
     };
 
-    const localMessage = saveLocalReadingMessage({
+    const localMessage = saveLocalMessage({
       readingId,
+      messageType: "reading",
       payload,
     });
     setSaved(true);
@@ -2297,19 +1061,6 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
     }
   }
 
-  function buildCheckoutNextPath(productKey: string) {
-    const params = new URLSearchParams({
-      product: productKey,
-      currency: productCurrency,
-      resume: "checkout",
-    });
-    appendMarketingAttribution(
-      params,
-      normalizeMarketingAttribution(new URLSearchParams(window.location.search))
-    );
-    return `/?${params.toString()}#produtos`;
-  }
-
   async function startCheckout(productKey: string) {
     const activeUserId = userId || getOrCreateLocalUserId();
     if (!userId) setUserId(activeUserId);
@@ -2321,19 +1072,13 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
       const res = await fetch("/api/checkout/create", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          productKey,
-          locale,
-          currency: productCurrency,
-          attribution: normalizeMarketingAttribution(
-            new URLSearchParams(window.location.search)
-          ),
-        }),
+        body: JSON.stringify({ productKey }),
       });
       const data = (await res.json()) as unknown;
 
       if (res.status === 401) {
-        window.location.href = buildLoginPath(buildCheckoutNextPath(productKey));
+        const next = `/?product=${encodeURIComponent(productKey)}#produtos`;
+        window.location.href = `/entrar?next=${encodeURIComponent(next)}`;
         return;
       }
 
@@ -2355,147 +1100,21 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
     }
   }
 
-  startCheckoutRef.current = startCheckout;
-
-  useEffect(() => {
-    const supabaseClient = getSupabaseBrowserClient();
-    if (!supabaseClient) return;
-
-    let cancelled = false;
-
-    async function syncWhenAuthenticated(session: unknown) {
-      if (cancelled || !session) return;
-
-      try {
-        await syncLocalUniverseToAccount();
-      } catch (error) {
-        console.warn("[account/sync-local] background sync failed", {
-          message: error instanceof Error ? error.message : "Unknown sync error",
-        });
-      }
-    }
-
-    void supabaseClient.auth
-      .getSession()
-      .then(({ data }) => syncWhenAuthenticated(data.session));
-
-    const {
-      data: { subscription },
-    } = supabaseClient.auth.onAuthStateChange((_event, session) => {
-      void syncWhenAuthenticated(session);
-    });
-
-    return () => {
-      cancelled = true;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!resumeCheckoutProduct) return;
-
-    const supabaseClient = getSupabaseBrowserClient();
-    if (!supabaseClient) return;
-    const client = supabaseClient;
-    const productKey = resumeCheckoutProduct;
-
-    let cancelled = false;
-    let started = false;
-    let timer: number | undefined;
-
-    async function resumeCheckout() {
-      const {
-        data: { session },
-      } = await client.auth.getSession();
-
-      if (cancelled || started) return;
-
-      if (!session) {
-        started = true;
-        const currentUrl = new URL(window.location.href);
-        const resumeParams = new URLSearchParams({
-          product: productKey,
-          currency: currentUrl.searchParams.get("currency") ?? "BRL",
-          resume: "checkout",
-        });
-        appendMarketingAttribution(
-          resumeParams,
-          normalizeMarketingAttribution(currentUrl.searchParams)
-        );
-        const resumePath = `/?${resumeParams.toString()}#produtos`;
-        const redirectLocale = document.documentElement.lang === "en" ? "en" : null;
-        window.location.href = buildLoginPath(resumePath, { lang: redirectLocale });
-        return;
-      }
-
-      started = true;
-      const cleanUrl = new URL(window.location.href);
-      cleanUrl.searchParams.delete("resume");
-      window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
-      setResumeCheckoutProduct(null);
-      timer = window.setTimeout(() => {
-        if (!cancelled) {
-          void syncLocalUniverseToAccount()
-            .catch((error) => {
-              console.warn("[account/sync-local] pre-checkout sync failed", {
-                message: error instanceof Error ? error.message : "Unknown sync error",
-              });
-            })
-            .finally(() => {
-              if (!cancelled) void startCheckoutRef.current(productKey);
-            });
-        }
-      }, 220);
-    }
-
-    void resumeCheckout();
-
-    const {
-      data: { subscription },
-    } = client.auth.onAuthStateChange((_event, session) => {
-      if (session) void resumeCheckout();
-    });
-
-    return () => {
-      cancelled = true;
-      if (timer) window.clearTimeout(timer);
-      subscription.unsubscribe();
-    };
-  }, [resumeCheckoutProduct]);
-
   const localizedSpreadCards = useMemo(
-    () => spreadCards.map((card) => localizeReadingSpreadCard(card, locale)),
-    [locale, spreadCards]
+    () =>
+      spreadCards.map((card) => ({
+        ...card,
+        name: locale === "en" ? getCardEnglishName(card.cardKey, card.name) : card.name,
+        position: translateOraclePosition(card.position, locale),
+      })),
+    [spreadCards, locale]
   );
-  const shownSpread = spreadCards.length ? localizedSpreadCards : dailyOpening.spread;
-  const readingGridColumns =
-    shownSpread.length >= 8 ? 4 : Math.max(1, Math.min(shownSpread.length, 5));
-  const urgentClarityPrice = formatProductPrice("clareza_urgente", productCurrency);
-  const circleMonthlyPrice = formatProductPrice("circulo_do_universo", productCurrency);
-  const circleCadenceSuffix = locale === "en" ? "month" : "mês";
-  const activeSpreadLabel = t(selectedSpreadConfig.shortLabel);
+  const shownSpread = localizedSpreadCards.length ? localizedSpreadCards : dailyOpening.spread;
   const reversedSuffix = locale === "en" ? " (reversed)" : " reversa";
   const activeReading = Boolean(result);
-  const hasSelectedPremiumSpread = readingProductKey !== "free_daily";
   const readingQuestion = question.trim();
-  const readingNeedsLocaleSurface =
-    activeReading && resultLocale !== null && resultLocale !== locale;
-  const localizedSpreadLine = shownSpread.length
-    ? shownSpread
-        .map(
-          (card) =>
-            `${card.position}: ${card.name}${card.reversed ? reversedSuffix : ""}`
-        )
-        .join(" | ")
-    : spreadLine;
   const readingText =
-    readingNeedsLocaleSurface
-      ? buildLocalizedReadingText({
-          cards: localizedSpreadCards,
-          locale,
-          dailyOpening,
-        })
-      : result ||
+    result ||
     [
       "MANTRA",
       dailyOpening.affirmation,
@@ -2511,55 +1130,26 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
     ].join("\n");
   const readingBlocks = splitReadingIntoBlocks(readingText);
   const openingTitle = loading
-    ? t("Lume está abrindo uma nova leitura.")
+    ? "A leitura está abrindo."
     : activeReading
-      ? readingQuestion || t("Sua leitura foi aberta.")
-      : hasSelectedPremiumSpread
-        ? t(selectedSpreadConfig.promise)
-        : dailyOpening.message;
+      ? readingQuestion || "Sua leitura foi aberta."
+      : dailyOpening.message;
   const openingAdvice = loading
-    ? t("Lume recolheu as cartas anteriores e está formando um caminho novo para esta pergunta.")
-    : activeReading && readingNeedsLocaleSurface
-      ? locale === "en"
-        ? `Choose one small action from the ${shownSpread.length} cards and test it today.`
-        : `Escolha uma ação pequena a partir das ${shownSpread.length} cartas e teste hoje.`
-      : activeReading
-        ? getReadingAction(
-            result,
-            locale === "en"
-              ? "Read the " +
-                shownSpread.length +
-                " cards first, then choose one small action for today."
-              : "Leia primeiro o conjunto das " +
-                shownSpread.length +
-                " cartas; depois escolha uma ação pequena para hoje."
-          )
-        : hasSelectedPremiumSpread
-          ? t(
-              "Prepare uma pergunta central. Esta experiência conecta " +
-                selectedSpreadConfig.positions.length +
-                " posições para formar um único mapa."
-            )
-          : dailyOpening.advice;
-  const openingAffirmation = loading
-    ? t("Eu deixo Lume abrir a leitura nova antes de concluir.")
-    : activeReading && readingNeedsLocaleSurface
-      ? dailyOpening.affirmation
-      : activeReading
-        ? getReadingMantra(result, dailyOpening.affirmation)
-        : hasSelectedPremiumSpread
-          ? locale === "en"
-            ? "I can look at the whole map before turning one card into a conclusion."
-            : "Eu posso olhar o mapa inteiro antes de transformar uma carta em conclusão."
-          : dailyOpening.affirmation;
-  const openingEyebrow = loading
-    ? t("Lume em movimento")
+    ? "As cartas anteriores foram recolhidas. Aguarde o novo spread se formar antes de interpretar."
     : activeReading
-      ? t("Leitura desta pergunta")
-      : hasSelectedPremiumSpread
-        ? t("Tirada selecionada")
-        : t("Sua energia de hoje");
-  const cardMeanings = shownSpread.map((card, index) => {
+      ? getReadingAction(result, "Leia primeiro o conjunto das três cartas; depois escolha uma ação pequena para hoje.")
+      : dailyOpening.advice;
+  const openingAffirmation = loading
+    ? "Eu espero a leitura nova chegar antes de concluir."
+    : activeReading
+      ? getReadingMantra(result, dailyOpening.affirmation)
+      : dailyOpening.affirmation;
+  const openingEyebrow = loading
+    ? "Portal em movimento"
+    : activeReading
+      ? "Leitura desta pergunta"
+      : "Sua energia de hoje";
+  const cardMeanings = shownSpread.map((card) => {
     const dailyCard = dailyOpening.spread.find(
       (item) => item.position === card.position && item.name === card.name
     );
@@ -2567,91 +1157,36 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
       position: card.position,
       name: card.name,
       reversed: card.reversed,
-      coreMeaning: card.coreMeaning || dailyCard?.coreMeaning,
-      lifeQuestion: card.lifeQuestion || dailyCard?.lifeQuestion,
-      insight: getCardInsightFromReading(
-        result,
-        { ...card, keyword: card.keyword || dailyCard?.keyword },
-        card.meaning || dailyCard?.meaning,
-        {
-          dailyKey: dailyOpening.dateKey,
-          index,
-          locale,
-          question: activeReading ? readingQuestion : "",
-          themeLabel: selectedTheme ? t(selectedTheme.label) : undefined,
-        }
-      ),
+      insight: getCardInsightFromReading(result, card, card.meaning || dailyCard?.meaning),
     };
   });
-  const onboardingFocusOption = useMemo(
-    () => onboardingOptions.find((option) => option.id === onboardingFocusId),
-    [onboardingFocusId]
-  );
 
-  function completeOnboarding(
-    focus?: string,
-    profile = onboardingProfileDraft
-  ) {
+  function completeOnboarding(focus?: string) {
     localStorage.setItem("pdu_onboarding_done", "1");
-    if (focus) {
-      localStorage.setItem("pdu_focus", focus);
-      setOnboardingFocusId(focus);
-    }
-    const normalizedProfile = focus
-      ? normalizeReadingProfile(profile)
-      : null;
-    if (normalizedProfile && hasProfileSignal(normalizedProfile)) {
-      localStorage.setItem(
-        "pdu_onboarding_profile",
-        JSON.stringify(normalizedProfile)
-      );
-    }
-    setOnboardingStep("phase");
+    if (focus) localStorage.setItem("pdu_focus", focus);
     setShowOnboarding(false);
 
-    if (normalizedProfile && hasProfileSignal(normalizedProfile)) {
+    // Persist to Supabase profile so the AI reading uses it via "Fase atual declarada"
+    if (focus) {
+      const label = onboardingOptions.find((o) => o.id === focus)?.label ?? focus;
       fetch("/api/profile", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(normalizedProfile),
+        body: JSON.stringify({ currentPhase: label }),
       }).catch(() => {
-        // Local storage remains the safe fallback until the account is available.
+        // Silently ignore — localStorage already captured the selection
       });
     }
   }
 
-  function beginOnboardingProfile(focus: string) {
-    const option = onboardingOptions.find((item) => item.id === focus);
-    const profile = {
-      ...onboardingProfileDraft,
-      currentPhase: option?.label ?? onboardingProfileDraft.currentPhase,
-    };
-    setOnboardingFocusId(focus);
-    setOnboardingProfileDraft(profile);
-    completeOnboarding(focus, profile);
-  }
-
-  function toggleOnboardingProfileList(
-    key: "focusAreas" | "boundaries",
-    value: string
-  ) {
-    setOnboardingProfileDraft((current) => {
-      const exists = current[key].includes(value);
-      const next = exists
-        ? current[key].filter((item) => item !== value)
-        : [...current[key], value].slice(0, key === "focusAreas" ? 3 : 5);
-      return { ...current, [key]: next };
-    });
-  }
-
   return (
-    <main className={`pdu-home min-h-screen text-[#f8efe2]${readingOnly ? " pdu-reading-route" : ""}`}>
+    <main className="pdu-home min-h-screen text-[#f8efe2]">
 
       {showOnboarding ? (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={t("Qual fase você está vivendo?")}
+          aria-label="Qual fase você está vivendo?"
           className="pdu-onboarding-overlay fixed inset-0 z-[220] flex items-start justify-center overflow-y-auto overscroll-contain bg-[#03030a]/82 px-4 py-8 backdrop-blur-xl sm:items-center"
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(244,213,141,0.2),transparent_28%),radial-gradient(circle_at_82%_22%,rgba(167,215,197,0.16),transparent_30%),linear-gradient(135deg,rgba(255,247,232,0.08),transparent_38%)]" />
@@ -2664,38 +1199,21 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                 <div className="absolute -right-16 top-10 h-48 w-48 rounded-full border border-[#f4d58d]/14 bg-[#f4d58d]/5" />
                 <span className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/24 bg-[#f4d58d]/8 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
                   <Sparkles size={13} />
-                  {t("Antes de começar")}
+                  Antes de começar
                 </span>
-                <div className="pdu-onboarding-lume" aria-label={locale === "en" ? "Lume is guiding this beginning" : "Lume guia este começo"}>
-                  <span className="pdu-onboarding-lume__seal relative">
-                    <Image
-                      src={PDU_ASSETS.symbolic.wingOracle}
-                      alt=""
-                      fill
-                      sizes="38px"
-                      quality={84}
-                      className="object-contain"
-                    />
-                  </span>
-                  <span>
-                    <strong>{LUME_NAME}</strong>
-                    <small>{locale === "en" ? "is shaping this beginning" : "está guiando este começo"}</small>
-                  </span>
-                </div>
                 <h2 className="pdu-onboarding-title brand-serif mt-5 text-4xl font-semibold leading-[1.02] text-[#fff7e8] sm:text-5xl">
-                  {t("Como você chega hoje?")}
+                  Qual energia está mais presente agora?
                 </h2>
                 <p className="mt-4 max-w-md text-sm leading-7 text-[#d8ccc0]">
-                  {t(
-                    "Escolha só um ponto de partida, se quiser. Você pode começar a leitura sem preencher nada."
-                  )}
+                  Escolha um ponto de partida. A leitura fica mais precisa sem
+                  presumir gênero, crença ou jeito de viver espiritualidade.
                 </p>
                 <div className="pdu-onboarding-points mt-7 grid gap-3 text-sm text-[#d8ccc0]">
                   {["Linguagem neutra", "Sem fatalismo", "Contexto imediato"].map(
                     (item) => (
                       <div key={item} className="flex items-center gap-3">
                         <span className="h-2 w-2 rounded-full bg-[#a7d7c5] shadow-[0_0_18px_rgba(167,215,197,0.65)]" />
-                        {t(item)}
+                        {item}
                       </div>
                     )
                   )}
@@ -2703,583 +1221,150 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
               </div>
 
               <div className="pdu-onboarding-choices p-5 sm:p-7">
-                {onboardingStep === "phase" ? (
-                  <>
-                    <div className="mb-5 flex items-center justify-between gap-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
-                        {t("Escolha uma opção")}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => completeOnboarding()}
-                        aria-label={t("Pular")}
-                        className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-[#8d837b] transition hover:border-[#f4d58d]/40 hover:text-[#d8ccc0]"
-                      >
-                        <X size={15} />
-                      </button>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {onboardingOptions.map((opt) => (
-                        <OnboardingIconOption
-                          key={opt.id}
-                          option={opt}
-                          onSelect={() => beginOnboardingProfile(opt.id)}
-                        />
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => completeOnboarding()}
-                      className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-[#d8ccc0] transition hover:border-[#f4d58d]/35 hover:text-[#fff7e8]"
-                    >
-                      {t("Começar sem responder")}
-                      <ArrowRight size={16} />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="mb-5 flex items-center justify-between gap-4">
-	                      <div>
-	                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
-	                          {t("Seu Mapa Inicial")}
-	                        </p>
-	                        <p className="mt-1 text-sm text-[#bfb5ad]">
-	                          {getProfileCompletion(onboardingProfileDraft)}/5{" "}
-	                          {t("sinais essenciais")}
-	                        </p>
-	                      </div>
-	                      <button
-	                        type="button"
-	                        onClick={() => completeOnboarding(onboardingFocusId)}
-	                        aria-label={t("Salvar e fechar")}
-                        className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-[#8d837b] transition hover:border-[#f4d58d]/40 hover:text-[#d8ccc0]"
-                      >
-                        <X size={15} />
-                      </button>
-                    </div>
-
-                    <div className="grid gap-4">
-	                      <label className="block">
-	                        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
-	                          {t("Como podemos chamar você? (opcional)")}
-	                        </span>
-                        <input
-                          value={onboardingProfileDraft.displayName}
-                          onChange={(event) =>
-                            setOnboardingProfileDraft((current) => ({
-                              ...current,
-                              displayName: event.target.value,
-                            }))
-                          }
-	                          maxLength={80}
-	                          className="mt-2 w-full rounded-2xl border border-white/12 bg-black/20 px-4 py-3 text-sm text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/70"
-	                          placeholder={t("Seu nome ou como prefere ser chamado")}
-	                        />
-	                      </label>
-
-	                      <label className="block">
-	                        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
-	                          {t("Em que fase você está?")}
-	                        </span>
-                        <select
-                          value={onboardingProfileDraft.currentPhase}
-                          onChange={(event) =>
-                            setOnboardingProfileDraft((current) => ({
-                              ...current,
-                              currentPhase: event.target.value,
-                            }))
-                          }
-                          className="mt-2 w-full rounded-2xl border border-white/12 bg-[#171522] px-4 py-3 text-sm text-[#fff7e8] outline-none focus:border-[#f4d58d]/70"
-                        >
-                          <option value="">{t("Escolha uma fase")}</option>
-                          {READING_PROFILE_PHASES.map((option) => (
-                            <option key={option} value={option}>
-                              {localizeReadingProfileValue(option, locale)}
-                            </option>
-                          ))}
-                          {onboardingProfileDraft.currentPhase &&
-                          !READING_PROFILE_PHASES.includes(onboardingProfileDraft.currentPhase) ? (
-                            <option value={onboardingProfileDraft.currentPhase}>
-                              {localizeReadingProfileValue(
-                                onboardingProfileDraft.currentPhase,
-                                locale
-                              )}
-                            </option>
-                          ) : null}
-                        </select>
-                      </label>
-
-	                      <div>
-	                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
-	                          {t("O que está em foco?")}
-	                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {READING_PROFILE_FOCUS_AREAS.map((option) => {
-                            const active = onboardingProfileDraft.focusAreas.includes(option);
-                            return (
-                              <button
-                                key={option}
-                                type="button"
-                                aria-pressed={active}
-                                onClick={() => toggleOnboardingProfileList("focusAreas", option)}
-                                className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
-                                  active
-                                    ? "border-[#f4d58d] bg-[#f4d58d] text-[#1c1308]"
-                                    : "border-white/12 bg-white/[0.04] text-[#d8ccc0] hover:border-[#f4d58d]/45"
-                                }`}
-                              >
-                                {localizeReadingProfileValue(option, locale)}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <label className="block">
-                          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
-                            {t("Tom da orientação")}
-                          </span>
-                          <select
-                            value={onboardingProfileDraft.guidanceTone}
-                            onChange={(event) =>
-                              setOnboardingProfileDraft((current) => ({
-                                ...current,
-                                guidanceTone: event.target.value,
-                              }))
-                            }
-                            className="mt-2 w-full rounded-2xl border border-white/12 bg-[#171522] px-4 py-3 text-sm text-[#fff7e8] outline-none focus:border-[#f4d58d]/70"
-                          >
-                            <option value="">{t("Escolha um tom")}</option>
-                            {READING_PROFILE_GUIDANCE_TONES.map((option) => (
-                              <option key={option} value={option}>
-                                {localizeReadingProfileValue(option, locale)}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-
-                        <label className="block">
-                          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
-                            {t("O que você busca agora?")}
-                          </span>
-                          <select
-                            value={onboardingProfileDraft.desiredShift}
-                            onChange={(event) =>
-                              setOnboardingProfileDraft((current) => ({
-                                ...current,
-                                desiredShift: event.target.value,
-                              }))
-                            }
-                            className="mt-2 w-full rounded-2xl border border-white/12 bg-[#171522] px-4 py-3 text-sm text-[#fff7e8] outline-none focus:border-[#f4d58d]/70"
-                          >
-                            <option value="">{t("Escolha uma intenção")}</option>
-                            {READING_PROFILE_DESIRED_SHIFTS.map((option) => (
-                              <option key={option} value={option}>
-                                {localizeReadingProfileValue(option, locale)}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </div>
-
-	                      <div>
-	                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
-	                          {t("O que Lume deve respeitar?")}
-	                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {READING_PROFILE_BOUNDARIES.map((option) => {
-                            const active = onboardingProfileDraft.boundaries.includes(option);
-                            return (
-                              <button
-                                key={option}
-                                type="button"
-                                aria-pressed={active}
-                                onClick={() => toggleOnboardingProfileList("boundaries", option)}
-                                className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
-                                  active
-                                    ? "border-[#a7d7c5] bg-[#a7d7c5] text-[#07120e]"
-                                    : "border-white/12 bg-white/[0.04] text-[#d8ccc0] hover:border-[#a7d7c5]/55"
-                                }`}
-                              >
-                                {localizeReadingProfileValue(option, locale)}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-	                      <label className="block">
-	                        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
-	                          {t("Algo que vale lembrar (opcional)")}
-	                        </span>
-                        <textarea
-                          value={onboardingProfileDraft.contextNote}
-                          onChange={(event) =>
-                            setOnboardingProfileDraft((current) => ({
-                              ...current,
-                              contextNote: event.target.value,
-                            }))
-                          }
-                          maxLength={500}
-	                          rows={3}
-	                          className="mt-2 w-full resize-none rounded-2xl border border-white/12 bg-black/20 px-4 py-3 text-sm leading-6 text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/70"
-	                          placeholder={t("Ex.: quero respostas práticas e sem alimentar ansiedade.")}
-	                        />
-	                      </label>
-                    </div>
-
-                    <div className="mt-5 flex flex-col gap-3">
-                      <button
-                        type="button"
-                        onClick={() => completeOnboarding(onboardingFocusId)}
-                        disabled={!hasProfileSignal(onboardingProfileDraft)}
-	                        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#a7d7c5] px-4 py-3 text-sm font-semibold text-[#07120e] transition hover:bg-[#c1ecdc] disabled:cursor-not-allowed disabled:opacity-45"
-	                      >
-	                        {t("Guardar meu mapa e começar")}
-	                        <ArrowRight size={16} />
-	                      </button>
-                      <button
-                        type="button"
-	                        onClick={() => setOnboardingStep("phase")}
-	                        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-[#d8ccc0] transition hover:border-[#f4d58d]/35 hover:text-[#fff7e8]"
-	                      >
-	                        {t("Voltar para escolher a fase")}
-	                      </button>
-                    </div>
-                  </>
-                )}
+                <div className="mb-5 flex items-center justify-between gap-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+                    Selecione uma fase
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => completeOnboarding()}
+                    aria-label="Pular"
+                    className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-[#8d837b] transition hover:border-[#f4d58d]/40 hover:text-[#d8ccc0]"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {onboardingOptions.map((opt) => (
+                    <OnboardingIconOption
+                      key={opt.id}
+                      option={opt}
+                      onSelect={() => completeOnboarding(opt.id)}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => completeOnboarding()}
+                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-[#d8ccc0] transition hover:border-[#f4d58d]/35 hover:text-[#fff7e8]"
+                >
+                  Entrar sem calibrar agora
+                  <ArrowRight size={16} />
+                </button>
               </div>
             </div>
           </div>
         </div>
       ) : null}
 
-      <header
-        className="pdu-site-header fixed left-0 right-0 top-0 border-b border-white/10 bg-[#09080d]/62 backdrop-blur-2xl"
-        data-condensed={headerCondensed ? "true" : "false"}
-      >
-        <div className="pdu-site-header__inner mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <a
-            href="#topo"
-            className="pdu-site-header__brand group flex min-w-0 items-center gap-3 sm:gap-4"
-            aria-label="Palavras do Universo"
-          >
-            <span className="pdu-site-header__brand-mark relative shrink-0 overflow-hidden border border-[#d7b66b]/24 bg-[#f4d58d]/8 shadow-[0_0_34px_rgba(215,182,107,0.14)]">
-              <Image
-                src={PDU_ASSETS.brand.symbol}
-                alt=""
-                width={64}
-                height={64}
-                unoptimized
-                className="pdu-site-header__brand-mark-image h-full w-full object-contain"
-              />
+      <header className="pdu-site-header fixed left-0 right-0 top-0 border-b border-white/10 bg-[#09080d]/62 backdrop-blur-2xl">
+        <div className="pdu-site-header__inner mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+          <a href="#topo" className="group flex items-center gap-3">
+            <span className="grid h-9 w-9 place-items-center rounded-[8px] border border-[#d7b66b]/35 bg-[#f4d58d]/10 text-[#f5d896] shadow-[0_0_32px_rgba(215,182,107,0.16)]">
+              <Sparkles size={18} strokeWidth={1.7} />
             </span>
-            <span className="pdu-site-header__wordmark relative block shrink">
-              <Image
-                src={PDU_ASSETS.brand.headerWordmark}
-                alt=""
-                fill
-                priority
-                unoptimized
-                sizes="(max-width: 640px) 41vw, 288px"
-                className="object-contain object-left"
-              />
+            <span className="brand-serif text-lg font-semibold tracking-normal text-[#fff7e8]">
+              Palavras do Universo
             </span>
           </a>
 
-          <nav
-            className="pdu-site-header__nav hidden items-center text-sm text-[#cfc4b9] md:flex"
-            aria-label={t("Navegação principal")}
-          >
-            <div className="pdu-site-header__explore relative">
-              <button
-                type="button"
-                className="pdu-site-header__explore-trigger"
-                aria-expanded={exploreMenuOpen}
-                aria-controls="pdu-explore-menu"
-                onClick={() => setExploreMenuOpen((open) => !open)}
-              >
-                <Compass size={15} aria-hidden="true" />
-                {t("Explorar")}
-                <ChevronDown
-                  size={14}
-                  aria-hidden="true"
-                  className={exploreMenuOpen ? "rotate-180" : ""}
-                />
-              </button>
-              {exploreMenuOpen ? (
-                <div
-                  id="pdu-explore-menu"
-                  className="pdu-site-header__explore-menu"
-                  role="menu"
-                  aria-label={t("Explorar")}
-                >
-                  <p className="pdu-site-header__explore-kicker">
-                    {t("Escolha uma porta")}
-                  </p>
-                  <a
-                    href="#produtos"
-                    role="menuitem"
-                    onClick={() => setExploreMenuOpen(false)}
-                  >
-                    <BookOpen size={16} aria-hidden="true" />
-                    <span>
-                      <strong>{t("Leituras")}</strong>
-                      <small>{t("Escolha uma leitura para o seu momento")}</small>
-                    </span>
-                  </a>
-                  <Link
-                    href="/carta-do-dia"
-                    role="menuitem"
-                    onClick={() => setExploreMenuOpen(false)}
-                  >
-                    <Star size={16} aria-hidden="true" />
-                    <span>
-                      <strong>{t("Carta do Dia")}</strong>
-                      <small>{t("Um símbolo para começar o dia")}</small>
-                    </span>
-                  </Link>
-                  <Link
-                    href="/tiradas"
-                    role="menuitem"
-                    onClick={() => setExploreMenuOpen(false)}
-                  >
-                    <Compass size={16} aria-hidden="true" />
-                    <span>
-                      <strong>{t("Tiradas")}</strong>
-                      <small>{t("Jogos para perguntas diferentes")}</small>
-                    </span>
-                  </Link>
-                  <Link
-                    href="/baralho"
-                    role="menuitem"
-                    onClick={() => setExploreMenuOpen(false)}
-                  >
-                    <Bookmark size={16} aria-hidden="true" />
-                    <span>
-                      <strong>{t("Baralho")}</strong>
-                      <small>{t("Conheça as cartas antes da leitura")}</small>
-                    </span>
-                  </Link>
-                  <Link
-                    href="/lab"
-                    role="menuitem"
-                    onClick={() => setExploreMenuOpen(false)}
-                  >
-                    <Sparkles size={16} aria-hidden="true" />
-                    <span>
-                      <strong>{t("Laboratório")}</strong>
-                      <small>{t("Organize o que você está vivendo")}</small>
-                    </span>
-                  </Link>
-                </div>
-              ) : null}
-            </div>
-            <Link
-              href="/astrologia"
-              className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/35 bg-[#f4d58d]/10 px-3 py-2 text-[#f5d896] transition hover:border-[#f4d58d]/70 hover:bg-[#f4d58d]/18"
-            >
-              <MoonStar size={15} aria-hidden="true" />
-              {t("Astrologia")}
-            </Link>
-            <Link href="/leitura-com-edu" className="pdu-site-header__nav-link">
-              {t("Leitura com o Edu")}
-            </Link>
-            <Link href="/profissionais" className="pdu-site-header__nav-link">
-              {t("Profissionais")}
-            </Link>
-            <Link
-              href="/meu-universo"
-              className="pdu-site-header__profile"
-              aria-label={t("Meu espaço")}
-            >
-              <span className="pdu-site-header__profile-avatar" aria-hidden="true">
-                <UserRound size={17} />
-              </span>
-              <span className="pdu-site-header__profile-copy">
-                <strong>{t("Meu espaço")}</strong>
-                <small>{t("Perfil e acessos")}</small>
-              </span>
-            </Link>
+          <nav className="hidden items-center gap-6 text-sm text-[#cfc4b9] md:flex">
+            <a href="#leitura" className="hover:text-white">
+              Leitura
+            </a>
+            <a href="/carta-do-dia" className="hover:text-white">
+              Carta do Dia
+            </a>
+            <a href="#ritual" className="hover:text-white">
+              Ritual
+            </a>
+            <a href="#produtos" className="hover:text-white">
+              Leituras
+            </a>
+            <a href="/baralho" className="hover:text-white">
+              Baralho
+            </a>
+            <a href="/meu-universo" className="hover:text-white">
+              Meu Universo
+            </a>
           </nav>
 
-          <Link
-            href="/astrologia"
-            onClick={() => setExploreMenuOpen(false)}
-            className="pdu-site-header__cta hidden items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1c1308] shadow-[0_14px_38px_rgba(244,213,141,0.22)] hover:bg-[#ffe3a3] sm:inline-flex"
-          >
-            <MoonStar size={16} />
-            {t("Conhecer Astrologia")}
-          </Link>
-
-          <div className="pdu-site-header__mobile-actions flex items-center gap-2 md:hidden">
-            <Link
-              href="/meu-universo"
-              className="pdu-site-header__mobile-account inline-flex items-center gap-1.5 rounded-full border border-[#f4d58d]/45 bg-[#f4d58d]/12 px-3 py-2 text-xs font-semibold text-[#fff7e8]"
-              aria-label={t("Meu espaço")}
-            >
-              <UserRound size={15} />
-              <span>{t("Perfil")}</span>
-            </Link>
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              className="pdu-site-header__mobile-toggle inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.06] p-2.5 text-[#f5d896]"
-              aria-label={mobileMenuOpen ? t("Fechar menu") : t("Abrir menu")}
-              aria-controls="pdu-mobile-menu"
-              aria-expanded={mobileMenuOpen}
-              onClick={() => {
-                setExploreMenuOpen(false);
-                setMobileMenuOpen((open) => !open);
-              }}
+              onClick={() => scrollToId("leitura")}
+              className="hidden items-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1c1308] shadow-[0_14px_38px_rgba(244,213,141,0.22)] hover:bg-[#ffe3a3] sm:inline-flex"
             >
-              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              <Sun size={16} />
+              Mensagem de hoje
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowMobileMenu(true)}
+              aria-label="Abrir menu"
+              className="grid h-9 w-9 place-items-center rounded-[8px] border border-white/12 bg-white/[0.06] text-[#cfc4b9] md:hidden"
+            >
+              <Menu size={18} />
             </button>
           </div>
         </div>
+      </header>
 
-        {mobileMenuOpen ? (
+      {showMobileMenu ? (
+        <div
+          className="fixed inset-0 z-[300] flex flex-col bg-[#09080d]/96 backdrop-blur-xl"
+          onClick={() => setShowMobileMenu(false)}
+        >
           <div
-            id="pdu-mobile-menu"
-            className="pdu-mobile-menu border-t border-white/10 bg-[#09080d]/98 px-4 pb-5 pt-3 md:hidden"
-            role="dialog"
-            aria-label={t("Navegação principal")}
+            className="flex items-center justify-between border-b border-white/10 px-4 py-3"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="pdu-mobile-menu__welcome">
-              <p>{t("O que você quer fazer?")}</p>
-              <strong>{t("Escolha um próximo passo")}</strong>
-            </div>
-            <nav className="pdu-mobile-menu__primary" aria-label={t("Ações principais")}>
-              <a
-                href="#leitura"
-                className="pdu-mobile-menu__featured"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span className="pdu-mobile-menu__featured-icon">
-                  <ArrowRight size={17} aria-hidden="true" />
-                </span>
-                <span>
-                  <strong>{t("Fazer uma leitura")}</strong>
-                  <small>{t("Escreva uma pergunta e abra suas cartas")}</small>
-                </span>
-                <ArrowRight size={16} aria-hidden="true" />
-              </a>
-              <Link
-                href="/astrologia"
-                className="pdu-mobile-menu__featured"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span className="pdu-mobile-menu__featured-icon">
-                  <MoonStar size={17} aria-hidden="true" />
-                </span>
-                <span>
-                  <strong>{t("Entrar na Astrologia")}</strong>
-                  <small>{t("Meu céu, meu pulso, meu mapa e meu tempo")}</small>
-                </span>
-                <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-              <Link
-                href="/leitura-com-edu"
-                className="pdu-mobile-menu__featured pdu-mobile-menu__featured--soft"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span className="pdu-mobile-menu__featured-icon">
-                  <Sparkles size={17} aria-hidden="true" />
-                </span>
-                <span>
-                  <strong>{t("Leitura com o Edu")}</strong>
-                  <small>{t("Converse sobre uma leitura realizada por ele")}</small>
-                </span>
-                <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-              <button
-                type="button"
-                className="pdu-mobile-menu__featured pdu-mobile-menu__featured--soft"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  openDailyMessage();
-                }}
-              >
-                <span className="pdu-mobile-menu__featured-icon">
-                  <Sun size={17} aria-hidden="true" />
-                </span>
-                <span>
-                  <strong>{t("Mensagem de hoje")}</strong>
-                  <small>{t("Uma pausa curta para o agora")}</small>
-                </span>
-                <ArrowRight size={16} aria-hidden="true" />
-              </button>
-              <Link
-                href="/meu-universo"
-                className="pdu-mobile-menu__profile-card"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span className="pdu-site-header__profile-avatar" aria-hidden="true">
-                  <UserRound size={17} />
-                </span>
-                <span>
-                  <strong>{t("Meu espaço")}</strong>
-                  <small>{t("Perfil, compras e leituras")}</small>
-                </span>
-                <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-            </nav>
-            <div className="pdu-mobile-menu__group">
-              <p>{t("Explorar")}</p>
-              <nav className="grid gap-1" aria-label={t("Explorar")}>
-                <Link href="/astrologia" onClick={() => setMobileMenuOpen(false)}>
-                  {t("Astrologia")}
-                </Link>
-                <Link href="/leitura-com-edu" onClick={() => setMobileMenuOpen(false)}>
-                  {t("Leitura com o Edu")}
-                </Link>
-                <a href="#produtos" onClick={() => setMobileMenuOpen(false)}>
-                  {t("Leituras")}
-                </a>
-                <Link href="/carta-do-dia" onClick={() => setMobileMenuOpen(false)}>
-                  {t("Carta do Dia")}
-                </Link>
-                <Link href="/tiradas" onClick={() => setMobileMenuOpen(false)}>
-                  {t("Tiradas")}
-                </Link>
-                <Link href="/baralho" onClick={() => setMobileMenuOpen(false)}>
-                  {t("Baralho")}
-                </Link>
-                <Link href="/lab" onClick={() => setMobileMenuOpen(false)}>
-                  {t("Laboratório")}
-                </Link>
-              </nav>
-            </div>
-            <div className="pdu-mobile-menu__group pdu-mobile-menu__group--last">
-              <p>{t("Apoio humano")}</p>
-              <Link href="/profissionais" onClick={() => setMobileMenuOpen(false)}>
-                {t("Conhecer profissionais")}
-              </Link>
-            </div>
-            <Link
-              href={buildLoginPath("/meu-universo")}
-              onClick={() => setMobileMenuOpen(false)}
-              className="pdu-mobile-menu__auth-cta"
-              data-testid="mobile-account-entry"
-            >
-              <UserRound size={16} />
-              {t("Entrar ou criar conta")}
-              <ArrowRight size={15} />
-            </Link>
+            <span className="brand-serif text-lg font-semibold text-[#fff7e8]">
+              Palavras do Universo
+            </span>
             <button
               type="button"
-              className="pdu-mobile-menu__cta mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-4 py-3 text-sm font-semibold text-[#1c1308]"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                openDailyMessage();
-              }}
+              onClick={() => setShowMobileMenu(false)}
+              aria-label="Fechar menu"
+              className="grid h-9 w-9 place-items-center rounded-[8px] border border-white/12 bg-white/[0.06] text-[#cfc4b9]"
             >
-              <Sun size={16} />
-              {t("Mensagem de hoje")}
+              <X size={18} />
             </button>
           </div>
-        ) : null}
-      </header>
+          <nav
+            className="flex flex-1 flex-col gap-1 px-4 py-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {[
+              { label: "Leitura", href: "#leitura" },
+              { label: "Carta do Dia", href: "/carta-do-dia" },
+              { label: "Ritual", href: "#ritual" },
+              { label: "Leituras", href: "#produtos" },
+              { label: "Baralho", href: "/baralho" },
+              { label: "Meu Universo", href: "/meu-universo" },
+            ].map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center rounded-[10px] border border-transparent px-4 py-4 text-base font-medium text-[#cfc4b9] hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+          <div className="border-t border-white/10 px-4 py-5">
+            <button
+              type="button"
+              onClick={() => { setShowMobileMenu(false); scrollToId("leitura"); }}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#1c1308] shadow-[0_14px_38px_rgba(244,213,141,0.22)]"
+            >
+              <Sun size={16} />
+              Mensagem de hoje
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {loading ? <ReadingCeremonyOverlay locale={locale} /> : null}
 
@@ -3295,17 +1380,17 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
             <div className="pdu-reveal pdu-hero-copy relative z-10">
               <p className="pdu-hero-kicker">
                 <MoonStar size={14} />
-                {t("Ritual diário de clareza")}
+                Ritual diário de clareza
               </p>
 
               <h1 className="brand-serif pdu-hero-title">
-                {t("A magia ainda existe. Às vezes, ela fala baixo.")}
+                A magia ainda existe. Às vezes, ela fala baixo.
               </h1>
 
               <p className="pdu-hero-body">
-                {locale === "en"
-                  ? "Choose a focus, write one honest question, and receive a reading with cards, context, and a possible next step."
-                  : "Escolha um foco, escreva uma pergunta honesta e receba uma leitura com cartas, contexto e um próximo passo possível."}
+                Palavras do Universo é um ritual diário para escutar os sinais
+                da vida com tarot, mensagens e ciclos. Uma pausa bonita para
+                lembrar que o invisível também acompanha o seu caminho.
               </p>
 
               <div className="pdu-hero-actions">
@@ -3314,44 +1399,34 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                   onClick={() => scrollToId("leitura")}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#1c1308] shadow-[0_18px_50px_rgba(244,213,141,0.24)] hover:bg-[#ffe3a3] sm:w-auto"
                 >
-                  <Feather size={18} />
-                  {locale === "en" ? "Start a reading" : "Começar uma leitura"}
+                  <Sparkles size={18} />
+                  Receber minha mensagem de hoje
                 </button>
                 <a
                   href="#produtos"
                   className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/14 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-[#f8efe2] backdrop-blur hover:border-[#f4d58d]/45 hover:bg-white/[0.1] sm:w-auto"
                 >
-                  {locale === "en" ? "See reading options" : "Ver opções de leitura"}
+                  Conhecer as leituras
                   <ArrowRight size={17} />
                 </a>
               </div>
 
               <div className="pdu-hero-proof">
-                <div className="pdu-proof-chip">
-                  <span className="pdu-mini-sigil">
-                    <Image src={PDU_ASSETS.icons.shield} alt="" fill sizes="1.6rem" className="object-contain" />
-                  </span>
-                  {t("Sem fatalismo")}
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-[#a7d7c5]" />
+                  Sem fatalismo
                 </div>
-                <div className="pdu-proof-chip">
-                  <span className="pdu-mini-sigil">
-                    <Image src={PDU_ASSETS.icons.sprout} alt="" fill sizes="1.6rem" className="object-contain" />
-                  </span>
-                  {t("Clareza prática")}
+                <div className="flex items-center gap-2">
+                  <BadgeCheck size={16} className="text-[#a7d7c5]" />
+                  Clareza prática
                 </div>
-                <div className="pdu-proof-chip">
-                  <span className="pdu-mini-sigil">
-                    <Image src={PDU_ASSETS.icons.bookmark} alt="" fill sizes="1.6rem" className="object-contain" />
-                  </span>
-                  {t("Jornada privada")}
+                <div className="flex items-center gap-2">
+                  <LockKeyhole size={16} className="text-[#a7d7c5]" />
+                  Jornada privada
                 </div>
-                <div className="pdu-proof-chip pdu-proof-chip--gold">
-                  <span className="pdu-mini-sigil">
-                    <Image src={PDU_ASSETS.icons.book} alt="" fill sizes="1.6rem" className="object-contain" />
-                  </span>
-                  {(1240 + (new Date().getDate() * 37 + new Date().getMonth() * 113) % 380).toLocaleString(locale)}
-                  {" "}
-                  {locale === "en" ? "readings opened today" : "leituras abertas hoje"}
+                <div className="flex items-center gap-2 text-[#f5d896]">
+                  <Sparkles size={16} />
+                  {(1240 + (new Date().getDate() * 37 + new Date().getMonth() * 113) % 380).toLocaleString("pt-BR")} leituras abertas hoje
                 </div>
               </div>
 
@@ -3362,7 +1437,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                   className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/[0.06] px-4 py-2 text-xs font-semibold text-[#d8ccc0] backdrop-blur hover:border-[#f4d58d]/40 hover:text-[#f4d58d]"
                 >
                   <MoonStar size={14} />
-                  {t("Receber mensagem diária por notificação")}
+                  Receber mensagem diária por notificação
                 </button>
               ) : push.state === "granted" ? (
                 <button
@@ -3371,218 +1446,172 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                   className="mt-5 inline-flex items-center gap-2 text-xs text-[#8d837b] hover:text-[#d8ccc0]"
                 >
                   <BadgeCheck size={14} className="text-[#a7d7c5]" />
-                  {t("Notificações ativas — clique para desativar")}
+                  Notificações ativas — clique para desativar
                 </button>
               ) : null}
 
-              <VoucherCodeEntry />
-
             </div>
 
-            <div className="pdu-reveal pdu-hero-side pdu-hero-side--logo">
-              <div
-                className="pdu-hero-mark"
-                data-ready={selectedHeroMark ? "true" : "false"}
-                aria-hidden="true"
-              >
-                {selectedHeroMark ? (
-                  <picture key={selectedHeroMark.assetPath} className="pdu-hero-mark__picture">
-                    {selectedHeroMark.mobileAssetPath ? (
-                      <source
-                        media="(max-width: 768px)"
-                        srcSet={selectedHeroMark.mobileAssetPath}
-                      />
-                    ) : null}
-                    <img
-                      src={selectedHeroMark.assetPath}
-                      alt=""
-                      width={1600}
-                      height={1600}
-                      decoding="async"
-                      fetchPriority="high"
-                      className="pdu-hero-mark__image h-full w-full object-contain"
-                      onError={handleHeroMarkError}
-                    />
-                  </picture>
-                ) : null}
-                {marketplaceSignals.map((signal, index) => {
-                  const Icon = signal.icon;
-                  return (
-                    <span
-                      key={signal.title}
-                      className="pdu-hero-mark__orbit"
-                      style={{ "--pdu-market-index": index } as CSSProperties}
-                    >
-                      <Icon size={18} strokeWidth={1.8} />
-                    </span>
-                  );
-                })}
-              </div>
-              <div className="pdu-hero-artifact-rail" aria-label={t("Âncoras da experiência")}>
-                {heroArtifacts.map((artifact) => (
-                  <div className="pdu-hero-artifact" key={artifact.label}>
-                    <span className="pdu-hero-artifact__visual relative">
-                      <Image
-                        src={artifact.assetPath}
-                        alt=""
-                        fill
-                        sizes="(max-width: 768px) 4rem, 5rem"
-                        quality={75}
-                        className="object-contain"
-                      />
-                    </span>
-                    <strong>{t(artifact.label)}</strong>
-                  </div>
-                ))}
+            <div className="pdu-reveal pdu-hero-side">
+              <div className="pdu-portal-console">
+                <div className="pdu-portal-console__visual">
+                  <Image
+                  src="/assets/palavrasuniverso.webp"
+                  alt=""
+                    fill
+                    priority
+                    sizes="(max-width: 768px) 92vw, 48vw"
+                    className="object-contain"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          <section
-            className="pdu-reveal mx-auto grid w-full max-w-6xl gap-3 rounded-[2rem] border border-[#d9bc91] bg-[#fffaf2] p-5 shadow-[0_18px_55px_rgba(55,36,18,0.08)] sm:grid-cols-3 sm:p-7"
-            aria-labelledby="quick-start-title"
+          <div
+            id="ritual"
+            className="pdu-reveal pdu-journey-map"
+            aria-label="Como a experiência funciona"
           >
-            <div className="sm:col-span-3">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#956d3c]">
-                {locale === "en" ? "Your guide" : "Seu guia"}
-              </p>
-              <h2 id="quick-start-title" className="mt-1 font-serif text-3xl font-semibold text-[#2d211a]">
-                {locale === "en" ? "What would you like to do?" : "O que você quer fazer agora?"}
-              </h2>
-            </div>
-            {quickStartOptions.map((option) => (
-              <a
-                key={option.label}
-                href={option.href}
-                className="group flex min-h-40 items-center gap-4 rounded-2xl border border-[#e8cfac] bg-[#fffdf9] p-4 transition hover:-translate-y-0.5 hover:border-[#a87b42] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6c4a26]"
-              >
-                <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#2d211a]">
+            {journeySteps.map((step) => (
+              <div key={step.label} className="pdu-journey-map__item">
+                <span className="pdu-journey-map__icon">
                   <Image
-                    src={option.assetPath}
+                    src={step.assetPath}
                     alt=""
-                    fill
-                    sizes="80px"
-                    className="object-contain p-1.5"
+                    width={92}
+                    height={92}
+                    className="h-full w-full object-contain"
                   />
                 </span>
-                <span>
-                  <strong className="block text-lg text-[#2d211a]">{t(option.label)}</strong>
-                  <span className="mt-1 block text-sm leading-5 text-[#725f52]">{t(option.text)}</span>
-                  <span className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#6c4a26]">
-                    {locale === "en" ? "Go" : "Abrir"} <ArrowRight size={15} />
-                  </span>
-                </span>
-              </a>
+                <div>
+                  <strong>{step.label}</strong>
+                  <p>{step.text}</p>
+                </div>
+              </div>
             ))}
-          </section>
+          </div>
 
-          <LumePresence
-            intentLabel={t(selectedPortalIntent.label)}
-            intentPurpose={t(selectedPortalIntent.purpose)}
-          />
+          <div className="pdu-reveal pdu-portal-entry">
+            <div className="pdu-portal-entry__copy">
+              <p className="pdu-portal-console__eyebrow">Antes da pergunta</p>
+              <h2 className="brand-serif">{selectedPortalIntent.title}</h2>
+              <p>
+                Escolha o tipo de clareza que você quer abrir. Isso muda a
+                pergunta sugerida, o tema da leitura e o tom da resposta.
+              </p>
+            </div>
+            <div className="pdu-portal-entry__controls">
+              <div className="pdu-portal-current">
+                <span>Intenção selecionada</span>
+                <strong>{selectedPortalIntent.label}</strong>
+                <p>{selectedPortalIntent.purpose}</p>
+              </div>
+              <div className="pdu-portal-transform" aria-live="polite">
+                <div>
+                  <span>Antes</span>
+                  <p>{selectedPortalIntent.from}</p>
+                </div>
+                <ArrowRight size={18} />
+                <div>
+                  <span>Depois</span>
+                  <p>{selectedPortalIntent.to}</p>
+                </div>
+              </div>
+              <div className="pdu-portal-intents">
+                {portalIntentOptions.map((intent) => (
+                  <button
+                    key={intent.id}
+                    type="button"
+                    onClick={() => openPortalIntent(intent)}
+                    data-active={intent.id === selectedPortalIntent.id}
+                    aria-label={`${intent.label}: ${intent.purpose}`}
+                  >
+                    <strong>{intent.label}</strong>
+                    <span>{intent.purpose}</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => scrollToId("leitura")}
+                className="pdu-portal-console__cta"
+              >
+                Abrir leitura com esta intenção
+                <Sparkles size={16} />
+              </button>
+            </div>
+          </div>
 
           <div
             id="leitura"
-            className="pdu-reveal pdu-mobile-deferred pdu-hero-reading relative z-10 mx-auto w-full max-w-6xl scroll-mt-28"
+            className="pdu-reveal pdu-hero-reading relative z-10 mx-auto w-full max-w-6xl scroll-mt-28"
           >
-            {readingOnly ? (
-              <Link href="/tiradas" className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-[#f5d896]">
-                <ArrowRight size={16} className="rotate-180" />
-                {t("Todas as tiradas")}
-              </Link>
-            ) : null}
             <div className="pdu-oracle-shell p-4 sm:p-5">
-                {readingOrigin === "restored" ? (
-                  <ReadingHistoryNotice
-                    locale={locale}
-                    updatedAt={restoredReadingAt}
-                    compact
-                  />
-                ) : null}
-                <div
-                  className="pdu-lume-reading-signature"
-                  aria-label={locale === "en" ? "Reading guided by Lume" : "Leitura guiada por Lume"}
-                >
-                  <span className="pdu-lume-reading-signature__seal relative">
-                    <Image
-                      src={PDU_ASSETS.symbolic.wingOracle}
-                      alt=""
-                      fill
-                      sizes="40px"
-                      quality={86}
-                      className="object-contain"
-                    />
-                  </span>
-                  <span className="pdu-lume-reading-signature__copy">
-                    <strong>{locale === "en" ? "Guided by Lume" : "Guiada pela Lume"}</strong>
-                    <span>
-                      {locale === "en"
-                        ? "Lume organizes the question and the symbols; you choose what to do with the clarity."
-                        : "A Lume organiza a pergunta e os símbolos; você escolhe o que fazer com a clareza."}
-                    </span>
-                  </span>
-                  <button type="button" onClick={requestLumeOpen} className="pdu-lume-reading-signature__button">
-                    {locale === "en" ? "How Lume works" : "Como a Lume funciona"}
-                    <ArrowRight size={13} />
-                  </button>
-                </div>
                 <div className="mb-4 flex items-start justify-between gap-4 border-b border-white/10 pb-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]">
                       {openingEyebrow}
                     </p>
                     <h2 className="brand-serif mt-1 text-3xl font-semibold text-[#fff7e8]">
-                      {activeReading || loading || hasSelectedPremiumSpread
-                        ? activeSpreadLabel
+                      {activeReading || loading
+                        ? "Caminho das 3 cartas"
                         : dailyOpening.energy}
                     </h2>
                   </div>
-                  <span className="pdu-reading-header-art relative grid shrink-0 place-items-center rounded-full border border-[#f4d58d]/25 bg-[#f4d58d]/10 text-[#f5d896]">
-                    <Image
-                      src={selectedSpreadVisual}
-                      alt=""
-                      fill
-                      sizes="8.75rem"
-                      quality={95}
-                      className="object-contain"
-                    />
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#f4d58d]/25 bg-[#f4d58d]/10 text-[#f5d896]">
+                    <MoonStar size={21} />
                   </span>
                 </div>
 
                 <div className="grid gap-5 lg:grid-cols-[0.94fr_1.06fr]">
                   <div className="space-y-4 order-2">
-                    {activeReading || loading ? (
-                      <>
-                        <p className="brand-serif text-xl leading-8 text-[#fff3df]">{openingTitle}</p>
-                        <div className="space-y-3 text-sm leading-6 text-[#cfc4b9]">
-                          <p><span className="font-semibold text-[#f5d896]">{t("Conselho:")}</span>{" "}{openingAdvice}</p>
-                          <p><span className="font-semibold text-[#f5d896]">{t("Afirmação:")}</span>{" "}{openingAffirmation}</p>
-                        </div>
-                      </>
-                    ) : null}
+                    <div className="pdu-ritual-whisper">
+                      <span className="pdu-ritual-whisper__icon">
+                        <Feather size={15} />
+                      </span>
+                      <span>
+                        Antes da carta, uma pausa. O oráculo responde melhor
+                        quando a pergunta vem inteira.
+                      </span>
+                    </div>
+                    <p className="brand-serif text-xl leading-8 text-[#fff3df]">
+                      {openingTitle}
+                    </p>
+                    <div className="space-y-3 text-sm leading-6 text-[#cfc4b9]">
+                      <p>
+                        <span className="font-semibold text-[#f5d896]">
+                          Conselho:
+                        </span>{" "}
+                        {openingAdvice}
+                      </p>
+                      <p>
+                        <span className="font-semibold text-[#f5d896]">
+                          Afirmação:
+                        </span>{" "}
+                        {openingAffirmation}
+                      </p>
+                    </div>
 
                     {loading ? (
-                      <ReadingSpreadPortal locale={locale} />
+                      <ReadingSpreadPortal />
                     ) : !activeReading ? (
                       <div className="pdu-reading-awaiting">
                         <span>
                           <Sparkles size={17} />
                         </span>
-                        <strong>{locale === "en" ? "One question is enough to begin." : "Uma pergunta basta para começar."}</strong>
+                        <strong>Escreva sua pergunta para revelar as cartas.</strong>
                         <p>
-                          {locale === "en"
-                            ? `The ${selectedSpreadConfig.positions.length} cards appear here only after the reading begins, so the daily message is not confused with the answer to your question.`
-                            : `As ${selectedSpreadConfig.positions.length} cartas aparecem quando você abrir a leitura.`}
+                          As três cartas aparecem aqui somente depois que a
+                          leitura começar, para não confundir mensagem diária
+                          com resposta da sua pergunta.
                         </p>
                       </div>
                     ) : (
                       <div
+                        id="cartas"
                         key={spreadCards.length ? spreadLine : dailyOpening.dateKey}
-                        style={{
-                          "--pdu-reading-columns": readingGridColumns,
-                          "--pdu-reading-mobile-columns": Math.min(readingGridColumns, 3),
-                        } as CSSProperties}
-                        className={`pdu-reading-card-grid grid gap-2 ${
+                        className={`pdu-reading-card-grid -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-2 sm:overflow-visible sm:px-0 sm:pb-0 ${
                           spreadCards.length ? "is-revealed" : ""
                         }`}
                       >
@@ -3590,11 +1619,21 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                           <div
                             key={card.position}
                             style={{ "--pdu-card-index": index } as CSSProperties}
+                            className="min-w-[min(46vw,160px)] flex-none snap-start sm:min-w-0 sm:flex-auto"
                           >
                             <TarotFrame
                               card={card}
                               compact
                               locale={locale}
+                              onClick={() => {
+                                const meaning = cardMeanings.find(
+                                  (m) => m.position === card.position
+                                );
+                                setSelectedSpreadCard({
+                                  ...card,
+                                  insight: meaning?.insight,
+                                });
+                              }}
                             />
                           </div>
                         ))}
@@ -3609,33 +1648,10 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                               {card.name}
                               {card.reversed ? reversedSuffix : ""}
                             </strong>
-                            {card.coreMeaning ? (
-                              <p>
-                                <b className="font-semibold text-[#f5d896]">
-                                  {locale === "en" ? "Represents:" : "Representa:"}
-                                </b>{" "}
-                                {card.coreMeaning}
-                              </p>
-                            ) : null}
                             <p>
-                              <b className="font-semibold text-[#a7d7c5]">
-                                {locale === "en" ? "In your question:" : "Na sua pergunta:"}
-                              </b>{" "}
                               {card.insight ||
-                                (locale === "en"
-                                  ? "Read this card alongside the direct answer and the spread below."
-                                  : "Leia esta carta junto da resposta direta e da tirada abaixo.")}
+                                "Leia esta carta junto da resposta direta e da tríade abaixo."}
                             </p>
-                            {card.lifeQuestion ? (
-                              <p className="italic text-[#a7d7c5]/90">
-                                <b className="not-italic">
-                                  {locale === "en"
-                                    ? "Question to carry:"
-                                    : "Pergunta para levar:"}
-                                </b>{" "}
-                                {card.lifeQuestion}
-                              </p>
-                            ) : null}
                           </div>
                         ))}
                       </div>
@@ -3646,184 +1662,96 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
-                          {activeSpreadLabel}
+                          Caminho das 3 Cartas
                         </p>
                         <p className="mt-1 text-sm text-[#cfc4b9]">
                           {readingProductKey === "free_daily"
-                            ? t("Situação, sombra e direção.")
-                            : t(`${selectedSpreadConfig.positions.length} posições conectadas à sua pergunta.`)}
+                            ? "Situação, sombra e direção."
+                            : "Leitura desbloqueada para este produto."}
                         </p>
                       </div>
                       {SelectedThemeIcon ? (
                         <div className="inline-flex items-center gap-2 rounded-full border border-white/12 px-3 py-1 text-xs text-[#efe2d2]">
                           <SelectedThemeIcon size={14} />
-                          {selectedTheme ? t(selectedTheme.label) : null}
+                          {selectedTheme?.label}
                         </div>
                       ) : null}
                     </div>
 
                     {readingProductKey !== "free_daily" ? (
                       <div className="mb-4 rounded-[8px] border border-[#a7d7c5]/24 bg-[#a7d7c5]/10 p-3 text-sm leading-6 text-[#d8fff0]">
-                        {t("Experiência selecionada:")}{" "}
+                        Acesso ativo para{" "}
                         <span className="font-semibold text-[#fff7e8]">
-                          {t(getProductName(readingProductKey))}
+                          {getProductName(readingProductKey)}
                         </span>
-                        {t(". O acesso será confirmado ao abrir a leitura.")}
+                        . Esta leitura vai usar o desbloqueio correspondente.
                       </div>
                     ) : null}
 
-                    <div>
-                      <p className="mb-2 text-sm font-semibold text-[#fff3df]">{locale === "en" ? "How do you arrive today?" : "Como você chega hoje?"}</p>
-                      <div className="grid grid-cols-2 gap-2">
-                      {readingMoodOptions.map((option) => (
+                    <div className="grid grid-cols-2 gap-2">
+                      {themeOptions.map((option) => (
                         <button
                           key={option.value}
                           type="button"
-                          onClick={() => selectThemeOption(option.value)}
+                          onClick={() => setTheme(option.value)}
                           disabled={loading}
-                          aria-pressed={theme === option.value}
-                          data-active={theme === option.value}
                           className={`inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium ${
                             theme === option.value
                               ? "border-[#f4d58d] bg-[#f4d58d] text-[#1c1308]"
                               : "border-white/12 bg-white/[0.05] text-[#d8ccc0] hover:border-[#f4d58d]/45"
-                          } pdu-touch-choice relative z-[1] touch-manipulation select-none disabled:cursor-wait disabled:opacity-50`}
+                          } disabled:cursor-wait disabled:opacity-50`}
                         >
                           <option.icon size={15} />
-                          {t(option.label)}
+                          {option.label}
                         </button>
                       ))}
-                      </div>
                     </div>
-
-                    {onboardingFocusOption ? (
-                      <div className="mt-4 rounded-[8px] border border-[#f4d58d]/20 bg-[#f4d58d]/8 p-3 text-sm leading-6 text-[#efe2d2]">
-                        <span className="font-semibold text-[#f5d896]">
-                          {locale === "en" ? "Starting point:" : "Ponto de partida:"}
-                        </span>{" "}
-                        {t(onboardingFocusOption.label)}.{" "}
-                        <span className="text-[#cfc4b9]">
-                          {locale === "en"
-                            ? "This signal helps shape the tone of this reading."
-                            : "Esse sinal ajuda a moldar o tom desta leitura."}
-                        </span>
-                      </div>
-                    ) : null}
 
                     <label
                       htmlFor="question"
                       className="mt-4 block text-sm font-semibold text-[#fff3df]"
                     >
-                      {locale === "en" ? "Your question" : "Sua pergunta"}
+                      Sua pergunta
                     </label>
-                    <p className="mt-1 text-sm leading-6 text-[#cfc4b9]">
-                      {locale === "en" ? "Write it in your own words. It can be simple." : "Escreva do seu jeito. Pode ser simples."}
-                    </p>
-                    <div
-                      className="mt-3 grid gap-2"
-                      aria-label={
-                        locale === "en"
-                          ? "Question examples"
-                          : "Exemplos de perguntas"
-                      }
-                    >
-                      {questionExamples[locale].slice(0, 2).map((example) => (
-                        <button
-                          key={example}
-                          type="button"
-                          onClick={() => {
-                            setSuggestedQuestionSource("example");
-                            setQuestion(example);
-                          }}
-                          className="rounded-[8px] border border-[#f4d58d]/20 bg-[#f4d58d]/[0.06] px-3 py-2.5 text-left text-sm leading-5 text-[#efe2d2] transition hover:border-[#f4d58d]/60 hover:bg-[#f4d58d]/[0.12] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f4d58d]"
-                        >
-                          {example}
-                        </button>
+                    <div className="pdu-ritual-prompts" aria-label="Como abrir a leitura">
+                      {ritualPrompts.map((prompt) => (
+                        <span key={prompt}>{prompt}</span>
                       ))}
                     </div>
                     <textarea
                       id="question"
                       value={question}
-                      onChange={(event) => {
-                        setSuggestedQuestionSource("");
-                        setQuestion(event.target.value);
-                      }}
+                      onChange={(event) => setQuestion(event.target.value)}
                       disabled={loading}
-                      className="mt-2 min-h-28 w-full resize-none rounded-[8px] border border-white/12 bg-black/24 p-3 text-base leading-6 text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/70 focus:ring-2 focus:ring-[#f4d58d]/10 sm:text-sm"
-                      placeholder={
-                        locale === "en"
-                          ? "Or write your own question here..."
-                          : "Ou escreva sua própria pergunta aqui..."
-                      }
+                      className="mt-2 min-h-28 w-full resize-none rounded-[8px] border border-white/12 bg-black/24 p-3 text-sm leading-6 text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/70 focus:ring-2 focus:ring-[#f4d58d]/10"
+                      placeholder="O que eu preciso enxergar sobre este momento?"
                     />
 
                     <button
                       type="button"
-                      onClick={() => {
-                        if (!canRun) return;
-                        run();
-                      }}
-                      disabled={openReadingButtonDisabled}
-                      aria-disabled={!canRun}
-                      data-testid="open-reading-button"
+                      onClick={() => run()}
+                      disabled={!canRun}
                       className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#a7d7c5] px-5 py-3 text-sm font-semibold text-[#07120e] shadow-[0_18px_46px_rgba(167,215,197,0.18)] hover:bg-[#c1ecdc] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                     <Sparkles size={18} />
-                     {!readingStateHydrated
-                        ? t("Preparando leitura...")
-                       : loading
-                        ? t("Abrindo a leitura...")
-                        : t("Fazer minha leitura")}
+                      <Sparkles size={18} />
+                      {loading ? "Abrindo a leitura..." : "Fazer minha leitura"}
                     </button>
 
                     {paywall ? (
                       <StatusPanel
                         tone="gold"
-                        title={
-                          paywall.kind === "auth"
-                            ? t("Entre para abrir esta experiência")
-                            : paywall.kind === "access"
-                              ? t("Esta tirada precisa de acesso")
-                              : t("Sua tirada continua disponível")
-                        }
-                        message={
-                          paywall.kind === "auth"
-                            ? t("Sua pergunta ficou salva neste navegador. Entre ou crie sua conta e volte diretamente para esta tirada.")
-                            : paywall.kind === "access"
-                              ? t("Compre esta tirada avulsa ou entre no Círculo para abrir todas as experiências premium.")
-                              : t("A leitura gratuita de hoje já foi usada. Crie uma conta grátis para proteger e rever esta tirada no Meu Universo, sem precisar assinar um plano.")
-                        }
-                        actionLabel={
-                          paywall.kind === "auth"
-                            ? t("Entrar ou criar conta")
-                            : paywall.kind === "access"
-                              ? t("Comprar esta tirada")
-                              : t("Criar conta grátis")
-                        }
-                        onAction={() => {
-                          if (paywall.kind === "auth") {
-                            window.location.href = buildLoginPath(`${readingOnly ? "/leitura" : "/"}?product=${encodeURIComponent(
-                              readingProductKey
-                            )}&currency=${encodeURIComponent(productCurrency)}${readingOnly ? "" : "#leitura"}`, {
-                              reason: "reading-access",
-                            });
-                            return;
-                          }
-                          if (paywall.kind === "access") {
-                            void startCheckout(readingProductKey);
-                            return;
-                          }
-                          window.location.href = buildLoginPath("/meu-universo?from=reading", {
-                            reason: "reading-history",
-                          });
-                        }}
+                        title="Limite gratuito do dia"
+                        message="Você já recebeu a leitura gratuita de hoje. O próximo passo natural é uma leitura mais profunda no Círculo do Universo."
+                        status={status}
+                        actionLabel="Entrar no Círculo"
+                        onAction={() => scrollToId("circulo")}
                       />
                     ) : null}
 
                     {repeat ? (
                       <div className="mt-4 rounded-[8px] border border-[#f4d58d]/24 bg-[#f4d58d]/8 p-4">
                         <h3 className="font-semibold text-[#fff3df]">
-                          {repeat.title ?? t("Vamos mudar o ângulo.")}
+                          {repeat.title ?? "Vamos mudar o ângulo."}
                         </h3>
                         <p className="mt-2 text-sm leading-6 text-[#d8ccc0]">
                           {repeat.message}
@@ -3856,8 +1784,8 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                     {error ? (
                       <StatusPanel
                         tone="rose"
-                        title={t("A leitura não abriu")}
-                        message={error}
+                        title="A leitura não abriu"
+                        message={`${error}${status ? ` (status ${status})` : ""}`}
                       />
                     ) : null}
                   </div>
@@ -3868,46 +1796,29 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
       </section>
 
       {result || loading ? (
-      <section
-        id="reading-opened"
-        data-reading-origin={readingOrigin}
-        className="pdu-mobile-deferred pdu-depth-section relative overflow-hidden border-y border-white/10 px-4 py-14 text-[#f8efe2] scroll-mt-28 sm:px-6 lg:px-8"
-      >
-        {readingOrigin === "restored" ? (
-          <ReadingHistoryNotice
-            locale={locale}
-            updatedAt={restoredReadingAt}
-            onStartNew={openDailyMessage}
-          />
-        ) : null}
-        <div className="pdu-open-reading-layout pdu-reveal is-visible mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.56fr_1.44fr] lg:items-start">
-          <div className="order-2 lg:order-1">
+      <section className="pdu-depth-section relative overflow-hidden border-y border-white/10 px-4 py-20 text-[#f8efe2] sm:px-6 lg:px-8">
+        <div className="pdu-reveal is-visible mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.74fr_1.26fr] lg:items-center">
+          <div>
             <SectionEyebrow dark>
-              {loading
-                ? t("Lume está abrindo")
-               : readingOrigin === "restored"
-                 ? locale === "en"
-                   ? "Previous reading"
-                   : "Tirada já lida"
-                 : t("Leitura aberta")}
+              {loading ? "Revelação em curso" : "Leitura aberta"}
             </SectionEyebrow>
             <h2 className="brand-serif max-w-xl text-4xl font-semibold leading-tight sm:text-5xl">
               {loading
-                ? t("Lume está encontrando a posição das suas cartas.")
-                : t("Clareza que vira próximo passo.")}
+                ? "Suas cartas estão encontrando posição."
+                : "Clareza que vira próximo passo."}
             </h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-[#d8ccc0]">
               {loading
-                ? t("As cartas antigas foram recolhidas. Lume está formando um caminho exclusivo para a pergunta que você acabou de fazer.")
-                : t("O Palavras do Universo não promete prever sua vida. Lume ajuda a escutar melhor o momento que você está vivendo.")}
+                ? "Não há cartas antigas neste intervalo. Um novo spread está sendo formado exclusivamente para a pergunta que você acabou de fazer."
+                : "O Palavras do Universo não promete prever sua vida. Ele ajuda a escutar melhor o momento que você está vivendo."}
             </p>
             {result ? (
               <div className="pdu-reading-outcome-guide mt-6">
                 {readingOutcomeSteps.map((step, index) => (
                   <div key={step.label}>
                     <span>0{index + 1}</span>
-                    <strong>{t(step.label)}</strong>
-                    <p>{t(step.text)}</p>
+                    <strong>{step.label}</strong>
+                    <p>{step.text}</p>
                   </div>
                 ))}
               </div>
@@ -3923,7 +1834,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
               >
                 <span className="pdu-save-action__content inline-flex items-center gap-2">
                   <Bookmark size={16} />
-                  {saved ? t("Mensagem salva") : t("Salvar mensagem")}
+                  {saved ? "Mensagem salva" : "Salvar mensagem"}
                 </span>
               </button>
               <button
@@ -3932,17 +1843,9 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                 className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/30 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-[#fff3df] hover:border-[#f4d58d]/65"
               >
                 <Share2 size={16} />
-                {t("Compartilhar")}
+                Compartilhar
               </button>
-              <FeedbackDialog source="reading" readingId={readingId} locale={locale} />
               </div>
-            ) : null}
-            {readingNotice ? (
-              <StatusPanel
-                tone="gold"
-                title={t("Última tirada reaberta")}
-                message={readingNotice}
-              />
             ) : null}
             {saveNotice ? (
               <p className="mt-3 text-sm leading-6 text-[#cfc4b9]">
@@ -3951,93 +1854,44 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                   href="/meu-universo"
                   className="font-semibold text-[#f5d896]"
                 >
-                  {t("Ver no Meu Universo")}
+                  Ver no Meu Universo
                 </a>
               </p>
             ) : null}
           </div>
 
-          <div className="pdu-result-stage order-1 lg:order-2">
+          <div className="pdu-result-stage">
             {loading ? (
-              <ReadingSpreadPortal immersive locale={locale} />
+              <ReadingSpreadPortal immersive />
             ) : (
-              <div className="pdu-result-card-strip" aria-label={localizedSpreadLine}>
-                {shownSpread.map((card, index) => (
-                  <article
-                    key={`${card.position}-${card.name}`}
-                    className="pdu-result-card-strip__item"
-                    style={{ "--pdu-card-index": index } as CSSProperties}
-                  >
-                    <TarotFrame card={card} compact eager locale={locale} />
-                    <div>
-                      <span>{card.position}</span>
-                      <strong>
-                        {card.name}
-                        {card.reversed ? reversedSuffix : ""}
-                      </strong>
-                    </div>
-                  </article>
-                ))}
-              </div>
+              <FloatingTarotSpread cards={shownSpread} />
             )}
             <div className="pdu-reading-transcript">
               <div className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
                 {loading
-                  ? t("Lume está escolhendo suas cartas")
-                  : localizedSpreadLine || t("Mensagem do Universo")}
+                  ? "O portal está escolhendo suas cartas"
+                  : spreadLine || "Mensagem do Universo"}
               </div>
               <div
                 key={result ? readingId ?? spreadLine : "reading-preview"}
                 className="pdu-reading-blocks min-h-72"
               >
                 {loading ? (
-                  <article
-                    className="pdu-reading-block"
-                    style={{ "--pdu-block-index": 0 } as CSSProperties}
-                  >
-                    <div className="pdu-reading-block__body">
-                      <p className="pdu-reading-block__line">
-                        {t("Sua pergunta chegou até Lume. Um novo caminho está sendo formado para este momento.")}
-                      </p>
-                    </div>
-                  </article>
+                  <p className="pdu-reading-block text-sm leading-7 text-[#efe2d2]">
+                    Sua pergunta atravessa o portal. As cartas antigas já foram
+                    recolhidas e um novo caminho está sendo formado para este
+                    momento.
+                  </p>
                 ) : (
-                  readingBlocks.map((block, index) => {
-                    const firstLine = block.lines[0] ?? "";
-
-                    return (
-                      <article
-                        key={`${block.title ?? "reading"}-${firstLine.slice(0, 18)}-${index}`}
-                        className="pdu-reading-block"
-                        style={{ "--pdu-block-index": index } as CSSProperties}
-                      >
-                        {block.title ? (
-                          <span className="pdu-reading-block__title">
-                            {block.title}
-                          </span>
-                        ) : null}
-                        <div className="pdu-reading-block__body">
-                          {block.lines.map((line, lineIndex) => {
-                            const isBullet = /^[-•]\s+/.test(line);
-                            const cleanLine = line.replace(/^[-•]\s+/, "").trim();
-
-                            return (
-                              <p
-                                key={`${cleanLine.slice(0, 24)}-${lineIndex}`}
-                                className={`pdu-reading-block__line${
-                                  isBullet
-                                    ? " pdu-reading-block__line--bullet"
-                                    : ""
-                                }`}
-                              >
-                                {cleanLine}
-                              </p>
-                            );
-                          })}
-                        </div>
-                      </article>
-                    );
-                  })
+                  readingBlocks.map((block, index) => (
+                    <p
+                      key={`${block.slice(0, 18)}-${index}`}
+                      className="pdu-reading-block whitespace-pre-wrap text-sm leading-7 text-[#efe2d2]"
+                      style={{ "--pdu-block-index": index } as CSSProperties}
+                    >
+                      {block}
+                    </p>
+                  ))
                 )}
               </div>
             </div>
@@ -4047,70 +1901,53 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
       ) : null}
 
       {result && readingProductKey === "free_daily" ? (
-      <section className="pdu-mobile-deferred border-b border-white/10 bg-[#0d0d16] px-4 py-16 text-[#f8efe2] sm:px-6 lg:px-8">
+      <section className="border-b border-white/10 bg-[#0d0d16] px-4 py-16 text-[#f8efe2] sm:px-6 lg:px-8">
         <div className="pdu-reveal is-visible mx-auto max-w-3xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f4d58d]">
-            {t("Próximos caminhos")}
+            Aprofunde a leitura
           </p>
-          <h2 className="pdu-next-paths__title brand-serif mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
-            {t("Sua leitura pode continuar no")}
-            <br aria-hidden="true" />
-            <span className="pdu-next-paths__destination">
-              {t("Meu Universo")}.
-            </span>
+          <h2 className="brand-serif mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
+            Quer ir mais fundo no que as cartas trouxeram?
           </h2>
           <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
-            {t("Crie uma conta grátis para proteger esta tirada, rever suas cartas e construir um contexto que poderá tornar as próximas orientações mais pessoais.")}
-          </p>
-          <a
-            href={buildLoginPath("/meu-universo?from=reading", {
-              reason: "reading-history",
-            })}
-            className="mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-6 py-3 text-sm font-semibold text-[#1c1308] transition hover:bg-[#ffe6a8]"
-          >
-            <UserRound size={17} />
-            {t("Criar conta grátis")}
-            <ArrowRight size={16} />
-          </a>
-          <p className="mt-10 text-xs font-semibold uppercase tracking-[0.16em] text-[#a9cdbf]">
-            {t("Quer abrir uma nova leitura agora?")}
+            Sua leitura gratuita abre o campo. Agora você pode transformar essa clareza em ação real.
           </p>
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             <a
-              href={buildLoginPath(buildCheckoutNextPath("clareza_urgente"))}
+              href={`/entrar?next=${encodeURIComponent("/?product=clareza_urgente#produtos")}`}
               className="group flex flex-col rounded-[10px] border border-[#f4d58d]/30 bg-white/[0.05] p-6 text-left transition hover:border-[#f4d58d]/60 hover:bg-white/[0.08]"
             >
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4d58d]">
-                {t("Leitura individual")}
+                Leitura individual
               </span>
               <span className="brand-serif mt-2 text-xl font-semibold leading-snug">
-                {t("Clareza Urgente")}
+                Clareza Urgente
               </span>
               <span className="mt-2 text-sm leading-6 text-[#d8ccc0]">
-                {t("Uma leitura premium para respirar, entender o que pesa e escolher o próximo passo hoje.")}
+                Uma leitura premium para respirar, entender o que pesa e escolher o próximo passo hoje.
               </span>
               <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#f4d58d]">
-                {t("Quero clareza agora")} — {urgentClarityPrice}
+                Quero clareza agora — R$19,90
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                   <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </span>
             </a>
             <a
-              href={buildLoginPath(buildCheckoutNextPath("circulo_do_universo"))}
+              href={`/entrar?next=${encodeURIComponent("/?product=circulo_do_universo#produtos")}`}
               className="group flex flex-col rounded-[10px] border border-[#a9cdbf]/30 bg-white/[0.05] p-6 text-left transition hover:border-[#a9cdbf]/60 hover:bg-white/[0.08]"
             >
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#a9cdbf]">
-                {t("Assinatura")}
+                Assinatura
               </span>
               <span className="brand-serif mt-2 text-xl font-semibold leading-snug">
-                {t("Círculo do Universo")}
+                Círculo do Universo
               </span>
               <span className="mt-2 text-sm leading-6 text-[#d8ccc0]">
-                {t("Histórico vivo, rituais semanais e leituras premium para transformar orientação em jornada.")}
+                Histórico vivo, rituais semanais e leituras ilimitadas para transformar orientação em jornada.
               </span>
               <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#a9cdbf]">
-                {t("Entrar no Círculo")} — {circleMonthlyPrice}/{circleCadenceSuffix}
+                Entrar no Círculo — R$29,90/mês
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                   <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
@@ -4124,198 +1961,139 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
       {result || showInvitedAction ? (
       <section
         id="acao"
-        className="pdu-mobile-deferred pdu-impact-section px-4 py-20 text-[#f8efe2] sm:px-6 lg:px-8 lg:py-28"
+        className="border-b border-white/10 bg-[#101019] px-4 py-20 text-[#f8efe2] sm:px-6 lg:px-8"
       >
-        <div className="pdu-reveal is-visible pdu-impact-shell mx-auto">
-          <div className="pdu-impact-story">
-            <span className="pdu-impact-eyebrow">
-              <span aria-hidden="true" />
-              {t("Palavras que viram ação")}
-            </span>
-            <h2 className="pdu-impact-title brand-serif">
-              {t("Clareza só muda a vida quando encontra um")}{" "}
-              <em>{t("gesto.")}</em>
-            </h2>
-            <p className="pdu-impact-copy">
-              {t(
-                "Escolha uma ação pequena, possível e concreta para realizar nas próximas 24 horas. Depois, convide alguém para continuar a corrente."
-              )}
-            </p>
-            {invitedBy ? (
-              <div className="pdu-impact-invite">
-                {t(
-                  "Alguém convidou você para continuar uma corrente de cuidado. Adapte o gesto à sua realidade e faça apenas o que for seguro e possível."
-                )}
-              </div>
-            ) : null}
-            <div className="pdu-impact-hero-art" aria-hidden="true">
-              <span className="pdu-impact-hero-art__orbit pdu-impact-hero-art__orbit--one" />
-              <span className="pdu-impact-hero-art__orbit pdu-impact-hero-art__orbit--two" />
-              <Image
-                src={PDU_ASSETS.symbolic.hourglass}
-                alt=""
-                width={880}
-                height={880}
-                sizes="(max-width: 1024px) 82vw, 42vw"
-                className="pdu-impact-hero-art__image"
-              />
-              <Image
-                src={PDU_ASSETS.symbolic.lotus}
-                alt=""
-                width={420}
-                height={420}
-                sizes="(max-width: 1024px) 34vw, 16vw"
-                className="pdu-impact-hero-art__lotus"
-              />
-            </div>
-          </div>
-
-          <div className="pdu-impact-panel">
-            <div className="pdu-impact-panel-heading">
-              <span aria-hidden="true" />
-              <strong>{t("Sugestões para agora")}</strong>
-              <span aria-hidden="true" />
+        <div className="pdu-reveal is-visible mx-auto max-w-7xl">
+          <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
+            <div>
+              <SectionEyebrow dark>Palavras que viram ação</SectionEyebrow>
+              <h2 className="brand-serif text-4xl font-semibold leading-tight sm:text-5xl">
+                Clareza só muda a vida quando encontra um gesto.
+              </h2>
+              <p className="mt-5 max-w-xl text-base leading-7 text-[#d8ccc0]">
+                Escolha uma ação pequena, possível e concreta para realizar nas
+                próximas 24 horas. Depois, convide alguém para continuar a
+                corrente.
+              </p>
+              {invitedBy ? (
+                <div className="mt-6 rounded-[8px] border border-[#a9cdbf]/35 bg-[#a9cdbf]/10 p-4 text-sm leading-6 text-[#d9f4e8]">
+                  Alguém convidou você para continuar uma corrente de cuidado.
+                  Adapte o gesto à sua realidade e faça apenas o que for seguro
+                  e possível.
+                </div>
+              ) : null}
             </div>
 
-            <div className="pdu-impact-card-grid">
-              {impactActionCards.map((action) => {
-                const selected = action.key === impactActionKey;
-                const visual =
-                  IMPACT_ACTION_VISUALS[action.key] ?? DEFAULT_IMPACT_ACTION_VISUAL;
-                const Icon = visual.icon;
-
-                return (
-                  <button
-                    key={action.key}
-                    type="button"
-                    onClick={() => selectImpactAction(action.key)}
-                    aria-pressed={selected}
-                    className={`pdu-impact-card ${selected ? "is-selected" : ""}`}
-                    style={
-                      {
-                        "--impact-accent": visual.accent,
-                        "--impact-glow": visual.glow,
-                      } as CSSProperties
-                    }
-                  >
-                    <span className="pdu-impact-card__media" aria-hidden="true">
-                      <Image
-                        src={visual.image}
-                        alt=""
-                        fill
-                        sizes="(max-width: 640px) 88vw, (max-width: 1024px) 42vw, 19vw"
-                        className="pdu-impact-card__image"
-                      />
-                    </span>
-                    <span className="pdu-impact-card__body">
-                      <span className="pdu-impact-card__area">
-                        <Icon size={17} strokeWidth={1.45} />
-                        <span>{t(IMPACT_AREA_LABELS[action.area])}</span>
+            <div className="rounded-[8px] border border-[#f4d58d]/24 bg-white/[0.045] p-5 shadow-[0_26px_80px_rgba(0,0,0,0.2)] sm:p-7">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {impactActions.map((action, index) => {
+                  const selected = action.key === impactActionKey;
+                  return (
+                    <button
+                      key={action.key}
+                      type="button"
+                      onClick={() => selectImpactAction(action.key)}
+                      className={`rounded-[8px] border p-4 text-left transition ${
+                        selected
+                          ? "border-[#f4d58d]/70 bg-[#f4d58d]/12"
+                          : "border-white/10 bg-black/10 hover:border-white/25"
+                      }`}
+                    >
+                      <span className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
+                        {index < 3 ? "Recomendada · " : ""}
+                        {IMPACT_AREA_LABELS[action.area]}
                       </span>
-                      <strong>{t(action.title)}</strong>
-                      <span className="pdu-impact-card__description">
-                        {t(action.description)}
+                      <strong className="mt-2 block text-sm text-[#fff7e8]">
+                        {action.title}
+                      </strong>
+                      <span className="mt-2 block text-xs leading-5 text-[#bfb3a9]">
+                        {action.description}
                       </span>
-                      <span className="pdu-impact-card__arrow" aria-hidden="true">
-                        <ArrowRight size={19} strokeWidth={1.8} />
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div
-              className="pdu-impact-plan-card"
-              style={
-                {
-                  "--impact-accent":
-                    (IMPACT_ACTION_VISUALS[impactActionKey] ??
-                      DEFAULT_IMPACT_ACTION_VISUAL).accent,
-                  "--impact-glow":
-                    (IMPACT_ACTION_VISUALS[impactActionKey] ??
-                      DEFAULT_IMPACT_ACTION_VISUAL).glow,
-                } as CSSProperties
-              }
-            >
-              <div className="pdu-impact-plan-main">
-                <label htmlFor="impact-plan" className="pdu-impact-plan-label">
-                  <Sparkles size={18} strokeWidth={1.55} />
-                  {t("Meu plano concreto")}
-                </label>
-                <button
-                  type="button"
-                  onClick={commitImpactAction}
-                  disabled={impactSaving || impactPlan.trim().length < 8}
-                  className="pdu-impact-plan-submit"
-                >
-                  {impactSaving
-                    ? t("Guardando compromisso...")
-                    : impactCommitment
-                      ? t("Atualizar meu compromisso")
-                      : t("Confirmar plano")}
-                  <ArrowRight size={18} strokeWidth={1.8} />
-                </button>
+                    </button>
+                  );
+                })}
               </div>
 
+              <label
+                htmlFor="impact-plan"
+                className="mt-6 block text-xs font-semibold uppercase tracking-[0.14em] text-[#f5d896]"
+              >
+                Meu plano concreto
+              </label>
               <textarea
                 id="impact-plan"
                 value={impactPlan}
                 onChange={(event) => setImpactPlan(event.target.value)}
                 maxLength={500}
-                rows={2}
-                className="pdu-impact-plan-input"
-                placeholder={t("Quando, onde e como você realizará esta ação?")}
+                rows={3}
+                className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-4 py-3 text-sm leading-6 text-[#fff7e8] outline-none placeholder:text-[#8d837b] focus:border-[#f4d58d]/60"
+                placeholder="Quando, onde e como você realizará esta ação?"
               />
 
-              <div className="pdu-impact-plan-fields">
-                <label>
-                  <span>{t("Para quem ou onde?")}</span>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#d8ccc0]">
+                  Para quem ou onde?
                   <input
                     value={impactBeneficiary}
                     onChange={(event) => setImpactBeneficiary(event.target.value)}
                     maxLength={240}
-                    placeholder={t("Ex.: uma amiga, minha rua, minha casa")}
+                    className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-3 py-2.5 text-sm font-normal normal-case tracking-normal text-[#fff7e8] outline-none focus:border-[#f4d58d]/60"
+                    placeholder="Ex.: uma amiga, minha rua, minha casa"
                   />
                 </label>
-                <label>
-                  <span>{t("Quando?")}</span>
+                <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#d8ccc0]">
+                  Quando?
                   <input
                     type="datetime-local"
                     value={impactScheduledFor}
                     onChange={(event) => setImpactScheduledFor(event.target.value)}
+                    className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-3 py-2.5 text-sm font-normal normal-case tracking-normal text-[#fff7e8] outline-none focus:border-[#f4d58d]/60"
                   />
                 </label>
               </div>
-
-              <label className="pdu-impact-first-step">
-                <span>{t("Menor primeiro passo")}</span>
+              <label className="mt-3 block text-xs font-semibold uppercase tracking-[0.12em] text-[#d8ccc0]">
+                Menor primeiro passo
                 <input
                   value={impactFirstStep}
                   onChange={(event) => setImpactFirstStep(event.target.value)}
                   maxLength={500}
-                  placeholder={t("Ex.: abrir a conversa e escrever a primeira frase")}
+                  className="mt-2 w-full rounded-[8px] border border-white/15 bg-black/20 px-3 py-2.5 text-sm font-normal normal-case tracking-normal text-[#fff7e8] outline-none focus:border-[#f4d58d]/60"
+                  placeholder="Ex.: abrir a conversa e escrever a primeira frase"
                 />
               </label>
 
-              <div className="pdu-impact-plan-footer">
-                <span>
-                  {selectedImpactAction
-                    ? t(selectedImpactAction.title)
-                    : t("Escolher uma ação")}
-                </span>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={commitImpactAction}
+                  disabled={impactSaving || impactPlan.trim().length < 8}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#1c1308] disabled:opacity-50"
+                >
+                  <HandHeart size={17} />
+                  {impactSaving
+                    ? "Guardando compromisso..."
+                    : impactCommitment
+                      ? "Atualizar meu compromisso"
+                      : "Assumir este compromisso"}
+                </button>
                 {impactCommitment ? (
-                  <button type="button" onClick={shareImpactAction}>
-                    <Share2 size={16} />
-                    {t("Convidar alguém")}
+                  <button
+                    type="button"
+                    onClick={shareImpactAction}
+                    className="inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/35 px-5 py-3 text-sm font-semibold text-[#fff3df]"
+                  >
+                    <Share2 size={17} />
+                    Convidar alguém
                   </button>
                 ) : null}
               </div>
 
               {impactNotice ? (
-                <p className="pdu-impact-notice">
+                <p className="mt-4 text-sm leading-6 text-[#d8ccc0]">
                   {impactNotice}{" "}
-                  <a href="/meu-universo">{t("Acompanhar no Meu Universo")}</a>
+                  <a href="/meu-universo" className="font-semibold text-[#f5d896]">
+                    Acompanhar no Meu Universo
+                  </a>
                 </p>
               ) : null}
             </div>
@@ -4326,7 +2104,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
 
       <section
         id="produtos"
-        className="pdu-mobile-deferred pdu-experience-section px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
+        className="pdu-experience-section px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
       >
         <div className="pdu-section-orbit pdu-section-orbit--left" aria-hidden="true">
           <MoonStar size={92} strokeWidth={1.15} />
@@ -4347,21 +2125,14 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                 próximo passo me faz melhor agora.
               </p>
             </div>
-            <div className="pdu-commerce-actions">
-              <ProductCurrencySwitch
-                currency={productCurrency}
-                locale={locale}
-                onChange={setProductCurrency}
-              />
-              <button
-                type="button"
-                onClick={() => scrollToId("leitura")}
-                className="inline-flex w-fit items-center gap-2 rounded-full bg-[#111019] px-5 py-3 text-sm font-semibold text-[#fff7e8] shadow-[0_18px_50px_rgba(17,16,25,0.18)] hover:bg-[#242130]"
-              >
-                <Feather size={17} />
-                Experimentar gratuitamente
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => scrollToId("leitura")}
+              className="inline-flex w-fit items-center gap-2 rounded-full bg-[#111019] px-5 py-3 text-sm font-semibold text-[#fff7e8] shadow-[0_18px_50px_rgba(17,16,25,0.18)] hover:bg-[#242130]"
+            >
+              <Feather size={17} />
+              Experimentar gratuitamente
+            </button>
           </div>
 
           <div className="pdu-magic-marquee pdu-scroll-reveal" aria-hidden="true">
@@ -4383,83 +2154,98 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
             ))}
           </div>
 
-          <div className="pdu-access-guide mt-10" aria-label={t("Formas de acesso")}>
+          <div className="pdu-access-guide mt-10" aria-label="Formas de acesso">
             {experienceAccessPaths.map((path, index) => (
-              <a key={path.label} href={path.href} className="pdu-access-guide__item">
+              <div key={path.label} className="pdu-access-guide__item">
                 <span className="pdu-access-guide__number">0{index + 1}</span>
-                <span className="pdu-access-guide__icon relative">
-                  <Image
-                    src={path.assetPath}
-                    alt=""
-                    fill
-                    sizes="6rem"
-                    className="object-contain"
-                  />
+                <span className="pdu-access-guide__icon">
+                  <path.icon size={34} strokeWidth={1.35} />
                 </span>
                 <div>
-                  <strong>{t(path.label)}</strong>
-                  <p>{t(path.text)}</p>
+                  <strong>{path.label}</strong>
+                  <p>{path.text}</p>
                 </div>
-              </a>
+              </div>
             ))}
           </div>
 
-          <div className="pdu-spread-showcase mt-10">
-            <div className="pdu-spread-showcase__visual">
-              <div className="pdu-spread-showcase__aura" aria-hidden="true" />
-              <Image
-                src={PDU_ASSETS.homepage.spreadsShowcase}
-                alt={t("Prévia visual de três tiradas premium do Palavras do Universo")}
-                width={1600}
-                height={960}
-                sizes="(max-width: 768px) 100vw, 58vw"
-                className="pdu-spread-showcase__image"
-              />
-              <div className="pdu-spread-showcase__badge">
-                <Sparkles size={15} />
-                {t("3 portas, uma biblioteca inteira")}
-              </div>
-            </div>
-
-            <div className="pdu-spread-showcase__content">
-              <p className="pdu-spread-showcase__eyebrow">
-                {t("Tiradas sem excesso")}
-              </p>
-              <h3 className="brand-serif pdu-spread-showcase__title">
-                {t("Três portas bastam para sentir o mapa.")}
-              </h3>
-              <p className="pdu-spread-showcase__text">
-                {t("A biblioteca completa fica na página de tiradas. Aqui a home mostra só uma amostra do ritmo, da profundidade e da diferença entre cada leitura.")}
-              </p>
-
-              <div className="pdu-spread-showcase__cards">
-                {homeSpreadShowcaseCards.map((spread) => (
-                  <Link
-                    key={spread.title}
-                    href={spread.href}
-                    className="pdu-spread-showcase__card"
+          <div className="pdu-product-river mt-10">
+            {productCards.map((product, index) => (
+              <article
+                key={product.title}
+                className={`pdu-product-node pdu-product-node--${product.mode} group`}
+                style={{ "--pdu-product-index": index } as CSSProperties}
+              >
+                <div className="pdu-product-node__top">
+                  <span
+                    className={`pdu-product-mode rounded-full px-3 py-1 text-xs font-semibold ${getProductModeClass(
+                      product.mode
+                    )}`}
                   >
-                    <span>{t(spread.label)}</span>
-                    <strong>{t(spread.title)}</strong>
-                    <p>{t(spread.text)}</p>
-                  </Link>
-                ))}
-              </div>
-
-              <div className="pdu-spread-showcase__actions">
-                <Link href="/tiradas" className="pdu-spread-showcase__primary">
-                  {t("Ver todas as tiradas")}
-                  <ArrowRight size={16} />
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => scrollToId("leitura")}
-                  className="pdu-spread-showcase__secondary"
-                >
-                  {t("Começar pela leitura grátis")}
-                </button>
-              </div>
-            </div>
+                    {getProductModeLabel(product.mode)}
+                  </span>
+                </div>
+                <ProductIconVisual title={product.title} />
+                <p className="pdu-product-node__eyebrow">
+                  {product.archetype}
+                </p>
+                <h3 className="brand-serif pdu-product-node__title">
+                  {product.title}
+                </h3>
+                <p className="pdu-product-node__promise">
+                  {product.promise}
+                </p>
+                <div className="pdu-product-node__transformation">
+                  <span className="font-semibold text-[#4d3c31]">
+                    Transformação:
+                  </span>{" "}
+                  {product.transformation}
+                </div>
+                <div className="pdu-product-node__details">
+                  <p>
+                    <span className="font-semibold text-[#4d3c31]">
+                      Melhor para:
+                    </span>{" "}
+                    {product.bestFor}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-[#4d3c31]">
+                      Não é para:
+                    </span>{" "}
+                    {product.notFor}
+                  </p>
+                </div>
+                {product.price ? (
+                  <p className="pdu-product-node__price">
+                    {product.price}
+                  </p>
+                ) : null}
+                {product.href ? (
+                  <a href={product.href} className={productActionClass}>
+                    {product.cta}
+                    <ArrowRight size={16} />
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      product.mode === "paid"
+                        ? startCheckout(product.productKey)
+                        : product.mode === "included"
+                          ? scrollToId("circulo")
+                          : scrollToId("leitura")
+                    }
+                    disabled={checkoutLoading === product.productKey}
+                    className={productActionClass}
+                  >
+                    {checkoutLoading === product.productKey
+                      ? "Abrindo checkout..."
+                      : product.cta}
+                    <ArrowRight size={16} />
+                  </button>
+                )}
+              </article>
+            ))}
           </div>
           {checkoutError ? (
             <p className="mt-6 max-w-2xl text-sm leading-6 text-[#7a2f2a]">
@@ -4468,166 +2254,39 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
           ) : null}
 
           <div className="pdu-trust-ribbon">
-            <span className="pdu-trust-ribbon__item">
-              <span className="pdu-mini-sigil pdu-mini-sigil--light">
-                <Image src={PDU_ASSETS.homepage.securePaymentValue} alt="" fill sizes="1.35rem" className="object-contain" />
-              </span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck size={14} />
               Pagamento seguro via Stripe
             </span>
-            <span className="pdu-trust-ribbon__item">
-              <span className="pdu-mini-sigil pdu-mini-sigil--light">
-                <Image src={PDU_ASSETS.homepage.completedActionsChecklist} alt="" fill sizes="1.35rem" className="object-contain" />
-              </span>
+            <span className="flex items-center gap-1.5">
+              <BadgeCheck size={14} />
               Satisfação garantida — refazemos a leitura se não trouxer clareza
             </span>
-            <span className="pdu-trust-ribbon__item">
-              <span className="pdu-mini-sigil pdu-mini-sigil--light">
-                <Image src={PDU_ASSETS.icons.shield} alt="" fill sizes="1.35rem" className="object-contain" />
-              </span>
+            <span className="flex items-center gap-1.5">
+              <LockKeyhole size={14} />
               Suas perguntas são privadas e nunca compartilhadas
             </span>
           </div>
-       </div>
-     </section>
-
-      <EduReadingHomeSection />
-
-      <section
-        id="lab"
-        className="pdu-mobile-deferred relative overflow-hidden bg-[#efe7d9] px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
-      >
-        <div className="pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full border border-[#c6a86b]/35" aria-hidden="true" />
-        <div className="pointer-events-none absolute -bottom-40 left-1/4 h-96 w-96 rounded-full border border-[#8cae9d]/30" aria-hidden="true" />
-        <div className="pdu-reveal relative z-10 mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-20">
-          <div className="max-w-2xl">
-            <SectionEyebrow>{t("Laboratório")}</SectionEyebrow>
-            <h2 className="brand-serif mt-4 text-4xl font-semibold leading-tight sm:text-6xl">
-              {t("Nem todo momento pede uma carta.")}
-            </h2>
-            <p className="mt-5 max-w-xl text-base leading-7 text-[#6f615a]">
-              {t("No Laboratório do Agora, você organiza o que sente, encontra um ponto de cuidado e escolhe um gesto possível — sem previsão e sem resposta pronta.")}
-            </p>
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <Link href="/lab" className="inline-flex items-center gap-2 rounded-full bg-[#2b211c] px-5 py-3 text-sm font-semibold text-[#fff8eb] shadow-[0_16px_36px_rgba(43,33,28,0.16)] transition hover:-translate-y-0.5 hover:bg-[#45342a]">
-                {t("Entrar no Laboratório")}
-                <ArrowRight size={16} />
-              </Link>
-              <a href="#leitura" className="inline-flex items-center gap-2 rounded-full border border-[#bda77f] px-5 py-3 text-sm font-semibold text-[#5c4635] hover:bg-[#f7efdf]">
-                {t("Prefiro começar com uma carta")}
-              </a>
-            </div>
-          </div>
-          <div className="relative min-h-[18rem] overflow-hidden rounded-[1.75rem] border border-[#d3bea0] bg-[#2a2140] p-5 shadow-[0_24px_60px_rgba(57,40,31,0.16)] sm:min-h-[23rem] sm:p-7">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(244,213,141,0.26),transparent_32%),linear-gradient(140deg,rgba(25,19,46,0.25),rgba(42,28,57,0.98))]" />
-            <div className="relative flex h-full min-h-[16rem] flex-col items-center justify-center text-center sm:min-h-[20rem]">
-              <div className="relative h-44 w-44 sm:h-56 sm:w-56">
-                <Image src={PDU_ASSETS.ambient.mandala} alt="" fill sizes="14rem" className="object-contain opacity-90 drop-shadow-[0_0_38px_rgba(244,213,141,0.32)]" />
-              </div>
-              <p className="-mt-3 max-w-xs text-sm leading-6 text-[#fff7e8]/80">{t("Sem cartas. Sem respostas prontas.")}</p>
-            </div>
-          </div>
         </div>
       </section>
 
-      <section
-        id="astrologia"
-        className="pdu-mobile-deferred relative overflow-hidden bg-[#171225] px-4 pb-24 pt-32 text-[#fff7e8] sm:px-6 md:py-28 lg:px-8 lg:py-32"
-      >
-        <Image src={PDU_ASSETS.astrology.skyAtmosphere} alt="" fill sizes="100vw" className="pointer-events-none object-cover opacity-35" aria-hidden="true" />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(23,18,37,0.72),rgba(23,18,37,0.86)_42%,#171225_100%)]" aria-hidden="true" />
-        <div className="pointer-events-none absolute -right-24 top-24 h-[28rem] w-[28rem] rounded-full bg-[#7049a5]/30 blur-3xl" aria-hidden="true" />
-        <div className="pdu-reveal relative z-10 mx-auto max-w-7xl">
-          <div className="grid gap-12 lg:grid-cols-[0.84fr_1.16fr] lg:items-center lg:gap-20">
-            <div className="max-w-2xl">
-              <SectionEyebrow dark>{locale === "en" ? "The astrology of Palavras do Universo" : "A astrologia do Palavras do Universo"}</SectionEyebrow>
-              <h2 className="brand-serif mt-4 text-5xl font-semibold leading-[0.98] sm:text-7xl">
-                {locale === "en" ? "Your sky is not a page. It is a living language." : "O seu céu não é uma página. É uma linguagem viva."}
-              </h2>
-              <p className="mt-6 max-w-xl text-base leading-8 text-[#d8ccc0]">
-                {locale === "en" ? "Astrology here is not reduced to a chart. It is a daily space to understand your moment, notice the pulse of the sky, read your birth map, move with time, and connect symbols with the life you are actually living." : "Aqui, astrologia não se resume a um mapa. É um espaço diário para compreender o seu momento, perceber o pulso do céu, ler o seu mapa de nascimento, atravessar o tempo e conectar símbolos com a vida que você realmente está vivendo."}
-              </p>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link href="/astrologia" className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#241b18] shadow-[0_16px_36px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:bg-[#ffe3a3]">
-                  {locale === "en" ? "Enter the astrology experience" : "Entrar na experiência de astrologia"}
-                  <ArrowRight size={16} />
-                </Link>
-                <span className="text-xs leading-5 text-[#bfb5ad]">{locale === "en" ? "A first look is free." : "A primeira camada é gratuita."}</span>
-              </div>
-            </div>
-
-            <div className="relative min-h-[27rem] overflow-hidden rounded-[34px] border border-[#f4d58d]/25 bg-[#171225]/75 p-5 shadow-[0_30px_90px_rgba(0,0,0,0.32)] backdrop-blur-sm sm:min-h-[34rem] sm:p-8">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(244,213,141,0.22),transparent_28%),linear-gradient(135deg,rgba(33,22,58,0.4),rgba(10,8,20,0.72))]" />
-              <div className="relative flex h-full min-h-[25rem] items-center justify-center">
-                <div className="absolute left-0 top-0 rounded-full border border-[#f4d58d]/25 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{locale === "en" ? "A universe in motion" : "Um universo em movimento"}</div>
-                <div className="relative h-[22rem] w-[22rem] sm:h-[28rem] sm:w-[28rem]">
-                  <Image src={PDU_ASSETS.astrology.orbitalMap} alt="" fill sizes="(max-width: 640px) 22rem, 28rem" className="object-contain opacity-90 drop-shadow-[0_0_44px_rgba(244,213,141,0.28)]" />
-                  <div className="absolute inset-[21%] animate-[spin_34s_linear_infinite] rounded-full border border-[#f4d58d]/25" aria-hidden="true" />
-                </div>
-                <div className="absolute bottom-0 right-0 max-w-[15rem] rounded-2xl border border-white/10 bg-[#0d0a17]/75 p-4 backdrop-blur-md">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{locale === "en" ? "Not prediction" : "Não é previsão"}</p>
-                  <p className="mt-2 text-sm leading-6 text-[#d8ccc0]">{locale === "en" ? "A symbolic compass for more presence, context, and choice." : "Uma bússola simbólica para mais presença, contexto e escolha."}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-20 grid gap-4 md:grid-cols-2">
-            {[
-              { asset: PDU_ASSETS.astrology.mySky, eyebrow: locale === "en" ? "Today" : "Hoje", title: locale === "en" ? "My Sky Today" : "Meu Céu Hoje", description: locale === "en" ? "A personal opening for the emotional weather of this day." : "Uma abertura pessoal para a atmosfera emocional deste dia." },
-              { asset: PDU_ASSETS.astrology.pulse, eyebrow: locale === "en" ? "Atmosphere" : "Atmosfera", title: locale === "en" ? "Cosmic Pulse" : "Pulso Cósmico", description: locale === "en" ? "A clear signal about where your energy is asking for direction." : "Um sinal claro sobre onde a sua energia está pedindo direção." },
-              { asset: PDU_ASSETS.astrology.myMap, eyebrow: locale === "en" ? "Personal map" : "Mapa pessoal", title: locale === "en" ? "My Map" : "Meu Mapa", description: locale === "en" ? "Planets, houses, aspects, and the language of your birth." : "Planetas, casas, aspectos e a linguagem do seu nascimento." },
-              { asset: PDU_ASSETS.astrology.myTime, eyebrow: locale === "en" ? "Timing" : "Ritmo", title: locale === "en" ? "My Time" : "Meu Tempo", description: locale === "en" ? "A softer way to move through the different hours of your day." : "Uma forma mais sensível de atravessar as diferentes horas do seu dia." },
-            ].map((item) => (
-              <Link key={item.title} href="/astrologia" className="group relative min-h-[15rem] overflow-hidden rounded-[28px] border border-white/10 bg-[#201834]/85 p-6 transition duration-500 hover:-translate-y-1 hover:border-[#f4d58d]/40 hover:bg-[#281e43] sm:min-h-[18rem] sm:p-8">
-                <div className="absolute -right-10 -top-8 h-64 w-64 opacity-75 transition duration-500 group-hover:scale-110 group-hover:opacity-100">
-                  <Image src={item.asset} alt="" fill sizes="16rem" className="object-contain" />
-                </div>
-                <div className="relative z-10 max-w-[58%]">
-                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#f5d896]">{item.eyebrow}</p>
-                  <h3 className="brand-serif mt-3 text-3xl font-semibold sm:text-4xl">{item.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-[#d8ccc0]">{item.description}</p>
-                  <span className="mt-5 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#a7d7c5]">{locale === "en" ? "Explore" : "Explorar"} <ArrowRight size={14} /></span>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          <div className="mt-5 grid gap-5 overflow-hidden rounded-[30px] border border-[#f4d58d]/20 bg-[#0d0a17]/70 p-5 sm:p-7 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
-            <div className="relative min-h-[14rem] overflow-hidden rounded-2xl bg-[#1d1531]">
-              <Image src={PDU_ASSETS.astrology.moonPortal} alt="" fill sizes="(max-width: 1024px) 100vw, 24rem" className="object-cover opacity-90 transition duration-700 hover:scale-105" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0d0a17]/80 via-transparent to-transparent" />
-              <span className="absolute bottom-4 left-4 rounded-full border border-white/15 bg-[#0d0a17]/60 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">{locale === "en" ? "Convergence" : "Convergência"}</span>
-            </div>
-            <div className="max-w-2xl px-1 sm:px-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]">{locale === "en" ? "The next layer" : "A próxima camada"}</p>
-              <h3 className="brand-serif mt-3 text-3xl font-semibold sm:text-4xl">{locale === "en" ? "When your sky meets your symbols." : "Quando o seu céu encontra os seus símbolos."}</h3>
-              <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">{locale === "en" ? "Your Tarot readings will be able to converse with the movements of your chart — as correspondence, never as fixed destiny. Over time, Lume and your symbolic memory make this experience more personal." : "As suas leituras de Tarot poderão conversar com os movimentos do seu mapa — como correspondência, nunca como destino fixo. Com o tempo, Lume e a sua memória simbólica tornam essa experiência cada vez mais pessoal."}</p>
-              <Link href="/astrologia" className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/40 px-5 py-3 text-sm font-semibold text-[#fff7e8] transition hover:bg-white/10">{locale === "en" ? "Enter my astrology" : "Entrar na minha astrologia"}<ArrowRight size={16} /></Link>
-            </div>
-          </div>
-
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6 text-xs text-[#bfb5ad]">
-            <span>{locale === "en" ? "Sun, Moon, rising sign, daily sky, pulse, timing, memory, Tarot, and Lume." : "Sol, Lua, Ascendente, céu diário, pulso, ritmo, memória, Tarot e Lume."}</span>
-            <span className="font-semibold uppercase tracking-[0.12em] text-[#f5d896]">{locale === "en" ? "The universe, with context" : "O universo, com contexto"}</span>
-          </div>
-        </div>
-      </section>
-
-     <section className="pdu-mobile-deferred pdu-universe-preview px-4 py-28 sm:px-6 lg:px-8">
+      <section className="pdu-universe-preview px-4 py-28 sm:px-6 lg:px-8">
         <div className="pdu-reveal mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
           <div className="pdu-universe-preview__copy">
-            <SectionEyebrow dark>{t("Meu Universo")}</SectionEyebrow>
+            <SectionEyebrow dark>Meu Universo</SectionEyebrow>
             <h2 className="brand-serif text-4xl font-semibold leading-tight text-[#fff7e8] sm:text-5xl">
-              {t("Quanto mais você usa, mais sua jornada ganha contexto.")}
+              Quanto mais você usa, mais sua jornada ganha contexto.
             </h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-[#d8ccc0]">
-              {t("Suas leituras salvas começam a formar um diário simbólico: temas que retornam, palavras que acalmam e sinais que ajudam a perceber a fase que você está atravessando.")}
+              Suas leituras salvas começam a formar um diário simbólico: temas
+              que retornam, palavras que acalmam e sinais que ajudam a perceber
+              a fase que você está atravessando.
             </p>
             <a
               href="/meu-universo"
               className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#1c1308] hover:bg-[#ffe3a3]"
             >
-              {t("Abrir Meu Universo")}
+              Abrir Meu Universo
               <ArrowRight size={16} />
             </a>
           </div>
@@ -4635,55 +2294,46 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
           <div className="pdu-feature-cloud">
             <div className="pdu-feature-cloud__core" aria-hidden="true">
               <Image
-                src={PDU_ASSETS.ambient.allConnected}
+                src={glossyIcons.bookmark}
                 alt=""
                 width={190}
                 height={190}
                 className="h-full w-full object-contain"
               />
             </div>
-            <div className="pdu-feature-cloud__symbols">
-              {floatingSymbols.map((symbol, index) => (
-                <div
+            {floatingSymbols.map((symbol, index) => {
+              const Icon = symbol.icon;
+              return (
+                <span
                   key={symbol.label}
-                  className="pdu-feature-cloud__symbol"
+                  className="pdu-floating-symbol"
                   style={{ "--pdu-symbol-index": index } as CSSProperties}
+                  aria-hidden="true"
                 >
-                  <span className="pdu-floating-symbol" aria-hidden="true">
-                    <Image
-                      src={symbol.assetPath}
-                      alt=""
-                      fill
-                      sizes="(max-width: 768px) 5rem, 8rem"
-                      className="object-contain"
-                    />
-                  </span>
-                  <span>{t(symbol.label)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="pdu-feature-cloud__tokens">
-              {universeFeatureTokens.map((item, index) => (
-                <div
-                  key={item}
-                  className="pdu-feature-token"
-                  style={{ "--pdu-token-index": index } as CSSProperties}
-                >
-                  {t(item)}
-                </div>
-              ))}
-            </div>
+                  <Icon size={34} strokeWidth={1.35} />
+                </span>
+              );
+            })}
+            {universeFeatureTokens.map((item, index) => (
+              <div
+                key={item}
+                className="pdu-feature-token"
+                style={{ "--pdu-token-index": index } as CSSProperties}
+              >
+                {item}
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       <section
         id="circulo"
-        className="pdu-mobile-deferred pdu-circle-section border-y border-white/10 px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
+        className="pdu-circle-section border-y border-white/10 px-4 py-24 text-[#1f1713] sm:px-6 lg:px-8 lg:py-32"
       >
         <div className="pdu-circle-sigil" aria-hidden="true">
           <Image
-            src={PDU_ASSETS.ambient.mandala}
+            src={glossyIcons.moon}
             alt=""
             width={260}
             height={260}
@@ -4726,9 +2376,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                       {plan.cadence}
                     </span>
                   ) : null}
-                  <span className="text-4xl font-semibold">
-                    {getPricingPlanPrice(plan, productCurrency)}
-                  </span>
+                  <span className="text-4xl font-semibold">{plan.price}</span>
                   {!isPrefixPriceCadence(plan.cadence) ? (
                     <span
                       className={
@@ -4787,7 +2435,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
         </div>
       </section>
 
-      <section className="pdu-mobile-deferred border-b border-white/10 bg-[#0a0918] px-4 py-16 sm:px-6 lg:px-8">
+      <section className="border-b border-white/10 bg-[#0a0918] px-4 py-16 sm:px-6 lg:px-8">
         <div className="pdu-reveal mx-auto max-w-7xl">
           <div className="text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
@@ -4799,9 +2447,9 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
           </div>
 
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {visibleTestimonials.map((t) => (
+            {testimonials.map((t) => (
               <blockquote
-                key={t.id}
+                key={t.name}
                 className="flex flex-col rounded-[10px] border border-white/10 bg-white/[0.04] p-6"
               >
                 <Quote size={20} className="mb-4 shrink-0 text-[#f4d58d]/50" />
@@ -4821,58 +2469,17 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
             ))}
           </div>
 
-          <div className="pdu-feedback-invitation mt-10">
-            <div className="pdu-feedback-invitation__art" aria-hidden="true">
-              <Image
-                src={PDU_ASSETS.editorial.portal}
-                alt=""
-                fill
-                sizes="8rem"
-                className="object-contain"
-              />
-              <Image
-                src={PDU_ASSETS.editorial.key}
-                alt=""
-                fill
-                sizes="6rem"
-                className="pdu-feedback-invitation__key object-contain"
-              />
-            </div>
-            <div className="relative z-10 max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f4d58d]">
-                {locale === "en" ? "The portal listens too" : "O portal também escuta"}
-              </p>
-              <h3 className="brand-serif mt-2 text-2xl font-semibold text-[#fff7e8] sm:text-3xl">
-                {locale === "en"
-                  ? "One sentence from you can light someone else’s way."
-                  : "Uma frase sua pode iluminar o caminho de outra pessoa."}
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-[#d8ccc0]">
-                {locale === "en"
-                  ? "Tell us what changed, what touched you, or which question stayed alive after the experience."
-                  : "Conte o que mudou, o que tocou você ou qual pergunta ficou viva depois da experiência."}
-              </p>
-            </div>
-            <FeedbackDialog source="footer" readingId={readingId} locale={locale} className="relative z-10 shrink-0" />
-          </div>
-
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-[#8d837b]">
-            <span className="pdu-proof-chip pdu-proof-chip--quiet">
-              <span className="pdu-mini-sigil">
-                <Image src={PDU_ASSETS.homepage.securePaymentValue} alt="" fill sizes="1.35rem" className="object-contain" />
-              </span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck size={14} className="text-[#a7d7c5]" />
               Pagamento seguro via Stripe
             </span>
-            <span className="pdu-proof-chip pdu-proof-chip--quiet">
-              <span className="pdu-mini-sigil">
-                <Image src={PDU_ASSETS.homepage.completedActionsChecklist} alt="" fill sizes="1.35rem" className="object-contain" />
-              </span>
+            <span className="flex items-center gap-1.5">
+              <BadgeCheck size={14} className="text-[#a7d7c5]" />
               Satisfação garantida — refazemos a leitura se não trouxer clareza
             </span>
-            <span className="pdu-proof-chip pdu-proof-chip--quiet">
-              <span className="pdu-mini-sigil">
-                <Image src={PDU_ASSETS.icons.shield} alt="" fill sizes="1.35rem" className="object-contain" />
-              </span>
+            <span className="flex items-center gap-1.5">
+              <LockKeyhole size={14} className="text-[#a7d7c5]" />
               Suas perguntas são privadas e nunca compartilhadas
             </span>
           </div>
@@ -4882,9 +2489,9 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
       <footer className="px-4 py-12 text-center text-xs leading-6 text-[#cfc4b9] sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl border-t border-white/10 pt-8">
           <nav className="mb-5 flex flex-wrap justify-center gap-x-5 gap-y-2 font-semibold text-[#f5d896]">
-            <a href="/termos">{t("Termos de uso")}</a>
-            <a href="/privacidade">{t("Privacidade")}</a>
-            <a href="/reembolsos">{t("Cancelamentos e reembolsos")}</a>
+            <a href="/termos">Termos de uso</a>
+            <a href="/privacidade">Privacidade</a>
+            <a href="/reembolsos">Cancelamentos e reembolsos</a>
           </nav>
           <p>
             Palavras do Universo oferece orientação simbólica para reflexão e
@@ -4892,9 +2499,8 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
             financeiro ou psicológico.
           </p>
           <p className="mt-3">
-            {t(
-              "Se você estiver em sofrimento intenso, em risco imediato ou pensando em se machucar, procure um serviço de emergência local ou ligue"
-            )}{" "}
+            Se você estiver em sofrimento intenso, em risco imediato ou pensando
+            em se machucar, procure um serviço de emergência local ou ligue{" "}
             <a
               href="https://cvv.org.br/ligue-188-3/"
               target="_blank"
@@ -4904,9 +2510,8 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
               188, CVV
               <LifeBuoy size={13} />
             </a>
-            {t(
-              ". Para acompanhamento profissional, você pode buscar psicólogos e profissionais qualificados no"
-            )}{" "}
+            . Para acompanhamento profissional, você pode buscar psicólogos e
+            profissionais qualificados no{" "}
             <a
               href="https://www.doctoralia.com.br/psicologo/online"
               target="_blank"
@@ -4916,12 +2521,55 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
               Doctoralia
               <ExternalLink size={13} />
             </a>
-            {t(
-              ", inclusive procurando opções acessíveis ou perguntando sobre valor social quando necessário."
-            )}
+            , inclusive procurando opções acessíveis ou perguntando sobre valor
+            social quando necessário.
           </p>
         </div>
       </footer>
+
+      <dialog
+        ref={spreadCardDialogRef}
+        onClick={(e) => { if (e.target === spreadCardDialogRef.current) setSelectedSpreadCard(null); }}
+        className="pdu-card-dialog m-auto max-h-[90dvh] w-[min(92vw,26rem)] overflow-y-auto rounded-[14px] border border-white/14 bg-[#0f0e19] p-0 text-[#f8efe2] shadow-[0_40px_140px_rgba(0,0,0,0.72)] backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+      >
+        {selectedSpreadCard ? (
+          <div>
+            <div className="relative aspect-[5/8]">
+              <Image
+                src={selectedSpreadCard.assetPath}
+                alt={selectedSpreadCard.name}
+                width={420}
+                height={680}
+                className={`h-full w-full object-cover ${selectedSpreadCard.reversed ? "rotate-180" : ""}`}
+              />
+              <button
+                type="button"
+                onClick={() => setSelectedSpreadCard(null)}
+                aria-label="Fechar"
+                className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border border-white/20 bg-black/50 text-white/80 backdrop-blur-sm hover:bg-black/70"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
+                {selectedSpreadCard.position}
+              </p>
+              <h3 className="brand-serif mt-1 text-2xl font-semibold text-[#fff7e8]">
+                {selectedSpreadCard.name}
+                {selectedSpreadCard.reversed
+                  ? locale === "en" ? " (reversed)" : " reversa"
+                  : ""}
+              </h3>
+              {selectedSpreadCard.insight ? (
+                <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">
+                  {selectedSpreadCard.insight}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </dialog>
     </main>
   );
 }
@@ -4952,13 +2600,18 @@ function TarotFrame(props: {
     assetPath: string;
   };
   compact?: boolean;
-  eager?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <div
-      className={`pdu-tarot-frame group overflow-hidden rounded-[8px] border border-[#f4d58d]/20 bg-[#111019] shadow-[0_18px_50px_rgba(0,0,0,0.2)] ${
+      className={`group relative overflow-hidden rounded-[8px] border border-[#f4d58d]/20 bg-[#111019] shadow-[0_18px_50px_rgba(0,0,0,0.2)] ${
         props.compact ? "min-h-36" : ""
-      }`}
+      } ${props.onClick ? "cursor-pointer hover:border-[#f4d58d]/50" : ""}`}
+      onClick={props.onClick}
+      role={props.onClick ? "button" : undefined}
+      tabIndex={props.onClick ? 0 : undefined}
+      onKeyDown={props.onClick ? (e) => { if (e.key === "Enter" || e.key === " ") props.onClick?.(); } : undefined}
+      aria-label={props.onClick ? `Ver detalhes de ${props.card.name}` : undefined}
     >
       <div className="relative aspect-[5/8]">
         <Image
@@ -4966,11 +2619,15 @@ function TarotFrame(props: {
           alt={`${props.card.position}: ${props.card.name}`}
           width={420}
           height={680}
-          loading={props.eager ? "eager" : "lazy"}
           className={`h-full w-full object-cover transition duration-500 group-hover:scale-[1.03] ${
             props.card.reversed ? "rotate-180" : ""
           }`}
         />
+        {props.onClick ? (
+          <div className="absolute inset-x-0 bottom-0 flex h-10 items-center justify-center bg-gradient-to-t from-black/60 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/80">Ver carta</span>
+          </div>
+        ) : null}
       </div>
       <div className="border-t border-[#f4d58d]/16 bg-black/30 p-2">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#f5d896]">
@@ -4993,12 +2650,12 @@ function ReadingCeremonyOverlay(props: { locale: "pt-BR" | "en" }) {
   const copy =
     props.locale === "en"
       ? {
-          title: `${LUME_NAME} is opening a new spread`,
-          body: "The previous cards have been gathered. Lume is drawing a clean path for this question.",
+          title: "A new spread is opening",
+          body: "Old cards have been gathered. The portal is drawing a clean path for this question.",
         }
       : {
-          title: `${LUME_NAME} está abrindo uma nova leitura`,
-          body: "As cartas antigas foram recolhidas. Lume está formando um caminho limpo para esta pergunta.",
+          title: "Um novo spread está abrindo",
+          body: "As cartas antigas foram recolhidas. O portal está formando um caminho limpo para esta pergunta.",
         };
 
   return (
@@ -5008,7 +2665,7 @@ function ReadingCeremonyOverlay(props: { locale: "pt-BR" | "en" }) {
         <span />
         <span />
       </div>
-      <ReadingSpreadPortal locale={props.locale} />
+      <ReadingSpreadPortal />
       <div className="pdu-reading-ceremony__copy">
         <strong>{copy.title}</strong>
         <span>{copy.body}</span>
@@ -5017,7 +2674,7 @@ function ReadingCeremonyOverlay(props: { locale: "pt-BR" | "en" }) {
   );
 }
 
-function ReadingSpreadPortal(props: { immersive?: boolean; locale?: "pt-BR" | "en" }) {
+function ReadingSpreadPortal(props: { immersive?: boolean }) {
   return (
     <div
       className={`pdu-reading-spread-portal ${
@@ -5035,11 +2692,186 @@ function ReadingSpreadPortal(props: { immersive?: boolean; locale?: "pt-BR" | "e
           />
         ))}
       </div>
-      <p>
-        {props.locale === "en"
-          ? "Lume is opening a new path for your question"
-          : "Lume está abrindo um novo caminho para sua pergunta"}
-      </p>
+      <p>Abrindo um novo caminho para sua pergunta</p>
+    </div>
+  );
+}
+
+function FloatingTarotSpread(props: {
+  cards: {
+    position: string;
+    name: string;
+    reversed: boolean;
+    assetPath: string;
+  }[];
+}) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [settlingIndex, setSettlingIndex] = useState<number | null>(null);
+  const settleTimer = useRef<number | null>(null);
+  const lastPointerType = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (settleTimer.current !== null) {
+        window.clearTimeout(settleTimer.current);
+      }
+    };
+  }, []);
+
+  function featureCard(index: number) {
+    if (settleTimer.current !== null) {
+      window.clearTimeout(settleTimer.current);
+    }
+
+    setSettlingIndex(null);
+    setActiveIndex(index);
+  }
+
+  function toggleCard(index: number) {
+    if (!window.matchMedia("(hover: none)").matches) {
+      return;
+    }
+
+    if (activeIndex === index) {
+      settleSpread();
+      return;
+    }
+
+    featureCard(index);
+  }
+
+  function settleSpread() {
+    if (activeIndex === null) {
+      return;
+    }
+
+    setSettlingIndex(activeIndex);
+    setActiveIndex(null);
+
+    if (settleTimer.current !== null) {
+      window.clearTimeout(settleTimer.current);
+    }
+
+    settleTimer.current = window.setTimeout(() => {
+      setSettlingIndex(null);
+      settleTimer.current = null;
+    }, 920);
+  }
+
+  return (
+    <div
+      className={`pdu-floating-spread ${
+        activeIndex !== null ? "is-active" : ""
+      } ${settlingIndex !== null ? "is-settling" : ""}`}
+      data-active={activeIndex ?? undefined}
+      data-settling={settlingIndex ?? undefined}
+      aria-label="Cartas da leitura"
+      onPointerLeave={(event) => {
+        if (event.pointerType !== "touch") {
+          settleSpread();
+        }
+      }}
+    >
+      <div className="pdu-floating-spread__orbit" />
+      {props.cards.map((card, index) => (
+        <figure
+          key={`floating-${card.position}`}
+          className={`pdu-floating-card pdu-floating-card--${index} ${
+            activeIndex === index ? "is-featured" : ""
+          } ${settlingIndex === index ? "is-settling-card" : ""}`}
+          role="button"
+          tabIndex={0}
+          aria-pressed={activeIndex === index}
+          onPointerDown={(event) => {
+            lastPointerType.current = event.pointerType;
+          }}
+          onPointerEnter={(event) => {
+            lastPointerType.current = event.pointerType;
+
+            if (event.pointerType !== "touch") {
+              featureCard(index);
+            }
+          }}
+          onPointerLeave={(event) => {
+            if (event.pointerType !== "touch") {
+              settleSpread();
+            }
+          }}
+          onClick={() => toggleCard(index)}
+          onFocus={() => {
+            if (lastPointerType.current !== "touch") {
+              featureCard(index);
+            }
+          }}
+          onBlur={settleSpread}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              if (activeIndex === index) {
+                settleSpread();
+              } else {
+                featureCard(index);
+              }
+            }
+          }}
+        >
+          <Image
+            src={card.assetPath}
+            alt={`${card.position}: ${card.name}`}
+            width={420}
+            height={680}
+            className={`h-full w-full object-cover ${
+              card.reversed ? "rotate-180" : ""
+            }`}
+          />
+          <figcaption>
+            <span>{card.position}</span>
+            <strong>{card.name}</strong>
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+  );
+}
+
+function ProductIconVisual(props: { title: string }) {
+  const [failed, setFailed] = useState(false);
+  const visual = productIconVisuals[props.title] ?? {
+    assetPath: "/icons/pdu/mensagem-do-dia.webp",
+    fallbackIcon: Sparkles,
+    tone: "gold" as const,
+  };
+  const FallbackIcon = visual.fallbackIcon;
+
+  return (
+    <div
+      className={`pdu-product-visual pdu-product-visual--${visual.tone} mb-5`}
+    >
+      <div className="pdu-product-visual__halo" />
+      <div className="pdu-product-visual__portal" aria-hidden="true" />
+      <div className="pdu-product-visual__veil pdu-product-visual__veil--back" aria-hidden="true" />
+      <div className="pdu-product-visual__ring pdu-product-visual__ring--outer" aria-hidden="true" />
+      <div className="pdu-product-visual__ring pdu-product-visual__ring--inner" aria-hidden="true" />
+      <div className="pdu-product-visual__veil pdu-product-visual__veil--front" aria-hidden="true" />
+      <div className="pdu-product-visual__beam" aria-hidden="true" />
+      {!failed ? (
+        <div className="pdu-product-visual__image relative z-10 transition duration-500 group-hover:scale-[1.04]">
+          <Image
+            src={visual.assetPath}
+            alt=""
+            fill
+            sizes="(max-width: 768px) 280px, 20vw"
+            className="object-contain"
+            onError={() => setFailed(true)}
+          />
+        </div>
+      ) : (
+        <div className="relative z-10 grid h-40 place-items-center">
+          <div className="pdu-product-visual__fallback">
+            <FallbackIcon size={62} strokeWidth={1.45} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -5048,6 +2880,7 @@ function StatusPanel(props: {
   tone: "gold" | "rose";
   title: string;
   message: string;
+  status?: number | null;
   actionLabel?: string;
   onAction?: () => void;
 }) {
@@ -5070,8 +2903,23 @@ function StatusPanel(props: {
           <ArrowRight size={16} />
         </button>
       ) : null}
+      {props.status ? (
+        <p className="mt-3 text-xs opacity-75">Status: {props.status}</p>
+      ) : null}
     </div>
   );
+}
+
+function getProductModeLabel(mode: string) {
+  if (mode === "paid") return "Pago avulso";
+  if (mode === "included") return "No Círculo";
+  return "Gratuito";
+}
+
+function getProductModeClass(mode: string) {
+  if (mode === "paid") return "bg-[#111019] text-[#fff7e8]";
+  if (mode === "included") return "bg-[#efe4ff] text-[#4b3d6b]";
+  return "bg-[#dfe7dc] text-[#425746]";
 }
 
 function getProductName(productKey: string) {
