@@ -295,13 +295,12 @@ export default function ProfessionalsMarketplacePage() {
                 text: "Briefing privado com contexto e retorno claro.",
                 icon: CalendarRange,
               },
-            ].map((step, index) => {
+            ].map((step) => {
               const Icon = step.icon;
               return (
                 <article
                   key={step.title}
-                  className="rounded-[24px] border border-white/10 bg-white/[0.045] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.18)]"
-                  style={{ transform: `translateY(${index * 12}px)` }}
+                  className="pdu-professional-step rounded-[24px] border border-white/10 bg-white/[0.045] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.18)]"
                 >
                   <span className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#f4d58d]/18 bg-[#f4d58d]/10 text-[#f5d896]">
                     <Icon size={18} />

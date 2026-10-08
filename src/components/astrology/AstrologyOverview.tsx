@@ -3,7 +3,7 @@
 import { ArrowRight, BookOpen, Clock3, MoonStar, Orbit, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef } from "react";
 import { useI18n } from "@/components/I18nProvider";
 import { recordSiteEvent } from "@/lib/client/siteEvents";
 import { appendMarketingAttribution, type MarketingAttribution } from "@/lib/marketing/attribution";
@@ -145,7 +145,7 @@ export function AstrologyOverview({ attribution = {} }: { attribution?: Marketin
                   <div className="absolute inset-[40%] rounded-full border border-[#d8c6ee]/35" aria-hidden="true" />
                   <div className="absolute left-[47%] top-[47%] h-[6%] w-[6%] rounded-full bg-[#fff2c2] shadow-[0_0_42px_14px_rgba(244,213,141,0.65)]" aria-hidden="true" />
                   <div className="absolute inset-0 overflow-hidden rounded-full" aria-hidden="true">
-                    {zodiacSigns.map((sign, index) => (
+                    {zodiacSigns.map((sign) => (
                       <Image
                         key={sign}
                         src={PDU_ASSETS.astrology.zodiacSigns[sign]}
@@ -154,9 +154,6 @@ export function AstrologyOverview({ attribution = {} }: { attribution?: Marketin
                         height={1800}
                         sizes="(max-width: 640px) 6rem, 9.5rem"
                         className={styles.zodiacSign}
-                        style={{
-                          "--zodiac-delay": `${index * -4}s`,
-                        } as CSSProperties}
                       />
                     ))}
                   </div>

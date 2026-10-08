@@ -424,8 +424,7 @@ export default function LumeGuide() {
                 fill
                 sizes="54px"
                 quality={88}
-                className="object-cover"
-                style={{ objectPosition: visual.objectPosition }}
+                className="pdu-lume-guide__visual-image object-cover"
               />
             </span>
             <div className="min-w-0 flex-1">
@@ -581,8 +580,7 @@ export function LumePresence({
             fill
             sizes="112px"
             quality={90}
-            className="object-cover"
-            style={{ objectPosition: visual.objectPosition }}
+            className="pdu-lume-presence__visual-image object-cover"
           />
         </span>
       </div>

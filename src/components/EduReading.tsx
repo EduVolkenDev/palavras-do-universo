@@ -56,6 +56,7 @@ const COPY = {
     closeText: "Se você tem interesse em uma leitura ou quer entender melhor como funciona, entre em contato. Vamos conversar sobre o que você está buscando.",
     unavailable: "O canal de contato está sendo atualizado. Volte em breve.",
     portraitAlt: "Edu segurando um leque de cartas de tarot diante de um portal dourado.",
+    storyImageAlt: "Pessoa contemplando o nascer do sol entre montanhas, cercada por órbitas e símbolos celestes dourados.",
   },
   en: {
     eyebrow: "Who is behind this",
@@ -96,6 +97,7 @@ const COPY = {
     closeText: "If you are interested in a reading or want to understand how it works, get in touch. We can talk about what you are looking for.",
     unavailable: "The contact channel is being updated. Please return soon.",
     portraitAlt: "Edu holding a fan of tarot cards in front of a golden portal.",
+    storyImageAlt: "Person watching the sunrise over mountains, surrounded by golden celestial orbits and symbols.",
   },
 } as const;
 
@@ -157,7 +159,27 @@ export function EduReadingPage() {
       </div>
     </section>
     <EduReadingBookingPanel />
-    <section id="historia" className="scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8 lg:py-28"><div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:gap-20"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8e674d]">{copy.storyEyebrow}</p><h2 className="brand-serif mt-4 text-4xl font-semibold leading-tight sm:text-5xl">{copy.storyTitle}</h2></div><div className="space-y-5 text-base leading-8 text-[#6f5d55]">{copy.story.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div></div></section>
+    <section id="historia" className="scroll-mt-24 overflow-hidden bg-[#f7f0e5] px-4 py-8 sm:px-6 lg:px-8 lg:py-12" aria-label={copy.storyEyebrow}>
+      <div className="mx-auto max-w-[90rem]">
+        <div className="mx-auto max-w-2xl py-8 md:hidden">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8e674d]">{copy.storyEyebrow}</p>
+          <h2 id="story-mobile-title" className="brand-serif mt-4 text-4xl font-semibold leading-tight">{copy.storyTitle}</h2>
+          <div className="mt-7 space-y-5 text-base leading-8 text-[#6f5d55]">{copy.story.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>
+        </div>
+        <Image
+          src={locale === "en" ? PDU_ASSETS.people.eduReadingBeginning : PDU_ASSETS.people.eduReadingBeginningPt}
+          alt={copy.storyImageAlt}
+          width={locale === "en" ? 5586 : 1860}
+          height={locale === "en" ? 2535 : 845}
+          sizes="(max-width: 1440px) 100vw, 90rem"
+          className="hidden h-auto w-full md:block"
+        />
+        <div className="hidden md:sr-only">
+          <h2 id="story-image-title">{copy.storyTitle}</h2>
+          {copy.story.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+        </div>
+      </div>
+    </section>
     <section className="bg-[#ede1cf] px-4 py-20 sm:px-6 lg:px-8 lg:py-28"><div className="mx-auto max-w-6xl"><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8e674d]">{copy.stepsEyebrow}</p><h2 className="brand-serif mt-4 max-w-2xl text-4xl font-semibold sm:text-5xl">{copy.stepsTitle}</h2><div className="mt-10 grid gap-5 md:grid-cols-3">{copy.steps.map(([title,text],index) => {
       const visuals = [
         { src: PDU_ASSETS.people.eduReadingLetter, alt: locale === "en" ? "Letter sealed with a crescent moon" : "Carta selada com uma lua crescente" },

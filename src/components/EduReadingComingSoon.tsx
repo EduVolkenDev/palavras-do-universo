@@ -197,17 +197,7 @@ export function EduReadingComingSoon() {
             className="object-cover object-[center_22%]"
           />
           <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10">
-            <p
-              className="max-w-sm text-sm leading-7 text-[#efe2d2]"
-              style={{
-                background: "#0a0303ad",
-                backdropFilter: "blur(10px)",
-                padding: "5px 10px",
-                borderRadius: "10px",
-                border: "2px outset #b8b4b4",
-                boxShadow: "0 0 10px",
-              }}
-            >
+            <p className="pdu-edu-reading-coming-soon__disclaimer max-w-sm text-sm leading-7 text-[#efe2d2]">
               {locale === "en"
                 ? "Until then, the digital experiences of Palavras do Universo remain available to explore at your own pace."
                 : "Enquanto isso, as experiências digitais do Palavras do Universo continuam disponíveis para você explorar no seu ritmo."}

@@ -3403,41 +3403,40 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
           </div>
 
           <section
-            className="pdu-reveal mx-auto grid w-full max-w-6xl gap-3 rounded-[2rem] border border-[#d9bc91] bg-[#fffaf2] p-5 shadow-[0_18px_55px_rgba(55,36,18,0.08)] sm:grid-cols-3 sm:p-7"
+            className="pdu-reveal pdu-quick-start"
             aria-labelledby="quick-start-title"
           >
-            <div className="sm:col-span-3">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#956d3c]">
+            <div className="pdu-quick-start__heading">
+              <p className="pdu-quick-start__eyebrow">
                 {locale === "en" ? "Your guide" : "Seu guia"}
               </p>
-              <h2 id="quick-start-title" className="mt-1 font-serif text-3xl font-semibold text-[#2d211a]">
+              <h2 id="quick-start-title" className="pdu-quick-start__title">
                 {locale === "en" ? "What would you like to do?" : "O que você quer fazer agora?"}
               </h2>
             </div>
-            {quickStartOptions.map((option) => (
-              <a
-                key={option.label}
-                href={option.href}
-                className="group flex min-h-40 items-center gap-4 rounded-2xl border border-[#e8cfac] bg-[#fffdf9] p-4 transition hover:-translate-y-0.5 hover:border-[#a87b42] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6c4a26]"
-              >
-                <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#2d211a]">
-                  <Image
-                    src={option.assetPath}
-                    alt=""
-                    fill
-                    sizes="80px"
-                    className="object-contain p-1.5"
-                  />
-                </span>
-                <span>
-                  <strong className="block text-lg text-[#2d211a]">{t(option.label)}</strong>
-                  <span className="mt-1 block text-sm leading-5 text-[#725f52]">{t(option.text)}</span>
-                  <span className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#6c4a26]">
-                    {locale === "en" ? "Go" : "Abrir"} <ArrowRight size={15} />
+            <div className="pdu-quick-start__grid">
+              {quickStartOptions.map((option) => (
+                <a key={option.label} href={option.href} className="pdu-quick-start__card">
+                  <span className="pdu-quick-start__asset">
+                    <Image
+                      src={option.assetPath}
+                      alt=""
+                      width={80}
+                      height={80}
+                      sizes="80px"
+                      className="pdu-quick-start__asset-image"
+                    />
                   </span>
-                </span>
-              </a>
-            ))}
+                  <span className="pdu-quick-start__copy">
+                    <strong className="pdu-quick-start__card-title">{t(option.label)}</strong>
+                    <span className="pdu-quick-start__card-description">{t(option.text)}</span>
+                    <span className="pdu-quick-start__card-cta">
+                      {locale === "en" ? "Go" : "Abrir"} <ArrowRight size={15} />
+                    </span>
+                  </span>
+                </a>
+              ))}
+            </div>
           </section>
 
           <LumePresence

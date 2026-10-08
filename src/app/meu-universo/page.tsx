@@ -2831,8 +2831,7 @@ function UniverseSkeleton({ variant }: { variant: "access" | "readings" | "saved
         {[0, 1, 2].map((item) => (
           <div
             key={item}
-            className="h-24 animate-pulse rounded-2xl border border-[#eadcc8] bg-[linear-gradient(100deg,rgba(255,255,255,0.4),rgba(244,213,141,0.22),rgba(255,255,255,0.42))]"
-            style={{ animationDelay: `${item * 120}ms` }}
+            className="pdu-universe-skeleton h-24 animate-pulse rounded-2xl border border-[#eadcc8] bg-[linear-gradient(100deg,rgba(255,255,255,0.4),rgba(244,213,141,0.22),rgba(255,255,255,0.42))]"
           />
         ))}
       </div>
