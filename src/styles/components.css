@@ -2717,7 +2717,6 @@
   justify-self: center;
   filter: drop-shadow(0 34px 92px rgba(0, 0, 0, 0.42));
   transform: translate3d(0, calc(var(--pdu-scroll-shift, 0px) * 0.06), 0);
-  animation: pdu-hero-mark-float 12s ease-in-out 900ms infinite;
 }
 
 .pdu-portal-console__visual img {
@@ -3140,9 +3139,7 @@
   opacity: 1;
   filter: drop-shadow(0 34px 92px rgba(0, 0, 0, 0.38));
   transform: translate3d(0, calc(var(--pdu-scroll-shift, 0px) * 0.06), 0);
-  animation:
-    pdu-hero-mark-arrive 2500ms cubic-bezier(0.16, 1, 0.3, 1) 180ms both,
-    pdu-hero-mark-float 12s ease-in-out 2680ms infinite;
+  animation: pdu-hero-mark-arrive 2500ms cubic-bezier(0.16, 1, 0.3, 1) 180ms both;
 }
 
 .pdu-hero-mark::before,
@@ -8192,9 +8189,7 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
   .pdu-hero-mark {
     width: 100vw;
     max-width: none;
-    animation:
-      pdu-hero-mark-arrive-large 1800ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both,
-      pdu-hero-mark-float 10s ease-in-out 2050ms infinite;
+    animation: pdu-hero-mark-arrive-large 1800ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both;
   }
 
   .pdu-hero-side--logo {

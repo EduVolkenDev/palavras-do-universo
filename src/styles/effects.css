@@ -200,19 +200,6 @@
   }
 }
 
-@keyframes pdu-hero-mark-float {
-  0%,
-  100% {
-    translate: 0 0;
-    rotate: 0deg;
-  }
-
-  50% {
-    translate: 0 -18px;
-    rotate: 1.2deg;
-  }
-}
-
 @keyframes pdu-hero-mark-pulse {
   0%,
   100% {
