@@ -344,15 +344,18 @@ const quickStartOptions = [
 
 const heroArtifacts = [
   {
-    label: "1. Mensagem do dia",
+    label: "Mensagem do dia",
+    description: "Abre o clima emocional do dia. É uma orientação curta, não uma resposta para uma pergunta.",
     assetPath: PDU_ASSETS.homepage.dailyReadingBookCards,
   },
   {
-    label: "2. Carta do dia",
+    label: "Carta do dia",
+    description: "Mostra um símbolo para contemplar. A carta ilumina um tema; a leitura aprofunda uma escolha.",
     assetPath: PDU_ASSETS.productIcons.cardOfTheDay,
   },
   {
-    label: "4. Ritual",
+    label: "Ritual",
+    description: "Transforma a leitura em uma ação simples para levar a clareza para o corpo e para a rotina.",
     assetPath: PDU_ASSETS.homepage.completedActionsChecklist,
   },
 ] as const;
@@ -3382,10 +3385,13 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                   );
                 })}
               </div>
-              <div className="pdu-hero-artifact-rail" aria-label={t("Âncoras da experiência")}>
+              <section className="pdu-hero-artifact-rail" aria-labelledby="hero-artifacts-title">
+                <p id="hero-artifacts-title" className="pdu-hero-artifact-rail__eyebrow">
+                  {t("Como funciona")}
+                </p>
                 {heroArtifacts.map((artifact) => (
-                  <div className="pdu-hero-artifact" key={artifact.label}>
-                    <span className="pdu-hero-artifact__visual relative">
+                  <article className="pdu-hero-artifact" key={artifact.label}>
+                    <span className="pdu-hero-artifact__visual relative" aria-hidden="true">
                       <Image
                         src={artifact.assetPath}
                         alt=""
@@ -3395,10 +3401,13 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                         className="object-contain"
                       />
                     </span>
-                    <strong>{t(artifact.label)}</strong>
-                  </div>
+                    <span className="pdu-hero-artifact__copy">
+                      <strong>{t(artifact.label)}</strong>
+                      <span className="pdu-hero-artifact__description">{t(artifact.description)}</span>
+                    </span>
+                  </article>
                 ))}
-              </div>
+              </section>
             </div>
           </div>
 
