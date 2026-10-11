@@ -7912,7 +7912,10 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
   align-items: center;
   gap: 0.55rem;
   border-top: 1px solid rgba(244, 213, 141, 0.22);
+  color: inherit;
+  text-decoration: none;
   padding: 0.72rem 0.1rem 0.15rem;
+  transition: border-color 220ms ease, transform 220ms ease;
 }
 
 .pdu-hero-artifact__visual {
@@ -7945,6 +7948,27 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
   color: rgba(247, 236, 222, 0.68);
   font-size: 0.62rem;
   line-height: 1.45;
+}
+
+.pdu-hero-artifact__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  width: fit-content;
+  color: #f4d58d;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.pdu-hero-artifact:hover {
+  border-top-color: rgba(244, 213, 141, 0.7);
+  transform: translateY(-2px);
+}
+
+.pdu-hero-artifact:focus-visible {
+  outline: 2px solid rgba(244, 213, 141, 0.9);
+  outline-offset: 5px;
 }
 
 .pdu-reading-header-art {
@@ -8055,6 +8079,20 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
     font-size: 0.64rem;
   }
 
+  .pdu-hero-artifact__action {
+    font-size: 0.66rem;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdu-hero-artifact {
+    transition: none;
+  }
+
+  .pdu-hero-artifact:hover {
+    transform: none;
+  }
 }
 
 /* Hero scale and cinematic entrance: the mark is the visual event, not a thumbnail. */

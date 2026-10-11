@@ -346,16 +346,22 @@ const heroArtifacts = [
   {
     label: "Mensagem do dia",
     description: "Abre o clima emocional do dia. É uma orientação curta, não uma resposta para uma pergunta.",
+    cta: "Receber agora",
+    href: "#leitura",
     assetPath: PDU_ASSETS.homepage.dailyReadingBookCards,
   },
   {
     label: "Carta do dia",
     description: "Mostra um símbolo para contemplar. A carta ilumina um tema; a leitura aprofunda uma escolha.",
+    cta: "Tirar minha carta",
+    href: "/carta-do-dia",
     assetPath: PDU_ASSETS.productIcons.cardOfTheDay,
   },
   {
     label: "Ritual",
     description: "Transforma a leitura em uma ação simples para levar a clareza para o corpo e para a rotina.",
+    cta: "Entrar no Laboratório",
+    href: "/lab",
     assetPath: PDU_ASSETS.homepage.completedActionsChecklist,
   },
 ] as const;
@@ -3390,7 +3396,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                   {t("Como funciona")}
                 </p>
                 {heroArtifacts.map((artifact) => (
-                  <article className="pdu-hero-artifact" key={artifact.label}>
+                  <Link className="pdu-hero-artifact" href={artifact.href} key={artifact.label}>
                     <span className="pdu-hero-artifact__visual relative" aria-hidden="true">
                       <Image
                         src={artifact.assetPath}
@@ -3404,8 +3410,12 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                     <span className="pdu-hero-artifact__copy">
                       <strong>{t(artifact.label)}</strong>
                       <span className="pdu-hero-artifact__description">{t(artifact.description)}</span>
+                      <span className="pdu-hero-artifact__action">
+                        {t(artifact.cta)}
+                        <ArrowRight size={14} aria-hidden="true" />
+                      </span>
                     </span>
-                  </article>
+                  </Link>
                 ))}
               </section>
             </div>
