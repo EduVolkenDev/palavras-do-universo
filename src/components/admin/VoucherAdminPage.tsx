@@ -409,6 +409,12 @@ export default function VoucherAdminPage({
                   Feedbacks
                 </Link>
                 <Link
+                  href="/admin/mapas"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#caa96c]/55 bg-[#2a2119] px-4 py-2 text-sm font-semibold text-[#f4d58d] sm:w-auto"
+                >
+                  Criar mapas
+                </Link>
+                <Link
                   href="/meu-universo"
                   className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f4d58d] px-4 py-2 text-sm font-semibold text-[#1b1713] sm:w-auto"
                 >

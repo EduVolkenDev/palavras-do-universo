@@ -62,6 +62,12 @@ type ActiveReading = { body: AstrologySelection; source: "core" } | { body: Nata
 type Chart = Pick<NatalChart, "locationLabel" | "timePrecision" | "houseSystem" | "ascendant" | "positions" | "aspects">;
 type ChartLoadFailure = "birth-data-required" | "session-expired" | "unavailable";
 
+type AstrologyChartExperienceProps = {
+  initialChart?: Chart;
+  initialAccessLevel?: "preview" | "full";
+  adminMode?: boolean;
+};
+
 const zodiacSigns: ZodiacSign[] = [
   "aries",
   "taurus",
@@ -94,13 +100,17 @@ function formatPlacement(sign: ZodiacSign, degreesInSign: number, locale: Astrol
   return `${degreesInSign.toFixed(1)}° ${getSignInterpretation(sign, locale).label}`;
 }
 
-export function AstrologyChartExperience() {
+export function AstrologyChartExperience({
+  initialChart,
+  initialAccessLevel = "preview",
+  adminMode = false,
+}: AstrologyChartExperienceProps = {}) {
   const { locale } = useI18n();
   const isEnglish = locale === "en";
   const { currency } = useProductCurrency(locale);
-  const [chart, setChart] = useState<Chart | null>(null);
-  const [accessLevel, setAccessLevel] = useState<"preview" | "full">("preview");
-  const [loading, setLoading] = useState(true);
+  const [chart, setChart] = useState<Chart | null>(initialChart ?? null);
+  const [accessLevel, setAccessLevel] = useState<"preview" | "full">(initialAccessLevel);
+  const [loading, setLoading] = useState(!initialChart);
   const [loadFailure, setLoadFailure] = useState<ChartLoadFailure | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState("");
   const [checkoutError, setCheckoutError] = useState("");
@@ -113,6 +123,14 @@ export function AstrologyChartExperience() {
   const [expandedAspect, setExpandedAspect] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialChart) {
+      setChart(initialChart);
+      setAccessLevel(initialAccessLevel);
+      setLoadFailure(null);
+      setLoading(false);
+      return;
+    }
+
     let active = true;
     const controller = new AbortController();
 
@@ -186,7 +204,7 @@ export function AstrologyChartExperience() {
       active = false;
       controller.abort();
     };
-  }, [isEnglish]);
+  }, [initialAccessLevel, initialChart, isEnglish]);
 
   const positionMap = useMemo(
     () => new Map((chart?.positions ?? []).map((position) => [position.body, position])),
@@ -290,13 +308,15 @@ export function AstrologyChartExperience() {
         <div className="pointer-events-none absolute -bottom-56 left-1/3 h-[30rem] w-[30rem] rounded-full bg-[#f4d58d]/10 blur-3xl" aria-hidden="true" />
         <div className="relative mx-auto max-w-6xl">
           <div className="flex flex-wrap items-center gap-5">
-            <Link href="/astrologia" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#d9c49f] hover:text-white">
+            <Link href={adminMode ? "/admin/mapas" : "/astrologia"} className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#d9c49f] hover:text-white">
               <ChevronLeft size={15} />
-              {isEnglish ? "Astrology" : "Astrologia"}
+              {adminMode ? (isEnglish ? "Map creator" : "Criar mapas") : (isEnglish ? "Astrology" : "Astrologia")}
             </Link>
-            <Link href="/meu-universo" className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a99c98] transition hover:text-white">
-              {isEnglish ? "My Universe" : "Meu Universo"}
-            </Link>
+            {!adminMode ? (
+              <Link href="/meu-universo" className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a99c98] transition hover:text-white">
+                {isEnglish ? "My Universe" : "Meu Universo"}
+              </Link>
+            ) : null}
           </div>
           <div className="mt-12 grid items-center gap-8 lg:grid-cols-[1.04fr_0.96fr] lg:gap-4">
             <div className="relative z-10 lg:pb-8">
@@ -375,15 +395,17 @@ export function AstrologyChartExperience() {
           </div>
         </section>
 
-        <AstrologyDailySky
-          locale={astrologyLocale}
-          mapAccessLevel={accessLevel}
-          circlePrice={circlePrice}
-          checkoutLoading={checkoutLoading === "circulo_do_universo"}
-          checkoutDisabled={checkoutRecoveryPending || Boolean(checkoutLoading && checkoutLoading !== "circulo_do_universo")}
-          checkoutError={checkoutError}
-          onCheckout={() => startCheckout("circulo_do_universo")}
-        />
+        {!adminMode ? (
+          <AstrologyDailySky
+            locale={astrologyLocale}
+            mapAccessLevel={accessLevel}
+            circlePrice={circlePrice}
+            checkoutLoading={checkoutLoading === "circulo_do_universo"}
+            checkoutDisabled={checkoutRecoveryPending || Boolean(checkoutLoading && checkoutLoading !== "circulo_do_universo")}
+            checkoutError={checkoutError}
+            onCheckout={() => startCheckout("circulo_do_universo")}
+          />
+        ) : null}
 
         <div className="mt-12 flex flex-wrap items-end justify-between gap-5">
           <div>

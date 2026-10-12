@@ -1279,13 +1279,21 @@ export default function MeuUniversoPage() {
               </span>
             ) : null}
             {hasOwnerAdminAccess ? (
-              <Link
-                href="/admin/codigos"
-                className="ml-2 inline-flex items-center gap-1.5 rounded-lg border border-[#d8c3a6] bg-white/70 px-3 py-1.5 font-semibold text-[#4d3c31]"
-              >
-                <ShieldCheck size={14} />
-                Admin
-              </Link>
+              <span className="ml-2 inline-flex items-center gap-2">
+                <Link
+                  href="/admin/mapas"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#d8c3a6] bg-white/70 px-3 py-1.5 font-semibold text-[#4d3c31]"
+                >
+                  <ShieldCheck size={14} />
+                  Mapas
+                </Link>
+                <Link
+                  href="/admin/codigos"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#d8c3a6] bg-white/70 px-3 py-1.5 font-semibold text-[#4d3c31]"
+                >
+                  Admin
+                </Link>
+              </span>
             ) : null}
             {accountEmail ? (
               <form action="/auth/signout?next=/entrar" method="post">
