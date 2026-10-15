@@ -196,6 +196,45 @@ test("astrology birth data stays separate, authenticated and consent-gated", asy
   assert.match(timeResolution, /candidateOffsetsMinutes/);
 });
 
+test("owner client maps are saved privately, listed, reopened and exportable", async () => {
+  const migration = await source(
+    "supabase/migrations/20261013133325_create_astrology_client_maps.sql"
+  );
+  const mapsRoute = await source("src/app/api/admin/astrology/maps/route.ts");
+  const mapRoute = await source("src/app/api/admin/astrology/maps/[id]/route.ts");
+  const mapsServer = await source("src/lib/astrology/client-maps-server.ts");
+  const detailPage = await source("src/app/admin/mapas/[id]/page.tsx");
+  const adminPage = await source("src/components/admin/AstrologyMapAdminPage.tsx");
+  const viewer = await source("src/components/admin/AstrologyMapViewer.tsx");
+
+  assert.match(migration, /create table if not exists public\.astrology_client_maps/);
+  assert.match(migration, /owner_user_id uuid not null references auth\.users/);
+  assert.match(migration, /alter table public\.astrology_client_maps enable row level security/);
+  assert.match(migration, /revoke all on table public\.astrology_client_maps from anon, authenticated/);
+  assert.match(mapsRoute, /requireApiUser/);
+  assert.match(mapsRoute, /isOwnerAccessUser\(auth\.user\)/);
+  assert.match(mapsRoute, /MAP_SAVE_CONSENT_REQUIRED/);
+  assert.match(mapsRoute, /validateAstrologyBirthData/);
+  assert.match(mapsRoute, /calculateNatalChart/);
+  assert.match(mapsRoute, /createAstrologyClientMap/);
+  assert.match(mapRoute, /getAstrologyClientMap\(auth\.user\.id, id\)/);
+  assert.match(mapsServer, /\.eq\("owner_user_id", ownerUserId\)/);
+  assert.match(detailPage, /isOwnerAccessUser\(user\)/);
+  assert.match(adminPage, /fetch\("\/api\/admin\/astrology\/maps"/);
+  assert.match(adminPage, /Salvar mapa do aluno/);
+  assert.match(adminPage, /\/admin\/mapas\/\$\{savedMapId\}/);
+  const report = await source("src/components/admin/AstrologyMapReport.tsx");
+  assert.match(viewer, /printCompleteAstrologyMap/);
+  assert.match(report, /window\.print\(\)/);
+  assert.match(report, /chart\.positions\.map/);
+  assert.match(report, /chart\.aspects\.map/);
+  assert.match(report, /length: 12/);
+  assert.match(report, /PersonalizedPlacementReading/);
+  assert.match(report, /image\.decode\(\)/);
+  assert.match(viewer, /Exportar PDF/);
+  assert.match(viewer, /AstrologyChartExperience initialChart=\{map\.chart\}/);
+});
+
 test("astrology client bridge stays same-origin and preserves the server contract", async () => {
   const client = await source("src/lib/astrology/birth-data-client.ts");
 
@@ -264,7 +303,7 @@ test("the astrology campaign keeps context through auth, unknown birth time, che
   const landingPage = await source("src/app/astrologia/page.tsx");
   const landing = await source("src/components/astrology/AstrologyOverview.tsx");
   const mapPage = await source("src/app/astrologia/mapa/page.tsx");
-  const mapEntry = await source("src/components/astrology/AstrologyMapEntry.tsx");
+  const authPage = await source("src/app/entrar/page.tsx");
   const mapExperience = await source("src/components/astrology/AstrologyChartExperience.tsx");
   const birthProfile = await source("src/components/astrology/AstrologyBirthProfileCard.tsx");
   const natalChart = await source("src/lib/astrology/natal-chart.ts");
@@ -273,12 +312,14 @@ test("the astrology campaign keeps context through auth, unknown birth time, che
   assert.doesNotMatch(landingPage, /product === "mapa_astral"/);
   assert.match(landing, /appendMarketingAttribution\(mapQuery, attribution\)/);
   assert.match(landing, /formatProductPrice\("mapa_astral"/);
-  assert.match(mapPage, /if \(!user\) return <AstrologyMapEntry mapPath=\{mapPath\} \/>/);
-  assert.doesNotMatch(mapPage, /redirect\(buildLoginPath/);
-  assert.match(mapEntry, /buildLoginPath\(mapPath, \{ lang: locale \}\)/);
-  assert.match(mapEntry, /Start with the free layer|Começar pela camada gratuita/);
-  assert.match(mapEntry, /only when you choose to prepare your personal map|só é necessária quando você decidir preparar seu mapa pessoal/);
-  assert.match(mapEntry, /formatProductPrice\("mapa_astral", currency\)/);
+  assert.match(landing, /const mapAccountHref = buildLoginPath\(mapHref, \{ lang: locale, mode: "signup" \}\)/);
+  assert.match(landing, /Criar conta e abrir minha camada grátis/);
+  assert.match(mapPage, /buildLoginPath\(mapPath, \{/);
+  assert.match(mapPage, /mode: "signup"/);
+  assert.doesNotMatch(mapPage, /AstrologyMapEntry/);
+  assert.match(authPage, /product\.productKey === "mapa_astral"/);
+  assert.match(authPage, /sua primeira camada personalizada/);
+  assert.doesNotMatch(authPage, /product\.title \}\} \(\{product\.price\}, pagamento único\)/);
   assert.match(mapExperience, /\/api\/checkout\/confirm/);
   assert.match(mapExperience, /returnTo:/);
   assert.match(mapExperience, /normalizeMarketingAttribution/);

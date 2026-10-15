@@ -291,8 +291,8 @@
   --pdu-header-height: 5rem;
   --pdu-header-mark-size: 3rem;
   --pdu-header-mark-padding: 0.375rem;
-  --pdu-header-wordmark-height: 2.25rem;
-  --pdu-header-wordmark-width: min(12rem, 41vw);
+  --pdu-header-wordmark-height: 4rem;
+  --pdu-header-wordmark-width: min(16rem, 55vw);
   --pdu-header-ease: cubic-bezier(0.22, 1, 0.36, 1);
   min-height: var(--pdu-header-height);
   transition:
@@ -306,8 +306,8 @@
   --pdu-header-height: 4.2rem;
   --pdu-header-mark-size: 2.65rem;
   --pdu-header-mark-padding: 0.3rem;
-  --pdu-header-wordmark-height: 2rem;
-  --pdu-header-wordmark-width: min(10.75rem, 36vw);
+  --pdu-header-wordmark-height: 4rem;
+  --pdu-header-wordmark-width: min(16rem, 55vw);
   background-color: rgba(9, 8, 13, 0.88);
   border-color: rgba(244, 213, 141, 0.14);
   box-shadow: 0 18px 52px rgba(0, 0, 0, 0.26);
@@ -367,24 +367,23 @@
 }
 
 .pdu-site-header[data-condensed="true"] .pdu-site-header__wordmark {
-  opacity: 0.9;
-  transform: translateX(-0.1rem) scale(0.97);
+  opacity: 1;
 }
 
 @media (min-width: 640px) {
   .pdu-site-header {
     --pdu-header-mark-size: 4rem;
     --pdu-header-mark-padding: 0.5rem;
-    --pdu-header-wordmark-height: 3rem;
-    --pdu-header-wordmark-width: 18rem;
+    --pdu-header-wordmark-height: 6.25rem;
+    --pdu-header-wordmark-width: 22rem;
   }
 
   .pdu-site-header[data-condensed="true"] {
     --pdu-header-height: 4.35rem;
     --pdu-header-mark-size: 3.25rem;
     --pdu-header-mark-padding: 0.4rem;
-    --pdu-header-wordmark-height: 2.4rem;
-    --pdu-header-wordmark-width: 14.75rem;
+    --pdu-header-wordmark-height: 6.25rem;
+    --pdu-header-wordmark-width: 22rem;
   }
 }
 
@@ -767,11 +766,12 @@
   }
 
   .pdu-site-header__wordmark {
-    --pdu-header-wordmark-width: 9rem;
+    --pdu-header-wordmark-width: 18rem;
+    --pdu-header-wordmark-height: 5.125rem;
   }
 
   .pdu-site-header[data-condensed="true"] .pdu-site-header__wordmark {
-    --pdu-header-wordmark-width: 8.1rem;
+    --pdu-header-wordmark-width: 18rem;
   }
 
   .pdu-site-header__nav {
@@ -6478,8 +6478,8 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
     --pdu-header-height: 3.35rem;
     --pdu-header-mark-size: 2.45rem;
     --pdu-header-mark-padding: 0.26rem;
-    --pdu-header-wordmark-height: 1.85rem;
-    --pdu-header-wordmark-width: min(9.7rem, 34vw);
+    --pdu-header-wordmark-height: 4rem;
+    --pdu-header-wordmark-width: min(16rem, 55vw);
   }
 
   .pdu-mobile-deferred {

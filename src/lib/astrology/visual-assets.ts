@@ -36,7 +36,22 @@ export const ASTROLOGY_VISUALS = {
       `${root}/interface-cues/transit-calendar.webp`,
     ],
     positionsIntro: `${root}/daily-sky/current-sky-terrestrial-orbit.webp`,
-    positionByBody: PDU_ASSETS.astrology.planets satisfies Record<NatalBody, string>,
+    /**
+     * Small, descriptive artwork for the live-position cards. These stay
+     * distinct from the editorial planet art used in the natal-map reading.
+     */
+    positionByBody: {
+      Sun: "/assets/astrology/daily-planets/sol.svg",
+      Moon: "/assets/astrology/daily-planets/lua.svg",
+      Mercury: "/assets/astrology/daily-planets/mercurio.svg",
+      Venus: "/assets/astrology/daily-planets/venus.svg",
+      Mars: "/assets/astrology/daily-planets/marte.svg",
+      Jupiter: "/assets/astrology/daily-planets/jupiter.svg",
+      Saturn: "/assets/astrology/daily-planets/saturno.svg",
+      Uranus: "/assets/astrology/daily-planets/urano.svg",
+      Neptune: "/assets/astrology/daily-planets/netuno.svg",
+      Pluto: "/assets/astrology/daily-planets/plutao.svg",
+    } satisfies Record<NatalBody, string>,
     positionExplainers: [
       `${root}/daily-sky/moving-sky-spiral.webp`,
       `${root}/interface-cues/celestial-compass.webp`,

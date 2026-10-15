@@ -181,12 +181,15 @@ minimum_password_length = 6
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = ""
 
-# Configure passkey sign-ins.
-# [auth.passkey]
-# enabled = false
-# rp_display_name = "Supabase"
-# rp_id = "localhost"
-# rp_origins = ["http://127.0.0.1:3000"]
+# Configure passkey sign-ins. Passkeys are bound to this relying-party ID,
+# so do not change it after people have enrolled a device.
+[auth.passkey]
+enabled = true
+
+[auth.webauthn]
+rp_display_name = "Palavras do Universo"
+rp_id = "palavrasdouniverso.com"
+rp_origins = ["https://palavrasdouniverso.com"]
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.

@@ -7,6 +7,7 @@ import LumeGuide from "@/components/LumeGuide";
 import SiteTelemetry from "@/components/SiteTelemetry";
 import { LOCALE_COOKIE_NAME, normalizeLocale } from "@/lib/i18n/config";
 import { ProductCurrencyProvider } from "@/lib/product/useProductCurrency";
+import { PduHalloweenGlobal } from "@/components/PduHalloweenGlobal";
 import { getRequestCountry } from "@/lib/runtime/request-context";
 import {
   PRODUCT_CURRENCY_COOKIE_NAME,
@@ -68,11 +69,12 @@ export default async function RootLayout({
   return (
     <html lang={initialLocale}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} pdu-halloween-platform antialiased`}
       >
         <I18nProvider initialLocale={initialLocale}>
           <ProductCurrencyProvider initialCurrency={initialProductCurrency}>
             <SiteTelemetry />
+            <PduHalloweenGlobal />
             {children}
             <LumeGuide />
           </ProductCurrencyProvider>

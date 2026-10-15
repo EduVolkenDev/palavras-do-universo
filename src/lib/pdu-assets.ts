@@ -13,7 +13,7 @@ export const PDU_ASSETS = {
     markMobile: "/assets/palavrasuniverso-mobile.webp",
     fullWordmark: "/assets/palavrasuniverso.webp",
     newWordmark: "/assets/pdu-new-wordmark-transparent-ofi.webp",
-    headerWordmark: "/assets/pdu-wordmark-header.webp",
+    headerWordmark: "/assets/pdu-wordmark-inline-2.webp",
     heroMarkRotation: [
       {
         assetPath: "/assets/new-pdu-dock.webp",

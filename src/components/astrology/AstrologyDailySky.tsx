@@ -157,11 +157,19 @@ export function AstrologyDailySky({
                 <p id="current-positions-title" className="text-xs font-semibold uppercase tracking-[0.15em] text-[#8a6b3f]">{isEnglish ? "Where the planets are now" : "Onde estão os planetas agora"}</p>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                   {sky.positions.map((position) => (
-                    <div key={position.body} className="relative min-h-[8.5rem] overflow-hidden rounded-2xl border border-[#e6d8c3] bg-[#241b18]">
-                      <Image src={ASTROLOGY_VISUALS.dailySky.positionByBody[position.body]} alt="" fill sizes="(max-width: 640px) 50vw, 18vw" className="object-contain p-2" aria-hidden="true" />
-                      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(36,27,24,0.86)_0%,rgba(36,27,24,0.62)_42%,rgba(36,27,24,0.18)_74%,rgba(36,27,24,0.08)_100%)]" aria-hidden="true" />
-                      <div className="relative p-4"><p className="text-xs font-semibold text-[#f2dfbd]">{getBodyInterpretation(position.body, locale).label}</p>
-                      <p className="mt-1 text-sm font-semibold text-[#fffaf2]">{position.degreesInSign.toFixed(1)}° {getSignInterpretation(position.sign, locale).label}</p></div>
+                    <div key={position.body} className="relative min-h-[6.35rem] overflow-hidden rounded-2xl border border-[#e6d8c3] bg-[#fffdf9] p-4 shadow-[0_8px_18px_rgba(80,57,34,0.05)]">
+                      <Image
+                        src={ASTROLOGY_VISUALS.dailySky.positionByBody[position.body]}
+                        alt=""
+                        width={48}
+                        height={48}
+                        className="pointer-events-none absolute right-3 top-1/2 h-12 w-12 -translate-y-1/2 opacity-95"
+                        aria-hidden="true"
+                      />
+                      <div className="relative pr-12">
+                        <p className="text-xs font-semibold text-[#806c5d]">{getBodyInterpretation(position.body, locale).label}</p>
+                        <p className="mt-1 text-sm font-semibold text-[#332720]">{position.degreesInSign.toFixed(1)}° {getSignInterpretation(position.sign, locale).label}</p>
+                      </div>
                     </div>
                   ))}
                 </div>

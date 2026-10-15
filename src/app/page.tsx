@@ -2955,11 +2955,16 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                 fill
                 priority
                 unoptimized
-                sizes="(max-width: 640px) 41vw, 288px"
+                sizes="(max-width: 640px) 55vw, (max-width: 1439px) 288px, 352px"
                 className="object-contain object-left"
               />
             </span>
           </a>
+
+          <span className="pdu-seasonal-header-mark" aria-hidden="true">
+            <span className="pdu-seasonal-header-mark__moon" />
+            <span>NOITES DE OUTUBRO</span>
+          </span>
 
           <nav
             className="pdu-site-header__nav hidden items-center text-sm text-[#cfc4b9] md:flex"
@@ -3262,6 +3267,22 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
       >
         <div className="pdu-veil" />
         <div className="pdu-hero-stars" aria-hidden="true" />
+        <div className="pdu-seasonal-atmosphere" aria-hidden="true">
+          <span className="pdu-seasonal-atmosphere__moon" />
+          <span className="pdu-seasonal-atmosphere__candle pdu-seasonal-atmosphere__candle--one" />
+          <span className="pdu-seasonal-atmosphere__candle pdu-seasonal-atmosphere__candle--two" />
+          <span className="pdu-seasonal-atmosphere__cat">🐈‍⬛</span>
+        </div>
+
+        <div className="pdu-halloween-feature mx-auto max-w-7xl" role="note">
+          <div className="pdu-halloween-feature__copy">
+            <span className="pdu-halloween-feature__eyebrow">{locale === "en" ? "OCTOBER EDITION" : "EDIÇÃO DE OUTUBRO"}</span>
+            <strong>A noite também guarda respostas.</strong>
+            <span>{locale === "en" ? "A seasonal ritual for questions that ask for more depth." : "Um ritual sazonal para perguntas que pedem mais profundidade."}</span>
+          </div>
+          <img src="/assets/halloween-pdu-moon-garden.png" alt="" className="pdu-halloween-feature__art" />
+          <span className="pdu-halloween-feature__spark" aria-hidden="true" />
+        </div>
 
         <div className="pdu-hero-shell mx-auto max-w-7xl">
           <div className="pdu-hero-grid">
@@ -3419,6 +3440,14 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                 ))}
               </section>
             </div>
+          </div>
+
+          <div className="pdu-seasonal-moonrail" aria-hidden="true">
+            <span className="pdu-seasonal-moonrail__line" />
+            <span className="pdu-seasonal-moonrail__moon pdu-seasonal-moonrail__moon--full" />
+            <span className="pdu-seasonal-moonrail__moon pdu-seasonal-moonrail__moon--crescent" />
+            <span className="pdu-seasonal-moonrail__star">✦</span>
+            <span className="pdu-seasonal-moonrail__label">NOITES DE OUTUBRO · RITUAIS DE CLAREZA</span>
           </div>
 
           <section
@@ -4896,6 +4925,11 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
 
       <footer className="px-4 py-12 text-center text-xs leading-6 text-[#cfc4b9] sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl border-t border-white/10 pt-8">
+          <div className="pdu-seasonal-footer" aria-hidden="true">
+            <span className="pdu-seasonal-footer__phase">◐</span>
+            <span>OUTUBRO / LUZES BAIXAS / CLAREZA ALTA</span>
+            <span className="pdu-seasonal-footer__phase">●</span>
+          </div>
           <nav className="mb-5 flex flex-wrap justify-center gap-x-5 gap-y-2 font-semibold text-[#f5d896]">
             <a href="/termos">{t("Termos de uso")}</a>
             <a href="/privacidade">{t("Privacidade")}</a>

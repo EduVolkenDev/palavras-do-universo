@@ -19,7 +19,13 @@ export function getSupabaseBrowserClient(): SupabaseClient | null {
   if (!url || !anonKey) return null;
 
   if (!browserClient) {
-    browserClient = createBrowserClient(url, anonKey);
+    browserClient = createBrowserClient(url, anonKey, {
+      auth: {
+        // Supabase passkeys are currently an explicit opt-in. Keeping it here
+        // makes every browser auth flow use the same cookie-backed client.
+        experimental: { passkey: true },
+      },
+    });
   }
 
   return browserClient;

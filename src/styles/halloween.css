@@ -1,0 +1,111 @@
+.pdu-halloween-feature { position: relative; display: flex; min-height: 11rem; align-items: center; overflow: hidden; margin-top: 1.2rem; margin-bottom: 2rem; padding: 1.25rem clamp(1.25rem, 4vw, 3rem); border: 1px solid rgba(244, 213, 141, 0.28); border-radius: 1.6rem; background: radial-gradient(circle at 84% 30%, rgba(155, 91, 179, 0.32), transparent 28%), linear-gradient(110deg, rgba(43, 25, 43, 0.96), rgba(16, 14, 29, 0.84)); box-shadow: inset 0 1px rgba(255, 255, 255, 0.1), 0 24px 70px rgba(0, 0, 0, 0.24); }
+.pdu-halloween-feature::before { position: absolute; inset: 0; background: repeating-linear-gradient(115deg, transparent 0 46px, rgba(244, 213, 141, .045) 47px, transparent 48px); content: ""; pointer-events: none; }
+.pdu-halloween-feature__copy { position: relative; z-index: 1; display: grid; max-width: 34rem; gap: 0.35rem; }
+.pdu-halloween-feature__eyebrow { color: #f4d58d; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.18em; }
+.pdu-halloween-feature__copy strong { color: #fff7e8; font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.5rem, 3vw, 2.4rem); font-weight: 500; line-height: 1.08; }
+.pdu-halloween-feature__copy > span:last-child { max-width: 28rem; color: #cfc0c1; font-size: 0.88rem; line-height: 1.55; }
+.pdu-halloween-feature__art { position: absolute; right: clamp(-1rem, 3vw, 3rem); bottom: -7.5rem; z-index: 1; width: clamp(17rem, 34vw, 28rem); filter: drop-shadow(0 0 2rem rgba(244, 213, 141, 0.34)); pointer-events: none; }
+.pdu-halloween-feature__spark { position: absolute; top: 1.2rem; right: 2rem; width: 0.45rem; height: 0.45rem; border-radius: 50%; background: #f4d58d; box-shadow: 0 0 1.5rem 0.45rem rgba(244, 213, 141, 0.55); }
+.pdu-seasonal-moonrail { position: relative; display: flex; align-items: center; gap: .9rem; max-width: 72rem; margin: 1.4rem auto 2.5rem; padding: 0 1rem; color: rgba(244, 213, 141, .62); }
+.pdu-seasonal-moonrail__line { height: 1px; flex: 1; background: linear-gradient(90deg, transparent, rgba(244, 213, 141, .42), transparent); }
+.pdu-seasonal-moonrail__moon { position: relative; display: block; width: .8rem; height: .8rem; flex: 0 0 auto; border: 1px solid rgba(244, 213, 141, .7); border-radius: 50%; }
+.pdu-seasonal-moonrail__moon--full { background: rgba(244, 213, 141, .78); box-shadow: 0 0 13px rgba(244, 213, 141, .36); }
+.pdu-seasonal-moonrail__moon--crescent::after { position: absolute; inset: -2px -1px 1px 3px; border-radius: inherit; background: #09080d; content: ""; }
+.pdu-seasonal-moonrail__star { font-size: .85rem; text-shadow: 0 0 12px rgba(244, 213, 141, .7); }
+.pdu-seasonal-moonrail__label { font-size: .58rem; font-weight: 800; letter-spacing: .2em; white-space: nowrap; }
+
+.pdu-seasonal-header-mark { display: inline-flex; align-items: center; gap: .45rem; margin-left: clamp(.5rem, 2vw, 1.8rem); color: rgba(244, 213, 141, .72); font-size: .5rem; font-weight: 800; letter-spacing: .16em; white-space: nowrap; }
+.pdu-seasonal-header-mark__moon { position: relative; width: .85rem; height: .85rem; overflow: hidden; border: 1px solid rgba(244, 213, 141, .78); border-radius: 50%; box-shadow: 0 0 14px rgba(244, 213, 141, .22); }
+.pdu-seasonal-header-mark__moon::after { position: absolute; inset: -2px -1px 1px 3px; border-radius: inherit; background: #09080d; content: ""; }
+
+.pdu-seasonal-atmosphere { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.pdu-seasonal-atmosphere::before { position: absolute; top: 9rem; right: 8%; width: min(34vw, 24rem); height: min(34vw, 24rem); border: 1px solid rgba(244, 213, 141, .13); border-radius: 50%; box-shadow: 0 0 80px rgba(124, 70, 118, .12), inset 0 0 40px rgba(244, 213, 141, .04); content: ""; }
+.pdu-seasonal-atmosphere__moon { position: absolute; top: 13rem; right: 14%; width: clamp(7rem, 13vw, 11rem); aspect-ratio: 1; border: 1px solid rgba(244, 213, 141, .4); border-radius: 50%; background: radial-gradient(circle at 35% 30%, rgba(255, 246, 212, .95), rgba(244, 213, 141, .34) 38%, rgba(126, 73, 115, .18) 62%, transparent 63%); box-shadow: 0 0 42px rgba(244, 213, 141, .15); opacity: .72; }
+.pdu-seasonal-atmosphere__candle { position: absolute; bottom: 18%; width: .42rem; height: 3.6rem; border-radius: .2rem .2rem .1rem .1rem; background: linear-gradient(90deg, #4b2945, #f4d58d, #3a2038); opacity: .28; }
+.pdu-seasonal-atmosphere__candle::before { position: absolute; top: -1.1rem; left: 50%; width: .7rem; height: 1.25rem; border-radius: 50% 50% 45% 45%; background: #f4a85b; box-shadow: 0 0 1.4rem .35rem rgba(244, 168, 91, .55); content: ""; transform: translateX(-50%); }
+.pdu-seasonal-atmosphere__candle--one { left: 3%; }
+.pdu-seasonal-atmosphere__candle--two { right: 4%; height: 2.6rem; opacity: .2; }
+.pdu-seasonal-atmosphere__cat { position: absolute; right: 3%; bottom: 21%; color: rgba(244, 213, 141, .28); font-family: Georgia, serif; font-size: 8rem; line-height: .5; transform: rotate(-12deg); }
+
+#topo { background: linear-gradient(90deg, rgba(8, 6, 15, .78) 0%, rgba(8, 6, 15, .38) 42%, rgba(8, 6, 15, .12) 100%), url('/assets/halloween-pdu-hero-scene.png') center / cover no-repeat; }
+#leitura, #produtos, #lab, #astrologia, #circulo { background-image: radial-gradient(circle at 92% 8%, rgba(116, 61, 111, .09), transparent 20%); }
+.pdu-hero-actions a:hover, .pdu-hero-actions button:hover, .pdu-site-header__cta:hover { box-shadow: 0 0 0 1px rgba(244, 168, 91, .34), 0 14px 38px rgba(151, 71, 98, .28); transform: translateY(-2px); }
+.pdu-hero-actions a, .pdu-hero-actions button, .pdu-site-header__cta { transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease; }
+.pdu-hero-side .pdu-hero-artifact:hover { border-color: rgba(244, 168, 91, .56); background: rgba(92, 41, 70, .32); box-shadow: 0 14px 30px rgba(31, 11, 27, .28); transform: translateY(-3px); }
+.pdu-quick-start__card { position: relative; overflow: hidden; background: linear-gradient(145deg, rgba(255, 253, 249, .98), rgba(250, 238, 228, .96)); }
+.pdu-quick-start__card::after { position: absolute; right: -1.3rem; bottom: -1.5rem; width: 5rem; height: 5rem; border: 1px solid rgba(124, 70, 118, .2); border-radius: 50%; content: ""; transition: transform 220ms ease, border-color 220ms ease; }
+.pdu-quick-start__card:hover::after { border-color: rgba(178, 92, 77, .55); transform: scale(1.35); }
+.pdu-quick-start__asset { box-shadow: 0 0 0 1px rgba(124, 70, 118, .2), 0 0 26px rgba(124, 70, 118, .16); }
+.pdu-proof-chip:hover { border-color: rgba(244, 168, 91, .52); box-shadow: 0 0 20px rgba(151, 71, 98, .15); }
+.pdu-seasonal-footer { display: inline-flex; align-items: center; gap: .8rem; margin-bottom: 1.25rem; color: rgba(244, 213, 141, .55); font-size: .55rem; font-weight: 800; letter-spacing: .2em; }
+.pdu-seasonal-footer__phase { color: #f4a85b; font-size: 1rem; text-shadow: 0 0 12px rgba(244, 168, 91, .45); }
+
+/* Shared PDU platform layer: edge ornaments only, so content remains readable. */
+.pdu-halloween-platform { --pdu-halloween-orange: #e58b5d; --pdu-halloween-violet: #765b86; }
+.pdu-halloween-platform::selection { color: #211322; background: #f4d58d; }
+.pdu-halloween-global { position: fixed; inset: 0; z-index: 60; overflow: hidden; pointer-events: none; }
+.pdu-halloween-global__topline { position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(229, 139, 93, .72) 26%, rgba(244, 213, 141, .52) 52%, rgba(118, 91, 134, .7) 78%, transparent); opacity: .8; }
+.pdu-halloween-global__moon { position: absolute; top: 5.5rem; right: clamp(1.2rem, 4vw, 4rem); width: clamp(2.8rem, 5vw, 5rem); aspect-ratio: 1; border: 1px solid rgba(244, 213, 141, .48); border-radius: 50%; box-shadow: 0 0 28px rgba(244, 213, 141, .12); opacity: .65; }
+.pdu-halloween-global__moon--full { background: radial-gradient(circle at 34% 30%, rgba(255, 247, 216, .72), rgba(244, 213, 141, .16) 58%, transparent 60%); }
+.pdu-halloween-global__moon--crescent { right: calc(clamp(1.2rem, 4vw, 4rem) + 3rem); width: clamp(1.7rem, 3vw, 2.8rem); opacity: .42; }
+.pdu-halloween-global__moon--crescent::after { position: absolute; inset: -2px -1px 1px 7px; border-radius: inherit; background: #09080d; content: ""; }
+.pdu-halloween-global__star { position: absolute; color: rgba(244, 213, 141, .72); text-shadow: 0 0 16px rgba(244, 213, 141, .55); }
+.pdu-halloween-global__star--one { top: 11rem; right: 9%; }
+.pdu-halloween-global__star--two { top: 18rem; left: 5%; color: rgba(229, 139, 93, .58); }
+.pdu-halloween-global__candle { position: absolute; bottom: 2.5rem; width: .42rem; height: 2.8rem; border-radius: .2rem .2rem .1rem .1rem; background: linear-gradient(90deg, #342034, #d2a86e, #342034); opacity: .62; box-shadow: 0 0 1.8rem rgba(239, 159, 88, .18); }
+.pdu-halloween-global__candle::before { position: absolute; top: -1rem; left: 50%; width: .55rem; height: .95rem; border-radius: 50%; background: #ef9f58; box-shadow: 0 0 1.1rem .28rem rgba(239, 159, 88, .4); content: ""; transform: translateX(-50%); }
+.pdu-halloween-global__candle--left { left: 1.5rem; }
+.pdu-halloween-global__candle--right { right: 1.5rem; height: 2.15rem; opacity: .5; }
+.pdu-halloween-global__side-art { position: absolute; z-index: 0; width: clamp(11rem, 18vw, 17rem); opacity: .42; filter: saturate(.9) drop-shadow(0 0 1.5rem rgba(126, 73, 115, .4)); }
+.pdu-halloween-global__side-art--left { left: -3.5rem; bottom: 4rem; transform: rotate(-7deg); }
+.pdu-halloween-global__side-art--right { right: -4rem; bottom: 7rem; width: clamp(12rem, 20vw, 19rem); opacity: .3; transform: rotate(5deg); }
+.pdu-halloween-global__side-art--tarot { right: 4%; bottom: 18%; width: clamp(8rem, 12vw, 12rem); opacity: .34; transform: rotate(-8deg); }
+.pdu-halloween-global__web { position: absolute; z-index: 1; color: rgba(244, 213, 141, .48); font-family: Georgia, serif; font-size: clamp(4rem, 9vw, 9rem); line-height: .5; letter-spacing: -.6em; text-shadow: 0 0 18px rgba(244, 168, 91, .18); }
+.pdu-halloween-global__web--left { top: 8rem; left: -1rem; transform: rotate(35deg); }
+.pdu-halloween-global__web--right { top: 10rem; right: -1rem; transform: rotate(-35deg); }
+.pdu-halloween-global__spider { position: absolute; z-index: 2; color: #17101b; font-size: clamp(1.7rem, 3vw, 2.8rem); line-height: 1; filter: drop-shadow(0 0 7px rgba(244, 168, 91, .5)); }
+.pdu-halloween-global__spider--left { top: 13rem; left: 4.5rem; }
+.pdu-halloween-global__spider--right { top: 16rem; right: 4.5rem; }
+.pdu-halloween-global__label { position: absolute; right: 1.4rem; bottom: 1rem; color: rgba(244, 213, 141, .38); font-size: .45rem; font-weight: 800; letter-spacing: .2em; }
+
+/* Shared interaction language for public PDU surfaces. */
+.pdu-halloween-platform .pdu-tiradas-card:hover, .pdu-halloween-platform .pdu-professional-card:hover { border-color: rgba(229, 139, 93, .42); }
+.pdu-halloween-platform header:not(.pdu-site-header) { border-bottom-color: rgba(229, 139, 93, .22); }
+@media (max-width: 640px) {
+  .pdu-halloween-global__side-art { opacity: .24; }
+  .pdu-halloween-global__side-art--left { left: -4.5rem; bottom: 5rem; width: 10rem; }
+  .pdu-halloween-global__side-art--right { right: -5rem; bottom: 9rem; width: 11rem; }
+  .pdu-halloween-global__side-art--tarot { right: -1.8rem; bottom: 22%; width: 7rem; opacity: .22; }
+  .pdu-halloween-global__web { font-size: 4rem; opacity: .7; }
+  .pdu-halloween-global__web--left { top: 7rem; left: -1.4rem; }
+  .pdu-halloween-global__web--right { top: 8rem; right: -1.4rem; }
+  .pdu-halloween-global__spider--left { top: 11rem; left: 2rem; font-size: 1.6rem; }
+  .pdu-halloween-global__spider--right { top: 13rem; right: 2rem; font-size: 1.6rem; }
+  .pdu-halloween-global__moon { top: 5rem; right: .7rem; width: 2.7rem; }
+  .pdu-halloween-global__moon--crescent { right: 2.7rem; width: 1.7rem; }
+  .pdu-halloween-global__star--two { left: 2%; }
+  .pdu-halloween-global__label { right: .7rem; bottom: .55rem; font-size: .38rem; }
+}
+
+#leitura, #produtos, #lab, #astrologia, #circulo { position: relative; }
+#leitura::before, #produtos::before, #lab::before, #astrologia::before, #circulo::before { position: absolute; top: 0; left: 50%; width: min(72rem, 80%); height: 1px; background: linear-gradient(90deg, transparent, rgba(180, 107, 104, .28), rgba(244, 213, 141, .32), transparent); content: ""; transform: translateX(-50%); }
+.pdu-halloween-universe { position: relative; isolation: isolate; background: linear-gradient(180deg, rgba(12, 8, 20, .86), rgba(25, 14, 27, .72) 38%, rgba(250, 244, 235, .98) 72%), url('/assets/halloween-pdu-hero-scene.png') center top / cover fixed; }
+.pdu-halloween-universe .pdu-universe-header { position: relative; z-index: 4; border-color: rgba(244, 213, 141, .34) !important; background: rgba(13, 9, 21, .86) !important; box-shadow: 0 12px 36px rgba(22, 8, 28, .24); }
+.pdu-halloween-universe .pdu-universe-header a, .pdu-halloween-universe .pdu-universe-header span { color: #f5e6ca; }
+.pdu-halloween-universe .pdu-universe-intro { position: relative; z-index: 1; }
+.pdu-halloween-universe .pdu-universe-intro::before { position: absolute; top: 0; right: 2%; width: min(23rem, 36vw); height: 20rem; background: url('/assets/halloween-pdu-haunted-tarot.png') right top / contain no-repeat; content: ""; opacity: .22; pointer-events: none; transform: rotate(8deg); }
+.pdu-halloween-universe .pdu-universe-intro > * { position: relative; z-index: 1; }
+.pdu-halloween-universe .pdu-universe-intro > .grid > .max-w-3xl h1 { color: #fff7e8 !important; text-shadow: 0 8px 30px rgba(18, 6, 24, .38); }
+.pdu-halloween-universe .pdu-universe-intro > .grid > .max-w-3xl p { color: rgba(255, 244, 229, .82) !important; }
+.pdu-halloween-universe .pdu-universe-intro > .grid > .max-w-3xl > p:first-child { color: #f4d58d !important; }
+.pdu-halloween-universe .pdu-universe-intro > .grid > .max-w-3xl a { border-color: rgba(244, 213, 141, .42); }
+.pdu-universe-page__halloween-art { position: absolute; z-index: 1; pointer-events: none; filter: drop-shadow(0 0 28px rgba(244, 168, 91, .3)); opacity: .34; }
+.pdu-universe-page__halloween-art--tarot { top: 18%; right: -2%; width: min(22vw, 19rem); transform: rotate(13deg); }
+.pdu-universe-page__halloween-art--cauldron { bottom: 22%; left: -3%; width: min(20vw, 17rem); opacity: .28; transform: rotate(-8deg); }
+.pdu-halloween-universe .pdu-universe-stats > *, .pdu-halloween-universe .pdu-universe-intro section { border-color: rgba(151, 71, 98, .26) !important; box-shadow: 0 22px 70px rgba(54, 19, 46, .12); }
+.pdu-halloween-universe .pdu-universe-stats span { border-color: rgba(244, 213, 141, .28) !important; }
+@media (max-width: 640px) { .pdu-halloween-feature { min-height: 11rem; margin-top: 0.8rem; margin-bottom: 1.5rem; padding-right: 8rem; } .pdu-halloween-feature__copy strong { font-size: 1.45rem; } .pdu-halloween-feature__copy > span:last-child { font-size: 0.76rem; } .pdu-halloween-feature__art { right: -2.5rem; bottom: -3.8rem; width: 13rem; } .pdu-halloween-feature__spark { right: 1.2rem; } }
+@media (max-width: 640px) { .pdu-halloween-universe { background-attachment: scroll; } .pdu-halloween-universe .pdu-universe-intro::before { right: -4rem; width: 15rem; height: 14rem; opacity: .16; } .pdu-universe-page__halloween-art--tarot { top: 17%; right: -3rem; width: 9rem; opacity: .22; } .pdu-universe-page__halloween-art--cauldron { bottom: 24%; left: -3rem; width: 8rem; opacity: .2; } }
+@media (max-width: 640px) { .pdu-seasonal-moonrail { gap: .55rem; margin-bottom: 1.7rem; } .pdu-seasonal-moonrail__label { font-size: .46rem; letter-spacing: .12em; } }
+@media (max-width: 860px) { .pdu-seasonal-header-mark { display: none; } .pdu-seasonal-atmosphere__moon { top: 14rem; right: -1.8rem; width: 8rem; } .pdu-seasonal-atmosphere__cat { right: -1rem; font-size: 6rem; } }
+@media (prefers-reduced-motion: reduce) { .pdu-hero-actions a:hover, .pdu-hero-actions button:hover, .pdu-site-header__cta:hover, .pdu-hero-side .pdu-hero-artifact:hover { transform: none; } }

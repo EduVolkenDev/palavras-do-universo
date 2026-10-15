@@ -105,21 +105,6 @@ async function grantEntitlements(params: {
       throw new Error(`Could not read entitlement: ${existingError.message}`);
     }
 
-    const existingMetadata =
-      existing?.metadata && typeof existing.metadata === "object"
-        ? (existing.metadata as Record<string, unknown>)
-        : {};
-    const checkoutSessionId = params.metadata?.checkout_session_id;
-    const samePurchase =
-      params.source === "purchase" &&
-      typeof checkoutSessionId === "string" &&
-      existingMetadata.checkout_session_id === checkoutSessionId;
-    const purchaseUsageLimit =
-      params.source === "purchase"
-        ? samePurchase
-          ? existing?.usage_limit ?? 1
-          : (existing?.usage_limit ?? 0) + 1
-        : null;
     const usageCount = existing?.usage_count ?? 0;
 
     const payload = {
@@ -129,10 +114,8 @@ async function grantEntitlements(params: {
       status: "active",
       starts_at: new Date().toISOString(),
       expires_at: params.expiresAt ?? null,
-      usage_limit: purchaseUsageLimit,
+      usage_limit: null,
       usage_count: usageCount,
-      consumed_at:
-        purchaseUsageLimit !== null && usageCount < purchaseUsageLimit ? null : undefined,
       metadata: params.metadata ?? {},
       updated_at: new Date().toISOString(),
     };

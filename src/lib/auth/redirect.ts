@@ -48,6 +48,7 @@ export function buildLoginPath(
   options: {
     error?: string | null;
     lang?: string | null;
+    mode?: "signup" | "login" | "forgot" | "reset-password" | "access-code";
     reason?: string | null;
   } = {}
 ) {
@@ -56,6 +57,7 @@ export function buildLoginPath(
   });
 
   if (options.error) params.set("error", options.error);
+  if (options.mode) params.set("mode", options.mode);
   if (options.reason) params.set("reason", options.reason);
   if (options.lang === "en" || options.lang === "pt-BR") {
     params.set("lang", options.lang);

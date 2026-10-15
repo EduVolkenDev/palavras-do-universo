@@ -512,7 +512,6 @@ const en: Record<string, string> = {
   "Conhecer a linguagem e criar o hábito.": "Discover the language and build the habit.",
   "Transformar orientação em jornada pessoal, com memória e ritual.": "Turn guidance into a personal journey with memory and ritual.",
   "Mensagem diária": "Daily message",
-  "Carta do dia": "Card of the day",
   "Histórico limitado": "Limited history",
   "Uma leitura gratuita por dia": "One free reading per day",
   "Leituras premium incluídas": "Premium readings included",

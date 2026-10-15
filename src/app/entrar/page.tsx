@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowLeft, KeyRound, Loader2, Lock, Mail, UserPlus } from "lucide-react";
+import { Apple, ArrowLeft, KeyRound, Loader2, Lock, Mail, UserPlus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useI18n } from "@/components/I18nProvider";
 import { DEFAULT_AUTH_REDIRECT, buildAuthCallbackUrl, sanitizeAuthRedirect } from "@/lib/auth/redirect";
+import { usePasskeySupport } from "@/lib/auth/passkeys";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   getProductCardPrice,
@@ -28,6 +29,7 @@ type AuthMode =
   | "verify-recovery"
   | "reset-password";
 type FormState = "idle" | "sending" | "sent" | "error" | "success";
+type OAuthProvider = "google" | "apple";
 
 const PASSWORD_MIN_LENGTH = 8;
 
@@ -190,6 +192,33 @@ function getAuthFailure(
   return { kind: "generic", message: messages[context] };
 }
 
+function getPasskeySignInFailure(error: unknown, isEn: boolean) {
+  const record = error && typeof error === "object" ? (error as Record<string, unknown>) : {};
+  const signal = `${record.code ?? ""} ${record.message ?? ""}`.toLowerCase();
+
+  if (signal.includes("passkey_disabled")) {
+    return isEn
+      ? "Access keys are not enabled yet. Sign in with your password or an access code for now."
+      : "As chaves de acesso ainda não estão habilitadas. Por enquanto, entre com sua senha ou código de acesso.";
+  }
+
+  if (/(not.?allowed|cancel|abort|ceremony_aborted)/.test(signal)) {
+    return isEn
+      ? "The device request was cancelled. You can use your password or try the access key again."
+      : "A confirmação no dispositivo foi cancelada. Você pode usar sua senha ou tentar a chave de acesso novamente.";
+  }
+
+  if (/(not.?supported|webauthn|credential)/.test(signal)) {
+    return isEn
+      ? "This browser could not use an access key. Try an updated browser or sign in with your password."
+      : "Este navegador não conseguiu usar uma chave de acesso. Tente um navegador atualizado ou entre com sua senha.";
+  }
+
+  return isEn
+    ? "We could not sign in with an access key. Use your password or access code instead."
+    : "Não foi possível entrar com uma chave de acesso. Use sua senha ou código de acesso.";
+}
+
 const productVisuals: Record<string, string> = {
   mensagem_do_dia: PDU_ASSETS.products.messageOfTheDay,
   carta_do_dia: PDU_ASSETS.products.cardOfTheDayDisplay,
@@ -273,6 +302,10 @@ export default function EntrarPage() {
   const [completedRedirect, setCompletedRedirect] = useState(DEFAULT_AUTH_REDIRECT);
   const [product, setProduct] = useState<{ productKey: string; title: string; price: string; visual: string } | null>(null);
   const [readingHistoryReason, setReadingHistoryReason] = useState(false);
+  const passkeySupported = usePasskeySupport();
+  const [passkeyState, setPasskeyState] = useState<FormState>("idle");
+  const [passkeyMessage, setPasskeyMessage] = useState("");
+  const [oauthProvider, setOauthProvider] = useState<OAuthProvider | null>(null);
   const isEn = locale === "en";
 
   useEffect(() => {
@@ -338,11 +371,88 @@ export default function EntrarPage() {
     setResendMessage("");
     setPassword("");
     setConfirmPassword("");
+    setPasskeyState("idle");
+    setPasskeyMessage("");
+    setOauthProvider(null);
 
     window.scrollTo({
       top: 0,
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
     });
+  }
+
+  async function handlePasskeySignIn() {
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase || !passkeySupported) {
+      setPasskeyState("error");
+      setPasskeyMessage(
+        isEn
+          ? "This browser is not ready to use an access key."
+          : "Este navegador não está pronto para usar uma chave de acesso."
+      );
+      return;
+    }
+
+    setPasskeyState("sending");
+    setPasskeyMessage("");
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPasskey();
+      if (error || !data.session) {
+        setPasskeyState("error");
+        setPasskeyMessage(getPasskeySignInFailure(error, isEn));
+        return;
+      }
+
+      setPasskeyState("success");
+      setPasskeyMessage(isEn ? "Signed in with your access key." : "Entrada confirmada com sua chave de acesso.");
+      continueAfterAuthentication(getNextPath());
+    } catch (error) {
+      setPasskeyState("error");
+      setPasskeyMessage(getPasskeySignInFailure(error, isEn));
+    }
+  }
+
+  async function handleOAuthSignIn(provider: OAuthProvider) {
+    const supabase = getSupabaseBrowserClient();
+
+    if (!supabase) {
+      setState("error");
+      setMessage(
+        isEn
+          ? "Account connection is not configured yet."
+          : "A conexão com a conta ainda não está configurada."
+      );
+      return;
+    }
+
+    setOauthProvider(provider);
+    setState("idle");
+    setMessage("");
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: buildAuthCallbackUrl(window.location.origin, getNextPath()),
+      },
+    });
+
+    if (!error) return;
+
+    console.error("[auth] signInWithOAuth failed", {
+      provider,
+      message: error.message,
+      code: error.code,
+      status: error.status,
+    });
+    setOauthProvider(null);
+    setState("error");
+    setMessage(
+      isEn
+        ? `We could not start sign-in with ${provider === "google" ? "Google" : "Apple"}. Please try another option.`
+        : `Não foi possível iniciar a entrada com ${provider === "google" ? "Google" : "Apple"}. Use outra opção ou tente novamente.`
+    );
   }
 
   function validatePasswordPair() {
@@ -861,7 +971,13 @@ export default function EntrarPage() {
               className="mt-0.5 h-6 w-6 shrink-0 rounded object-cover"
             />
             <p className="text-sm leading-6 text-[#4d3c31]">
-              {isEn ? (
+              {product.productKey === "mapa_astral" ? (
+                isEn ? (
+                  <>Create your free account to open your first personalized layer. After seeing it, you decide whether to unlock the complete map.</>
+                ) : (
+                  <>Crie sua conta grátis para abrir sua primeira camada personalizada. Depois de ver o mapa, você decide se quer liberar a versão completa.</>
+                )
+              ) : isEn ? (
                 <>
                   To open the free first layer and then choose whether to unlock <strong>{product.title}</strong> ({product.price}, one-time payment), sign in or create your free account.
                 </>
@@ -1014,23 +1130,91 @@ export default function EntrarPage() {
           </button>
         </form>
 
-        {authMode === "login" ? (
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
-            <button
-              type="button"
-              onClick={() => switchMode("access-code")}
-              className="text-sm font-semibold text-[#5f462f] underline-offset-4 hover:underline"
-            >
-              {isEn ? "Use an access code" : "Usar código de acesso"}
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode("forgot")}
-              className="text-sm font-semibold text-[#5f462f] underline-offset-4 hover:underline"
-            >
-              {isEn ? "Forgot your password?" : "Esqueceu sua senha?"}
-            </button>
+        {authMode === "login" || authMode === "signup" ? (
+          <div className="mt-4">
+            <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-[0.14em] text-[#8a786b]">
+              <span className="h-px flex-1 bg-[#e6d7c2]" aria-hidden />
+              {isEn ? "or continue with" : "ou continue com"}
+              <span className="h-px flex-1 bg-[#e6d7c2]" aria-hidden />
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => handleOAuthSignIn("google")}
+                disabled={oauthProvider !== null}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#d8c3a6] bg-white px-4 py-3 text-sm font-semibold text-[#4d3c31] transition hover:bg-[#f6ead6] disabled:cursor-default disabled:opacity-70"
+              >
+                {oauthProvider === "google" ? (
+                  <Loader2 size={17} className="animate-spin" />
+                ) : (
+                  <span aria-hidden className="font-sans text-base font-bold text-[#4285f4]">G</span>
+                )}
+                {isEn ? "Continue with Google" : "Continuar com Google"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOAuthSignIn("apple")}
+                disabled
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#d8c3a6] bg-white px-4 py-3 text-sm font-semibold text-[#4d3c31] transition hover:bg-[#f6ead6] disabled:cursor-default disabled:opacity-70"
+              >
+                {oauthProvider === "apple" ? <Loader2 size={17} className="animate-spin" /> : <Apple size={17} aria-hidden />}
+                {isEn ? "Continue with Apple · coming soon" : "Continuar com Apple · em breve"}
+              </button>
+            </div>
           </div>
+        ) : null}
+
+        {authMode === "login" ? (
+          <>
+            {passkeySupported ? (
+              <div className="mt-4 rounded-lg border border-[#dfccb0] bg-[#fffaf2] p-3">
+                <p className="text-sm leading-6 text-[#6f615a]">
+                  {isEn
+                    ? "Prefer Face ID, Touch ID, your device PIN, or a security key?"
+                    : "Prefere usar Face ID, Touch ID, PIN do dispositivo ou chave de segurança?"}
+                </p>
+                <button
+                  type="button"
+                  onClick={handlePasskeySignIn}
+                  disabled={passkeyState === "sending"}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#8a6b3f] bg-white px-4 py-3 text-sm font-semibold text-[#5f462f] hover:bg-[#f6ead6] disabled:cursor-default disabled:opacity-70"
+                >
+                  {passkeyState === "sending" ? <Loader2 size={17} className="animate-spin" /> : <KeyRound size={17} />}
+                  {passkeyState === "sending"
+                    ? isEn ? "Waiting for your device..." : "Aguardando seu dispositivo..."
+                    : isEn ? "Sign in with an access key" : "Entrar com chave de acesso"}
+                </button>
+                {passkeyMessage ? (
+                  <p
+                    role={passkeyState === "error" ? "alert" : "status"}
+                    className={`mt-3 rounded-lg border p-3 text-sm leading-6 ${
+                      passkeyState === "error"
+                        ? "border-[#d9aaa8] bg-[#fff1f0] text-[#7b3330]"
+                        : "border-[#a9cdbf] bg-[#eef8f2] text-[#315d56]"
+                    }`}
+                  >
+                    {passkeyMessage}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+              <button
+                type="button"
+                onClick={() => switchMode("access-code")}
+                className="text-sm font-semibold text-[#5f462f] underline-offset-4 hover:underline"
+              >
+                {isEn ? "Use an access code" : "Usar código de acesso"}
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode("forgot")}
+                className="text-sm font-semibold text-[#5f462f] underline-offset-4 hover:underline"
+              >
+                {isEn ? "Forgot your password?" : "Esqueceu sua senha?"}
+              </button>
+            </div>
+          </>
         ) : authMode === "access-code" || authMode === "forgot" || authMode === "verify-email" || authMode === "verify-access-code" || authMode === "verify-recovery" || authMode === "reset-password" ? (
           <button
             type="button"

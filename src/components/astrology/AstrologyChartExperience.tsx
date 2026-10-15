@@ -703,7 +703,7 @@ function AstrologyReadingDialog({
   );
 }
 
-function PlacementDetail({ body, position, aspects, locale }: { body: AstrologySelection; position: { sign: ZodiacSign; degreesInSign: number; house: number | null }; aspects: Chart["aspects"]; locale: AstrologyLocale }) {
+export function PlacementDetail({ body, position, aspects, locale }: { body: AstrologySelection; position: { sign: ZodiacSign; degreesInSign: number; house: number | null }; aspects: Chart["aspects"]; locale: AstrologyLocale }) {
   const copy = body === "Ascendant" ? getAscendantInterpretation(locale) : getBodyInterpretation(body, locale);
   const sign = getSignInterpretation(position.sign, locale);
   const degree = getDegreeInterpretation(position.degreesInSign, locale);
@@ -797,7 +797,7 @@ function ReadingArtworkPanel({ artwork, label }: { artwork: string; label: strin
   );
 }
 
-function PersonalizedPlacementReading({ position, aspects, locale, artwork }: { position: NatalPosition; aspects: Chart["aspects"]; locale: AstrologyLocale; artwork: string | null }) {
+export function PersonalizedPlacementReading({ position, aspects, locale, artwork }: { position: NatalPosition; aspects: Chart["aspects"]; locale: AstrologyLocale; artwork: string | null }) {
   if (position.house === null) {
     const body = getBodyInterpretation(position.body, locale);
     const sign = getSignInterpretation(position.sign, locale);

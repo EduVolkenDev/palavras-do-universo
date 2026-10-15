@@ -1,0 +1,53 @@
+.printShell {
+  min-height: 100vh;
+  background: #f7f0e5;
+}
+
+.printToolbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  border-bottom: 1px solid #d8c3a6;
+  background: rgb(255 250 242 / 95%);
+  backdrop-filter: blur(14px);
+}
+
+.printMeta {
+  margin: 1.5rem auto 0;
+  max-width: 72rem;
+  padding: 0 1rem;
+}
+
+.report { display: none; }
+.reportArtwork { position: relative; height: 14rem; background: #241b18; border-radius: 1rem; }
+.reportArtwork img { object-fit: contain; padding: 1rem; }
+
+@media print {
+  :global(body) { background: white !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  :global(.pdu-lume-ambient), :global(.pdu-language-switcher), :global(.pdu-halloween-global) { display: none !important; }
+  .screenChart { display: none !important; }
+  .report { display: block; color: #241b18; font-size: 11pt; line-height: 1.6; }
+  .report section { margin: 1.5rem 0; }
+  .report h2 { break-before: page; font-size: 22pt; }
+  .report h3 { break-after: avoid; font-size: 15pt; }
+  .report p { orphans: 3; widows: 3; }
+  .reportArtwork { break-inside: avoid; }
+  .report :global(.overflow-hidden) { overflow: visible !important; }
+  .report :global(img) { object-fit: contain !important; }
+  .printShell {
+    background: #fff !important;
+  }
+
+  .printToolbar {
+    display: none !important;
+  }
+
+  .printMeta {
+    margin: 0 auto;
+    padding: 0 0.5rem;
+  }
+
+  .printShell :global(a[href]) {
+    text-decoration: none !important;
+  }
+}

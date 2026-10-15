@@ -67,6 +67,7 @@ import { ReadingTranslationStatus } from "@/components/ReadingTranslationStatus"
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { LUME_READING_FOCUS_EVENT, LumePresence, requestLumeOpen } from "@/components/LumeGuide";
 import { UniverseVisualGuide } from "@/components/UniverseVisualGuide";
+import { PasskeySettingsCard } from "@/components/PasskeySettingsCard";
 import { AstrologyBirthProfileCard } from "@/components/astrology/AstrologyBirthProfileCard";
 import {
   EMPTY_READING_PROFILE,
@@ -1203,7 +1204,7 @@ export default function MeuUniversoPage() {
   }
 
   return (
-    <main className="pdu-universe-page min-h-screen text-[#241b18]">
+    <main className="pdu-universe-page pdu-halloween-universe min-h-screen text-[#241b18]">
       <div className="pdu-universe-page__backdrop" aria-hidden="true">
         <span className="pdu-universe-page__stars" />
         <span className="pdu-universe-page__glow pdu-universe-page__glow--gold" />
@@ -1239,6 +1240,22 @@ export default function MeuUniversoPage() {
           height={580}
           sizes="(max-width: 640px) 42vw, 20vw"
           className="pdu-universe-page__art pdu-universe-page__art--gem"
+        />
+        <Image
+          src="/assets/halloween-pdu-haunted-tarot.png"
+          alt=""
+          width={720}
+          height={720}
+          sizes="(max-width: 640px) 48vw, 24vw"
+          className="pdu-universe-page__halloween-art pdu-universe-page__halloween-art--tarot"
+        />
+        <Image
+          src="/assets/halloween-pdu-apothecary-cauldron.png"
+          alt=""
+          width={720}
+          height={720}
+          sizes="(max-width: 640px) 42vw, 20vw"
+          className="pdu-universe-page__halloween-art pdu-universe-page__halloween-art--cauldron"
         />
       </div>
 
@@ -1518,6 +1535,8 @@ export default function MeuUniversoPage() {
                     {t("Editar nome no Mapa Inicial")}
                     <ArrowRight size={13} />
                   </a>
+
+                  <PasskeySettingsCard locale={locale} />
                 </div>
               ) : null}
 

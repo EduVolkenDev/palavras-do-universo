@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { useI18n } from "@/components/I18nProvider";
+import { buildLoginPath } from "@/lib/auth/redirect";
 import { recordSiteEvent } from "@/lib/client/siteEvents";
 import { appendMarketingAttribution, type MarketingAttribution } from "@/lib/marketing/attribution";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
@@ -74,9 +75,11 @@ export function AstrologyOverview({ attribution = {} }: { attribution?: Marketin
   const mapQuery = new URLSearchParams({ product: "mapa_astral", currency });
   appendMarketingAttribution(mapQuery, attribution);
   const mapHref = `/astrologia/mapa?${mapQuery.toString()}`;
+  const mapAccountHref = buildLoginPath(mapHref, { lang: locale, mode: "signup" });
   const circleQuery = new URLSearchParams({ product: "circulo_do_universo", currency });
   appendMarketingAttribution(circleQuery, attribution);
   const circleMapHref = `/astrologia/mapa?${circleQuery.toString()}`;
+  const circleAccountHref = buildLoginPath(circleMapHref, { lang: locale, mode: "signup" });
   const landingTracked = useRef(false);
 
   useEffect(() => {
@@ -113,8 +116,8 @@ export function AstrologyOverview({ attribution = {} }: { attribution?: Marketin
               <h1 className="brand-serif mt-5 text-5xl font-semibold leading-[0.96] sm:text-7xl">{isEnglish ? "Your sky is more than a map." : "O seu céu é muito mais do que um mapa."}</h1>
               <p className="mt-7 max-w-2xl text-base leading-8 text-[#d8ccc0]">{isEnglish ? "Discover your Sun, Moon, and rising sign in the free first layer. If you want to go deeper, unlock the complete birth chart with planets, houses, aspects, and personalized explanations." : "Descubra Sol, Lua e Ascendente na primeira camada gratuita. Se quiser aprofundar, desbloqueie o mapa astral completo com planetas, casas, aspectos e explicações personalizadas."}</p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
-                <Link href={mapHref} onClick={() => trackMapEntry("hero_free_layer")} className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#241b18] shadow-[0_18px_42px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[#ffe3a3]">
-                  {isEnglish ? "Open my free first layer" : "Abrir minha primeira camada grátis"}
+                <Link href={mapAccountHref} onClick={() => trackMapEntry("hero_free_layer")} className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#241b18] shadow-[0_18px_42px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[#ffe3a3]">
+                  {isEnglish ? "Create account and open my free layer" : "Criar conta e abrir minha camada grátis"}
                   <ArrowRight size={16} />
                 </Link>
                 <span className="text-xs leading-5 text-[#c8bdb5]">{isEnglish ? "Create a free account. You only pay if you choose to unlock the complete map." : "Crie uma conta grátis. Você só paga se escolher liberar o mapa completo."}</span>
@@ -187,7 +190,7 @@ export function AstrologyOverview({ attribution = {} }: { attribution?: Marketin
             {experiences.map((experience) => {
               const Icon = experience.icon;
               return (
-                <Link key={experience.key} href={experience.key === "sky" ? circleMapHref : mapHref} onClick={() => trackMapEntry(`experience_${experience.key}`)} className="group relative min-h-[18rem] overflow-hidden rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] p-6 shadow-[0_18px_50px_rgba(80,57,34,0.07)] transition duration-500 hover:-translate-y-1 hover:border-[#b69256] hover:shadow-[0_26px_65px_rgba(80,57,34,0.14)] sm:p-8">
+                <Link key={experience.key} href={experience.key === "sky" ? circleAccountHref : mapAccountHref} onClick={() => trackMapEntry(`experience_${experience.key}`)} className="group relative min-h-[18rem] overflow-hidden rounded-[30px] border border-[#d8c3a6] bg-[#fffaf2] p-6 shadow-[0_18px_50px_rgba(80,57,34,0.07)] transition duration-500 hover:-translate-y-1 hover:border-[#b69256] hover:shadow-[0_26px_65px_rgba(80,57,34,0.14)] sm:p-8">
                   <div className="absolute -right-8 -top-10 h-72 w-72 opacity-75 transition duration-500 group-hover:scale-110 group-hover:opacity-100"><Image src={experience.asset} alt="" fill sizes="18rem" className="object-contain" /></div>
                   <div className="relative z-10 max-w-[62%]">
                     <span className="grid h-11 w-11 place-items-center rounded-full border border-[#caa96c]/60 bg-[#f8efe2] text-[#8a6b3f]"><Icon size={19} /></span>
@@ -207,7 +210,7 @@ export function AstrologyOverview({ attribution = {} }: { attribution?: Marketin
               <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]"><BookOpen size={15} /> {isEnglish ? "The next layer" : "A próxima camada"}</p>
               <h3 className="brand-serif mt-4 text-3xl font-semibold sm:text-4xl">{isEnglish ? "When your sky meets your symbols." : "Quando o seu céu encontra os seus símbolos."}</h3>
               <p className="mt-4 text-sm leading-7 text-[#d8ccc0]">{isEnglish ? "Your Tarot readings can converse with the movements of your chart — as correspondence, never as fixed destiny. With time, Lume and your symbolic memory make the experience more personal." : "As suas leituras de Tarot podem conversar com os movimentos do seu mapa — como correspondência, nunca como destino fixo. Com o tempo, Lume e a sua memória simbólica tornam a experiência mais pessoal."}</p>
-              <Link href={mapHref} onClick={() => trackMapEntry("closing_cta")} className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/45 px-5 py-3 text-sm font-semibold text-[#fff7e8] transition hover:bg-white/10">{isEnglish ? "Start my sky" : "Começar pelo meu céu"} <ArrowRight size={16} /></Link>
+              <Link href={mapAccountHref} onClick={() => trackMapEntry("closing_cta")} className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/45 px-5 py-3 text-sm font-semibold text-[#fff7e8] transition hover:bg-white/10">{isEnglish ? "Create account and start my sky" : "Criar conta e começar pelo meu céu"} <ArrowRight size={16} /></Link>
             </div>
           </div>
         </div>
