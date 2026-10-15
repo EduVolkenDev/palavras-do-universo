@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AstrologyOverview } from "@/components/astrology/AstrologyOverview";
 import { normalizeMarketingAttribution } from "@/lib/marketing/attribution";
+import { getAuthenticatedUser } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "Astrologia | Palavras do Universo",
@@ -11,7 +12,8 @@ export const metadata = {
 export default async function AstrologyPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
   const legacyMapEntry = params.access === "active";
-  if (legacyMapEntry) {
+  const user = await getAuthenticatedUser();
+  if (legacyMapEntry || user) {
     const query = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
       if (typeof value === "string") query.set(key, value);

@@ -2375,7 +2375,7 @@ export default function MeuUniversoPage() {
                     href={entitlement.product_key === "mapa_astral"
                       ? "/astrologia/mapa"
                       : entitlement.product_key === CIRCLE_PRODUCT_KEY
-                        ? "/astrologia"
+                        ? "/astrologia/mapa"
                         : `/?product=${encodeURIComponent(entitlement.product_key)}`}
                     className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#111019] px-4 py-2 text-sm font-semibold text-[#fff7e8] hover:bg-[#242130]"
                   >
