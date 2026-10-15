@@ -2357,7 +2357,7 @@
 .pdu-professional-page::after {
   background:
     linear-gradient(180deg, rgba(7, 7, 12, 0.28), rgba(7, 7, 12, 0.72)),
-    url("/assets/palavrasuniverso-1600.webp") 50% -120px / min(1100px, 84vw) auto no-repeat;
+    url("/assets/pdu-official-logo-1600.webp") 50% -120px / min(1100px, 84vw) auto no-repeat;
   opacity: 0.2;
 }
 
@@ -9738,8 +9738,8 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
 }
 
 .pdu-spread-experience__brand-mark {
-  width: 2.1rem;
-  height: 2.1rem;
+  width: 3.5rem;
+  height: 3.5rem;
   object-fit: contain;
   flex: 0 0 auto;
   filter: drop-shadow(0 0 14px var(--pdu-spread-glow));

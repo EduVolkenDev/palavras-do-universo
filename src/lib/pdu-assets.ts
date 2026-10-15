@@ -7,10 +7,10 @@
  */
 export const PDU_ASSETS = {
   brand: {
-    symbol: "/assets/palavras-symbol.webp",
-    mark: "/assets/palavrasuniverso-1600.webp",
-    markDesktop: "/assets/palavrasuniverso-1600.webp",
-    markMobile: "/assets/palavrasuniverso-mobile.webp",
+    symbol: "/assets/pdu-official-logo-512.webp",
+    mark: "/assets/pdu-official-logo-1600.webp",
+    markDesktop: "/assets/pdu-official-logo-1600.webp",
+    markMobile: "/assets/pdu-official-logo-512.webp",
     fullWordmark: "/assets/palavrasuniverso.webp",
     newWordmark: "/assets/pdu-new-wordmark-transparent-ofi.webp",
     headerWordmark: "/assets/pdu-wordmark-inline-2.webp",
@@ -36,8 +36,8 @@ export const PDU_ASSETS = {
         mobileAssetPath: "/assets/pdu-dock-mobile.webp",
       },
       {
-        assetPath: "/assets/palavrasuniverso-1600.webp",
-        mobileAssetPath: "/assets/palavrasuniverso-mobile.webp",
+        assetPath: "/assets/pdu-official-logo-1600.webp",
+        mobileAssetPath: "/assets/pdu-official-logo-512.webp",
       },
     ],
   },
@@ -252,7 +252,7 @@ export const PDU_ASSETS = {
     paradoxMobile: "/assets/tirada-paradoxo-pdu-mobile.webp",
   },
   surfaces: {
-    account: "/assets/palavras-symbol.webp",
+    account: "/assets/pdu-official-logo-512.webp",
     legalPrivacy: "/assets/pdu-icon-shield.webp",
     legalTerms: "/assets/pdu-icon-book.webp",
     legalRefunds: "/assets/pdu-icon-bookmark.webp",

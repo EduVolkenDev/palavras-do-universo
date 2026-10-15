@@ -929,14 +929,14 @@ export default function EntrarPage() {
           {isEn ? "Back" : "Voltar"}
         </Link>
 
-        <div className="mt-8 grid h-12 w-12 place-items-center rounded-lg border border-[#dfccb0] bg-white/70">
+        <div className={product ? "mt-8 grid h-12 w-12 place-items-center rounded-lg border border-[#dfccb0] bg-white/70" : "mt-8 h-36 w-36 sm:h-40 sm:w-40"}>
           <Image
             src={product?.visual ?? PDU_ASSETS.surfaces.account}
             alt={isEn ? "Palavras do Universo account" : "Conta Palavras do Universo"}
-            width={36}
-            height={36}
+            width={product ? 36 : 160}
+            height={product ? 36 : 160}
             priority
-            className="h-9 w-9 object-contain"
+            className={product ? "h-9 w-9 object-contain" : "h-full w-full object-contain"}
           />
         </div>
         <p className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">

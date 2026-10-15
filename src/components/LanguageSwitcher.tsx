@@ -4,6 +4,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/I18nProvider";
 import type { Locale } from "@/lib/i18n/config";
+import { PDU_ASSETS } from "@/lib/pdu-assets";
 
 export function LanguageSwitcher() {
   const { locale, setLocale } = useI18n();
@@ -25,14 +26,14 @@ export function LanguageSwitcher() {
       data-i18n-ignore
     >
       <span
-        className="pdu-language-switcher__mark relative ml-1 h-5 w-5 shrink-0 overflow-hidden rounded-full sm:ml-1.5"
+        className="pdu-language-switcher__mark relative ml-1 h-9 w-9 shrink-0 sm:ml-1.5"
         aria-hidden="true"
       >
         <Image
-          src="/assets/palavras-symbol.webp"
+          src={PDU_ASSETS.brand.symbol}
           alt=""
           fill
-          sizes="20px"
+          sizes="36px"
           className="object-contain"
         />
       </span>

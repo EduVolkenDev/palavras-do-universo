@@ -117,7 +117,7 @@ export type ProfessionalMarketplaceFilters = {
   limit?: number;
 };
 
-const SEED_AVATAR = "/assets/palavrasuniverso-1600.webp";
+const SEED_AVATAR = "/assets/pdu-official-logo-512.webp";
 
 export const PROFESSIONAL_MARKETPLACE_SEED: PublicProfessionalProfile[] = [
   {

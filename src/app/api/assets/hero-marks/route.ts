@@ -23,8 +23,8 @@ const HERO_MARK_ROTATION = [
     mobileAssetPath: "/assets/pdu-dock-mobile.webp",
   },
   {
-    assetPath: "/assets/palavrasuniverso-1600.webp",
-    mobileAssetPath: "/assets/palavrasuniverso-mobile.webp",
+    assetPath: "/assets/pdu-official-logo-1600.webp",
+    mobileAssetPath: "/assets/pdu-official-logo-512.webp",
   },
 ] as const;
 
