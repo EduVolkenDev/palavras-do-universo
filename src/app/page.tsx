@@ -2963,7 +2963,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
 
           <span className="pdu-seasonal-header-mark" aria-hidden="true">
             <span className="pdu-seasonal-header-mark__moon" />
-            <span>NOITES DE OUTUBRO</span>
+            <span>{locale === "en" ? "OCTOBER NIGHTS" : "NOITES DE OUTUBRO"}</span>
           </span>
 
           <nav
@@ -3277,7 +3277,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
         <div className="pdu-halloween-feature mx-auto max-w-7xl" role="note">
           <div className="pdu-halloween-feature__copy">
             <span className="pdu-halloween-feature__eyebrow">{locale === "en" ? "OCTOBER EDITION" : "EDIÇÃO DE OUTUBRO"}</span>
-            <strong>A noite também guarda respostas.</strong>
+            <strong>{locale === "en" ? "The night holds answers, too." : "A noite também guarda respostas."}</strong>
             <span>{locale === "en" ? "A seasonal ritual for questions that ask for more depth." : "Um ritual sazonal para perguntas que pedem mais profundidade."}</span>
           </div>
           <img src="/assets/halloween-pdu-moon-garden.png" alt="" className="pdu-halloween-feature__art" />
@@ -3447,7 +3447,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
             <span className="pdu-seasonal-moonrail__moon pdu-seasonal-moonrail__moon--full" />
             <span className="pdu-seasonal-moonrail__moon pdu-seasonal-moonrail__moon--crescent" />
             <span className="pdu-seasonal-moonrail__star">✦</span>
-            <span className="pdu-seasonal-moonrail__label">NOITES DE OUTUBRO · RITUAIS DE CLAREZA</span>
+            <span className="pdu-seasonal-moonrail__label">{locale === "en" ? "OCTOBER NIGHTS · RITUALS FOR CLARITY" : "NOITES DE OUTUBRO · RITUAIS DE CLAREZA"}</span>
           </div>
 
           <section
@@ -4927,7 +4927,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
         <div className="mx-auto max-w-4xl border-t border-white/10 pt-8">
           <div className="pdu-seasonal-footer" aria-hidden="true">
             <span className="pdu-seasonal-footer__phase">◐</span>
-            <span>OUTUBRO / LUZES BAIXAS / CLAREZA ALTA</span>
+            <span>{locale === "en" ? "OCTOBER / LOW LIGHTS / CLEAR THOUGHTS" : "OUTUBRO / LUZES BAIXAS / CLAREZA ALTA"}</span>
             <span className="pdu-seasonal-footer__phase">●</span>
           </div>
           <nav className="mb-5 flex flex-wrap justify-center gap-x-5 gap-y-2 font-semibold text-[#f5d896]">
