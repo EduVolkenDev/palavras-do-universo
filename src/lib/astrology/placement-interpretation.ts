@@ -1,4 +1,5 @@
 import type { NatalAspect, NatalBody, NatalPosition } from "./natal-chart";
+import { getPlanetAspectReading } from "./transit-interpretation";
 import {
   getAspectInterpretation,
   getBodyInterpretation,
@@ -126,13 +127,12 @@ export function getBodyAspectReadings(body: NatalBody, aspects: Array<Pick<Natal
       const otherBody = aspect.firstBody === body ? aspect.secondBody : aspect.firstBody;
       const otherCopy = getBodyInterpretation(otherBody, locale);
       const aspectCopy = getAspectInterpretation(aspect.type, locale);
+      const pairReading = getPlanetAspectReading(body, otherBody, aspect.type, locale);
       return {
         id: `${aspect.firstBody}-${aspect.type}-${aspect.secondBody}`,
         title: `${bodyCopy.label} ${aspectCopy.label.toLocaleLowerCase(locale === "en" ? "en" : "pt-BR")} ${otherCopy.label}`,
         orb: locale === "en" ? `${aspect.orb.toFixed(1)}° orb` : `orbe de ${aspect.orb.toFixed(1)}°`,
-        explanation: locale === "en"
-          ? `${aspectCopy.experience} In this chart, the aspect connects ${bodyCopy.archetype} with ${otherCopy.archetype}.`
-          : `${aspectCopy.experience} Neste mapa, o aspecto conecta ${bodyCopy.archetype} a ${otherCopy.archetype}.`,
+        explanation: `${pairReading.description} ${pairReading.aspectMeaning}`,
       };
     });
 }

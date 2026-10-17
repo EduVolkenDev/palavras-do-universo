@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Clock3, RefreshCw, Sparkles } from "lucide-react";
 import Image from "next/image";
-import type { DailySky, DailyTone, DailyTransit } from "@/lib/astrology/daily-sky";
-import { getAspectInterpretation, getBodyInterpretation, getSignInterpretation, type AstrologyLocale } from "@/lib/astrology/interpretations";
+import type { DailySky, DailyTone } from "@/lib/astrology/daily-sky";
+import { getBodyInterpretation, getSignInterpretation, type AstrologyLocale } from "@/lib/astrology/interpretations";
+import { getDailyTransitInterpretation } from "@/lib/astrology/transit-interpretation";
 import { ASTROLOGY_VISUALS, createDailyTransitArtworkPlan, dailyTransitArtworkKey } from "@/lib/astrology/visual-assets";
 import { AstrologyDailyLume } from "./AstrologyDailyLume";
 
@@ -19,32 +20,6 @@ const toneStyles: Record<DailyTone, string> = {
 function toneLabel(tone: DailyTone, locale: AstrologyLocale) {
   if (locale === "en") return { supportive: "What may support you", attention: "What asks for care", intensified: "What feels stronger" }[tone];
   return { supportive: "O que pode favorecer", attention: "O que pede cuidado", intensified: "O que se intensifica" }[tone];
-}
-
-function transitText(transit: DailyTransit, locale: AstrologyLocale) {
-  const moving = getBodyInterpretation(transit.transitBody, locale);
-  const natal = getBodyInterpretation(transit.natalBody, locale);
-  const aspect = getAspectInterpretation(transit.type, locale);
-  const title = locale === "en"
-    ? `${moving.label} ${aspect.label.toLowerCase()} natal ${natal.label}`
-    : `${moving.label} em ${aspect.label.toLowerCase()} com ${natal.label} natal`;
-  const transitSign = getSignInterpretation(transit.transitSign, locale).label;
-  const natalSign = getSignInterpretation(transit.natalSign, locale).label;
-  const detail = locale === "en"
-    ? `${moving.label} in ${transitSign} · natal ${natal.label} in ${natalSign}${transit.natalHouse ? `, house ${transit.natalHouse}` : ""}`
-    : `${moving.label} em ${transitSign} · ${natal.label} natal em ${natalSign}${transit.natalHouse ? `, casa ${transit.natalHouse}` : ""}`;
-  const description = locale === "en"
-    ? transit.tone === "supportive"
-      ? `A symbolic opening between ${moving.archetype} and your ${natal.archetype}. It may help you work with that theme deliberately.`
-      : transit.tone === "attention"
-        ? `A symbolic tension between ${moving.archetype} and your ${natal.archetype}. Notice friction before treating it as a setback.`
-        : `The theme of ${natal.archetype} may feel louder as ${moving.label} meets it. Give it attention without rushing to a conclusion.`
-    : transit.tone === "supportive"
-      ? `Uma abertura simbólica entre ${moving.archetype} e ${natal.archetype} do seu mapa. Pode ajudar você a trabalhar esse tema com intenção.`
-      : transit.tone === "attention"
-        ? `Uma tensão simbólica entre ${moving.archetype} e ${natal.archetype} do seu mapa. Observe o atrito antes de entendê-lo como impedimento.`
-        : `O tema de ${natal.archetype} pode ganhar intensidade no encontro com ${moving.label}. Vale prestar atenção sem tirar conclusões apressadas.`;
-  return { title, detail, description };
 }
 
 function clockLabel(instant: string, timezone: string, locale: AstrologyLocale) {
@@ -209,14 +184,27 @@ export function AstrologyDailySky({
                     </div>
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
                       {items.map((transit) => {
-                        const text = transitText(transit, locale);
-                        return <article key={`${transit.transitBody}-${transit.type}-${transit.natalBody}`} className={`grid overflow-hidden rounded-2xl border ${toneStyles[tone]} md:grid-cols-[minmax(0,1.2fr)_minmax(10rem,0.8fr)]`}>
+                        const text = getDailyTransitInterpretation(transit, locale);
+                        return <article key={`${transit.transitBody}-${transit.type}-${transit.natalBody}`} data-transit={dailyTransitArtworkKey(transit)} className={`grid overflow-hidden rounded-2xl border ${toneStyles[tone]} xl:grid-cols-[minmax(0,1.6fr)_minmax(10rem,0.8fr)]`}>
                           <div className="p-4 sm:p-5">
-                            <div className="flex flex-wrap items-start justify-between gap-2"><h5 className="font-semibold text-[#332720]">{text.title}</h5><span className="text-xs text-[#806c5d]">{transit.orb.toFixed(1)}° {isEnglish ? "orb" : "orbe"}</span></div>
+                            <div className="flex flex-wrap items-start justify-between gap-2"><h5 className="text-lg font-semibold leading-7 text-[#332720]">{text.title}</h5><span className="text-xs text-[#806c5d]">{transit.orb.toFixed(1)}° {isEnglish ? "orb" : "orbe"}</span></div>
                             <p className="mt-2 text-xs font-medium text-[#806c5d]">{text.detail}</p>
-                            <p className="mt-2 text-sm leading-6 text-[#55473e]">{text.description}</p>
+                            <p className="mt-4 text-base leading-7 text-[#55473e]" data-i18n-ignore>{text.description}</p>
+                            <div className="mt-4 border-t border-current/15 pt-4">
+                              <p className="text-sm font-semibold text-[#6f5134]">{isEnglish ? "Try this" : "Experimente"}</p>
+                              <p className="mt-1 text-base leading-7 text-[#55473e]" data-i18n-ignore>{text.practice}</p>
+                            </div>
+                            <details className="mt-4 rounded-xl border border-current/15 bg-white/55 p-3 text-[#55473e]">
+                              <summary className="cursor-pointer text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8a6b3f]">{isEnglish ? "Understand this aspect in your chart" : "Entenda este aspecto no seu mapa"}</summary>
+                              <div className="mt-3 space-y-3 text-base leading-7" data-i18n-ignore>
+                                <p>{text.aspectMeaning}</p>
+                                <p>{text.roles}</p>
+                                <p>{text.signContext}</p>
+                                {text.houseContext ? <p>{text.houseContext}</p> : null}
+                              </div>
+                            </details>
                           </div>
-                          <div className="relative min-h-[11rem] overflow-hidden border-t border-current/10 bg-[#e7dac6] md:min-h-full md:border-l md:border-t-0"><Image src={transitArtworkPlan!.dailyCardByTransit[dailyTransitArtworkKey(transit)]} alt="" fill sizes="(max-width: 767px) 100vw, 16rem" className="object-contain p-3" aria-hidden="true" /></div>
+                          <div className="relative min-h-[11rem] overflow-hidden border-t border-current/10 bg-[#e7dac6] xl:min-h-full xl:border-l xl:border-t-0"><Image src={transitArtworkPlan!.dailyCardByTransit[dailyTransitArtworkKey(transit)]} alt="" fill sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 16rem" className="object-contain p-3" aria-hidden="true" /></div>
                         </article>;
                       })}
                     </div>

@@ -1,6 +1,11 @@
 .pdu-home {
   --pdu-mx: 50vw;
   --pdu-my: 35vh;
+  /* Reading instructions and controls need a comfortable size at 100% zoom. */
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 1rem;
+  --text-sm--line-height: 1.6;
   width: 100%;
   min-width: 100%;
   position: relative;
@@ -1543,14 +1548,15 @@
 .pdu-lume-reading-signature {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
   margin-bottom: 1rem;
   border: 1px solid rgba(244, 213, 141, 0.18);
   border-radius: 18px 7px 20px 8px;
   background:
     linear-gradient(90deg, rgba(244, 213, 141, 0.09), rgba(167, 215, 197, 0.045)),
     rgba(255, 255, 255, 0.025);
-  padding: 0.55rem 0.65rem;
+  padding: 1rem 1.15rem;
 }
 
 .pdu-lume-reading-signature__seal {
@@ -1568,34 +1574,33 @@
 
 .pdu-lume-reading-signature__copy {
   display: grid;
+  flex: 1 1 22rem;
   min-width: 0;
-  gap: 0.12rem;
+  gap: 0.35rem;
 }
 
 .pdu-lume-reading-signature__copy strong {
   color: #fff7e8;
-  font-size: 0.78rem;
+  font-size: 1.125rem;
   font-weight: 800;
 }
 
 .pdu-lume-reading-signature__copy span {
-  overflow: hidden;
-  color: #bdb0a6;
-  font-size: 0.67rem;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: #ded2c6;
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 .pdu-lume-reading-signature__button {
   display: inline-flex;
+  min-height: 2.75rem;
   align-items: center;
   gap: 0.32rem;
   margin-left: auto;
   border-bottom: 1px solid rgba(244, 213, 141, 0.38);
   padding-bottom: 0.18rem;
   color: #f5d896;
-  font-size: 0.67rem;
+  font-size: 1rem;
   font-weight: 800;
   white-space: nowrap;
   transition: gap 200ms ease, color 200ms ease;
@@ -3305,6 +3310,9 @@
 
 .pdu-hero-reading .pdu-oracle-shell {
   isolation: isolate;
+  border: 1px solid rgba(244, 213, 141, 0.2);
+  border-radius: 1.5rem;
+  background: rgba(12, 10, 20, 0.94);
 }
 
 .pdu-reading-card-grid {
@@ -3603,20 +3611,21 @@
 .pdu-reading-awaiting strong {
   max-width: 18rem;
   color: #fff7e8;
-  font-size: 0.98rem;
+  font-size: 1.25rem;
+  line-height: 1.35;
 }
 
 .pdu-reading-awaiting p {
   max-width: 22rem;
   margin: 0;
   color: #cfc4b9;
-  font-size: 0.82rem;
-  line-height: 1.55;
+  font-size: 1rem;
+  line-height: 1.65;
 }
 
 .pdu-spread-meaning-list {
   display: grid;
-  gap: 0.65rem;
+  gap: 1.25rem;
   margin-top: 1rem;
   border-top: 1px solid rgba(244, 213, 141, 0.14);
   padding-top: 0.95rem;
@@ -3625,7 +3634,7 @@
 .pdu-spread-meaning-list > div {
   position: relative;
   display: grid;
-  gap: 0.18rem;
+  gap: 0.5rem;
   padding-left: 1rem;
 }
 
@@ -3641,7 +3650,7 @@
 
 .pdu-spread-meaning-list span {
   color: #f5d896;
-  font-size: 0.62rem;
+  font-size: 0.875rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -3649,14 +3658,14 @@
 
 .pdu-spread-meaning-list strong {
   color: #fff7e8;
-  font-size: 0.88rem;
+  font-size: 1.25rem;
 }
 
 .pdu-spread-meaning-list p {
   margin: 0;
   color: #cfc4b9;
-  font-size: 0.78rem;
-  line-height: 1.48;
+  font-size: 1.0625rem;
+  line-height: 1.7;
 }
 
 .pdu-glass-panel {
@@ -4642,10 +4651,10 @@
   display: block;
   margin-bottom: 0.55rem;
   color: #f5d896;
-  font-size: 0.68rem;
+  font-size: 0.875rem;
   font-weight: 800;
   letter-spacing: 0.14em;
-  line-height: 1.2;
+  line-height: 1.4;
   text-transform: uppercase;
 }
 
@@ -4659,8 +4668,8 @@
   max-width: 68ch;
   margin: 0;
   color: #efe2d2;
-  font-size: clamp(0.92rem, 0.9rem + 0.08vw, 1rem);
-  line-height: 1.58;
+  font-size: clamp(1.0625rem, 1rem + 0.15vw, 1.125rem);
+  line-height: 1.75;
 }
 
 .pdu-reading-block__line--bullet {
@@ -4681,7 +4690,7 @@
 
 .pdu-reading-block:first-child .pdu-reading-block__line {
   color: #fff7e8;
-  font-size: clamp(0.98rem, 0.96rem + 0.08vw, 1.05rem);
+  font-size: clamp(1.125rem, 1.05rem + 0.15vw, 1.2rem);
 }
 
 @keyframes pdu-reading-block-enter {
@@ -4960,7 +4969,7 @@
 
 .pdu-spread-showcase__card span {
   color: #967449;
-  font-size: 0.68rem;
+  font-size: 0.875rem;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -4968,13 +4977,13 @@
 
 .pdu-spread-showcase__card strong {
   color: #2d211b;
-  font-size: 1rem;
+  font-size: 1.125rem;
 }
 
 .pdu-spread-showcase__card p {
   color: #6f615a;
-  font-size: 0.84rem;
-  line-height: 1.48;
+  font-size: 1rem;
+  line-height: 1.65;
 }
 
 .pdu-spread-showcase__actions {
@@ -5183,8 +5192,8 @@
   z-index: 2;
   margin-top: 0.25rem;
   color: #75665d;
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: 1rem;
+  line-height: 1.65;
 }
 
 .pdu-pillar-row {
@@ -5327,7 +5336,7 @@
   margin-top: 0.72rem;
   min-height: auto;
   color: #62544c;
-  font-size: 0.92rem;
+  font-size: 1.0625rem;
   line-height: 1.65;
 }
 
@@ -5341,8 +5350,8 @@
   background: transparent;
   padding: 0.15rem 0 0.15rem 0.85rem;
   color: #5b4d45;
-  font-size: 0.78rem;
-  line-height: 1.55;
+  font-size: 1rem;
+  line-height: 1.65;
 }
 
 .pdu-product-node__details {
@@ -5354,8 +5363,8 @@
   border-left: 0;
   padding-left: 0;
   color: #6f615a;
-  font-size: 0.78rem;
-  line-height: 1.55;
+  font-size: 1rem;
+  line-height: 1.65;
   transition:
     border-color 260ms ease,
     background-color 260ms ease,
@@ -6701,6 +6710,8 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
   }
 
   .pdu-lume-reading-signature {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: flex-start;
   }
 
@@ -6709,7 +6720,11 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
   }
 
   .pdu-lume-reading-signature__button {
-    align-self: center;
+    grid-column: 2;
+    justify-self: start;
+    margin-left: 0;
+    white-space: normal;
+    text-align: left;
   }
 
   .pdu-hero-actions {
@@ -7172,8 +7187,8 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
   }
 
   .pdu-reading-block__line {
-    font-size: 0.94rem;
-    line-height: 1.54;
+    font-size: 1.0625rem;
+    line-height: 1.7;
   }
 
   .pdu-product-visual {
@@ -7899,7 +7914,7 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
   z-index: 4;
   display: grid;
   width: min(100%, 760px);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16.5rem), 1fr));
   gap: 0.7rem;
   margin: clamp(-1.2rem, -1vw, -0.35rem) auto 0;
 }
@@ -7907,11 +7922,11 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
 .pdu-hero-artifact-rail__eyebrow {
   grid-column: 1 / -1;
   margin: 0;
-  color: rgba(244, 213, 141, 0.78);
-  font-size: 0.62rem;
+  color: #f4d58d;
+  font-size: 0.875rem;
   font-weight: 800;
   letter-spacing: 0.18em;
-  line-height: 1.2;
+  line-height: 1.5;
   text-transform: uppercase;
 }
 
@@ -7919,9 +7934,11 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   min-width: 0;
-  align-items: center;
-  gap: 0.55rem;
+  align-items: start;
+  gap: 1rem;
   border-top: 1px solid rgba(244, 213, 141, 0.22);
+  border-radius: 1rem;
+  background: rgba(12, 10, 20, 0.88);
   color: inherit;
   text-decoration: none;
   padding: 0.72rem 0.1rem 0.15rem;
@@ -7942,22 +7959,22 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
 .pdu-hero-artifact strong {
   min-width: 0;
   color: #f7ecde;
-  font-size: 0.68rem;
+  font-size: 1.25rem;
   font-weight: 800;
-  line-height: 1.25;
+  line-height: 1.35;
   text-wrap: balance;
 }
 
 .pdu-hero-artifact__copy {
   display: grid;
   min-width: 0;
-  gap: 0.28rem;
+  gap: 0.6rem;
 }
 
 .pdu-hero-artifact__description {
-  color: rgba(247, 236, 222, 0.68);
-  font-size: 0.62rem;
-  line-height: 1.45;
+  color: #ded2c6;
+  font-size: 1rem;
+  line-height: 1.65;
 }
 
 .pdu-hero-artifact__action {
@@ -7966,9 +7983,9 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
   gap: 0.28rem;
   width: fit-content;
   color: #f4d58d;
-  font-size: 0.62rem;
+  font-size: 1rem;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1.5;
 }
 
 .pdu-hero-artifact:hover {
@@ -8081,18 +8098,6 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
     height: 3.2rem;
   }
 
-  .pdu-hero-artifact strong {
-    font-size: 0.68rem;
-  }
-
-  .pdu-hero-artifact__description {
-    font-size: 0.64rem;
-  }
-
-  .pdu-hero-artifact__action {
-    font-size: 0.66rem;
-  }
-
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -8183,8 +8188,8 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
 }
 
 .pdu-hero-artifact {
-  min-height: 5.4rem;
-  padding: 0.65rem 0.82rem;
+  min-height: 11rem;
+  padding: 1.15rem;
   animation: pdu-hero-artifact-arrive 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -8203,10 +8208,6 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
 .pdu-hero-artifact__visual {
   width: 4.65rem;
   height: 4.65rem;
-}
-
-.pdu-hero-artifact strong {
-  font-size: 0.74rem;
 }
 
 @keyframes pdu-hero-mark-arrive-large {
@@ -8259,17 +8260,14 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
   }
 
   .pdu-hero-artifact {
-    min-height: 6.25rem;
-    padding: 0.5rem 0.25rem 0.62rem;
+    min-height: 10rem;
+    gap: 0.85rem;
+    padding: 1rem;
   }
 
   .pdu-hero-artifact__visual {
     width: 4.45rem;
     height: 4.45rem;
-  }
-
-  .pdu-hero-artifact strong {
-    font-size: 0.66rem;
   }
 
   .pdu-hero-copy {
@@ -11969,15 +11967,15 @@ body:has(.pdu-not-found) .pdu-lume-ambient {
 
 .pdu-quick-start__card-title {
   color: #2d211a;
-  font-size: 1.125rem;
-  line-height: 1.25;
+  font-size: 1.25rem;
+  line-height: 1.35;
 }
 
 .pdu-quick-start__card-description {
   margin-top: 0.25rem;
   color: #725f52;
-  font-size: 0.875rem;
-  line-height: 1.4;
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 .pdu-quick-start__card-cta {
@@ -11986,8 +11984,15 @@ body:has(.pdu-not-found) .pdu-lume-ambient {
   gap: 0.25rem;
   margin-top: 0.75rem;
   color: #6c4a26;
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-weight: 700;
+}
+
+@media (max-width: 420px) {
+  .pdu-quick-start__card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 @media (min-width: 640px) {
@@ -11996,7 +12001,7 @@ body:has(.pdu-not-found) .pdu-lume-ambient {
   }
 
   .pdu-quick-start__grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
   }
 
   .pdu-quick-start__card {
@@ -12018,7 +12023,7 @@ body:has(.pdu-not-found) .pdu-lume-ambient {
 
 .pdu-home .pdu-lume-presence__copy p {
   max-width: 39rem;
-  font-size: 0.94rem;
+  font-size: 1.0625rem;
 }
 
 .pdu-hero-artifact {
