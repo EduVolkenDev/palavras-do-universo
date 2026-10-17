@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AdminPageFrame from "@/components/admin/AdminPageFrame";
 import { useEffect, useState } from "react";
 import { useI18n } from "@/components/I18nProvider";
 
@@ -193,31 +194,16 @@ export default function InternalCheckoutTestPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f0e8] px-4 py-8 pb-28 text-[#241b18] sm:px-6 sm:pb-32 lg:px-8">
-      <div className="mx-auto max-w-3xl">
-        <header className="border-b border-[#d8c8ba] pb-6">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8e674d]">
-            {isEnglish ? "Palavras do Universo · Internal trial" : "Palavras do Universo · Ensaio interno"}
-          </p>
-          <h1 className="brand-serif mt-3 text-4xl leading-none text-[#2c1f1b] sm:text-5xl">
-            {isEnglish ? "Minimal end-to-end checkout" : "Checkout mínimo, ponta a ponta"}
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-[#6f5d55]">
-            {isEnglish
-              ? "This area validates Checkout creation, payment, and access delivery through the webhook. It does not appear in the public catalog or change commercial prices."
-              : "Esta área valida apenas a criação do Checkout, o pagamento e a entrega do acesso pelo webhook. Ela não aparece no catálogo público e não altera os preços comerciais."}
-          </p>
-        </header>
-
-        <div className="mt-5 flex flex-wrap items-center gap-2 text-xs text-[#765f54]">
-          <span className="rounded-full border border-[#cdbbab] bg-white/60 px-3 py-1.5">
-            {isEnglish ? "Owner: " : "Proprietário: "}{ownerEmail || (isEnglish ? "authorized account" : "conta autorizada")}
-          </span>
-          <span className="rounded-full border border-[#cdbbab] bg-white/60 px-3 py-1.5">
-            Supabase: {hasSupabase ? (isEnglish ? "connected" : "conectado") : (isEnglish ? "unavailable" : "indisponível")}
-          </span>
-        </div>
-
+    <AdminPageFrame
+      path="/admin/teste-checkout"
+      eyebrow={isEnglish ? "Laboratory · Internal trial" : "Laboratório · Ensaio interno"}
+      title={isEnglish ? "Minimal end-to-end checkout" : "Checkout mínimo, ponta a ponta"}
+      description={isEnglish
+        ? "This area validates Checkout creation, payment, and access delivery through the webhook. It does not appear in the public catalog or change commercial prices."
+        : "Esta área valida apenas a criação do Checkout, o pagamento e a entrega do acesso pelo webhook. Ela não aparece no catálogo público e não altera os preços comerciais."}
+      ownerEmail={ownerEmail}
+      hasSupabase={hasSupabase}
+    >
         <section className="mt-8 rounded-[2rem] border border-[#d8c8ba] bg-[#fffaf3]/85 p-6 shadow-[0_20px_60px_rgba(75,46,30,0.09)] sm:p-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -301,7 +287,6 @@ export default function InternalCheckoutTestPage({
         <Link href="/" className="mt-5 inline-flex text-sm font-semibold text-[#73563e] underline underline-offset-4">
           {isEnglish ? "Back to portal" : "Voltar ao portal"}
         </Link>
-      </div>
-    </main>
+    </AdminPageFrame>
   );
 }

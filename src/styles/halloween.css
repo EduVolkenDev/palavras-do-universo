@@ -29,6 +29,88 @@
 
 #topo { background: linear-gradient(90deg, rgba(8, 6, 15, .78) 0%, rgba(8, 6, 15, .38) 42%, rgba(8, 6, 15, .12) 100%), url('/assets/halloween-pdu-hero-scene.png') center / cover no-repeat; }
 #leitura, #produtos, #lab, #astrologia, #circulo { background-image: radial-gradient(circle at 92% 8%, rgba(116, 61, 111, .09), transparent 20%); }
+
+/* The seasonal background replaces the Circle's paper gradient. Pair it with
+   its own foreground palette, including the non-highlighted plan controls. */
+.pdu-halloween-platform #circulo.pdu-circle-section {
+  --pdu-circle-foreground: #fff7e8;
+  --pdu-circle-muted: #d8ccc0;
+  --pdu-circle-accent: #f5d896;
+  color: var(--pdu-circle-foreground);
+  background:
+    radial-gradient(circle at 92% 8%, rgb(116 61 111 / 18%), transparent 35%),
+    linear-gradient(145deg, #1b1224, #100d19);
+}
+
+.pdu-halloween-platform .pdu-circle-intro h2,
+.pdu-halloween-platform .pdu-circle-section .pdu-plan-lane,
+.pdu-halloween-platform .pdu-plan-lane__price > .text-4xl {
+  color: var(--pdu-circle-foreground);
+}
+
+.pdu-halloween-platform .pdu-circle-intro > p,
+.pdu-halloween-platform .pdu-plan-lane__description,
+.pdu-halloween-platform .pdu-plan-lane__price > span:not(.text-4xl) {
+  color: var(--pdu-circle-muted);
+}
+
+.pdu-halloween-platform .pdu-circle-intro > p:first-child,
+.pdu-halloween-platform .pdu-circle-section .pdu-plan-lane li > svg {
+  color: var(--pdu-circle-accent);
+}
+
+.pdu-halloween-platform .pdu-circle-section .pdu-plan-lane {
+  border-color: rgb(245 216 150 / 35%);
+}
+
+.pdu-halloween-platform .pdu-circle-section .pdu-plan-lane::before {
+  background: linear-gradient(90deg, #f5d896, transparent);
+}
+
+.pdu-halloween-platform .pdu-circle-section .pdu-plan-lane--active {
+  border-color: rgb(245 216 150 / 55%);
+}
+
+.pdu-halloween-platform .pdu-plan-lane:not(.pdu-plan-lane--active) .pdu-plan-lane__cta {
+  border-color: rgb(245 216 150 / 65%);
+  background: #241a2c;
+  color: var(--pdu-circle-foreground);
+}
+
+.pdu-halloween-platform .pdu-plan-lane:not(.pdu-plan-lane--active) .pdu-plan-lane__cta:hover {
+  border-color: var(--pdu-circle-accent);
+  background: #35253f;
+}
+
+.pdu-halloween-platform .pdu-plan-lane__cta:focus-visible,
+.pdu-halloween-platform .pdu-site-footer a:focus-visible {
+  outline: 2px solid #f5d896;
+  outline-offset: 4px;
+}
+
+.pdu-halloween-platform .pdu-home-feedback .pdu-testimonials__location {
+  color: #cfc4b9;
+}
+
+.pdu-halloween-platform .pdu-site-footer {
+  position: relative;
+  z-index: 1;
+  background: #100d19;
+  color: #e2d7cc;
+}
+
+.pdu-halloween-platform .pdu-site-footer nav,
+.pdu-halloween-platform .pdu-site-footer p a {
+  color: #f5d896;
+}
+
+.pdu-halloween-platform .pdu-site-footer a:hover {
+  color: #fff7e8;
+}
+
+.pdu-halloween-platform .pdu-site-footer .pdu-seasonal-footer {
+  color: #d8c099;
+}
 .pdu-hero-actions a:hover, .pdu-hero-actions button:hover, .pdu-site-header__cta:hover { box-shadow: 0 0 0 1px rgba(244, 168, 91, .34), 0 14px 38px rgba(151, 71, 98, .28); transform: translateY(-2px); }
 .pdu-hero-actions a, .pdu-hero-actions button, .pdu-site-header__cta { transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease; }
 .pdu-hero-side .pdu-hero-artifact:hover { border-color: rgba(244, 168, 91, .56); background: rgba(92, 41, 70, .32); box-shadow: 0 14px 30px rgba(31, 11, 27, .28); transform: translateY(-3px); }

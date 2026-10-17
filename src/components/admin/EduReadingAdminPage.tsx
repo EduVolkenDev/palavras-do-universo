@@ -6,10 +6,9 @@ import {
   ExternalLink,
   Mail,
   RefreshCw,
-  ShieldCheck,
   XCircle,
 } from "lucide-react";
-import Link from "next/link";
+import AdminPageFrame from "@/components/admin/AdminPageFrame";
 import { useEffect, useState } from "react";
 
 type ReadingRequest = {
@@ -135,22 +134,15 @@ export default function EduReadingAdminPage({
   }
 
   return (
-    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f7f0e8] px-3 py-6 text-[#241b18] sm:px-6 sm:py-8 lg:px-8">
-      <div className="mx-auto w-full min-w-0 max-w-6xl">
-        <header className="flex flex-col gap-5 border-b border-[#d8c8ba] pb-6 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8e674d]">Palavras do Universo · Administração</p>
-            <h1 className="brand-serif mt-2 break-words text-3xl leading-tight text-[#2c1f1b] sm:text-4xl sm:leading-none">Leituras com Edu</h1>
-            <h1 className="brand-serif mt-2 break-words text-3xl leading-tight text-[#2c1f1b] sm:text-4xl sm:leading-none">Leituras com Edu</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6f5d55]">Acompanhe pedidos de atendimento e a lista de espera. Confirme o horário antes de criar o link Stripe.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/admin/eventos" className="inline-flex items-center gap-2 rounded-full border border-[#cdbbab] bg-white/60 px-4 py-2 text-sm font-semibold text-[#604b42]">Eventos <ExternalLink size={14} /></Link>
-            <button type="button" onClick={() => void loadRequests()} disabled={loading} className="inline-flex items-center gap-2 rounded-full bg-[#241b18] px-4 py-2 text-sm font-semibold text-[#fff7ed] disabled:opacity-50"><RefreshCw size={14} className={loading ? "animate-spin" : ""} />Atualizar</button>
-          </div>
-        </header>
-
-        <div className="mt-6 flex flex-wrap items-center gap-2 text-xs text-[#765f54]"><ShieldCheck size={15} className="text-[#3f786a]" />Acesso de proprietário: {ownerEmail || "conta autorizada"}{!hasSupabase ? " · Supabase indisponível neste ambiente" : ""}</div>
+    <AdminPageFrame
+      path="/admin/leituras"
+      eyebrow="Atendimentos · Agenda e acolhimento"
+      title="Leituras com Edu"
+      description="Acompanhe pedidos de atendimento e a lista de espera. Confirme o horário antes de criar o link de pagamento."
+      ownerEmail={ownerEmail}
+      hasSupabase={hasSupabase}
+      actions={<button type="button" onClick={() => void loadRequests()} disabled={loading} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#f0d79f] px-4 py-2 text-sm font-bold text-[#2b2033] disabled:opacity-50"><RefreshCw size={14} className={loading ? "animate-spin" : ""} />Atualizar</button>}
+    >
         {notice ? <p className="mt-6 rounded-xl border border-[#afd2c3] bg-[#eefaf5] px-4 py-3 text-sm text-[#28604f]" role="status">{notice}</p> : null}
         {error ? <p className="mt-6 rounded-xl border border-[#e2bdb5] bg-[#fff2ef] px-4 py-3 text-sm text-[#8a4038]" role="alert">{error}</p> : null}
 
@@ -202,7 +194,6 @@ export default function EduReadingAdminPage({
             ))}
           </div>
         </section>
-      </div>
-    </main>
+    </AdminPageFrame>
   );
 }

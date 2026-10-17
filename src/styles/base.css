@@ -72,3 +72,15 @@ a:active {
 img.object-contain {
   object-fit: contain !important;
 }
+/* Report-wide rules belong in global CSS, not a pure CSS Module. */
+@media print {
+  body:has([data-astrology-report]) {
+    background: white !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body:has([data-astrology-report]) :is(.pdu-lume-ambient, .pdu-language-switcher, .pdu-halloween-global) {
+    display: none !important;
+  }
+}

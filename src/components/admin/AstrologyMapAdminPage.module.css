@@ -23,8 +23,6 @@
 .reportArtwork img { object-fit: contain; padding: 1rem; }
 
 @media print {
-  :global(body) { background: white !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-  :global(.pdu-lume-ambient), :global(.pdu-language-switcher), :global(.pdu-halloween-global) { display: none !important; }
   .screenChart { display: none !important; }
   .report { display: block; color: #241b18; font-size: 11pt; line-height: 1.6; }
   .report section { margin: 1.5rem 0; }
@@ -36,6 +34,8 @@
   .report :global(img) { object-fit: contain !important; }
   .printShell {
     background: #fff !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 
   .printToolbar {

@@ -1,17 +1,16 @@
 "use client";
 
 import {
-  ArrowLeft,
   CheckCircle2,
   Download,
   FolderOpen,
   LoaderCircle,
   MapPin,
   Save,
-  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import AdminPageFrame from "@/components/admin/AdminPageFrame";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AstrologyChartExperience } from "@/components/astrology/AstrologyChartExperience";
 import type { AstrologyBirthDataPayload, BirthPrecision } from "@/lib/astrology/birth-data";
@@ -350,25 +349,13 @@ export default function AstrologyMapAdminPage({ ownerEmail }: { ownerEmail: stri
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f0e5] px-4 py-8 text-[#241b18] sm:px-6 lg:px-8 lg:py-12">
-      <div className="mx-auto max-w-5xl">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <Link href="/admin/codigos" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f] hover:text-[#4f4035]">
-            <ArrowLeft size={15} aria-hidden="true" />
-            Administração
-          </Link>
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#caa96c]/50 bg-[#fffaf2] px-3 py-1.5 text-xs font-semibold text-[#6f5134]">
-            <ShieldCheck size={15} aria-hidden="true" />
-            Acesso exclusivo do proprietário
-          </span>
-        </div>
-
-        <header className="mt-10 max-w-3xl">
-          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8a6b3f]"><Sparkles size={15} aria-hidden="true" /> Consultoria · mapas natais</p>
-          <h1 className="brand-serif mt-4 text-5xl font-semibold leading-[0.98] sm:text-7xl">Criar o mapa de uma pessoa.</h1>
-          <p className="mt-6 max-w-2xl text-base leading-8 text-[#6f615a]">Preencha os dados de nascimento, confirme o local e abra a leitura completa para conduzir sua consulta com contexto, clareza e responsabilidade.</p>
-        </header>
-
+    <AdminPageFrame
+      path="/admin/mapas"
+      eyebrow="Consultoria · Mapas natais"
+      title="Criar o mapa de uma pessoa."
+      description="Preencha os dados de nascimento, confirme o local e abra a leitura completa para conduzir sua consulta com contexto, clareza e responsabilidade."
+      ownerEmail={ownerEmail}
+    >
         <section className="mt-8 rounded-[28px] border border-[#d8c3a6] bg-[#fffaf2] p-5 shadow-[0_24px_70px_rgba(80,57,34,0.06)] sm:p-7" aria-labelledby="saved-maps-title">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -497,7 +484,6 @@ export default function AstrologyMapAdminPage({ ownerEmail }: { ownerEmail: stri
             </div>
           </form>
         </section>
-      </div>
-    </main>
+    </AdminPageFrame>
   );
 }

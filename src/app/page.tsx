@@ -4707,7 +4707,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
           />
         </div>
         <div className="pdu-reveal mx-auto max-w-7xl">
-          <div className="max-w-2xl">
+          <div className="pdu-circle-intro max-w-2xl">
             <SectionEyebrow>Assinatura</SectionEyebrow>
             <h2 className="brand-serif text-4xl font-semibold leading-tight sm:text-5xl">
               Círculo do Universo é o santuário premium.
@@ -4732,7 +4732,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                 <h3 className="brand-serif text-2xl font-semibold">
                   {plan.title}
                 </h3>
-                <div className="mt-4 flex items-baseline gap-2">
+                <div className="pdu-plan-lane__price mt-4 flex items-baseline gap-2">
                   {isPrefixPriceCadence(plan.cadence) ? (
                     <span
                       className={
@@ -4756,7 +4756,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                   ) : null}
                 </div>
                 <p
-                  className={`mt-3 text-sm leading-6 ${
+                  className={`pdu-plan-lane__description mt-3 text-sm leading-6 ${
                     plan.highlighted ? "text-[#eadfcf]" : "text-[#6f615a]"
                   }`}
                 >
@@ -4786,7 +4786,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                     Boolean(plan.productKey) &&
                     checkoutLoading === plan.productKey
                   }
-                  className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold ${
+                  className={`pdu-plan-lane__cta mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold ${
                     plan.highlighted
                       ? "bg-[#f4d58d] text-[#1c1308] hover:bg-[#ffe3a3]"
                       : "border border-[#bfa783] text-[#4d3c31] hover:border-[#967449]"
@@ -4803,7 +4803,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
         </div>
       </section>
 
-      <section className="pdu-mobile-deferred border-b border-white/10 bg-[#0a0918] px-4 py-16 sm:px-6 lg:px-8">
+      <section className="pdu-home-feedback pdu-mobile-deferred border-b border-white/10 bg-[#0a0918] px-4 py-16 sm:px-6 lg:px-8">
         <div className="pdu-reveal mx-auto max-w-7xl">
           <div className="text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
@@ -4841,7 +4841,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
                     <footer className="mt-5 flex items-center justify-between gap-3">
                       <div>
                         <p className="text-sm font-semibold text-[#fff7e8]">{t.name}</p>
-                        <p className="text-xs text-[#8d837b]">{t.location}</p>
+                        <p className="pdu-testimonials__location text-xs text-[#8d837b]">{t.location}</p>
                       </div>
                       <div className="flex gap-0.5">
                         {Array.from({ length: t.stars }).map((_, i) => (
@@ -4923,7 +4923,7 @@ function HomeExperience({ readingOnly = false }: { readingOnly?: boolean }) {
         </div>
       </section>
 
-      <footer className="px-4 py-12 text-center text-xs leading-6 text-[#cfc4b9] sm:px-6 lg:px-8">
+      <footer className="pdu-site-footer px-4 py-12 text-center text-xs leading-6 text-[#cfc4b9] sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl border-t border-white/10 pt-8">
           <div className="pdu-seasonal-footer" aria-hidden="true">
             <span className="pdu-seasonal-footer__phase">◐</span>
