@@ -1,6 +1,6 @@
 "use client";
 
-import { Apple, ArrowLeft, KeyRound, Loader2, Lock, Mail, UserPlus } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, Lock, Mail, UserPlus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
@@ -32,6 +32,25 @@ type FormState = "idle" | "sending" | "sent" | "error" | "success";
 type OAuthProvider = "google" | "apple";
 
 const PASSWORD_MIN_LENGTH = 8;
+
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 48 48" className="h-[1.15rem] w-[1.15rem]" aria-hidden="true" focusable="false">
+      <path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5.1h6.6c3.9-3.6 6.1-8.9 6.1-15z" />
+      <path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.8l-6.6-5.1c-1.8 1.2-4.1 2-6.9 2-5.3 0-9.8-3.6-11.4-8.4H5.8v5.3A20 20 0 0 0 24 44z" />
+      <path fill="#FBBC05" d="M12.6 27.7a12 12 0 0 1 0-7.4V15H5.8a20 20 0 0 0 0 18l6.8-5.3z" />
+      <path fill="#EA4335" d="M24 11.9c3 0 5.7 1 7.8 3.1l5.9-5.9C34.1 5.8 29.5 4 24 4A20 20 0 0 0 5.8 15l6.8 5.3c1.6-4.8 6.1-8.4 11.4-8.4z" />
+    </svg>
+  );
+}
+
+function AppleMark() {
+  return (
+    <svg viewBox="0 0 384 512" className="h-[1.15rem] w-[1.15rem]" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M318.7 268c-.2-36.7 30-54.3 31.4-55.1-17.1-25-43.7-28.4-53.1-28.8-22.6-2.3-44.1 13.3-55.5 13.3-11.5 0-29.1-13-47.9-12.7-24.6.4-47.3 14.3-59.8 36.2-25.5 44.2-6.5 109.3 18.3 145 12.1 17.4 26.6 36.9 45.6 36.2 18.3-.7 25.2-11.8 47.3-11.8s28.3 11.8 47.7 11.5c19.7-.4 32.2-17.7 44.2-35.2 13.9-20.3 19.6-40.1 19.9-41.1-.4-.2-38.1-14.6-38.1-57.5zM282.5 159.4c10.1-12.1 16.9-29 15-45.9-14.5.6-32.1 9.7-42.5 21.8-9.2 10.7-17.3 27.9-15.1 44.4 16.2 1.3 32.6-8.2 42.6-20.3z" />
+    </svg>
+  );
+}
 
 type AuthErrorContext =
   | "signup"
@@ -1137,28 +1156,32 @@ export default function EntrarPage() {
               {isEn ? "or continue with" : "ou continue com"}
               <span className="h-px flex-1 bg-[#e6d7c2]" aria-hidden />
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={() => handleOAuthSignIn("google")}
                 disabled={oauthProvider !== null}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#d8c3a6] bg-white px-4 py-3 text-sm font-semibold text-[#4d3c31] transition hover:bg-[#f6ead6] disabled:cursor-default disabled:opacity-70"
+                className="group relative inline-flex min-h-14 items-center justify-center gap-3 overflow-hidden rounded-2xl border border-[#c6a86b]/55 bg-[linear-gradient(135deg,#fffdf8_0%,#f7eedf_100%)] px-4 py-3 text-sm font-semibold text-[#35231f] shadow-[0_8px_18px_rgba(75,48,34,0.06)] transition hover:-translate-y-0.5 hover:border-[#9d7540] hover:shadow-[0_12px_24px_rgba(75,48,34,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6b3f] active:translate-y-0 disabled:cursor-wait disabled:opacity-70"
               >
-                {oauthProvider === "google" ? (
-                  <Loader2 size={17} className="animate-spin" />
-                ) : (
-                  <span aria-hidden className="font-sans text-base font-bold text-[#4285f4]">G</span>
-                )}
-                {isEn ? "Continue with Google" : "Continuar com Google"}
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#e6d2a6] bg-[linear-gradient(145deg,#281d35,#503568)] text-[#f8dda0] shadow-[0_3px_9px_rgba(43,30,53,0.2)]">
+                  {oauthProvider === "google" ? <Loader2 size={17} className="animate-spin" aria-label={isEn ? "Loading" : "Carregando"} /> : <GoogleMark />}
+                </span>
+                <span>{isEn ? "Continue with Google" : "Continuar com Google"}</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleOAuthSignIn("apple")}
                 disabled
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#d8c3a6] bg-white px-4 py-3 text-sm font-semibold text-[#4d3c31] transition hover:bg-[#f6ead6] disabled:cursor-default disabled:opacity-70"
+                aria-describedby="apple-login-status"
+                className="relative inline-flex min-h-14 items-center justify-center gap-3 overflow-hidden rounded-2xl border border-[#c6a86b]/35 bg-[linear-gradient(135deg,#f6efe4_0%,#eee4d5_100%)] px-4 py-3 text-sm font-semibold text-[#65564c] shadow-[0_6px_14px_rgba(75,48,34,0.04)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6b3f] disabled:cursor-not-allowed disabled:opacity-75"
               >
-                {oauthProvider === "apple" ? <Loader2 size={17} className="animate-spin" /> : <Apple size={17} aria-hidden />}
-                {isEn ? "Continue with Apple · coming soon" : "Continuar com Apple · em breve"}
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#b99a60]/55 bg-[linear-gradient(145deg,#281d35,#503568)] text-[#fffaf2] shadow-[0_3px_9px_rgba(43,30,53,0.18)]">
+                  <AppleMark />
+                </span>
+                <span className="flex flex-col items-start gap-0.5 text-left">
+                  <span>{isEn ? "Continue with Apple" : "Continuar com Apple"}</span>
+                  <span id="apple-login-status" className="text-[0.65rem] font-medium tracking-wide text-[#8a6b3f]">{isEn ? "Coming soon" : "Em breve"}</span>
+                </span>
               </button>
             </div>
           </div>
