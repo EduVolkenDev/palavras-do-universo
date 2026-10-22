@@ -16,6 +16,7 @@ import {
   type Locale,
 } from "@/lib/i18n/config";
 import { translations } from "@/lib/i18n/translations";
+import { useRouter } from "next/navigation";
 import {
   getDefaultProductCurrency,
   PRODUCT_CURRENCY_COOKIE_NAME,
@@ -105,6 +106,7 @@ export function I18nProvider({
   initialLocale?: Locale;
 }) {
   const [locale, updateLocale] = useState<Locale>(initialLocale);
+  const router = useRouter();
 
   const setLocale = useCallback((nextLocale: Locale) => {
     updateLocale(nextLocale);
@@ -159,7 +161,11 @@ export function I18nProvider({
       }
       window.dispatchEvent(new CustomEvent("pdu:currency-changed", { detail: { currency: nextCurrency } }));
     }
-  }, []);
+
+    // Server-rendered routes also need to see the updated locale cookie.
+    // Without a refresh, their locale-specific content remains in the old language.
+    router.refresh();
+  }, [router]);
 
   useEffect(() => {
     const preferredLocale = getInitialLocale();
