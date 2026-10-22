@@ -308,7 +308,7 @@ export function AstrologyChartExperience({
         <div className="pointer-events-none absolute -bottom-56 left-1/3 h-[30rem] w-[30rem] rounded-full bg-[#f4d58d]/10 blur-3xl" aria-hidden="true" />
         <div className="relative mx-auto max-w-6xl">
           <div className="flex flex-wrap items-center gap-5">
-            <Link href={adminMode ? "/admin/mapas" : "/astrologia"} className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#d9c49f] hover:text-white">
+            <Link href={adminMode ? "/admin/mapas" : "/astrologia?overview=1"} className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#d9c49f] hover:text-white">
               <ChevronLeft size={15} />
               {adminMode ? (isEnglish ? "Map creator" : "Criar mapas") : (isEnglish ? "Astrology" : "Astrologia")}
             </Link>
