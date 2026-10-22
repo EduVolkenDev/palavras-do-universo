@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { AstrologyBirthProfileCard } from "@/components/astrology/AstrologyBirthProfileCard";
 import { AstrologyChartExperience } from "@/components/astrology/AstrologyChartExperience";
 import { buildLoginPath } from "@/lib/auth/redirect";
-import { normalizeLocale } from "@/lib/i18n/config";
+import { LOCALE_COOKIE_NAME, normalizeLocale } from "@/lib/i18n/config";
 import { readAstrologyBirthData } from "@/lib/astrology/birth-data";
 import {
   getAuthenticatedUser,
@@ -52,7 +53,11 @@ export default async function AstrologyMapPage({ searchParams }: { searchParams:
     );
   }
 
-  const locale = normalizeLocale(user.user_metadata?.locale ?? "pt-BR");
+  const cookieStore = await cookies();
+  const requestedLocale = Array.isArray(params.lang) ? params.lang[0] : params.lang;
+  const locale = normalizeLocale(
+    requestedLocale ?? cookieStore.get(LOCALE_COOKIE_NAME)?.value ?? user.user_metadata?.locale
+  );
   let birthData = null;
   let birthDataUnavailable = !hasSupabaseConfig();
 
