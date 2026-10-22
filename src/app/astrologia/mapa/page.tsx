@@ -90,7 +90,7 @@ export default async function AstrologyMapPage({ searchParams }: { searchParams:
   return (
     <main className="min-h-screen bg-[#f7f0e5] px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
-        <a href="/astrologia" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">
+        <a href="/astrologia?overview=1" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6b3f]">
           ← {locale === "en" ? "Astrology" : "Astrologia"}
         </a>
         <div className="mx-auto max-w-3xl py-14 text-center sm:py-20">
