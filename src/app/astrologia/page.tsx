@@ -13,7 +13,8 @@ export default async function AstrologyPage({ searchParams }: { searchParams: Pr
   const params = await searchParams;
   const legacyMapEntry = params.access === "active";
   const user = await getAuthenticatedUser();
-  if (legacyMapEntry || user) {
+  // A deliberate return to the astrology overview must not redirect back to the chart.
+  if ((legacyMapEntry || user) && params.overview !== "1") {
     const query = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
       if (typeof value === "string") query.set(key, value);
