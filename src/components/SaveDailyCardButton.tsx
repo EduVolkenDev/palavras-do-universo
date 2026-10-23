@@ -2,7 +2,7 @@
 
 import { Bookmark, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getOrCreateLocalUserId,
   hasLocalDailyCard,
@@ -45,6 +45,7 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 export function SaveDailyCardButton(props: { payload: DailyCardPayload }) {
   const [state, setState] = useState<SaveState>("idle");
   const [detail, setDetail] = useState("");
+  const attemptedKey = useRef("");
 
   const label = useMemo(() => {
     if (state === "saving") return "Salvando...";
@@ -53,60 +54,7 @@ export function SaveDailyCardButton(props: { payload: DailyCardPayload }) {
     return "Salvar no Meu Universo";
   }, [state]);
 
-  useEffect(() => {
-    const savedKey = props.payload.opening_key ?? props.payload.date_key;
-
-    if (hasLocalDailyCard(savedKey)) {
-      setState("saved");
-      setDetail("Esta abertura já está guardada neste navegador.");
-      return;
-    }
-
-    const controller = new AbortController();
-    getOrCreateLocalUserId();
-    const supabase = getSupabaseBrowserClient();
-
-    if (!supabase) return;
-
-    supabase.auth
-      .getUser()
-      .then(({ data }) => {
-        if (!data.user) return null;
-        return fetch("/api/saved-messages?limit=30", {
-          signal: controller.signal,
-        });
-      })
-      .then((response) => (response?.ok ? response.json() : null))
-      .then((data: unknown) => {
-        if (!data || typeof data !== "object") return;
-        const messages = (data as { messages?: unknown }).messages;
-        if (!Array.isArray(messages)) return;
-
-        const alreadySaved = messages.some((message) => {
-          if (!message || typeof message !== "object") return false;
-          const record = message as { message_type?: unknown; payload?: unknown };
-          if (record.message_type !== "daily_card") return false;
-          if (!record.payload || typeof record.payload !== "object") return false;
-
-          return (
-            ((record.payload as { opening_key?: unknown }).opening_key ??
-              (record.payload as { date_key?: unknown }).date_key) === savedKey
-          );
-        });
-
-        if (alreadySaved) {
-          setState("saved");
-          setDetail("Esta abertura já está guardada no seu histórico.");
-        }
-      })
-      .catch(() => {
-        // Histórico remoto indisponível não impede o fallback local.
-      });
-
-    return () => controller.abort();
-  }, [props.payload.date_key, props.payload.opening_key]);
-
-  async function saveDailyCard() {
+  const saveDailyCard = useCallback(async () => {
     if (state === "saving" || state === "saved") return;
 
     const localMessage = saveLocalMessage({
@@ -132,7 +80,9 @@ export function SaveDailyCardButton(props: { payload: DailyCardPayload }) {
         : { data: { user: null } };
 
       if (!data.user) {
-        throw new Error("Usuário visitante");
+        setState("saved");
+        setDetail("Carta guardada neste dispositivo. Entre na sua conta para sincronizar em outros acessos.");
+        return;
       }
 
       const response = await fetch("/api/saved-messages", {
@@ -152,7 +102,20 @@ export function SaveDailyCardButton(props: { payload: DailyCardPayload }) {
       setState("saved");
       setDetail("Carta salva neste navegador. Depois sincronizamos com sua conta.");
     }
-  }
+  }, [props.payload, state]);
+
+  useEffect(() => {
+    const savedKey = props.payload.opening_key ?? props.payload.date_key;
+    if (attemptedKey.current === savedKey) return;
+    attemptedKey.current = savedKey;
+    if (hasLocalDailyCard(savedKey)) {
+      setState("saved");
+      setDetail("Esta abertura já está guardada neste navegador.");
+      return;
+    }
+    getOrCreateLocalUserId();
+    void saveDailyCard();
+  }, [props.payload.date_key, props.payload.opening_key, saveDailyCard]);
 
   return (
     <div className="flex flex-col gap-2">

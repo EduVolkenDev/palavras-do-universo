@@ -434,8 +434,8 @@ export default function LumeGuide() {
               <p className="text-sm font-semibold text-[#fff7e8]">{LUME_NAME}</p>
               <p className="mt-0.5 text-xs leading-5 text-[#cfc4b9]">
                 {locale === "en"
-                  ? "She follows this point of the portal with you."
-                  : "Ela acompanha este ponto do portal com você."}
+                  ? "AI assistant for exploring the portal and your readings."
+                  : "Assistente de IA para explorar o portal e suas leituras."}
               </p>
             </div>
             <button

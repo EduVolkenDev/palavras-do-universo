@@ -147,7 +147,8 @@ type UniverseStat = {
 
 type SelectedHistoryItem =
   | { kind: "reading"; reading: Reading }
-  | { kind: "saved-reading"; message: SavedMessage };
+  | { kind: "saved-reading"; message: SavedMessage }
+  | { kind: "saved-message"; message: SavedMessage };
 
 function historyReadingForLume(item: SelectedHistoryItem) {
   if (item.kind === "reading") {
@@ -360,24 +361,31 @@ function dedupeMessages(messages: SavedMessage[]) {
   });
 }
 
-function getSavedTitle(message: SavedMessage) {
+function getSavedTitle(message: SavedMessage, locale: Locale = "pt-BR") {
   if (message.message_type === "daily_card" && isDailyCardPayload(message.payload)) {
-    const name = asString(message.payload.card?.name);
-    return name ? `Carta do Dia: ${name}` : "Carta do Dia";
+    const payload = message.payload;
+    const name = asString(payload.card?.name);
+    const cardKey = asString(payload.card?.key);
+    const card = CARDS.find((item) => item.key === cardKey || item.name === name);
+    const localizedName = card ? localizeTarotCard(card, locale).name : name;
+    const title = locale === "en" ? "Card of the Day" : "Carta do Dia";
+    return localizedName ? `${title}: ${localizedName}` : title;
   }
 
   if (message.message_type === "practice" && isLabPracticePayload(message.payload)) {
-    return message.payload.locale === "en" ? "Clarity practice" : "Prática de clareza";
+    return locale === "en" ? "Clarity practice" : "Prática de clareza";
   }
 
   if (message.message_type === "reading" && isSavedReadingPayload(message.payload)) {
     const question = asString(message.payload.question);
-    return question || "Leitura salva";
+    return question || (locale === "en" ? "Saved reading" : "Leitura salva");
   }
 
-  if (!isRecord(message.payload)) return "Mensagem salva";
+  if (!isRecord(message.payload)) return locale === "en" ? "Saved message" : "Mensagem salva";
   const question = message.payload.question;
-  return typeof question === "string" && question ? question : "Mensagem salva";
+  return typeof question === "string" && question
+    ? question
+    : locale === "en" ? "Saved message" : "Mensagem salva";
 }
 
 function getSavedPreview(message: SavedMessage) {
@@ -596,6 +604,11 @@ export default function MeuUniversoPage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [readings, setReadings] = useState<Reading[]>([]);
   const [messages, setMessages] = useState<SavedMessage[]>([]);
+  const [readingsOffset, setReadingsOffset] = useState(0);
+  const [messagesOffset, setMessagesOffset] = useState(0);
+  const [readingsHaveMore, setReadingsHaveMore] = useState(false);
+  const [messagesHaveMore, setMessagesHaveMore] = useState(false);
+  const [loadingMoreHistory, setLoadingMoreHistory] = useState(false);
   const [entitlements, setEntitlements] = useState<Entitlement[]>([]);
   const [commitments, setCommitments] = useState<ImpactCommitment[]>([]);
   const [readingProfile, setReadingProfile] =
@@ -689,6 +702,10 @@ export default function MeuUniversoPage() {
 
         if (!accountEmail) {
           setReadings([]);
+          setReadingsOffset(0);
+          setMessagesOffset(0);
+          setReadingsHaveMore(false);
+          setMessagesHaveMore(false);
           setEntitlements([]);
           setReadingProfile(localProfile);
           setProfileDraft(localProfile);
@@ -707,8 +724,8 @@ export default function MeuUniversoPage() {
         }
 
         const [readingsRes, messagesRes, entitlementsRes, actionsRes, profileRes] = await Promise.all([
-          fetch("/api/readings?limit=20"),
-          fetch("/api/saved-messages?limit=20"),
+          fetch("/api/readings?limit=50"),
+          fetch("/api/saved-messages?limit=50"),
           fetch("/api/entitlements"),
           fetch("/api/actions"),
           fetch("/api/profile"),
@@ -735,9 +752,13 @@ export default function MeuUniversoPage() {
             ? (asArray(readingsData.readings) as Reading[])
             : []
         );
+        setReadingsOffset(isRecord(readingsData) && typeof readingsData.nextOffset === "number" ? readingsData.nextOffset : 0);
+        setReadingsHaveMore(isRecord(readingsData) && readingsData.hasMore === true);
         const remoteMessages = isRecord(messagesData)
           ? (asArray(messagesData.messages) as SavedMessage[])
           : [];
+        setMessagesOffset(isRecord(messagesData) && typeof messagesData.nextOffset === "number" ? messagesData.nextOffset : 0);
+        setMessagesHaveMore(isRecord(messagesData) && messagesData.hasMore === true);
         const currentActiveReadingMessage = localActiveReadingAsSavedMessage(getLocalActiveReading());
         const localMessages = [
           ...(currentActiveReadingMessage ? [currentActiveReadingMessage] : []),
@@ -818,6 +839,9 @@ export default function MeuUniversoPage() {
         kind: "saved-reading" as const,
         message,
       })),
+      ...messages
+        .filter((message) => message.message_type === "daily_card")
+        .map((message) => ({ kind: "saved-message" as const, message })),
     ];
 
     return (
@@ -833,7 +857,7 @@ export default function MeuUniversoPage() {
         return new Date(secondDate).getTime() - new Date(firstDate).getTime();
       })[0] ?? null
     );
-  }, [readings, savedReadingMessages]);
+  }, [messages, readings, savedReadingMessages]);
   const latestHistoryTitle =
     latestHistoryItem?.kind === "reading"
       ? latestHistoryItem.reading.question ||
@@ -846,7 +870,9 @@ export default function MeuUniversoPage() {
           isSavedReadingPayload(latestHistoryItem.message.payload)
         ? asString(latestHistoryItem.message.payload.question) ||
           (locale === "en" ? "Saved reading" : "Leitura salva")
-        : "";
+        : latestHistoryItem?.kind === "saved-message"
+          ? getSavedTitle(latestHistoryItem.message, locale)
+          : "";
   const labContinuity = useMemo(
     () =>
       getLabPracticeContinuity(
@@ -856,7 +882,36 @@ export default function MeuUniversoPage() {
       ),
     [messages]
   );
-  const readingHistoryCount = readings.length + savedReadingMessages.length;
+  const dailyCardMessages = useMemo(
+    () => messages.filter((message) => message.message_type === "daily_card"),
+    [messages]
+  );
+  const savedReadingCount = messages.filter(
+    (message) => message.message_type === "reading"
+  ).length;
+  const readingHistoryCount =
+    readings.length + savedReadingMessages.length + dailyCardMessages.length;
+  const orderedReadingHistory = useMemo(() => [
+    ...readings.map((reading) => ({
+      key: `reading:${reading.id}`,
+      date: reading.created_at,
+      content: <ReadingArticle reading={reading} compact onOpen={() => setSelectedHistoryItem({ kind: "reading", reading })} />,
+    })),
+    ...savedReadingMessages.map((message) => ({
+      key: `saved-reading:${message.id}`,
+      date: message.created_at,
+      content: <SavedReadingPreview message={message} onOpen={() => setSelectedHistoryItem({ kind: "saved-reading", message })} />,
+    })),
+    ...dailyCardMessages.map((message) => ({
+      key: `daily-card:${message.id}`,
+      date: message.created_at,
+      content: (
+        <button type="button" onClick={() => setSelectedHistoryItem({ kind: "saved-message", message })} className="block w-full rounded-lg text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6b3f]" aria-label={getSavedTitle(message, locale)}>
+          <SavedMessageArticle message={message} />
+        </button>
+      ),
+    })),
+  ].sort((a, b) => Date.parse(b.date) - Date.parse(a.date)), [dailyCardMessages, locale, readings, savedReadingMessages]);
   const profileCompletion = getProfileCompletion(profileDraft);
   const profileComplete = getProfileCompletion(readingProfile) >= 4;
   const profileCanSave = hasProfileSignal(profileDraft);
@@ -866,6 +921,51 @@ export default function MeuUniversoPage() {
     entitlements.length > 0 ||
     commitments.length > 0 ||
     profileCompletion > 0;
+
+  async function loadMoreHistory() {
+    if (loadingMoreHistory || (!readingsHaveMore && !messagesHaveMore)) return;
+    setLoadingMoreHistory(true);
+    try {
+      const [readingsRes, messagesRes] = await Promise.all([
+        readingsHaveMore
+          ? fetch(`/api/readings?limit=50&offset=${readingsOffset}`)
+          : Promise.resolve(null),
+        messagesHaveMore
+          ? fetch(`/api/saved-messages?limit=50&offset=${messagesOffset}`)
+          : Promise.resolve(null),
+      ]);
+      if ((readingsRes && !readingsRes.ok) || (messagesRes && !messagesRes.ok)) {
+        throw new Error(t("Não foi possível carregar o restante do histórico."));
+      }
+      if (readingsRes) {
+        const data = await readingsRes.json() as unknown;
+        if (isRecord(data)) {
+          const nextReadings = asArray(data.readings) as Reading[];
+          setReadings((current) => {
+            const known = new Set(current.map((item) => item.id));
+            return [...current, ...nextReadings.filter((item) => !known.has(item.id))];
+          });
+          setReadingsOffset(typeof data.nextOffset === "number" ? data.nextOffset : readingsOffset);
+          setReadingsHaveMore(data.hasMore === true);
+        }
+      }
+      if (messagesRes) {
+        const data = await messagesRes.json() as unknown;
+        if (isRecord(data)) {
+          setMessages((current) => dedupeMessages([
+            ...current,
+            ...(asArray(data.messages) as SavedMessage[]),
+          ]));
+          setMessagesOffset(typeof data.nextOffset === "number" ? data.nextOffset : messagesOffset);
+          setMessagesHaveMore(data.hasMore === true);
+        }
+      }
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t("Não foi possível carregar o restante do histórico."));
+    } finally {
+      setLoadingMoreHistory(false);
+    }
+  }
 
   const stats = useMemo(
     (): UniverseStat[] => [
@@ -1302,7 +1402,7 @@ export default function MeuUniversoPage() {
                   className="inline-flex items-center gap-1.5 rounded-lg border border-[#d8c3a6] bg-white/70 px-3 py-1.5 font-semibold text-[#4d3c31]"
                 >
                   <ShieldCheck size={14} />
-                  Mapas
+                  {t("Mapas")}
                 </Link>
                 <Link
                   href="/admin/codigos"
@@ -1430,6 +1530,14 @@ export default function MeuUniversoPage() {
                 ? "Find what you bought, open the readings available to you, return to saved messages and adjust the context Lume uses to guide you."
                 : "Veja o que você comprou, abra as leituras liberadas, volte às mensagens salvas e ajuste o contexto que a Lume usa para acompanhar você."}
             </p>
+            <nav aria-label={locale === "en" ? "Quick access" : "Acesso rápido"} className="mt-5 flex flex-wrap gap-2">
+              <a href="#historico-vivo" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#241b18] px-4 py-2.5 text-sm font-semibold text-[#fff7e8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6b3f]">
+                <BookOpen size={16} />{locale === "en" ? "All readings" : "Todas as leituras"}
+              </a>
+              <a href="#mensagens-salvas" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#d8c3a6] bg-white/75 px-4 py-2.5 text-sm font-semibold text-[#4d3c31] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6b3f]">
+                <Bookmark size={16} />{locale === "en" ? `Saved first (${savedReadingCount})` : `Leituras salvas (${savedReadingCount})`}
+              </a>
+            </nav>
             {!accountEmail ? (
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <Link
@@ -1592,6 +1700,7 @@ export default function MeuUniversoPage() {
 
         <UniverseVisualGuide
           locale={locale}
+          savedCount={savedReadingCount}
           resumeReading={
             latestHistoryItem
               ? {
@@ -2467,12 +2576,21 @@ export default function MeuUniversoPage() {
               <UniverseSkeleton variant="readings" />
             ) : readingHistoryCount ? (
               <div className="space-y-3">
-                {readings.map((reading) => (
-                  <ReadingArticle key={reading.id} reading={reading} compact onOpen={() => setSelectedHistoryItem({ kind: "reading", reading })} />
+                {orderedReadingHistory.map((item) => (
+                  <div key={item.key}>{item.content}</div>
                 ))}
-                {savedReadingMessages.map((message) => (
-                  <SavedReadingPreview key={message.id} message={message} onOpen={() => setSelectedHistoryItem({ kind: "saved-reading", message })} />
-                ))}
+                {readingsHaveMore || messagesHaveMore ? (
+                  <button
+                    type="button"
+                    onClick={() => void loadMoreHistory()}
+                    disabled={loadingMoreHistory}
+                    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[#8a6b3f]/35 bg-white px-4 py-3 text-sm font-semibold text-[#4d3c31] transition hover:bg-[#f8efe2] disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {loadingMoreHistory
+                      ? (locale === "en" ? "Loading more…" : "Carregando mais…")
+                      : (locale === "en" ? "Load older readings" : "Carregar leituras anteriores")}
+                  </button>
+                ) : null}
               </div>
             ) : (
               <UniverseEmptyState kind="readings" />
@@ -2494,8 +2612,11 @@ export default function MeuUniversoPage() {
 
             {loading && !otherSavedMessages.length ? (
               <UniverseSkeleton variant="saved" />
-            ) : otherSavedMessages.length ? (
+            ) : otherSavedMessages.length || savedReadingMessages.length ? (
               <div className="space-y-3">
+                {savedReadingMessages.map((message) => (
+                  <SavedReadingPreview key={`priority:${message.id}`} message={message} onOpen={() => setSelectedHistoryItem({ kind: "saved-reading", message })} />
+                ))}
                 {otherSavedMessages.map((message) => (
                   <SavedMessageArticle key={message.id} message={message} />
                 ))}
@@ -3208,13 +3329,15 @@ function HistoryReadingDialog({ item, onClose, onAskLume }: { item: SelectedHist
           <button type="button" onClick={onClose} className="grid h-10 w-10 place-items-center rounded-full border border-[#d8c3a6] bg-white text-[#4d3c31] transition hover:bg-[#f8efe2]" aria-label={locale === "en" ? "Close reading" : "Fechar leitura"}><X size={18} /></button>
         </div>
         {item.kind === "reading" ? <ReadingArticle reading={item.reading} /> : <SavedMessageArticle message={item.message} />}
-        <button
-          type="button"
-          onClick={onAskLume}
-          className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-[#8a6b3f]/35 bg-[#241b18] px-5 py-2.5 text-sm font-semibold text-[#fff7e8] transition hover:bg-[#3a2c25] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6b3f]"
-        >
-          {locale === "en" ? "Ask Lume about this reading" : "Perguntar à Lume sobre esta leitura"}
-        </button>
+        {item.kind !== "saved-message" || isSavedReadingPayload(item.message.payload) ? (
+          <button
+            type="button"
+            onClick={onAskLume}
+            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-[#8a6b3f]/35 bg-[#241b18] px-5 py-2.5 text-sm font-semibold text-[#fff7e8] transition hover:bg-[#3a2c25] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6b3f]"
+          >
+            {locale === "en" ? "Ask Lume about this reading" : "Perguntar à Lume sobre esta leitura"}
+          </button>
+        ) : null}
       </section>
     </div>
   );
@@ -3441,7 +3564,7 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
           <div>
             <div className="flex flex-wrap items-center gap-2 text-xs text-[#6f615a]">
               <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
-                Carta do Dia
+                {locale === "en" ? "Card of the Day" : "Carta do Dia"}
               </span>
               {keyword ? (
                 <span className="rounded-full bg-[#e7dcc9] px-2 py-1">
@@ -3450,7 +3573,7 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
               ) : null}
               {message.local_only ? (
                 <span className="rounded-full bg-[#ead8d3] px-2 py-1">
-                  local
+                {locale === "en" ? "On this device" : "Neste dispositivo"}
                 </span>
               ) : null}
             </div>
@@ -3498,7 +3621,7 @@ function SavedMessageArticle({ message }: { message: SavedMessage }) {
     <article className="rounded-lg border border-[#e4d3ba] bg-[#fbf6ee] p-4">
       <p className="text-xs text-[#6f615a]">{formatDate(message.created_at, locale)}</p>
       <h3 className="mt-2 font-semibold text-[#332720]">
-        {getSavedTitle(message)}
+        {getSavedTitle(message, locale)}
       </h3>
       <p className="mt-2 line-clamp-4 text-sm leading-6 text-[#6f615a]">
         {getSavedPreview(message)}

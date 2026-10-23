@@ -156,7 +156,7 @@ export function EduReadingComingSoon() {
                       {status === "submitting" ? copy.waitlistSubmitting : copy.waitlistSubmit}
                     </button>
                   </div>
-                  <div className="sr-only" aria-hidden="true">
+                  <div className="sr-only" aria-hidden="true" data-i18n-ignore>
                     <label htmlFor="edu-waitlist-website">Website</label>
                     <input
                       id="edu-waitlist-website"

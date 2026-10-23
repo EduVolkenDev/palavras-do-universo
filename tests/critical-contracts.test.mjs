@@ -119,7 +119,7 @@ test("passwordless access uses OTPs without creating accounts or relying on emai
 
 test("campaign attribution survives authentication and checkout without collecting search terms", async () => {
   const attribution = await source("src/lib/marketing/attribution.ts");
-  const home = await source("src/app/page.tsx");
+  const home = await source("src/components/home/ReadingExperience.tsx");
   const checkout = await source("src/app/api/checkout/create/route.ts");
   const fulfillment = await source("src/lib/product/fulfillment.ts");
 
@@ -155,7 +155,7 @@ test("the campaign ships an accessible, shareable social preview", async () => {
 
 test("reading-profile choices keep stable values and localize every visible label", async () => {
   const profileI18n = await source("src/lib/i18n/reading-profile.ts");
-  const home = await source("src/app/page.tsx");
+  const home = await source("src/components/home/ReadingExperience.tsx");
   const universe = await source("src/app/meu-universo/page.tsx");
 
   assert.match(profileI18n, /READING_PROFILE_FOCUS_AREAS/);

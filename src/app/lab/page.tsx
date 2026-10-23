@@ -78,9 +78,9 @@ const practiceIcons: Record<LabPracticeKey, LucideIcon> = {
 
 const copy = {
   pt: {
-    eyebrow: "LABORATÓRIO DO AGORA",
+    eyebrow: "RITUAIS DO UNIVERSO",
     title: "Nem todo momento pede uma carta.",
-    intro: "Às vezes, o que você precisa é de um espaço para organizar o que está vivo, perceber o que merece cuidado e escolher um gesto possível.",
+    intro: "Uma prática guiada para organizar o que você sente e escolher uma ação de cuidado. Aqui não há tiragem de cartas.",
     heroCardLine: "Um espaço para escutar o que está vivo em você.",
     primaryCta: "Começar minha prática",
     secondaryCta: "Voltar para o portal",
@@ -153,9 +153,9 @@ const copy = {
     readingCtaShort: "Fazer uma leitura",
   },
   en: {
-    eyebrow: "THE NOW LAB",
+    eyebrow: "UNIVERSE RITUALS",
     title: "Not every moment needs a card.",
-    intro: "Sometimes what you need is a space to organize what is alive, notice what deserves care, and choose one possible gesture.",
+    intro: "A guided practice to reflect on what you feel and choose a caring action. There is no card draw here.",
     heroCardLine: "A space to listen to what is alive in you.",
     primaryCta: "Start my practice",
     secondaryCta: "Back to the portal",
@@ -457,7 +457,7 @@ export default function LabPage() {
                 ))}
               </div>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/#leitura" className="inline-flex items-center gap-2 rounded-full bg-[#2b211c] px-5 py-3 text-sm font-semibold text-[#fff8eb] hover:bg-[#45342a]">{language.readingCta}<ArrowRight size={16} /></Link>
+                <Link href="/" className="inline-flex items-center gap-2 rounded-full bg-[#2b211c] px-5 py-3 text-sm font-semibold text-[#fff8eb] hover:bg-[#45342a]">{language.secondaryCta}<ArrowRight size={16} /></Link>
                 <Link href="/meu-universo" className="inline-flex items-center gap-2 rounded-full border border-[#bda77f] px-5 py-3 text-sm font-semibold text-[#5c4635] hover:bg-[#f4eadb]">{language.universeCta}</Link>
                 <button type="button" onClick={reset} className="inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-[#8a6b3f] hover:bg-[#f4eadb]"><RotateCcw size={16} />{language.restart}</button>
               </div>
@@ -556,27 +556,6 @@ export default function LabPage() {
         </div>
       </section>
 
-      <section className="relative z-10 border-t border-[#d6c3a7] px-4 py-14 sm:px-8 sm:py-20">
-        <div className="mx-auto max-w-7xl">
-          <div className="flex flex-wrap items-end justify-between gap-5">
-            <div>
-              <p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#8a6b3f]">{language.otherDoors}</p>
-              <h2 className="brand-serif mt-3 text-3xl font-semibold sm:text-4xl">{locale === "en" ? "Your path can begin in more than one place." : "O seu caminho pode começar por mais de um lugar."}</h2>
-            </div>
-            <Heart className="text-[#bc8b58]" size={28} strokeWidth={1.4} aria-hidden="true" />
-          </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            <Link href="/carta-do-dia" className="group rounded-2xl border border-[#e4d3ba] bg-[#fffaf2] p-5 transition hover:-translate-y-0.5 hover:border-[#bda77f]">
-              <p className="text-sm text-[#6f615a]">{language.cardDoor}</p>
-              <span className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#5d432c]">{language.cardCta}<ArrowRight size={16} className="transition group-hover:translate-x-1" /></span>
-            </Link>
-            <Link href="/#leitura" className="group rounded-2xl border border-[#e4d3ba] bg-[#fffaf2] p-5 transition hover:-translate-y-0.5 hover:border-[#bda77f]">
-              <p className="text-sm text-[#6f615a]">{language.readingDoor}</p>
-              <span className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#5d432c]">{language.readingCtaShort}<ArrowRight size={16} className="transition group-hover:translate-x-1" /></span>
-            </Link>
-          </div>
-        </div>
-      </section>
     </main>
   );
 }

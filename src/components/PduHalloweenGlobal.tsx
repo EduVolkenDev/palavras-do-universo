@@ -1,4 +1,9 @@
+"use client";
+
+import { useI18n } from "@/components/I18nProvider";
+
 export function PduHalloweenGlobal() {
+  const { locale } = useI18n();
   return (
     <div className="pdu-halloween-global" aria-hidden="true">
       <span className="pdu-halloween-global__topline" />
@@ -15,7 +20,7 @@ export function PduHalloweenGlobal() {
       <span className="pdu-halloween-global__web pdu-halloween-global__web--right">╱╲╱╲</span>
       <span className="pdu-halloween-global__spider pdu-halloween-global__spider--left">🕷</span>
       <span className="pdu-halloween-global__spider pdu-halloween-global__spider--right">🕷</span>
-      <span className="pdu-halloween-global__label">NOITES DE OUTUBRO</span>
+      <span className="pdu-halloween-global__label">{locale === "en" ? "OCTOBER NIGHTS" : "NOITES DE OUTUBRO"}</span>
     </div>
   );
 }

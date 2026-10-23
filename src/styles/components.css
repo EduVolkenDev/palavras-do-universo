@@ -1405,6 +1405,16 @@
   display: none;
 }
 
+/* Keep the fixed Lume control out of the birth-map form and its save action. */
+body:has([data-lume-avoid-trigger]) .pdu-lume-ambient {
+  display: none;
+}
+
+/* Let the daily reading remain unobstructed by the fixed assistant control. */
+body:has(.pdu-daily-card-experience) .pdu-lume-ambient {
+  display: none;
+}
+
 .pdu-lume-guide-panel {
   position: fixed !important;
   right: calc(1rem + env(safe-area-inset-right)) !important;

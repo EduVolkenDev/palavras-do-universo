@@ -30,6 +30,7 @@ import {
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PduAssetStory } from "@/components/PduAssetStory";
 import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
+import { useI18n } from "@/components/I18nProvider";
 
 type ApiProfile = {
   handle?: string | null;
@@ -203,6 +204,7 @@ function getLoginHref() {
 }
 
 export default function ProfessionalManagerPage() {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -357,13 +359,13 @@ export default function ProfessionalManagerPage() {
           <div className="max-w-2xl">
             <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#f4d58d]/22 bg-white/[0.05] px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[#f5d896]">
               <Sparkles size={14} />
-              Seu espaço profissional
+              {t("Seu espaço profissional")}
             </p>
             <h1 className="brand-serif text-5xl font-semibold leading-[0.95] tracking-[-0.06em] text-[#fff7e8] sm:text-6xl">
-              Apresente seu trabalho com clareza e escolha como quer atender.
+              {t("Apresente seu trabalho com clareza e escolha como quer atender.")}
             </h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-[#d6c9be]">
-              Organize seu perfil, suas formas de atendimento e as faixas de acesso que deseja oferecer. Você decide quando publicar cada mudança.
+              {t("Organize seu perfil, suas formas de atendimento e as faixas de acesso que deseja oferecer. Você decide quando publicar cada mudança.")}
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
@@ -371,25 +373,25 @@ export default function ProfessionalManagerPage() {
                 href="/profissionais"
                 className="inline-flex items-center gap-2 rounded-full bg-[#f4d58d] px-5 py-3 text-sm font-semibold text-[#1c1308] hover:bg-[#ffe3a3]"
               >
-                Ver marketplace
+                {t("Ver marketplace")}
                 <ArrowRight size={16} />
               </Link>
               <Link
                 href="/meu-universo"
                 className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-[#fff7e8] hover:border-[#f4d58d]/45 hover:bg-white/[0.07]"
               >
-                Voltar ao Meu Universo
+                {t("Voltar ao Meu Universo")}
               </Link>
             </div>
 
             <div className="mt-7 flex flex-wrap gap-3 text-xs text-[#cfc4b9]">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-2">
                 <BadgeCheck size={14} className="text-[#a7d7c5]" />
-                Perfil público
+                {t("Perfil público")}
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-2">
                 <ShieldCheck size={14} className="text-[#a7d7c5]" />
-                Ofertas sob seu controle
+                {t("Ofertas sob seu controle")}
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-2">
                 <CalendarRange size={14} className="text-[#a7d7c5]" />
@@ -405,7 +407,7 @@ export default function ProfessionalManagerPage() {
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f5d896]">
-                  Pronto para publicar
+                  {t("Pronto para publicar")}
                 </p>
                 <h2 className="brand-serif mt-2 text-2xl font-semibold text-[#fff7e8]">
                   {profile.displayName || "Perfil ainda não calibrado"}
@@ -444,7 +446,7 @@ export default function ProfessionalManagerPage() {
               </Link>
             ) : (
               <p className="rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-[#cfc4b9]">
-                Marque o perfil como publicado e salve para que as pessoas possam encontrá-lo no marketplace.
+                {t("Marque o perfil como publicado e salve para que as pessoas possam encontrá-lo no marketplace.")}
               </p>
             )}
           </div>
@@ -627,7 +629,7 @@ export default function ProfessionalManagerPage() {
                     setProfile((current) => ({ ...current, isPublished: event.target.checked }))
                   }
                 />
-                Mostrar meu perfil no marketplace
+                {t("Mostrar meu perfil no marketplace")}
               </label>
               <div className="flex items-center gap-3 rounded-[18px] border border-white/10 bg-black/20 px-4 py-3 text-sm">
                 <BadgeCheck

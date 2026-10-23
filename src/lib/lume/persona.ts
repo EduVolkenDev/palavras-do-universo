@@ -63,8 +63,8 @@ type LocalizedReply = Omit<LumeReply, "action"> & {
 const copy: Record<Locale, Record<LumeSurface, LocalizedReply>> = {
   "pt-BR": {
     home: {
-      text: "Estou aqui para abrir o primeiro caminho. Escolha um tema, escreva o que está pedindo atenção e comece por uma pergunta honesta.",
-      action: { label: "Começar uma leitura", href: "#leitura" },
+      text: "Sou a Lume, assistente de inteligência artificial do Palavras do Universo. Posso ajudar você a escolher entre tarot, astrologia e rituais. Para experimentar sem cadastro e sem escrever uma pergunta, comece pela Carta do Dia.",
+      action: { label: "Abrir minha carta grátis", href: "/carta-do-dia" },
       suggestions: ["Como faço uma leitura?", "Qual experiência devo escolher?"],
     },
     readings: {
@@ -98,8 +98,8 @@ const copy: Record<Locale, Record<LumeSurface, LocalizedReply>> = {
       suggestions: ["Como escolher um profissional?", "Existem opções sociais?"],
     },
     lab: {
-      text: "O Lab é uma pausa sem cartas para organizar o que está vivo e escolher um gesto possível. Se você já praticou, posso ajudar a retomar ou abrir outra porta.",
-      action: { label: "Entrar no Lab", href: "/lab#pratica" },
+      text: "Os Rituais do Universo são práticas sem tiragem de cartas para organizar o momento e escolher uma ação de cuidado. Se você já praticou, posso ajudar a retomar.",
+      action: { label: "Começar meu ritual", href: "/lab#pratica" },
       suggestions: ["Retomar minha prática", "Abrir uma próxima porta"],
     },
     account: {
@@ -110,8 +110,8 @@ const copy: Record<Locale, Record<LumeSurface, LocalizedReply>> = {
   },
   en: {
     home: {
-      text: "I am here to open the first path. Choose a theme, write what is asking for attention, and begin with an honest question.",
-      action: { label: "Start a reading", href: "#leitura" },
+      text: "I’m Lume, the Palavras do Universo AI assistant. I can help you choose between tarot, astrology and rituals. To try an experience without an account or a written question, start with the Card of the Day.",
+      action: { label: "Open my free card", href: "/carta-do-dia" },
       suggestions: ["How do I get a reading?", "Which experience should I choose?"],
     },
     readings: {
@@ -145,8 +145,8 @@ const copy: Record<Locale, Record<LumeSurface, LocalizedReply>> = {
       suggestions: ["How do I choose a professional?", "Are social options available?"],
     },
     lab: {
-      text: "The Lab is a card-free pause to organize what is alive and choose one possible gesture. If you have practiced before, I can help you return or open another door.",
-      action: { label: "Enter the Lab", href: "/lab#pratica" },
+      text: "Universe rituals are card-free practices to reflect on your moment and choose a caring action. If you have practiced before, I can help you return to it.",
+      action: { label: "Start my ritual", href: "/lab#pratica" },
       suggestions: ["Resume my practice", "Open a next door"],
     },
     account: {

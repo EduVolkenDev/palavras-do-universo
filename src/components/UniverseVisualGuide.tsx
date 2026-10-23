@@ -7,6 +7,7 @@ import type { Locale } from "@/lib/i18n/config";
 
 type UniverseVisualGuideProps = {
   locale: Locale;
+  savedCount?: number;
   resumeReading?: {
     title: string;
     onOpen: () => void;
@@ -25,6 +26,7 @@ type VisualPath = {
 
 export function UniverseVisualGuide({
   locale,
+  savedCount = 0,
   resumeReading,
 }: UniverseVisualGuideProps) {
   const isEnglish = locale === "en";
@@ -76,6 +78,16 @@ export function UniverseVisualGuide({
       href: "#acessos",
       actionLabel: isEnglish ? "See my access" : "Ver meus acessos",
     },
+    {
+      asset: PDU_ASSETS.surfaces.readings,
+      label: isEnglish ? "Saved to revisit" : "Guardadas para voltar",
+      title: isEnglish ? `Saved readings · ${savedCount}` : `Leituras salvas · ${savedCount}`,
+      text: isEnglish
+        ? "Your saved readings are kept together, separate from the full history."
+        : "Suas leituras salvas ficam reunidas, separadas do histórico completo.",
+      href: "#mensagens-salvas",
+      actionLabel: isEnglish ? "See saved readings" : "Ver leituras salvas",
+    },
   ];
 
   return (
@@ -99,7 +111,7 @@ export function UniverseVisualGuide({
         </p>
       </div>
 
-      <div className="mt-6 grid gap-3 md:grid-cols-3">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {paths.map((path) => {
           const content = (
             <>

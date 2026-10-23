@@ -48,6 +48,10 @@ function translateText(value: string, locale: Locale) {
 }
 
 function translateNode(node: Node, locale: Locale) {
+  // MutationObserver may enqueue a descendant directly, bypassing the root's opt-out.
+  const element = node instanceof Element ? node : node.parentElement;
+  if (element?.closest("[data-i18n-ignore]")) return;
+
   if (node.nodeType === Node.TEXT_NODE) {
     const value = node.textContent ?? "";
     const trimmed = value.trim();

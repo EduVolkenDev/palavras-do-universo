@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { TarotCardMeaningContent } from "@/components/tarot/TarotCardMeaningContent";
 import { getTarotCardPageData, getTarotCardPageParams } from "@/lib/tarot/card-page";
+import { getTarotEditorial } from "@/lib/tarot/editorial";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `Significado de ${card.name} no Tarot | Palavras do Universo`,
-    description: `${card.detail.guide.core} Veja palavras-chave, sentido direto, sentido reverso e uma pergunta para levar para a sua vida.`,
+    description: `${card.detail.guide.core} Explore os símbolos da arte, posições direta e reversa, um exemplo cotidiano e diferenças entre cartas.`,
     alternates: { canonical: `/significados/tarot/${card.key}` },
     openGraph: {
       title: `Significado de ${card.name} no Tarot`,
@@ -30,5 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function TarotCardMeaningPage({ params }: PageProps) {
   const { slug } = await params;
   if (!getTarotCardPageData(slug)) notFound();
-  return <TarotCardMeaningContent cardKey={slug} />;
+  const editorial = getTarotEditorial(slug);
+  if (!editorial) throw new Error(`Missing tarot editorial content: ${slug}`);
+  return <TarotCardMeaningContent cardKey={slug} editorial={editorial} />;
 }

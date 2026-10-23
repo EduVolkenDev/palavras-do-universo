@@ -1678,6 +1678,16 @@ const en: Record<string, string> = {
   "Consultar outras cartas": "Explore other cards",
   "Leitura com o Edu": "Reading with Edu",
   "Converse sobre uma leitura realizada por ele": "Talk about a reading done by him",
+  "Mapas": "Charts",
+  "Seu espaço profissional": "Your professional space",
+  "Apresente seu trabalho com clareza e escolha como quer atender.": "Present your work clearly and choose how you want to work with clients.",
+  "Organize seu perfil, suas formas de atendimento e as faixas de acesso que deseja oferecer. Você decide quando publicar cada mudança.": "Organize your profile, ways of working, and the access options you want to offer. You decide when to publish each change.",
+  "Ofertas sob seu controle": "Offers under your control",
+  "Pronto para publicar": "Ready to publish",
+  "Marque o perfil como publicado e salve para que as pessoas possam encontrá-lo no marketplace.": "Mark your profile as published and save it so people can find you in the marketplace.",
+  "Selecionar um ritual": "Choose a practice",
+  "Mostrar meu perfil no marketplace": "Show my profile in the marketplace",
+  "Não foi possível carregar o restante do histórico.": "The rest of your history could not be loaded.",
 };
 
 export const translations = { en };

@@ -12,8 +12,6 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SaveDailyCardButton } from "@/components/SaveDailyCardButton";
-import { PduAssetStory } from "@/components/PduAssetStory";
-import { PDU_ASSET_STORIES } from "@/lib/pdu-asset-stories";
 import { useI18n } from "@/components/I18nProvider";
 
 type DailyCard = {
@@ -134,7 +132,7 @@ export function DailyCardExperience() {
     : null;
 
   return (
-    <main className="pdu-home min-h-screen text-[#f8efe2]">
+    <main className="pdu-home pdu-daily-card-experience min-h-screen text-[#f8efe2]">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#09080d]/95">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <Link
@@ -348,8 +346,6 @@ export function DailyCardExperience() {
           </div>
         </div>
       </section>
-
-      <PduAssetStory {...PDU_ASSET_STORIES.daily} />
     </main>
   );
 }

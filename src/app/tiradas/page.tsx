@@ -100,13 +100,13 @@ export default function TiradasPage() {
           <div className="grid gap-12 pt-20 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f5d896]">
-                {t("Tiradas e jogos")}
+                {locale === "en" ? "Tarot · readings and prices" : "Tarot · tiradas e valores"}
               </p>
               <h1 className="brand-serif mt-4 max-w-3xl text-5xl font-semibold leading-[0.95] sm:text-7xl">
-                {t("Escolha a porta certa antes de pedir resposta.")}
+                {locale === "en" ? "A card for today. A reading for your question." : "Uma carta para hoje. Uma leitura para sua pergunta."}
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-[#cfc4b9]">
-                {t("Cada tirada tem arquitetura, ritmo e profundidade próprios: da pausa diária aos mapas amplos e experiências especiais do Círculo.")}
+                {locale === "en" ? "Try the free Card of the Day without an account or a written question. For a specific situation, compare the readings below before choosing." : "Experimente a Carta do Dia grátis, sem conta e sem escrever uma pergunta. Para uma situação específica, compare as tiradas abaixo antes de escolher."}
               </p>
             </div>
 
@@ -148,17 +148,17 @@ export default function TiradasPage() {
                 {t("Comece grátis")}
               </h2>
               <p className="mt-4 max-w-xl text-sm leading-7 text-[#d8ccc0]">
-                {t("Uma leitura gratuita por dia")}. {t("Mensagem e Carta do Dia para criar o hábito sem compromisso.")}
+                {locale === "en" ? "A symbolic reflection for today, not a prediction with a fixed deadline. No sign-up needed." : "Uma reflexão simbólica para hoje, não uma previsão com prazo fixo. Não precisa se cadastrar."}
               </p>
             </div>
             <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:mt-0 lg:min-w-[22rem] lg:grid-cols-1">
               <Link
-                href="/#leitura"
+                href="/leitura"
                 className="group inline-flex items-center justify-between rounded-[18px] border border-[#f4d58d]/28 bg-black/20 px-5 py-4 text-sm font-semibold text-[#fff7e8] transition hover:border-[#f4d58d]/65 hover:bg-black/30"
               >
                 <span>
-                  <span className="block text-xs uppercase tracking-[0.14em] text-[#f5d896]">{t("Mensagem diária")}</span>
-                  <span className="mt-1 block">{t("Receber agora")}</span>
+                  <span className="block text-xs uppercase tracking-[0.14em] text-[#f5d896]">{locale === "en" ? "I have a question" : "Tenho uma pergunta"}</span>
+                  <span className="mt-1 block">{locale === "en" ? "Prepare my reading" : "Preparar minha leitura"}</span>
                 </span>
                 <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />
               </Link>

@@ -399,7 +399,7 @@ export function AstrologyBirthProfileCard({
               </div>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} data-lume-avoid-trigger className="space-y-5">
               <p className="rounded-2xl border border-[#dfccb0] bg-[#f8efe2] px-4 py-3 text-sm leading-6 text-[#6f615a]">
                 {copy.existingAccountPrompt}{" "}
                 <a href={loginPath} className="font-semibold text-[#6f5134] underline decoration-[#c69a4f]/70 underline-offset-4 transition hover:text-[#241b18] focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6b3f]">

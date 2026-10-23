@@ -136,11 +136,15 @@ export function saveLocalMessage(params: {
   payload: unknown;
 }) {
   const messages = getLocalSavedMessages();
+  const payload = params.payload as { opening_key?: unknown; date_key?: unknown } | null;
+  const dailyKey = params.messageType === "daily_card" && payload && typeof payload === "object"
+    ? payload.opening_key ?? payload.date_key
+    : null;
+  const stableId = typeof dailyKey === "string" && dailyKey
+    ? `local_dailycard${hashLocalValue(dailyKey)}`
+    : null;
   const next: LocalSavedMessage = {
-    id:
-      "local_" +
-      Math.random().toString(36).slice(2) +
-      Date.now().toString(36),
+    id: stableId ?? "local_" + Math.random().toString(36).slice(2) + Date.now().toString(36),
     reading_id: params.readingId ?? null,
     message_type: params.messageType,
     payload: params.payload,

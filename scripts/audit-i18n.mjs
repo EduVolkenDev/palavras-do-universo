@@ -205,7 +205,7 @@ function isInExplicitLocaleCopy(node) {
       const localeContainer = localeProperty?.parent;
       if (
         ts.isPropertyAssignment(localeProperty) &&
-        ["pt", "en"].includes(propertyNameText(localeProperty.name) ?? "") &&
+        ["pt", "pt-BR", "en"].includes(propertyNameText(localeProperty.name) ?? "") &&
         ts.isObjectLiteralExpression(localeContainer)
       ) {
         const localeKeys = new Set(
@@ -213,7 +213,7 @@ function isInExplicitLocaleCopy(node) {
             .filter(ts.isPropertyAssignment)
             .map((property) => propertyNameText(property.name))
         );
-        if (localeKeys.has("pt") && localeKeys.has("en")) return true;
+        if ((localeKeys.has("pt") || localeKeys.has("pt-BR")) && localeKeys.has("en")) return true;
       }
     }
     current = current.parent;

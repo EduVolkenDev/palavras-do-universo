@@ -31,12 +31,19 @@ function isPayloadAllowed(payload: unknown) {
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const limit = Math.min(Number(url.searchParams.get("limit") ?? 20), 50);
+  const requestedLimit = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 50)
+    : 50;
+  const requestedOffset = Number(url.searchParams.get("offset") ?? 0);
+  const offset = Number.isFinite(requestedOffset)
+    ? Math.min(Math.max(Math.trunc(requestedOffset), 0), 1_000_000)
+    : 0;
   const auth = await requireApiUser();
   if (auth.response) return auth.response;
 
   if (!hasSupabaseConfig()) {
-    return NextResponse.json({ ok: true, messages: [] });
+    return NextResponse.json({ ok: true, messages: [], hasMore: false, nextOffset: offset });
   }
 
   const supabase = getSupabaseAdmin();
@@ -45,13 +52,20 @@ export async function GET(req: Request) {
     .select("id, reading_id, message_type, payload, created_at, client_key")
     .eq("user_id", auth.user.id)
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, messages: data ?? [] });
+  const rows = data ?? [];
+  const messages = rows.slice(0, limit);
+  return NextResponse.json({
+    ok: true,
+    messages,
+    hasMore: rows.length > limit,
+    nextOffset: offset + messages.length,
+  });
 }
 
 export async function POST(req: Request) {
