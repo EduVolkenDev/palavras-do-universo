@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { useI18n } from "@/components/I18nProvider";
 import { requestLumeOpen } from "@/components/LumeGuide";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
@@ -62,8 +62,20 @@ export default function HomePortal({ navigationParams }: { navigationParams: Rec
           <Image src={PDU_ASSETS.brand.headerWordmark} alt="Palavras do Universo" width={230} height={58} priority />
         </Link>
         <nav className={styles.navigation} aria-label={text("Navegação principal", "Main navigation")}>
-          <a href="#areas">{text("Explorar", "Explore")}</a>
-          <Link href={href("/meu-universo")}>{text("Meu Universo", "My Universe")}</Link>
+          <details className={styles.explore}>
+            <summary>{text("Explorar", "Explore")}<ChevronDown size={15} aria-hidden="true" /></summary>
+            <div className={styles.exploreMenu}>
+              <Link href={href("/tiradas")}>{text("Tarot e tiradas", "Tarot readings")}</Link>
+              <Link href={href("/carta-do-dia")}>{text("Carta do Dia", "Card of the Day")}</Link>
+              <Link href={href("/astrologia")}>{text("Astrologia", "Astrology")}</Link>
+              <Link href={href("/lab")}>{text("Rituais do Universo", "Universe rituals")}</Link>
+              <Link href={href("/significados/tarot")}>{text("Significados das cartas", "Card meanings")}</Link>
+              <Link href={href("/profissionais")}>{text("Profissionais", "Professionals")}</Link>
+              <Link href={href("/meu-universo")}>{text("Meu Universo", "My Universe")}</Link>
+            </div>
+          </details>
+          <Link className={styles.accountLink} href={href("/meu-universo")}>{text("Meu Universo", "My Universe")}</Link>
+          <Link className={styles.professionalsLink} href={href("/profissionais")}>{text("Profissionais", "Professionals")}</Link>
           <Link className={styles.headerCta} href={href("/leitura?product=clareza_urgente")}>
             {text("Quero clareza urgente", "I need clarity now")}<ArrowRight size={16} aria-hidden="true" />
           </Link>

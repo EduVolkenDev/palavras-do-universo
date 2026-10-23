@@ -7232,8 +7232,26 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
   }
 
   .pdu-language-switcher--home {
-    top: calc(4.05rem + env(safe-area-inset-top));
+    top: calc(0.5rem + env(safe-area-inset-top));
     bottom: auto;
+  }
+
+  .pdu-language-switcher {
+    width: auto;
+    min-height: 34px;
+    max-height: 36px;
+    gap: 0.1rem;
+    padding: 2px 3px;
+    border-width: 1px;
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.28);
+  }
+
+  .pdu-language-switcher button {
+    min-width: 32px;
+    min-height: 28px;
+    padding: 0.35rem 0.45rem;
+    font-size: 0.68rem;
+    line-height: 1;
   }
 
   .pdu-site-header__mobile-toggle {
