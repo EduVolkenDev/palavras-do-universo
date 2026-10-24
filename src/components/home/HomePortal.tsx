@@ -70,12 +70,10 @@ export default function HomePortal({ navigationParams }: { navigationParams: Rec
               <Link href={href("/astrologia")}>{text("Astrologia", "Astrology")}</Link>
               <Link href={href("/lab")}>{text("Rituais do Universo", "Universe rituals")}</Link>
               <Link href={href("/significados/tarot")}>{text("Significados das cartas", "Card meanings")}</Link>
-              <Link href={href("/profissionais")}>{text("Profissionais", "Professionals")}</Link>
               <Link href={href("/meu-universo")}>{text("Meu Universo", "My Universe")}</Link>
             </div>
           </details>
           <Link className={styles.accountLink} href={href("/meu-universo")}>{text("Meu Universo", "My Universe")}</Link>
-          <Link className={styles.professionalsLink} href={href("/profissionais")}>{text("Profissionais", "Professionals")}</Link>
           <Link className={styles.headerCta} href={href("/leitura?product=clareza_urgente")}>
             {text("Quero clareza urgente", "I need clarity now")}<ArrowRight size={16} aria-hidden="true" />
           </Link>

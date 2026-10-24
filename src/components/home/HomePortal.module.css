@@ -88,7 +88,6 @@
   .header { flex-wrap: wrap; gap: .7rem; }
   .wordmark img { width: 160px; }
   .navigation { width: 100%; justify-content: space-between; gap: .55rem; font-size: .76rem; }
-  .professionalsLink { display: none; }
   .navigation .headerCta { gap: .35rem; padding: .65rem .65rem; font-size: .7rem; white-space: nowrap; }
   .exploreMenu { top: calc(100% + .6rem); }
   .hero { display: flex; flex-direction: column-reverse; gap: 1.1rem; padding-block: 1.5rem 2.5rem; }
