@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ArrowRight, Clock3, RefreshCw, Sparkles } from "lucide-react";
-import Image from "next/image";
+import Image from "./AstrologyImage";
 import type { DailySky, DailyTone } from "@/lib/astrology/daily-sky";
 import { getBodyInterpretation, getSignInterpretation, type AstrologyLocale } from "@/lib/astrology/interpretations";
 import { getDailyTransitInterpretation } from "@/lib/astrology/transit-interpretation";
@@ -134,7 +134,7 @@ export function AstrologyDailySky({
                   {sky.positions.map((position) => (
                     <div key={position.body} className="relative min-h-[6.35rem] overflow-hidden rounded-2xl border border-[#e6d8c3] bg-[#fffdf9] p-4 shadow-[0_8px_18px_rgba(80,57,34,0.05)]">
                       <Image
-                        src={ASTROLOGY_VISUALS.dailySky.positionByBody[position.body]}
+                        src={ASTROLOGY_VISUALS.dailySky.positionByBody?.[position.body]}
                         alt=""
                         width={48}
                         height={48}

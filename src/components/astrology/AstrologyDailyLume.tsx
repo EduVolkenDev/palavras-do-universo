@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { RefreshCw, Sparkles } from "lucide-react";
-import Image from "next/image";
+import Image from "./AstrologyImage";
 import { dailyTransitId, type DailyReadingResult } from "@/lib/astrology/daily-reading";
 import type { DailySky, DailyTone } from "@/lib/astrology/daily-sky";
 import { getAspectInterpretation, getBodyInterpretation, type AstrologyLocale } from "@/lib/astrology/interpretations";
@@ -96,7 +96,7 @@ export function AstrologyDailyLume({ sky, locale, artworkPlan }: { sky: DailySky
           if (!entries.length) return null;
           return <div key={tone} className="mt-6"><h4 className="font-semibold text-[#493527]">{isEnglish ? en : pt}</h4><div className="mt-3 space-y-3">{entries.map((item) => {
             const transit = transits.find((value) => dailyTransitId(value) === item.transitId)!;
-            return <article key={item.transitId} className="grid overflow-hidden rounded-2xl border border-[#e6d8c3] bg-white/75 md:grid-cols-[minmax(0,1.2fr)_minmax(13rem,0.8fr)]"><div className="p-4 sm:p-5"><p className="text-xs font-semibold text-[#806c5d]">{getBodyInterpretation(transit.transitBody, locale).label} · {getAspectInterpretation(transit.type, locale).label} · {getBodyInterpretation(transit.natalBody, locale).label} {natalLabel}</p><p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#55473e]">{item.text}</p></div><div className="relative min-h-[12rem] overflow-hidden border-t border-[#e6d8c3] bg-[#e7dac6] md:min-h-full md:border-l md:border-t-0"><Image src={artworkPlan.lumeCardByTransit[dailyTransitArtworkKey(transit)]} alt="" fill sizes="(max-width: 767px) 100vw, 26rem" className="object-contain p-3" aria-hidden="true" /></div></article>;
+            return <article key={item.transitId} className="grid overflow-hidden rounded-2xl border border-[#e6d8c3] bg-white/75 md:grid-cols-[minmax(0,1.2fr)_minmax(13rem,0.8fr)]"><div className="p-4 sm:p-5"><p className="text-xs font-semibold text-[#806c5d]">{getBodyInterpretation(transit.transitBody, locale).label} · {getAspectInterpretation(transit.type, locale).label} · {getBodyInterpretation(transit.natalBody, locale).label} {natalLabel}</p><p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#55473e]">{item.text}</p></div><div className="relative min-h-[12rem] overflow-hidden border-t border-[#e6d8c3] bg-[#e7dac6] md:min-h-full md:border-l md:border-t-0"><Image src={artworkPlan.lumeCardByTransit?.[dailyTransitArtworkKey(transit)]} alt="" fill sizes="(max-width: 767px) 100vw, 26rem" className="object-contain p-3" aria-hidden="true" /></div></article>;
           })}</div></div>;
         })}
         <div className="mt-6 rounded-2xl bg-[#241b18] p-5 text-[#fff7e8]"><h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-[#f5d896]">{isEnglish ? "One possible gesture today" : "Um gesto possível para hoje"}</h4><p className="mt-3 text-sm leading-7">{reading.content.nextStep}</p></div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CalendarDays, CheckCircle2, Clock3, Info, LoaderCircle, MapPin, Sparkles } from "lucide-react";
-import Image from "next/image";
+import Image from "./AstrologyImage";
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { buildLoginPath } from "@/lib/auth/redirect";
 import {
