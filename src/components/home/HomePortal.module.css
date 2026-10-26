@@ -63,7 +63,7 @@
 .track[data-moving="true"] { animation: feedback-loop 55s linear infinite; }
 .track[data-paused="true"], .carousel:hover .track, .carousel:focus-within .track { animation-play-state: paused; }
 .feedbackGroup { display: flex; gap: 1rem; padding-right: 1rem; }
-.testimonial { margin: 0; width: 340px; padding: 1.5rem; border: 1px solid #efd08b33; border-radius: 18px; background: #fff5e708; }
+.testimonial { box-sizing: border-box; margin: 0; width: 450px; max-width: 100%; padding: 1.5rem; border: 3px inset #efe3c982; border-radius: 20px 0 30px 10px; background: #30013999; }
 .testimonial p { font-size: .9rem; color: var(--portal-muted); line-height: 1.8; }
 .testimonial footer { margin-top: 1rem; font-size: .85rem; color: var(--portal-ink); }
 .testimonial footer span { display: block; font-size: .75rem; color: var(--portal-muted); margin-top: .3rem; }
@@ -104,7 +104,13 @@
   .lume > div { min-width: 190px; }
   .lume .secondary { margin-left: 0; }
   .feedbackHeading { align-items: flex-start; flex-direction: column; }
-  .testimonial { width: 280px; }
+  .carousel { overflow: visible; }
+  .track { width: 100%; flex-direction: column; gap: 1rem; }
+  .track[data-moving="true"] { animation: none; }
+  .feedbackGroup { display: contents; }
+  .feedbackGroup[aria-hidden="true"] { display: none; }
+  .testimonial { width: min(450px, calc(100vw - 3rem)); }
+  .pause { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .track[data-moving="true"] { animation: none; }
