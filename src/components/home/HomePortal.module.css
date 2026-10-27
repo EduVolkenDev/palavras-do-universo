@@ -104,13 +104,7 @@
   .lume > div { min-width: 190px; }
   .lume .secondary { margin-left: 0; }
   .feedbackHeading { align-items: flex-start; flex-direction: column; }
-  .carousel { overflow: visible; }
-  .track { width: 100%; flex-direction: column; gap: 1rem; }
-  .track[data-moving="true"] { animation: none; }
-  .feedbackGroup { display: contents; }
-  .feedbackGroup[aria-hidden="true"] { display: none; }
   .testimonial { width: min(450px, calc(100vw - 3rem)); }
-  .pause { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .track[data-moving="true"] { animation: none; }
