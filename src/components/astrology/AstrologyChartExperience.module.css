@@ -33,6 +33,14 @@
   --planet-halo: rgba(150, 106, 188, 0.26);
 }
 
+.coreEyebrow {
+  background: #ffffff45;
+  backdrop-filter: blur(10px);
+  padding: 7px;
+  border-radius: 20px;
+  border: 2px outset currentColor;
+}
+
 .planetCard[data-body="Mercury"] {
   --planet-halo: rgba(121, 171, 176, 0.25);
 }

@@ -565,7 +565,7 @@ function CoreCard({
   return (
     <button type="button" onClick={onSelect} aria-haspopup="dialog" aria-controls="astrology-reading-dialog" data-body={bodyKey} className={`${styles.coreCard} group relative overflow-hidden rounded-[26px] border p-6 text-left shadow-[0_18px_50px_rgba(80,57,34,0.07)] transition hover:-translate-y-1 ${expanded ? "border-[#8a6b3f] ring-2 ring-[#f4d58d]/35" : "border-[#d8c3a6]"}`}>
       <span className={`${styles.coreArtwork} ${placement ? styles.coreSignArtwork : ""}`} aria-hidden="true"><Image src={artwork} alt="" fill sizes="(max-width: 767px) 11rem, 12rem" className={placement ? styles.coreSignImage : "object-contain"} /></span>
-      <div className="relative flex items-center justify-between gap-3"><span className="grid h-10 w-10 place-items-center rounded-full border border-[#caa96c]/50 text-[#8a6b3f]">{icon}</span><span className="text-xs font-semibold uppercase tracking-[0.15em] text-[#9a7b4b]">{eyebrow}</span></div>
+      <div className="relative flex items-center justify-between gap-3"><span className="grid h-10 w-10 place-items-center rounded-full border border-[#caa96c]/50 text-[#8a6b3f]">{icon}</span><span className={`${styles.coreEyebrow} text-xs font-semibold uppercase tracking-[0.15em] text-[#9a7b4b]`}>{eyebrow}</span></div>
       <div className={styles.coreHeading}>
         <h3 className="brand-serif text-3xl font-semibold">{title}</h3>
         {placement ? <p className="mt-2 text-sm text-[#6f615a]">{fullAccess ? formatPlacement(placement.sign, placement.degreesInSign, locale) : getSignInterpretation(placement.sign, locale).label}{fullAccess && placement.house !== null ? ` · ${locale === "en" ? `house ${placement.house}` : `casa ${placement.house}`}` : ""}</p> : null}
