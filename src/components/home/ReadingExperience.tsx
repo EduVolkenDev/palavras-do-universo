@@ -83,6 +83,7 @@ import {
   READING_PROFILE_PHASES,
 } from "@/lib/i18n/reading-profile";
 import FeedbackDialog from "@/components/FeedbackDialog";
+import { SaveToDiaryButton } from "@/components/SaveToDiaryButton";
 import { normalizeLocale, type Locale } from "@/lib/i18n/config";
 import {
   localizeDailyMessage,
@@ -2929,25 +2930,15 @@ export default function ReadingExperience({ readingOnly = false }: { readingOnly
             className="pdu-site-header__brand group flex min-w-0 items-center gap-3 sm:gap-4"
             aria-label="Palavras do Universo"
           >
-            <span className="pdu-site-header__brand-mark relative shrink-0 overflow-hidden border border-[#d7b66b]/24 bg-[#f4d58d]/8 shadow-[0_0_34px_rgba(215,182,107,0.14)]">
+            <span className="pdu-site-header__official-logo relative block shrink-0">
               <Image
                 src={PDU_ASSETS.brand.symbol}
                 alt=""
-                width={64}
-                height={64}
+                width={88}
+                height={88}
                 unoptimized
-                className="pdu-site-header__brand-mark-image h-full w-full object-contain"
-              />
-            </span>
-            <span className="pdu-site-header__wordmark relative block shrink">
-              <Image
-                src={PDU_ASSETS.brand.headerWordmark}
-                alt=""
-                fill
                 priority
-                unoptimized
-                sizes="(max-width: 640px) 55vw, (max-width: 1439px) 288px, 352px"
-                className="object-contain object-left"
+                className="h-full w-full object-contain"
               />
             </span>
           </a>
@@ -3917,6 +3908,19 @@ export default function ReadingExperience({ readingOnly = false }: { readingOnly
                 {t("Compartilhar")}
               </button>
               <FeedbackDialog source="reading" readingId={readingId} locale={locale} />
+              <SaveToDiaryButton
+                english={locale === 'en'}
+                disabled={loading || !translatedReadingReady || !spreadCards.length}
+                sourceDetails={() => {
+                  const cached = getLocalActiveReading();
+                  return {occurredAt: cached?.result === result ? cached.updated_at : new Date().toISOString(),
+                    spreadLabel: cached?.result === result && cached.spread_label ? cached.spread_label : selectedSpreadConfig.label};
+                }}
+                reading={{ readingId, locale, question: readingQuestion,
+                  spreadLabel: selectedSpreadConfig.label, interpretation: displayedResult,
+                  cards: localizedSpreadCards.map(card => ({name:card.name,position:card.position,reversed:card.reversed})),
+                }}
+              />
               </div>
             ) : null}
             {readingNotice ? (

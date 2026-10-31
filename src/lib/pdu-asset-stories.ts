@@ -116,7 +116,7 @@ export const PDU_ASSET_STORIES = {
       { src: PDU_ASSETS.brand.symbol, alt: "Símbolo Palavras do Universo", label: "Identidade", title: "Reconhecer onde você está", text: "O emblema confirma que a entrada pertence ao mesmo portal da leitura." },
       { src: PDU_ASSETS.editorial.portal, alt: "Portal cósmico em tons azuis e violetas", label: "Portal", title: "Uma nova camada da mesma jornada", text: "A conta é a passagem para continuar sem perder o fio do que foi aberto." },
       { src: PDU_ASSETS.ambient.allConnected, alt: "Composição cósmica de conexão", label: "Continuidade", title: "Voltar ao mesmo Universo", text: "Leituras, conta e histórico passam a conversar como partes da mesma jornada." },
-      { src: PDU_ASSETS.brand.heroMarkRotation[4].mobileAssetPath, alt: "Dock mobile de Palavras do Universo", label: "Presença", title: "Cabe também no pequeno", text: "A experiência mantém reconhecimento e atmosfera mesmo em telas compactas." },
+      { src: PDU_ASSETS.brand.markMobile, alt: "Palavras do Universo", label: "Presença", title: "Cabe também no pequeno", text: "A experiência mantém reconhecimento e atmosfera mesmo em telas compactas." },
       { src: PDU_ASSETS.editorial.key, alt: "Chave ritualística dourada", label: "Acesso", title: "Guardar o que é seu", text: "A chave representa proteção para leituras, mensagens e acessos especiais." },
       { src: PDU_ASSETS.ambient.candle, alt: "Vela ritualística", label: "Ritual", title: "Voltar também é um gesto", text: "A entrada não termina no login: ela abre continuidade." },
     ],

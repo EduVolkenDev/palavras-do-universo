@@ -246,20 +246,11 @@ export default async function SpreadExperiencePage({
           <Image
             src={PDU_ASSETS.brand.symbol}
             alt=""
-            width={40}
-            height={40}
+            width={72}
+            height={72}
             priority
             unoptimized
             className="pdu-spread-experience__brand-mark"
-          />
-          <Image
-            src={PDU_ASSETS.brand.headerWordmark}
-            alt=""
-            width={224}
-            height={70}
-            priority
-            unoptimized
-            className="pdu-spread-experience__brand-wordmark"
           />
         </Link>
         <span className="pdu-spread-experience__access">{accessLabel}</span>

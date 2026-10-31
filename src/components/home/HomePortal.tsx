@@ -59,7 +59,7 @@ export default function HomePortal({ navigationParams }: { navigationParams: Rec
       <a className={styles.skip} href="#conteudo">{text("Pular para o conteúdo", "Skip to content")}</a>
       <header className={styles.header}>
         <Link href={href("/")} aria-label="Palavras do Universo" className={styles.wordmark}>
-          <Image src={PDU_ASSETS.brand.headerWordmark} alt="Palavras do Universo" width={230} height={58} priority />
+          <Image src={PDU_ASSETS.brand.headerWordmark} alt="Palavras do Universo" width={88} height={88} priority sizes="(max-width: 600px) 76px, 88px" />
         </Link>
         <nav className={styles.navigation} aria-label={text("Navegação principal", "Main navigation")}>
           <details className={styles.explore}>
@@ -92,7 +92,7 @@ export default function HomePortal({ navigationParams }: { navigationParams: Rec
             <p className={styles.hint}>{text("Sem cadastro. Sem precisar escrever uma pergunta.", "No account. No need to write a question.")}</p>
           </div>
           <div className={styles.heroArt} aria-hidden="true">
-            <Image src={PDU_ASSETS.brand.markDesktop} alt="" width={560} height={560} priority sizes="(max-width: 700px) 180px, 36vw" />
+            <Image src={PDU_ASSETS.brand.markDesktop} alt="" width={560} height={560} priority sizes="(max-width: 600px) 220px, 36vw" />
           </div>
         </section>
 

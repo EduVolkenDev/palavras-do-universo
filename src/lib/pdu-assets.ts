@@ -7,37 +7,17 @@
  */
 export const PDU_ASSETS = {
   brand: {
-    symbol: "/assets/pdu-official-logo-512.webp",
-    mark: "/assets/pdu-official-logo-1600.webp",
-    markDesktop: "/assets/pdu-official-logo-1600.webp",
-    markMobile: "/assets/pdu-official-logo-512.webp",
-    fullWordmark: "/assets/palavrasuniverso.webp",
-    newWordmark: "/assets/pdu-new-wordmark-transparent-ofi.webp",
-    headerWordmark: "/assets/pdu-wordmark-inline-2.webp",
+    symbol: "/assets/new-palavrasuniverso-logo-512.webp",
+    mark: "/assets/new-palavrasuniverso-logo.webp",
+    markDesktop: "/assets/new-palavrasuniverso-logo.webp",
+    markMobile: "/assets/new-palavrasuniverso-logo-512.webp",
+    fullWordmark: "/assets/new-palavrasuniverso-logo.webp",
+    newWordmark: "/assets/new-palavrasuniverso-logo-512.webp",
+    headerWordmark: "/assets/new-palavrasuniverso-logo-512.webp",
     heroMarkRotation: [
       {
-        assetPath: "/assets/new-pdu-dock.webp",
-        mobileAssetPath: "/assets/pdu-hero-new-dock-mobile.webp",
-      },
-      {
-        assetPath: "/assets/new-pdu-dock3.webp",
-        mobileAssetPath: "/assets/pdu-hero-new-dock3-mobile.webp",
-      },
-      {
-        assetPath: "/assets/new-pdu-dock4.webp",
-        mobileAssetPath: "/assets/pdu-hero-new-dock4-mobile.webp",
-      },
-      {
-        assetPath: "/assets/new-pdu-dock5.webp",
-        mobileAssetPath: "/assets/pdu-hero-new-dock5-mobile.webp",
-      },
-      {
-        assetPath: "/assets/pdu-dock.webp",
-        mobileAssetPath: "/assets/pdu-dock-mobile.webp",
-      },
-      {
-        assetPath: "/assets/pdu-official-logo-1600.webp",
-        mobileAssetPath: "/assets/pdu-official-logo-512.webp",
+        assetPath: "/assets/new-palavrasuniverso-logo.webp",
+        mobileAssetPath: "/assets/new-palavrasuniverso-logo-512.webp",
       },
     ],
   },
@@ -159,7 +139,7 @@ export const PDU_ASSETS = {
     meditation: "/assets/meditation.webp",
     oracle: "/assets/oraculo.webp",
     consultation: "/assets/pdu-consulta.webp",
-    dock: "/assets/pdu-dock.webp",
+    dock: "/assets/new-palavrasuniverso-logo-512.webp",
     essence: "/assets/pdu-essence.webp",
     feather: "/assets/pena.webp",
     pendulum: "/assets/pendulo.webp",
@@ -252,7 +232,7 @@ export const PDU_ASSETS = {
     paradoxMobile: "/assets/tirada-paradoxo-pdu-mobile.webp",
   },
   surfaces: {
-    account: "/assets/pdu-official-logo-512.webp",
+    account: "/assets/new-palavrasuniverso-logo-512.webp",
     legalPrivacy: "/assets/pdu-icon-shield.webp",
     legalTerms: "/assets/pdu-icon-book.webp",
     legalRefunds: "/assets/pdu-icon-bookmark.webp",

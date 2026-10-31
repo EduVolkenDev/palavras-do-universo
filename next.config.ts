@@ -62,7 +62,10 @@ const nextConfig: NextConfig = {
   // Vinext does not inline dynamic `process.env.NEXT_PUBLIC_*` lookups in
   // client bundles on Cloudflare. Keep the two intentionally public Supabase
   // values explicit so browser authentication can initialize at build time.
-  env: supabaseBrowserConfig,
+  env: {
+    ...supabaseBrowserConfig,
+    NEXT_PUBLIC_DIARY_ORIGIN: process.env.NEXT_PUBLIC_DIARY_ORIGIN || "https://diario.palavrasdouniverso.com",
+  },
   allowedDevOrigins: ["127.0.0.1"],
   poweredByHeader: false,
   images: {

@@ -1,3 +1,5 @@
+import { PDU_ASSETS } from "@/lib/pdu-assets";
+
 export type ProfessionalPricingModel = "fixed" | "social" | "free" | "quote";
 export type ProfessionalAvailability = "available" | "limited" | "closed";
 export type ProfessionalOfferStatus = "draft" | "published" | "paused";
@@ -117,7 +119,7 @@ export type ProfessionalMarketplaceFilters = {
   limit?: number;
 };
 
-const SEED_AVATAR = "/assets/pdu-official-logo-512.webp";
+const SEED_AVATAR = PDU_ASSETS.brand.symbol;
 
 export const PROFESSIONAL_MARKETPLACE_SEED: PublicProfessionalProfile[] = [
   {

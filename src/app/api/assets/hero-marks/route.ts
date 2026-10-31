@@ -1,32 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { PDU_ASSETS } from "@/lib/pdu-assets";
 
-const HERO_MARK_ROTATION = [
-  {
-    assetPath: "/assets/new-pdu-dock.webp",
-    mobileAssetPath: "/assets/pdu-hero-new-dock-mobile.webp",
-  },
-  {
-    assetPath: "/assets/new-pdu-dock3.webp",
-    mobileAssetPath: "/assets/pdu-hero-new-dock3-mobile.webp",
-  },
-  {
-    assetPath: "/assets/new-pdu-dock4.webp",
-    mobileAssetPath: "/assets/pdu-hero-new-dock4-mobile.webp",
-  },
-  {
-    assetPath: "/assets/new-pdu-dock5.webp",
-    mobileAssetPath: "/assets/pdu-hero-new-dock5-mobile.webp",
-  },
-  {
-    assetPath: "/assets/pdu-dock.webp",
-    mobileAssetPath: "/assets/pdu-dock-mobile.webp",
-  },
-  {
-    assetPath: "/assets/pdu-official-logo-1600.webp",
-    mobileAssetPath: "/assets/pdu-official-logo-512.webp",
-  },
-] as const;
+const HERO_MARK_ROTATION = PDU_ASSETS.brand.heroMarkRotation;
 
 export function GET(request: NextRequest) {
   const isMobile = request.nextUrl.searchParams.get("surface") === "mobile";

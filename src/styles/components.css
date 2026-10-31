@@ -371,6 +371,15 @@
     transform 420ms var(--pdu-header-ease);
 }
 
+.pdu-site-header__official-logo {
+  width: 88px;
+  height: 88px;
+}
+
+@media (max-width: 767px) {
+  .pdu-site-header__official-logo { width: 72px; height: 72px; }
+}
+
 .pdu-site-header[data-condensed="true"] .pdu-site-header__wordmark {
   opacity: 1;
 }
@@ -2372,7 +2381,7 @@ body:has(.pdu-daily-card-experience) .pdu-lume-ambient {
 .pdu-professional-page::after {
   background:
     linear-gradient(180deg, rgba(7, 7, 12, 0.28), rgba(7, 7, 12, 0.72)),
-    url("/assets/pdu-official-logo-1600.webp") 50% -120px / min(1100px, 84vw) auto no-repeat;
+    url("/assets/new-palavrasuniverso-logo.webp") 50% -120px / min(1100px, 84vw) auto no-repeat;
   opacity: 0.2;
 }
 
@@ -9764,8 +9773,8 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
 }
 
 .pdu-spread-experience__brand-mark {
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 4.5rem;
+  height: 4.5rem;
   object-fit: contain;
   flex: 0 0 auto;
   filter: drop-shadow(0 0 14px var(--pdu-spread-glow));

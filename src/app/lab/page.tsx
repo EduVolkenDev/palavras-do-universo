@@ -375,14 +375,14 @@ export default function LabPage() {
     <main className="pdu-lab-page min-h-screen overflow-x-clip bg-[#f6f0e5] text-[#2b211c]">
       <div className="pointer-events-none fixed inset-0 -z-0 bg-[radial-gradient(circle_at_15%_8%,rgba(244,213,141,0.36),transparent_28%),radial-gradient(circle_at_90%_58%,rgba(177,214,197,0.28),transparent_32%)]" />
       <header className="relative z-10 border-b border-[#2e2018]/10 bg-[#f6f0e5]/85 px-4 py-4 backdrop-blur-md sm:px-8">
-        <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-4">
+        <div className="relative mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-4">
           <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#2b211c]" aria-label={language.secondaryCta}>
             <ArrowLeft size={17} />
             <span className="hidden sm:inline">{language.secondaryCta}</span>
             <span className="sm:hidden">PDU</span>
           </Link>
-          <div className="absolute left-1/2 h-8 w-28 -translate-x-1/2 sm:h-10 sm:w-48">
-            <Image src={PDU_ASSETS.brand.headerWordmark} alt="Palavras do Universo" fill sizes="12rem" className="object-contain object-right" priority />
+          <div className="absolute left-1/2 h-20 w-20 -translate-x-1/2">
+            <Image src={PDU_ASSETS.brand.headerWordmark} alt="Palavras do Universo" fill sizes="80px" className="object-contain" priority />
           </div>
           <div className="ml-auto flex items-center gap-1 rounded-full border border-[#bda77f]/70 bg-[#fffaf2]/80 p-1 text-[0.68rem] font-bold tracking-[0.08em] shadow-[0_8px_24px_rgba(71,49,35,0.08)]" aria-label={locale === "en" ? "Language" : "Idioma"}>
             <button type="button" onClick={() => setLocale("pt-BR")} aria-pressed={locale === "pt-BR"} className={`rounded-full px-2.5 py-1.5 transition ${locale === "pt-BR" ? "bg-[#2b211c] text-[#fff8eb]" : "text-[#8a6b3f] hover:bg-[#f4eadb]"}`}>PT</button>

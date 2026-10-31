@@ -31,13 +31,13 @@ export const metadata: Metadata = {
   title: "Palavras do Universo",
   description:
     "Mensagens diárias, tarot e orientação simbólica para atravessar o dia com mais clareza.",
-  manifest: "/site.webmanifest?v=pdu-official-20261015",
+  manifest: "/site.webmanifest?v=pdu-official-20261027",
   icons: {
     icon: [
-      { url: "/favicon-16x16.png?v=pdu-official-20261015", type: "image/png", sizes: "16x16" },
-      { url: "/favicon-32x32.png?v=pdu-official-20261015", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-16x16.png?v=pdu-official-20261027", type: "image/png", sizes: "16x16" },
+      { url: "/favicon-32x32.png?v=pdu-official-20261027", type: "image/png", sizes: "32x32" },
     ],
-    apple: [{ url: "/apple-touch-icon.png?v=pdu-official-20261015", type: "image/png", sizes: "180x180" }],
+    apple: [{ url: "/apple-touch-icon.png?v=pdu-official-20261027", type: "image/png", sizes: "180x180" }],
   },
   alternates: {
     canonical: "/",

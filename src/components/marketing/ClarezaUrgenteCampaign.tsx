@@ -195,10 +195,10 @@ export default function ClarezaUrgenteCampaign({
             <Image
               src={PDU_ASSETS.brand.headerWordmark}
               alt="Palavras do Universo"
-              width={160}
-              height={50}
+              width={80}
+              height={80}
               priority
-              className="h-auto w-[8.75rem] object-contain sm:w-[10rem]"
+              className="h-20 w-20 object-contain"
             />
           </Link>
           <span className="hidden text-right text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-[#c7b78f] sm:block">
