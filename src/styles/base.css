@@ -80,7 +80,7 @@ img.object-contain {
     -webkit-print-color-adjust: exact;
   }
 
-  body:has([data-astrology-report]) :is(.pdu-lume-ambient, .pdu-language-switcher, .pdu-halloween-global) {
+  body:has([data-astrology-report]) :is(.pdu-lume-ambient, .pdu-language-switcher) {
     display: none !important;
   }
 }

@@ -1304,7 +1304,7 @@ export default function MeuUniversoPage() {
   }
 
   return (
-    <main className="pdu-universe-page pdu-halloween-universe min-h-screen text-[#241b18]">
+    <main className="pdu-universe-page min-h-screen text-[#241b18]">
       <div className="pdu-universe-page__backdrop" aria-hidden="true">
         <span className="pdu-universe-page__stars" />
         <span className="pdu-universe-page__glow pdu-universe-page__glow--gold" />
@@ -1340,22 +1340,6 @@ export default function MeuUniversoPage() {
           height={580}
           sizes="(max-width: 640px) 42vw, 20vw"
           className="pdu-universe-page__art pdu-universe-page__art--gem"
-        />
-        <Image
-          src="/assets/halloween-pdu-haunted-tarot.png"
-          alt=""
-          width={720}
-          height={720}
-          sizes="(max-width: 640px) 48vw, 24vw"
-          className="pdu-universe-page__halloween-art pdu-universe-page__halloween-art--tarot"
-        />
-        <Image
-          src="/assets/halloween-pdu-apothecary-cauldron.png"
-          alt=""
-          width={720}
-          height={720}
-          sizes="(max-width: 640px) 42vw, 20vw"
-          className="pdu-universe-page__halloween-art pdu-universe-page__halloween-art--cauldron"
         />
       </div>
 
