@@ -107,7 +107,7 @@ entender o que esta pesando e escolher o proximo passo com mais firmeza.
 
 Nao e previsao. E um espelho para recuperar eixo.
 
-R$19,90. Entrega imediata.
+R$22,90. Entrega imediata.
 ```
 
 ## Link de divulgacao
