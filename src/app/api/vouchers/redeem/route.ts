@@ -110,6 +110,16 @@ export async function POST(req: Request) {
             ? "hybrid"
             : "invite",
       alreadyRedeemed: redeemed.alreadyRedeemed === true,
+      billingStop: redeemed.billingStop
+        ? {
+            ok: redeemed.billingStop.ok,
+            skipped: redeemed.billingStop.skipped,
+            scheduled: redeemed.billingStop.scheduled,
+            canceled: redeemed.billingStop.canceled,
+            expiredCheckouts: redeemed.billingStop.expiredCheckouts,
+            alreadyStopped: redeemed.billingStop.alreadyStopped,
+          }
+        : null,
       voucher: {
         code: redeemed.voucher.code,
         label: redeemed.voucher.label,

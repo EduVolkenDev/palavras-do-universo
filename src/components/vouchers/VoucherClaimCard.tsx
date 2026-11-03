@@ -45,6 +45,14 @@ export default function VoucherClaimCard({
         error?: string;
         mode?: "invite" | "discount" | "hybrid";
         alreadyRedeemed?: boolean;
+        billingStop?: {
+          ok: boolean;
+          skipped: string | null;
+          scheduled: number;
+          canceled: number;
+          expiredCheckouts: number;
+          alreadyStopped: number;
+        } | null;
       };
 
       if (!res.ok || !data.ok) {
@@ -60,11 +68,31 @@ export default function VoucherClaimCard({
         return;
       }
 
+      const billingStop = data.billingStop;
+      const billingStopped = billingStop
+        ? billingStop.scheduled + billingStop.canceled + billingStop.expiredCheckouts > 0
+        : false;
+      const billingFailed = Boolean(billingStop && !billingStop.ok);
+
       setMessage(
-        data.alreadyRedeemed
-          ? t("Esse acesso já estava no seu universo.")
-          : t("Acesso entregue. Seu universo já pode abrir a experiência vinculada.")
+        `${
+          data.alreadyRedeemed
+            ? t("Esse acesso já estava no seu universo.")
+            : t("Acesso entregue. Seu universo já pode abrir a experiência vinculada.")
+        }${
+          billingStopped
+            ? ` ${t("A cobrança recorrente do Círculo foi encerrada para não gerar novas cobranças.")}`
+            : ""
+        }`
       );
+
+      if (billingFailed) {
+        setError(
+          t(
+            "Seu acesso foi liberado, mas não conseguimos encerrar a cobrança recorrente agora. Fale com o suporte para concluir esse ajuste."
+          )
+        );
+      }
       window.setTimeout(() => {
         router.push("/meu-universo");
         router.refresh();

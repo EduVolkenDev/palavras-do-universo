@@ -6,7 +6,12 @@ import {
   type VoucherEmailLocale,
 } from "@/lib/email/transactional";
 import { pricingPlans, productCards } from "@/lib/product/catalog";
+import { isCircleSubscriptionProduct } from "@/lib/product/access";
 import { getSiteUrl } from "@/lib/stripe/server";
+import {
+  stopCircleSubscriptionBillingForUser,
+  type CircleBillingStopResult,
+} from "@/lib/stripe/circle-billing";
 import {
   ensureSupabaseProfile,
   getSupabaseAdmin,
@@ -138,6 +143,50 @@ function normalizeList(values: string[] | null | undefined) {
         .filter(Boolean)
     )
   );
+}
+
+export function voucherGrantsLifetimeCircle(voucher: VoucherRow) {
+  if (voucher.grant_expires_days && voucher.grant_expires_days > 0) {
+    return false;
+  }
+
+  return normalizeList(voucher.grant_product_keys).some((productKey) =>
+    isCircleSubscriptionProduct(productKey)
+  );
+}
+
+async function stopLifetimeCircleBillingForRedemption(
+  voucher: VoucherRow,
+  userId: string
+): Promise<CircleBillingStopResult | null> {
+  if (!voucherGrantsLifetimeCircle(voucher)) return null;
+
+  try {
+    return await stopCircleSubscriptionBillingForUser({
+      userId,
+      reason: `lifetime_circle_voucher:${voucher.code}`,
+    });
+  } catch (caught) {
+    // Access was already granted. Never roll that back because Stripe is
+    // temporarily unavailable; report the failure so the owner can run the
+    // reconciliation action after the provider recovers.
+    console.error("[voucher] Could not stop Circle subscription billing", {
+      voucherId: voucher.id,
+      voucherCode: voucher.code,
+      userId,
+      error: caught instanceof Error ? caught.message : "Unknown error",
+    });
+
+    return {
+      ok: false,
+      skipped: "cancellation_failed",
+      scheduled: 0,
+      canceled: 0,
+      expiredCheckouts: 0,
+      alreadyStopped: 0,
+      error: caught instanceof Error ? caught.message : "Unknown error",
+    };
+  }
 }
 
 export function normalizeVoucherCode(value: unknown) {
@@ -671,11 +720,16 @@ export async function redeemVoucherForUser(user: User, code: string) {
       redemptionId: existingRedemption.data.id,
       userId: user.id,
     });
+    const billingStop = await stopLifetimeCircleBillingForRedemption(
+      resolvedVoucher,
+      user.id
+    );
     return {
       ok: true as const,
       voucher: resolvedVoucher,
       redemption: existingRedemption.data as VoucherRedemptionRow,
       alreadyRedeemed: true,
+      billingStop,
     };
   }
 
@@ -709,7 +763,14 @@ export async function redeemVoucherForUser(user: User, code: string) {
     await incrementVoucherUsage(voucher.id);
   }
 
-  return { ok: true as const, voucher, redemption: redemption as VoucherRedemptionRow };
+  const billingStop = await stopLifetimeCircleBillingForRedemption(voucher, user.id);
+
+  return {
+    ok: true as const,
+    voucher,
+    redemption: redemption as VoucherRedemptionRow,
+    billingStop,
+  };
 }
 
 export async function activateDiscountVoucher(code: string) {
@@ -937,6 +998,10 @@ export async function transferVoucher(params: {
         updated_at: new Date().toISOString(),
       })
       .eq("voucher_id", params.voucherId);
+  }
+
+  if (params.transferGrantedAccess && nextUserId) {
+    await stopLifetimeCircleBillingForRedemption(voucher as VoucherRow, nextUserId);
   }
 
   return updated;

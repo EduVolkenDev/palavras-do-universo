@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/auth/api";
 import { isOwnerAccessUser } from "@/lib/product/ownerAccess";
 import { readJsonBody } from "@/lib/http/request";
+import { reconcileLifetimeCircleVoucherBilling } from "@/lib/stripe/circle-billing";
 import {
   createVoucher,
   listVouchers,
@@ -73,6 +74,11 @@ export async function POST(req: Request) {
       }
       const created = await createVoucher(auth.user, body.voucher as VoucherCreateInput);
       return NextResponse.json({ ok: true, ...created });
+    }
+
+    if (action === "reconcile-lifetime-billing") {
+      const billing = await reconcileLifetimeCircleVoucherBilling();
+      return NextResponse.json({ ok: true, billing });
     }
 
     if (!voucherId) return badRequest("Missing voucher id");

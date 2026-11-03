@@ -983,6 +983,8 @@ const en: Record<string, string> = {
   "Desconto ativado. Escolha sua experiência e o checkout já abrirá com esse código.": "Discount activated. Choose your experience and checkout will already open with this code.",
   "Acesso entregue. Seu universo já pode abrir a experiência vinculada.": "Access delivered. Your universe can now open the linked experience.",
   "Esse acesso já estava no seu universo.": "This access was already in your universe.",
+  "A cobrança recorrente do Círculo foi encerrada para não gerar novas cobranças.": "Recurring Circle billing has been stopped so it will not create new charges.",
+  "Seu acesso foi liberado, mas não conseguimos encerrar a cobrança recorrente agora. Fale com o suporte para concluir esse ajuste.": "Your access was unlocked, but we could not stop recurring billing right now. Contact support to finish this adjustment.",
   "Não foi possível ativar o código.": "Could not activate the code.",
   "Termos de uso": "Terms of use",
   "Privacidade": "Privacy",

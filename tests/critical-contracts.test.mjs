@@ -375,6 +375,41 @@ test("voucher invitations validate delivery and keep a recovery path", async () 
   assert.match(admin, /value="pt-BR"/);
 });
 
+test("lifetime Circle vouchers stop recurring Stripe billing", async () => {
+  const service = await source("src/lib/vouchers/service.ts");
+  const billing = await source("src/lib/stripe/circle-billing.ts");
+  const route = await source("src/app/api/admin/vouchers/route.ts");
+  const admin = await source("src/components/admin/VoucherAdminPage.tsx");
+  const claimCard = await source("src/components/vouchers/VoucherClaimCard.tsx");
+
+  // Redeeming (or re-opening) a lifetime Circle voucher must also stop any
+  // active Stripe subscription, otherwise the customer keeps being charged
+  // while holding permanent access.
+  assert.match(service, /export function voucherGrantsLifetimeCircle/);
+  assert.match(service, /grant_expires_days/);
+  assert.match(service, /stopLifetimeCircleBillingForRedemption/);
+  assert.match(service, /stopCircleSubscriptionBillingForUser/);
+  assert.match(service, /billingStop/);
+  assert.match(service, /alreadyRedeemed: true/);
+
+  // Paid periods are honored; billing is scheduled to stop at period end,
+  // while unpaid/incomplete subscriptions and pending checkouts are stopped
+  // immediately.
+  assert.match(billing, /cancel_at_period_end: true/);
+  assert.match(billing, /stripe\.subscriptions\.cancel/);
+  assert.match(billing, /checkout\.sessions\.expire/);
+  assert.match(billing, /reconcileLifetimeCircleVoucherBilling/);
+  assert.match(billing, /\.is\("expires_at", null\)/);
+  assert.match(billing, /metadata\.voucher_id/);
+
+  // Existing accounts affected before this fix can be repaired from the
+  // owner voucher dashboard.
+  assert.match(route, /action === "reconcile-lifetime-billing"/);
+  assert.match(admin, /Corrigir cobranças vitalícias/);
+  assert.match(admin, /reconcile-lifetime-billing/);
+  assert.match(claimCard, /A cobrança recorrente do Círculo foi encerrada/);
+});
+
 test("Edu bookings hold a real London time only through secure payment", async () => {
   const offers = await source("src/lib/edu-reading-offers.ts");
   const availability = await source("src/app/api/edu-reading/availability/route.ts");

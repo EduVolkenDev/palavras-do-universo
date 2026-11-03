@@ -8,6 +8,7 @@ import {
   PauseCircle,
   Percent,
   RefreshCw,
+  ShieldCheck,
   Sparkles,
   Ticket,
   Trash2,
@@ -59,6 +60,14 @@ type AdminPostData = {
   error?: string;
   voucher?: VoucherView;
   email?: VoucherEmailDelivery;
+  billing?: {
+    users: number;
+    scheduled: number;
+    canceled: number;
+    expiredCheckouts: number;
+    alreadyStopped: number;
+    errors: string[];
+  };
 };
 
 type VoucherFormState = {
@@ -165,6 +174,7 @@ export default function VoucherAdminPage({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resendingVoucherId, setResendingVoucherId] = useState<string | null>(null);
+  const [reconcilingBilling, setReconcilingBilling] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState<VoucherFormState>(DEFAULT_FORM);
@@ -217,6 +227,52 @@ export default function VoucherAdminPage({
     }
     await loadVouchers();
     return data;
+  }
+
+  async function handleReconcileLifetimeBilling() {
+    if (reconcilingBilling) return;
+    if (
+      !window.confirm(
+        t(
+          "Isso encerra a cobrança recorrente de todos os acessos vitalícios do Círculo que ainda estiverem com assinatura ativa. Deseja continuar?"
+        )
+      )
+    ) {
+      return;
+    }
+
+    setReconcilingBilling(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await postAdmin({ action: "reconcile-lifetime-billing" });
+      const billing = result.billing;
+      if (!billing) throw new Error("Resposta de cobrança incompleta.");
+
+      setMessage(
+        t(
+          "Cobranças vitalícias sincronizadas: {scheduled} encerradas no fim do período, {canceled} canceladas agora e {expired} checkouts expirados."
+        )
+          .replace("{scheduled}", String(billing.scheduled))
+          .replace("{canceled}", String(billing.canceled))
+          .replace("{expired}", String(billing.expiredCheckouts))
+      );
+
+      if (billing.errors.length) {
+        setError(
+          `${t("Algumas cobranças precisam de atenção manual:")} ${billing.errors.join(" · ")}`
+        );
+      }
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : t("Não foi possível reconciliar as cobranças vitalícias.")
+      );
+    } finally {
+      setReconcilingBilling(false);
+    }
   }
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
@@ -375,7 +431,29 @@ export default function VoucherAdminPage({
       description={t("Crie e acompanhe acessos, descontos e links de resgate, com pausa, cancelamento, exclusão lógica e transferência.")}
       ownerEmail={ownerEmail}
       hasSupabase={hasSupabase}
-      actions={<button type="button" onClick={() => void loadVouchers()} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#f0d79f] px-4 py-2 text-sm font-bold text-[#2b2033] transition hover:bg-[#f7e4b7]"><RefreshCw size={15} />{t("Atualizar")}</button>}
+      actions={
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => void handleReconcileLifetimeBilling()}
+            disabled={reconcilingBilling}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#f0d79f]/45 bg-[#120f16] px-4 py-2 text-sm font-bold text-[#f0d79f] transition hover:bg-[#231b27] disabled:cursor-wait disabled:opacity-60"
+          >
+            <ShieldCheck size={15} />
+            {reconcilingBilling
+              ? t("Sincronizando...")
+              : t("Corrigir cobranças vitalícias")}
+          </button>
+          <button
+            type="button"
+            onClick={() => void loadVouchers()}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#f0d79f] px-4 py-2 text-sm font-bold text-[#2b2033] transition hover:bg-[#f7e4b7]"
+          >
+            <RefreshCw size={15} />
+            {t("Atualizar")}
+          </button>
+        </div>
+      }
     >
       <section className="ritual-texture flex flex-col gap-6 rounded-[28px] bg-[#120f16] p-4 text-[#f3eadf] shadow-[0_22px_55px_rgba(39,25,35,0.16)] sm:rounded-[32px] sm:p-6">
 
