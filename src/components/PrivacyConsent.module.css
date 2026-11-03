@@ -1,0 +1,13 @@
+.root { position: fixed; inset: auto auto max(1rem, env(safe-area-inset-bottom)) 1rem; z-index: 120; max-width: calc(100vw - 2rem); color: #fff7e8; }
+.trigger { min-height: 44px; padding: .65rem 1rem; border: 1px solid #bda477; border-radius: 999px; background: #1c192b; color: #fff7e8; font-size: .75rem; cursor: pointer; box-shadow: 0 5px 20px #15132624; }
+.panel { position: absolute; bottom: 3.5rem; left: 0; width: min(34rem, calc(100vw - 2rem)); max-height: calc(100dvh - 8rem); overflow: auto; padding: clamp(1.25rem, 4vw, 1.8rem); border: 1px solid #bda477; border-radius: 22px; background: #1c192b; box-shadow: 0 18px 64px #08061266; }
+.eyebrow { margin: 0 0 .7rem; color: #f4d58d; font-size: .65rem; letter-spacing: .16em; font-weight: 600; }
+.panel h2 { margin: 0 0 .8rem; font-family: Georgia, serif; font-size: clamp(1.4rem, 4vw, 1.8rem); line-height: 1.2; color: #fff7e8; }
+.panel p:not(.eyebrow) { font-size: .87rem; line-height: 1.65; margin: .6rem 0; }
+.panel .detail { color: #d5cbdc; }
+.actions { display: flex; flex-wrap: wrap; gap: .65rem; margin: 1.1rem 0; }
+.actions button { flex: 1 1 180px; min-height: 46px; padding: .7rem .9rem; background: #30283f; border: 1px solid #c1a77c; border-radius: 12px; color: #fff7e8; font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; }
+.actions button:hover, .trigger:hover { background: #44334e; }
+.panel a { font-size: .8rem; color: #f4d58d; text-decoration: underline; text-underline-offset: 3px; }
+.root :is(button, a):focus-visible { outline: 3px solid #f4d58d; outline-offset: 4px; }
+@media (max-width: 600px) { .root { left: .75rem; bottom: calc(5.5rem + env(safe-area-inset-bottom)); max-width: calc(100vw - 1.5rem); } .panel { width: calc(100vw - 1.5rem); max-height: calc(100dvh - 11rem); } }

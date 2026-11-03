@@ -15,6 +15,7 @@ export function LegalPage(props: {
   visual?: string;
   visualAlt?: string;
   sections: { title: string; body: string }[];
+  updatedAt?: string;
 }) {
   const { t } = useI18n();
   const visual = props.visual ?? PDU_ASSETS.brand.symbol;
@@ -42,7 +43,7 @@ export function LegalPage(props: {
           {t(props.title)}
         </h1>
         <p className="mt-5 text-base leading-7 text-[#6f615a]">{t(props.intro)}</p>
-        <p className="mt-3 text-xs text-[#8a786b]">{t("Atualizado em 13 de junho de 2026.")}</p>
+        <p className="mt-3 text-xs text-[#8a786b]">{t(props.updatedAt ?? "Atualizado em 13 de junho de 2026.")}</p>
 
         <div className="mt-10 space-y-8">
           {props.sections.map((section) => (

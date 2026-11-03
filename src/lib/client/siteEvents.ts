@@ -1,5 +1,7 @@
 "use client";
 
+import { diagnosticsAllowed } from "@/lib/client/privacy-consent";
+
 type SiteEventSeverity = "debug" | "info" | "warning" | "error" | "fatal";
 
 type SiteEventPayload = {
@@ -74,6 +76,8 @@ function trimText(value: unknown, length: number) {
 }
 
 function routePath() {
+  // Confirmation and cancellation URLs carry private bearer tokens.
+  if (window.location.pathname.startsWith("/ceu-por-email/")) return window.location.pathname;
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
 }
 
@@ -177,6 +181,7 @@ function normalizePayload(input: SiteEventPayload) {
 
 export function recordSiteEvent(input: SiteEventPayload) {
   if (typeof window === "undefined") return;
+  if (!diagnosticsAllowed()) return;
 
   const payload = normalizePayload(input);
   if (!allowSessionEvent(payload.eventType, payload.severity)) return;
@@ -267,6 +272,7 @@ export function installSiteEventTelemetry() {
   window.__pduTelemetryInstalled = true;
 
   const captureAction = (event: Event) => {
+    if (!diagnosticsAllowed()) return;
     window.__pduLastAction = `${event.type}: ${describeElement(event.target)}`;
   };
 

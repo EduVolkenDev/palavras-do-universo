@@ -135,6 +135,7 @@ export default function HomePortal({ navigationParams }: { navigationParams: Rec
           <Link href={href("/#circulo")}>{text("Planos do Círculo", "Circle plans")}</Link>
           <Link href={href("/termos")}>{text("Termos de uso", "Terms of use")}</Link>
           <Link href={href("/privacidade")}>{text("Privacidade", "Privacy")}</Link>
+          <Link href={href("/ceu-por-email")}>{text("Céu por e-mail", "Sky by email")}</Link>
           <Link href={href("/reembolsos")}>{text("Cancelamentos e reembolsos", "Cancellations and refunds")}</Link>
         </nav>
         <details className={styles.voucher} open={navigationParams.voucher !== undefined || navigationParams.codigo !== undefined ? true : undefined}>

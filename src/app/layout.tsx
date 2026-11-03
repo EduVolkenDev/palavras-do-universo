@@ -5,6 +5,7 @@ import { I18nProvider } from "@/components/I18nProvider";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import LumeGuide from "@/components/LumeGuide";
 import SiteTelemetry from "@/components/SiteTelemetry";
+import PrivacyConsent from "@/components/PrivacyConsent";
 import { LOCALE_COOKIE_NAME, normalizeLocale } from "@/lib/i18n/config";
 import { ProductCurrencyProvider } from "@/lib/product/useProductCurrency";
 import { getRequestCountry } from "@/lib/runtime/request-context";
@@ -73,6 +74,7 @@ export default async function RootLayout({
         <I18nProvider initialLocale={initialLocale}>
           <ProductCurrencyProvider initialCurrency={initialProductCurrency}>
             <SiteTelemetry />
+            <PrivacyConsent />
             {children}
             <LumeGuide />
           </ProductCurrencyProvider>

@@ -1,0 +1,20 @@
+.section { width: min(1180px, calc(100% - 5rem)); margin: 2rem auto 4rem; display: grid; grid-template-columns: 1fr minmax(300px, .85fr); gap: clamp(2rem, 6vw, 5rem); align-items: center; padding: clamp(1.5rem, 4vw, 3rem); background: linear-gradient(125deg, #292036, #17171e); border: 1px solid #efd08b55; border-radius: 28px; color: #f5ecdf; box-shadow: 0 28px 70px #0004; }
+.eyebrow { color: #efd08b; font-size: .72rem; font-weight: 700; letter-spacing: .17em; }
+.copy h2 { font-family: Georgia, serif; font-weight: 500; font-size: clamp(2rem, 3vw, 3.1rem); line-height: 1.13; margin: 1rem 0; text-wrap: balance; }
+.copy p:not(.eyebrow) { color: #e0d6c9; font-size: 1rem; line-height: 1.7; max-width: 54ch; }
+.copy .detail { margin-top: 1.25rem; color: #efd08b !important; font-size: .86rem !important; }
+.form { display: grid; gap: .85rem; padding: 1.5rem; border-radius: 20px; background: #f8f1e8; color: #261e24; }
+.form > label:first-of-type { font-weight: 700; }
+.form input[type=email] { width: 100%; border: 1px solid #958771; border-radius: 12px; background: #fff; padding: .9rem 1rem; font: inherit; font-size: 1rem; color: #201923; }
+.form input:focus-visible, .form button:focus-visible, .form a:focus-visible { outline: 3px solid #7b4da5; outline-offset: 3px; }
+.consent { display: flex; gap: .7rem; align-items: flex-start; font-size: .87rem; line-height: 1.5; cursor: pointer; }
+.consent input { width: 18px; height: 18px; flex: 0 0 18px; margin-top: .16rem; accent-color: #5b3677; }
+.form button { border: 0; border-radius: 999px; background: #241b23; color: #f9e0a7; padding: .95rem 1rem; font: inherit; font-weight: 700; cursor: pointer; }
+.form button:hover { background: #4a3158; }
+.form button:disabled { opacity: .55; cursor: not-allowed; }
+.form small { color: #5d514b; line-height: 1.5; }
+.form small a { color: #533367; text-decoration: underline; }
+.success, .error { padding: .75rem 1rem; border-radius: 10px; line-height: 1.5; font-size: .9rem; }
+.success { background: #dceee5; color: #174e3b; }
+.error { background: #fae2df; color: #7c252a; }
+@media (max-width: 760px) { .section { width: calc(100% - 2rem); grid-template-columns: 1fr; gap: 1.5rem; padding: 1.25rem; margin-block: 1rem 3rem; } .form { padding: 1.1rem; } }

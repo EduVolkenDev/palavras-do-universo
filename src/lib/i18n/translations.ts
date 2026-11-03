@@ -1,4 +1,10 @@
 const en: Record<string, string> = {
+  "Atualizado em 2 de novembro de 2026.": "Updated on 2 November 2026.",
+  "Cookies e armazenamento local": "Cookies and local storage",
+  "Diagnósticos opcionais": "Optional diagnostics",
+  "Usamos cookies e armazenamento do navegador para autenticação, idioma, moeda, recuperação da experiência e leituras que você escolhe guardar. O controle Cookies e privacidade permite aceitar ou recusar diagnósticos opcionais e rever a escolha. A preferência é lembrada neste navegador por até 180 dias; limpar o armazenamento faz a pergunta aparecer novamente. Isso não autoriza e-mails de marketing.": "We use cookies and browser storage for authentication, language, currency, restoring your experience and readings you choose to save. The Cookies & privacy control lets you allow or decline optional diagnostics and review your choice. Your preference is remembered in this browser for up to 180 days; clearing storage brings the question back. This does not authorise marketing emails.",
+  "Somente com sua autorização, nossa telemetria envia registros de falhas, interações, rota, características da tela e contexto técnico da leitura para melhorar a experiência. Recusar impede novos envios dessa telemetria sem bloquear login, compras ou leituras. Ao revogar, removemos o identificador de telemetria e seu contador local; isso não apaga registros já recebidos. Você pode solicitar exclusão pelo suporte.": "Only with your permission, our telemetry sends error records, interactions, route, screen characteristics and technical reading context to improve the experience. Declining prevents new telemetry submissions without blocking login, purchases or readings. On withdrawal, we remove the telemetry identifier and its local counter; this does not delete records already received. You can request deletion through support.",
+
   "Leitura": "Reading",
   "Carta": "Card",
   "Carta do Dia": "Card of the Day",
