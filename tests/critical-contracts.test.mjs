@@ -403,6 +403,8 @@ test("lifetime Circle vouchers stop recurring Stripe billing", async () => {
   assert.match(billing, /metadata\.voucher_id/);
   assert.match(billing, /subscriptions\.search/);
   assert.match(billing, /customers\.list/);
+  assert.match(billing, /searchFailures/);
+  assert.match(billing, /emailFailures/);
 
   // Existing accounts affected before this fix can be repaired from the
   // owner voucher dashboard.

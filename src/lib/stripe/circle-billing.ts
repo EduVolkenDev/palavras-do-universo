@@ -35,6 +35,12 @@ export type CircleBillingStopResult = {
   canceled: number;
   expiredCheckouts: number;
   alreadyStopped: number;
+  scan?: {
+    candidates: number;
+    matched: number;
+    searchFailed: boolean;
+    emailFailed: boolean;
+  };
   error?: string;
 };
 
@@ -44,6 +50,13 @@ export type CircleBillingReconciliation = {
   canceled: number;
   expiredCheckouts: number;
   alreadyStopped: number;
+  scan: {
+    users: number;
+    candidates: number;
+    matched: number;
+    searchFailures: number;
+    emailFailures: number;
+  };
   errors: string[];
 };
 
@@ -162,6 +175,8 @@ async function listStripeCandidateSubscriptions(params: {
   email: string | null;
 }) {
   const found = new Map<string, Stripe.Subscription>();
+  let searchFailed = false;
+  let emailFailed = false;
 
   // Search by subscription metadata even if the local row is missing. Stripe
   // Search can be unavailable on some accounts, so customer email is the
@@ -175,7 +190,9 @@ async function listStripeCandidateSubscriptions(params: {
       found.set(subscription.id, subscription);
     }
   } catch {
-    // Optional fallback; local subscription rows remain the primary source.
+    // Reported in the reconciliation summary so a silent search outage cannot
+    // hide an un-cancelled subscription. The email lookup below still runs.
+    searchFailed = true;
   }
 
   if (params.email) {
@@ -196,6 +213,7 @@ async function listStripeCandidateSubscriptions(params: {
         }
       }
     } catch (caught) {
+      emailFailed = true;
       console.warn("[stripe] Could not inspect customer subscriptions by email", {
         userId: params.userId,
         error: caught instanceof Error ? caught.message : "Unknown error",
@@ -203,7 +221,11 @@ async function listStripeCandidateSubscriptions(params: {
     }
   }
 
-  return Array.from(found.values());
+  return {
+    subscriptions: Array.from(found.values()),
+    searchFailed,
+    emailFailed,
+  };
 }
 
 async function stopSubscriptionById(stripe: Stripe, subscriptionId: string) {
@@ -358,11 +380,17 @@ async function stopUnrecordedCircleSubscriptions(params: {
     // Metadata-based matching still protects the common case.
   }
 
-  const candidates = await listStripeCandidateSubscriptions({
+  const {
+    subscriptions: candidates,
+    searchFailed,
+    emailFailed,
+  } = await listStripeCandidateSubscriptions({
     stripe: params.stripe,
     userId: params.userId,
     email,
   });
+
+  let matched = 0;
 
   for (const candidate of candidates) {
     if (params.processedSubscriptionIds.has(candidate.id)) continue;
@@ -370,6 +398,7 @@ async function stopUnrecordedCircleSubscriptions(params: {
       continue;
     }
 
+    matched += 1;
     params.processedSubscriptionIds.add(candidate.id);
     const stopped = await stopSubscriptionById(params.stripe, candidate.id);
     const row = params.rows.find(
@@ -389,6 +418,15 @@ async function stopUnrecordedCircleSubscriptions(params: {
     else if (stopped.action === "canceled") params.result.canceled += 1;
     else params.result.alreadyStopped += 1;
   }
+
+  params.result.scan = {
+    candidates: candidates.length,
+    matched,
+    searchFailed,
+    emailFailed,
+  };
+
+  return params.result.scan;
 }
 
 /**
@@ -533,6 +571,13 @@ export async function reconcileLifetimeCircleVoucherBilling(): Promise<CircleBil
     canceled: 0,
     expiredCheckouts: 0,
     alreadyStopped: 0,
+    scan: {
+      users: 0,
+      candidates: 0,
+      matched: 0,
+      searchFailures: 0,
+      emailFailures: 0,
+    },
     errors: [],
   };
 
@@ -546,6 +591,14 @@ export async function reconcileLifetimeCircleVoucherBilling(): Promise<CircleBil
       summary.canceled += result.canceled;
       summary.expiredCheckouts += result.expiredCheckouts;
       summary.alreadyStopped += result.alreadyStopped;
+
+      if (result.scan) {
+        summary.scan.users += 1;
+        summary.scan.candidates += result.scan.candidates;
+        summary.scan.matched += result.scan.matched;
+        if (result.scan.searchFailed) summary.scan.searchFailures += 1;
+        if (result.scan.emailFailed) summary.scan.emailFailures += 1;
+      }
     } catch (caught) {
       summary.errors.push(
         `${userId}: ${caught instanceof Error ? caught.message : "Unknown billing error"}`
