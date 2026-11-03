@@ -99,6 +99,113 @@ function isCircleSubscriptionRow(row: SubscriptionRow) {
   );
 }
 
+let circlePriceIdsPromise: Promise<Set<string>> | null = null;
+
+async function getCirclePriceIds() {
+  if (!circlePriceIdsPromise) {
+    circlePriceIdsPromise = (async () => {
+      const { data, error } = await getSupabaseAdmin()
+        .from("oracle_products")
+        .select("provider_price_id")
+        .in("product_key", CIRCLE_PRODUCT_KEYS);
+
+      if (error) {
+        throw new Error(`Could not read Circle prices: ${error.message}`);
+      }
+
+      return new Set(
+        (data ?? [])
+          .map((row) => row.provider_price_id)
+          .filter(
+            (priceId: unknown): priceId is string =>
+              typeof priceId === "string" && priceId.length > 0
+          )
+      );
+    })();
+  }
+
+  try {
+    return await circlePriceIdsPromise;
+  } catch (caught) {
+    circlePriceIdsPromise = null;
+    throw caught;
+  }
+}
+
+function isCircleStripeSubscription(
+  subscription: Stripe.Subscription,
+  userId: string,
+  circlePriceIds: Set<string>
+) {
+  const metadataUserId =
+    typeof subscription.metadata?.user_id === "string"
+      ? subscription.metadata.user_id
+      : null;
+  if (metadataUserId && metadataUserId !== userId) return false;
+
+  const metadataProductKey =
+    typeof subscription.metadata?.product_key === "string"
+      ? subscription.metadata.product_key
+      : "";
+  if (metadataProductKey) {
+    return isCircleSubscriptionProduct(metadataProductKey);
+  }
+
+  return subscription.items.data.some((item) =>
+    circlePriceIds.has(item.price.id)
+  );
+}
+
+async function listStripeCandidateSubscriptions(params: {
+  stripe: Stripe;
+  userId: string;
+  email: string | null;
+}) {
+  const found = new Map<string, Stripe.Subscription>();
+
+  // Search by subscription metadata even if the local row is missing. Stripe
+  // Search can be unavailable on some accounts, so customer email is the
+  // fallback.
+  try {
+    const result = await params.stripe.subscriptions.search({
+      query: `metadata['user_id']:'${params.userId}'`,
+      limit: 100,
+    });
+    for (const subscription of result.data) {
+      found.set(subscription.id, subscription);
+    }
+  } catch {
+    // Optional fallback; local subscription rows remain the primary source.
+  }
+
+  if (params.email) {
+    try {
+      const customers = await params.stripe.customers.list({
+        email: params.email,
+        limit: 10,
+      });
+
+      for (const customer of customers.data) {
+        const subscriptions = await params.stripe.subscriptions.list({
+          customer: customer.id,
+          status: "all",
+          limit: 100,
+        });
+        for (const subscription of subscriptions.data) {
+          found.set(subscription.id, subscription);
+        }
+      }
+    } catch (caught) {
+      console.warn("[stripe] Could not inspect customer subscriptions by email", {
+        userId: params.userId,
+        error: caught instanceof Error ? caught.message : "Unknown error",
+      });
+    }
+  }
+
+  return Array.from(found.values());
+}
+
 async function stopSubscriptionById(stripe: Stripe, subscriptionId: string) {
   let subscription: Stripe.Subscription;
 
@@ -182,6 +289,7 @@ async function stopPendingCheckout(params: {
   stripe: Stripe;
   row: SubscriptionRow;
   reason: string;
+  processedSubscriptionIds?: Set<string>;
 }): Promise<StopAction | "expired_checkout" | null> {
   const { stripe, row, reason } = params;
   if (!row.provider_checkout_id) return null;
@@ -196,6 +304,7 @@ async function stopPendingCheckout(params: {
 
   const subscriptionId = getObjectId(session.subscription);
   if (subscriptionId) {
+    params.processedSubscriptionIds?.add(subscriptionId);
     const result = await stopSubscriptionById(stripe, subscriptionId);
     await markLocalSubscriptionStopped({
       row,
@@ -224,6 +333,62 @@ async function stopPendingCheckout(params: {
   });
 
   return "expired_checkout";
+}
+
+async function stopUnrecordedCircleSubscriptions(params: {
+  stripe: Stripe;
+  userId: string;
+  reason: string;
+  rows: SubscriptionRow[];
+  processedSubscriptionIds: Set<string>;
+  result: CircleBillingStopResult;
+}) {
+  const { data: profile } = await getSupabaseAdmin()
+    .from("profiles")
+    .select("email")
+    .eq("id", params.userId)
+    .maybeSingle();
+  const email =
+    profile && typeof profile.email === "string" ? profile.email : null;
+
+  let circlePriceIds = new Set<string>();
+  try {
+    circlePriceIds = await getCirclePriceIds();
+  } catch {
+    // Metadata-based matching still protects the common case.
+  }
+
+  const candidates = await listStripeCandidateSubscriptions({
+    stripe: params.stripe,
+    userId: params.userId,
+    email,
+  });
+
+  for (const candidate of candidates) {
+    if (params.processedSubscriptionIds.has(candidate.id)) continue;
+    if (!isCircleStripeSubscription(candidate, params.userId, circlePriceIds)) {
+      continue;
+    }
+
+    params.processedSubscriptionIds.add(candidate.id);
+    const stopped = await stopSubscriptionById(params.stripe, candidate.id);
+    const row = params.rows.find(
+      (item) => item.provider_subscription_id === candidate.id
+    );
+
+    if (row) {
+      await markLocalSubscriptionStopped({
+        row,
+        reason: params.reason,
+        subscription: stopped.subscription,
+        action: stopped.action,
+      });
+    }
+
+    if (stopped.action === "scheduled") params.result.scheduled += 1;
+    else if (stopped.action === "canceled") params.result.canceled += 1;
+    else params.result.alreadyStopped += 1;
+  }
 }
 
 /**
@@ -256,15 +421,16 @@ export async function stopCircleSubscriptionBillingForUser(params: {
   }
 
   const rows = ((data ?? []) as SubscriptionRow[]).filter(isCircleSubscriptionRow);
-  if (!rows.length) {
-    return { ...emptyResult(), skipped: "no_circle_subscription" };
-  }
 
   const stripe = getStripe();
   const result = emptyResult();
+  const processedSubscriptionIds = new Set<string>();
 
   for (const row of rows) {
     if (row.provider_subscription_id) {
+      if (processedSubscriptionIds.has(row.provider_subscription_id)) continue;
+      processedSubscriptionIds.add(row.provider_subscription_id);
+
       const stopped = await stopSubscriptionById(stripe, row.provider_subscription_id);
       await markLocalSubscriptionStopped({
         row,
@@ -284,6 +450,7 @@ export async function stopCircleSubscriptionBillingForUser(params: {
         stripe,
         row,
         reason: params.reason,
+        processedSubscriptionIds,
       });
       if (outcome === "expired_checkout") result.expiredCheckouts += 1;
       else if (outcome === "scheduled") result.scheduled += 1;
@@ -293,6 +460,28 @@ export async function stopCircleSubscriptionBillingForUser(params: {
     }
 
     result.alreadyStopped += 1;
+  }
+
+  // Old accounts can have a real Stripe subscription without a local row
+  // (webhook delivery or checkout persistence failed). Search Stripe by the
+  // subscription metadata and by the customer email so those accounts are not
+  // left with recurring billing after lifetime access was granted.
+  await stopUnrecordedCircleSubscriptions({
+    stripe,
+    userId: params.userId,
+    reason: params.reason,
+    rows,
+    processedSubscriptionIds,
+    result,
+  });
+
+  if (
+    result.scheduled === 0 &&
+    result.canceled === 0 &&
+    result.expiredCheckouts === 0 &&
+    result.alreadyStopped === 0
+  ) {
+    result.skipped = "no_circle_subscription";
   }
 
   return result;
