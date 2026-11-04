@@ -112,6 +112,30 @@ function isCircleSubscriptionRow(row: SubscriptionRow) {
   );
 }
 
+/**
+ * A lifetime Circle grant is an active admin entitlement with no expiry. It is
+ * independent of Stripe, so any recurring subscription for the same user must
+ * never charge them again.
+ */
+export async function hasLifetimeCircleEntitlement(userId: string) {
+  const { data, error } = await getSupabaseAdmin()
+    .from("user_entitlements")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("source", "admin")
+    .eq("status", "active")
+    .is("expires_at", null)
+    .in("product_key", CIRCLE_PRODUCT_KEYS)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Could not read lifetime Circle access: ${error.message}`);
+  }
+
+  return Boolean(data);
+}
+
 let circlePriceIdsPromise: Promise<Set<string>> | null = null;
 
 async function getCirclePriceIds() {
@@ -550,17 +574,10 @@ export async function reconcileLifetimeCircleVoucherBilling(): Promise<CircleBil
   const userIds = Array.from(
     new Set(
       ((data ?? []) as LifetimeEntitlementRow[])
-        .filter((row) => {
-          const metadata = row.metadata;
-          return (
-            typeof row.user_id === "string" &&
-            row.user_id.length > 0 &&
-            metadata !== null &&
-            typeof metadata === "object" &&
-            typeof metadata.voucher_id === "string" &&
-            metadata.voucher_id.length > 0
-          );
-        })
+        .filter(
+          (row) =>
+            typeof row.user_id === "string" && row.user_id.length > 0
+        )
         .map((row) => row.user_id)
     )
   );

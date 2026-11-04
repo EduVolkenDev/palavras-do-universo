@@ -381,6 +381,7 @@ test("lifetime Circle vouchers stop recurring Stripe billing", async () => {
   const route = await source("src/app/api/admin/vouchers/route.ts");
   const admin = await source("src/components/admin/VoucherAdminPage.tsx");
   const claimCard = await source("src/components/vouchers/VoucherClaimCard.tsx");
+  const fulfillment = await source("src/lib/product/fulfillment.ts");
 
   // Redeeming (or re-opening) a lifetime Circle voucher must also stop any
   // active Stripe subscription, otherwise the customer keeps being charged
@@ -400,11 +401,19 @@ test("lifetime Circle vouchers stop recurring Stripe billing", async () => {
   assert.match(billing, /checkout\.sessions\.expire/);
   assert.match(billing, /reconcileLifetimeCircleVoucherBilling/);
   assert.match(billing, /\.is\("expires_at", null\)/);
-  assert.match(billing, /metadata\.voucher_id/);
+  assert.match(billing, /hasLifetimeCircleEntitlement/);
   assert.match(billing, /subscriptions\.search/);
   assert.match(billing, /customers\.list/);
   assert.match(billing, /searchFailures/);
   assert.match(billing, /emailFailures/);
+
+  // Any Circle subscription created by a stale checkout after the lifetime
+  // grant is cancelled by the webhook backstop, and the checkout itself is
+  // intercepted before granting recurring access.
+  assert.match(fulfillment, /hasLifetimeCircleEntitlement/);
+  assert.match(fulfillment, /lifetime_circle_webhook_guard/);
+  assert.match(fulfillment, /lifetime_circle_checkout_guard/);
+  assert.match(fulfillment, /stopCircleSubscriptionBillingForUser/);
 
   // Existing accounts affected before this fix can be repaired from the
   // owner voucher dashboard.

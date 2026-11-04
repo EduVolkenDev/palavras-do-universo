@@ -6,6 +6,10 @@ import {
   INTERNAL_TEST_CIRCLE_PRODUCT_KEY,
   isCircleSubscriptionProduct,
 } from "@/lib/product/access";
+import {
+  hasLifetimeCircleEntitlement,
+  stopCircleSubscriptionBillingForUser,
+} from "@/lib/stripe/circle-billing";
 
 type EntitlementProduct = {
   product_key: string;
@@ -153,6 +157,25 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session) {
     const subscriptionId = getString(session.subscription);
     const customerId = getString(session.customer);
 
+    // Same race as syncStripeSubscription: a checkout session created before
+    // the lifetime grant can still complete. Stop it before granting any
+    // recurring access.
+    if (
+      isCircleSubscriptionProduct(productKey) &&
+      (await hasLifetimeCircleEntitlement(userId))
+    ) {
+      await stopCircleSubscriptionBillingForUser({
+        userId,
+        reason: "lifetime_circle_checkout_guard",
+      });
+      return {
+        ok: true as const,
+        userId,
+        productKey,
+        source: "subscription" as const,
+      };
+    }
+
     const { error: subscriptionError } = await supabase
       .from("subscriptions")
       .update({
@@ -265,6 +288,24 @@ export async function syncStripeSubscription(subscription: Stripe.Subscription) 
   }
 
   if (!userId || !productKey) return;
+
+  // Backstop for a stale/duplicate checkout that completes after the customer
+  // already holds lifetime Circle access. The checkout API blocks new
+  // subscriptions for these accounts; this catches the race where the session
+  // was created before the lifetime grant, so they are never billed again.
+  if (
+    isCircleSubscriptionProduct(productKey) &&
+    ["active", "trialing", "past_due", "unpaid", "incomplete", "paused"].includes(
+      subscription.status
+    ) &&
+    (await hasLifetimeCircleEntitlement(userId))
+  ) {
+    await stopCircleSubscriptionBillingForUser({
+      userId,
+      reason: "lifetime_circle_webhook_guard",
+    });
+    return;
+  }
 
   if (["active", "trialing"].includes(subscription.status)) {
     await grantEntitlements({
