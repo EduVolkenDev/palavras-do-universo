@@ -6341,27 +6341,6 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
 .pdu-campaign-step {
   position: relative;
   padding-inline: 0.5rem;
-  transition: background-color 450ms ease, transform 450ms ease;
-}
-
-.pdu-campaign-step:hover {
-  background: rgba(220, 204, 171, 0.26);
-  transform: translateX(0.35rem);
-}
-
-.pdu-campaign-step__number {
-  transition: color 450ms ease, text-shadow 450ms ease;
-}
-
-.pdu-campaign-step:hover .pdu-campaign-step__number {
-  color: #5c40a4;
-  text-shadow: 0 0 16px rgba(92, 64, 164, 0.36);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pdu-campaign-step {
-    transition: none;
-  }
 }
 
 @media (max-width: 640px) {
@@ -6379,10 +6358,6 @@ body:has(.pdu-auth-page) .pdu-lume-ambient {
 
   .pdu-campaign-steps-visual__prompt {
     margin-right: 3rem;
-  }
-
-  .pdu-campaign-step:hover {
-    transform: none;
   }
 }
 
