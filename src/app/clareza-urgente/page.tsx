@@ -31,6 +31,9 @@ const COPY: Record<Locale, React.ComponentProps<typeof ClarezaUrgenteCampaign>["
     freeCta: "Abrir leitura gratuita",
     stepsEyebrow: "Como a experiência acontece",
     stepsTitle: "Menos ruído. Mais presença para escolher.",
+    stepsPromptLabel: "Uma pergunta para começar",
+    stepsPrompt: "O que precisa de clareza para eu dar o próximo passo?",
+    stepsPromptNote: "Traga uma situação real. A leitura ajuda a olhar para ela por outros ângulos; a escolha continua sendo sua.",
     steps: [
       { number: "01", title: "Nomeie o que está vivo", copy: "Você chega com a questão que está ocupando espaço — sem precisar transformá-la em uma pergunta perfeita." },
       { number: "02", title: "Observe as camadas", copy: "A leitura organiza símbolos, tensão, recurso e contexto para que sensação não seja confundida com destino." },
@@ -75,6 +78,9 @@ const COPY: Record<Locale, React.ComponentProps<typeof ClarezaUrgenteCampaign>["
     freeCta: "Open a free reading",
     stepsEyebrow: "How the experience unfolds",
     stepsTitle: "Less noise. More presence for choosing.",
+    stepsPromptLabel: "A question to begin with",
+    stepsPrompt: "What needs to become clearer before I take my next step?",
+    stepsPromptNote: "Bring a real situation. The reading helps you see it from different angles; the choice remains yours.",
     steps: [
       { number: "01", title: "Name what is alive", copy: "You arrive with the question taking up space — it does not need to be perfectly phrased." },
       { number: "02", title: "Notice the layers", copy: "The reading brings symbol, tension, resource and context together so feeling is not confused with fate." },

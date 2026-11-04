@@ -33,6 +33,9 @@ type CampaignCopy = {
   freeCta: string;
   stepsEyebrow: string;
   stepsTitle: string;
+  stepsPromptLabel: string;
+  stepsPrompt: string;
+  stepsPromptNote: string;
   steps: Array<{ number: string; title: string; copy: string }>;
   boundaryEyebrow: string;
   boundaryTitle: string;
@@ -281,26 +284,25 @@ export default function ClarezaUrgenteCampaign({
               {copy.stepsTitle}
             </h2>
 
-            <div className="pdu-campaign-steps-visual mt-10" aria-hidden="true">
-              <div className="pdu-campaign-steps-visual__halo" />
-              <div className="pdu-campaign-steps-visual__orbit pdu-campaign-steps-visual__orbit--one">
-                <span />
-              </div>
-              <div className="pdu-campaign-steps-visual__orbit pdu-campaign-steps-visual__orbit--two">
-                <span />
+            <div className="pdu-campaign-steps-visual mt-10">
+              <div className="pdu-campaign-steps-visual__halo" aria-hidden="true" />
+              <div className="pdu-campaign-steps-visual__content">
+                <p className="pdu-campaign-steps-visual__caption">
+                  <Sparkles size={15} aria-hidden="true" />
+                  <span>{copy.stepsPromptLabel}</span>
+                </p>
+                <p className="pdu-campaign-steps-visual__prompt">{copy.stepsPrompt}</p>
+                <p className="pdu-campaign-steps-visual__note">{copy.stepsPromptNote}</p>
               </div>
               <Image
                 src={PDU_ASSETS.symbolic.bigGem}
                 alt=""
                 width={420}
                 height={720}
-                sizes="(max-width: 1024px) 70vw, 320px"
+                sizes="(max-width: 640px) 96px, 144px"
+                aria-hidden="true"
                 className="pdu-campaign-steps-visual__crystal"
               />
-              <div className="pdu-campaign-steps-visual__caption">
-                <Sparkles size={15} aria-hidden="true" />
-                <span>{copy.stepsEyebrow}</span>
-              </div>
             </div>
           </div>
           <div className="grid divide-y divide-[#241923]/15 border-y border-[#241923]/15">
