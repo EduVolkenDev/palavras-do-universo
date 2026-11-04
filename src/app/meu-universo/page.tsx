@@ -67,6 +67,7 @@ import { ReadingTranslationStatus } from "@/components/ReadingTranslationStatus"
 import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { LUME_READING_FOCUS_EVENT, LumePresence, requestLumeOpen } from "@/components/LumeGuide";
 import { UniverseVisualGuide } from "@/components/UniverseVisualGuide";
+import { DailySkyEmailInvitation } from "@/components/marketing/DailySkyEmailInvitation";
 import { PasskeySettingsCard } from "@/components/PasskeySettingsCard";
 import { AstrologyBirthProfileCard } from "@/components/astrology/AstrologyBirthProfileCard";
 import {
@@ -1694,6 +1695,8 @@ export default function MeuUniversoPage() {
               : null
           }
         />
+
+        {authChecked && accountEmail ? <DailySkyEmailInvitation locale={locale} /> : null}
 
         <div className="pdu-universe-stats mt-8 grid gap-3 md:grid-cols-4">
           {stats.map((stat) => (

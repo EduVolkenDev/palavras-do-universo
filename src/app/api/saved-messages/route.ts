@@ -51,6 +51,7 @@ export async function GET(req: Request) {
     .from("saved_messages")
     .select("id, reading_id, message_type, payload, created_at, client_key")
     .eq("user_id", auth.user.id)
+    .neq("message_type", "daily_sky_checkin")
     .order("created_at", { ascending: false })
     .range(offset, offset + limit);
 

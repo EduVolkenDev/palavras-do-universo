@@ -7,6 +7,7 @@ import { dailyTransitId, type DailyReadingResult } from "@/lib/astrology/daily-r
 import type { DailySky, DailyTone } from "@/lib/astrology/daily-sky";
 import { getAspectInterpretation, getBodyInterpretation, type AstrologyLocale } from "@/lib/astrology/interpretations";
 import { dailyTransitArtworkKey, type DailyTransitArtworkPlan } from "@/lib/astrology/visual-assets";
+import { AstrologyDailyContinuity } from "./AstrologyDailyContinuity";
 
 const groups: Array<{ tone: DailyTone; pt: string; en: string }> = [
   { tone: "supportive", pt: "O que pode favorecer você", en: "What may support you" },
@@ -101,6 +102,9 @@ export function AstrologyDailyLume({ sky, locale, artworkPlan }: { sky: DailySky
         })}
         <div className="mt-6 rounded-2xl bg-[#241b18] p-5 text-[#fff7e8]"><h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-[#f5d896]">{isEnglish ? "One possible gesture today" : "Um gesto possível para hoje"}</h4><p className="mt-3 text-sm leading-7">{reading.content.nextStep}</p></div>
       </div> : null}
+      <div className="border-t border-[#caa96c]/35 p-5 sm:p-7">
+        <AstrologyDailyContinuity reading={reading} localDate={sky.localDate} timezone={sky.timezone} locale={locale} />
+      </div>
     </section>
   );
 }

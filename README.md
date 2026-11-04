@@ -26,7 +26,7 @@ Nunca versione chaves reais.
 ## Produção
 
 - Site: https://palavrasdouniverso.com
-- Hosting: Vercel
+- Hosting do site e APIs: Cloudflare Workers (vinext). O envio legado de vouchers ainda tem um relay SMTP na Vercel como contingência até a migração ser validada.
 - Banco: Supabase
 - Pagamentos: Stripe
 

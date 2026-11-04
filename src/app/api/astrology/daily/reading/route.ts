@@ -20,7 +20,7 @@ async function readSharedUserContext(supabase: ReturnType<typeof getSupabaseAdmi
   const [{ data: profile, error: profileError }, { data: readings, error: readingsError }, { data: messages, error: messagesError }, { data: actions, error: actionsError }] = await Promise.all([
     supabase.from("profiles").select("display_name, favorite_themes, emotional_phase, reading_profile").eq("id", userId).maybeSingle(),
     supabase.from("readings").select("id, locale, theme, question, spread, interpretation, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(12),
-    supabase.from("saved_messages").select("message_type, payload, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
+    supabase.from("saved_messages").select("message_type, payload, created_at").eq("user_id", userId).neq("message_type", "daily_sky_checkin").order("created_at", { ascending: false }).limit(20),
     supabase.from("impact_commitments").select("id, client_key, status, action_title, plan, reflection, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(40),
   ]);
 

@@ -11,6 +11,7 @@ import { appendMarketingAttribution, normalizeMarketingAttribution } from "@/lib
 import HomeFeedback from "./HomeFeedback";
 import HomeHeroArt from "./HomeHeroArt";
 import VoucherCodeEntry from "@/components/vouchers/VoucherCodeEntry";
+import DailySkyEmailSignup from "@/components/marketing/DailySkyEmailSignup";
 import styles from "./HomePortal.module.css";
 
 export default function HomePortal({ navigationParams }: { navigationParams: Record<string, string> }) {
@@ -123,6 +124,8 @@ export default function HomePortal({ navigationParams }: { navigationParams: Rec
           </div>
           <button type="button" onClick={requestLumeOpen} className={styles.secondary}>{text("Conversar com a Lume", "Talk to Lume")}<ArrowRight size={17} aria-hidden="true" /></button>
         </section>
+
+        <DailySkyEmailSignup />
 
         <HomeFeedback />
       </main>
