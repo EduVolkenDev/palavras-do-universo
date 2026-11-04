@@ -9,6 +9,7 @@ import { PDU_ASSETS } from "@/lib/pdu-assets";
 import { LUME_VISUAL_ASSETS } from "@/lib/lume/assets";
 import { appendMarketingAttribution, normalizeMarketingAttribution } from "@/lib/marketing/attribution";
 import HomeFeedback from "./HomeFeedback";
+import HomeHeroArt from "./HomeHeroArt";
 import VoucherCodeEntry from "@/components/vouchers/VoucherCodeEntry";
 import styles from "./HomePortal.module.css";
 
@@ -91,9 +92,7 @@ export default function HomePortal({ navigationParams }: { navigationParams: Rec
             </Link>
             <p className={styles.hint}>{text("Sem cadastro. Sem precisar escrever uma pergunta.", "No account. No need to write a question.")}</p>
           </div>
-          <div className={styles.heroArt} aria-hidden="true">
-            <Image src={PDU_ASSETS.brand.markDesktop} alt="" width={560} height={560} priority sizes="(max-width: 600px) 220px, 36vw" />
-          </div>
+          <HomeHeroArt className={styles.heroArt} />
         </section>
 
         <section id="areas" className={styles.areas} aria-labelledby="areas-title">

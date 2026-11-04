@@ -16,6 +16,26 @@ export const PDU_ASSETS = {
     headerWordmark: "/assets/new-palavrasuniverso-logo-512.webp",
     heroMarkRotation: [
       {
+        assetPath: "/assets/new-pdu-dock.webp",
+        mobileAssetPath: "/assets/pdu-hero-new-dock-mobile.webp",
+      },
+      {
+        assetPath: "/assets/new-pdu-dock3.webp",
+        mobileAssetPath: "/assets/pdu-hero-new-dock3-mobile.webp",
+      },
+      {
+        assetPath: "/assets/new-pdu-dock4.webp",
+        mobileAssetPath: "/assets/pdu-hero-new-dock4-mobile.webp",
+      },
+      {
+        assetPath: "/assets/new-pdu-dock5.webp",
+        mobileAssetPath: "/assets/pdu-hero-new-dock5-mobile.webp",
+      },
+      {
+        assetPath: "/assets/pdu-dock.webp",
+        mobileAssetPath: "/assets/pdu-dock-mobile.webp",
+      },
+      {
         assetPath: "/assets/new-palavrasuniverso-logo.webp",
         mobileAssetPath: "/assets/new-palavrasuniverso-logo-512.webp",
       },
