@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getSupabaseAdmin, hasSupabaseConfig } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe/server";
+import { notifyOwnerOfStripeEvent } from "@/lib/stripe/owner-notifications";
 import {
   fulfillCheckoutSession,
   syncStripeRefund,
@@ -169,7 +170,16 @@ export async function POST(req: Request) {
   }
 
   const shouldProcess = await claimPaymentEvent(event);
-  if (!shouldProcess) return response(true);
+  if (!shouldProcess) {
+    // Fulfillment and owner delivery have separate idempotency records.
+    // A previously fulfilled event can still need its notification retried.
+    try {
+      await notifyOwnerOfStripeEvent(event);
+      return response(true);
+    } catch {
+      return response(false, 500);
+    }
+  }
 
   try {
     switch (event.type) {
@@ -229,6 +239,7 @@ export async function POST(req: Request) {
         break;
     }
 
+    await notifyOwnerOfStripeEvent(event);
     await markPaymentEventProcessed(event);
 
     return response(true);
