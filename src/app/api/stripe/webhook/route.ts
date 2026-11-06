@@ -164,7 +164,11 @@ export async function POST(req: Request) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    // Vinext bundles Stripe for the Workers Web Crypto runtime. HMAC must
+    // be awaited; the synchronous API rejects valid signatures there.
+    event = await stripe.webhooks.constructEventAsync(
+      payload, signature, webhookSecret, undefined, Stripe.createSubtleCryptoProvider()
+    );
   } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
