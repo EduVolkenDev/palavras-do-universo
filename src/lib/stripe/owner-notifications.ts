@@ -45,7 +45,9 @@ export async function notifyOwnerOfStripeEvent(event: Stripe.Event) {
   if (claim === "accepted") return;
   if (claim !== "claimed") throw new Error(`OWNER_NOTIFICATION_${String(claim).toUpperCase()}`);
   const amount = new Intl.NumberFormat("pt-BR", { style: "currency", currency: notice.currency.toUpperCase() }).format(notice.amount / 100);
-  const product = productCards.find(p => p.productKey === notice.product)?.title ?? pricingPlans.find(p => p.productKey === notice.product)?.title ?? notice.product;
+  const product = notice.product
+    ? productCards.find(p => p.productKey === notice.product)?.title ?? pricingPlans.find(p => p.productKey === notice.product)?.title ?? notice.product
+    : undefined;
   const lines = ["Palavras do Universo", notice.title, `Valor: ${amount}`, ...(product ? [`Produto: ${product}`] : []), `Data do evento (UTC): ${new Date(notice.date * 1000).toISOString()}`, `Referência Stripe: ${notice.reference}`, "", "Pagamento aprovado e depósito bancário são etapas diferentes. Este aviso não é um recibo fiscal.", "Confira os detalhes no painel Stripe: https://dashboard.stripe.com/payments"];
   const textContent = lines.join("\n");
   const safe = textContent.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);

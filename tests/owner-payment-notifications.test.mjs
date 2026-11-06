@@ -8,7 +8,7 @@ async function app() {
  const rows=new Map(); const messages=[]; let failure=false; let recordFailure=false;
  const modules={
   'node:crypto':{createHash},
-  '@/lib/product/catalog':{productCards:[{productKey:'caminho_3_cartas',title:'Caminho de 3 Cartas'}],pricingPlans:[]},
+  '@/lib/product/catalog':{productCards:[{title:'Gratuito'},{productKey:'caminho_3_cartas',title:'Caminho de 3 Cartas'}],pricingPlans:[]},
   '@/lib/email/brevo-api':{sendBrevoEmail:async m=>{if(failure)throw Error('network timeout');messages.push(m);return 'provider-message-1';}},
   '@/lib/supabase/server':{getSupabaseAdmin:()=>({rpc:async(_name,p)=>{const r=rows.get(p.p_key);if(r)return {data:r.status==='accepted'?'accepted':'busy'};rows.set(p.p_key,{status:'sending'});return{data:'claimed'};},from:()=>({update:value=>({eq:async(_key,id)=>{if(recordFailure)return{error:{message:'database unavailable'}};Object.assign(rows.get(id),value);return{error:null};}})})})}
  };
@@ -42,7 +42,7 @@ test('free purchases and payout paid/failed are distinct from sale notifications
  const a=await app();await a.notifyOwnerOfStripeEvent(event('checkout.session.completed',{id:'cs_free',mode:'payment',payment_status:'no_payment_required',amount_total:0,currency:'brl',created:charge.created}));
  const payout={id:'po_unit',amount:1200,currency:'brl'};
  await a.notifyOwnerOfStripeEvent(event('payout.paid',payout));await a.notifyOwnerOfStripeEvent(event('payout.paid',payout));await a.notifyOwnerOfStripeEvent(event('payout.failed',payout));
- assert.equal(a.messages.length,3);assert.match(a.messages[1].subject,/Depósito/);assert.match(a.messages[1].subject,/12,00/);
+ assert.equal(a.messages.length,3);assert.match(a.messages[1].subject,/Depósito/);assert.match(a.messages[1].subject,/12,00/);assert.doesNotMatch(a.messages[1].textContent,/Produto:|Gratuito/);
 });
 test('ambiguous provider failure or lost database acknowledgement cannot appear delivered or trigger immediate duplicate',async()=>{
  const a=await app();a.fail();await assert.rejects(a.notifyOwnerOfStripeEvent(event('charge.succeeded',charge)),/timeout/);
