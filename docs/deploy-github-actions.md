@@ -18,6 +18,22 @@ Opcional: `CLOUDFLARE_ACCOUNT_ID` (`3167dcdb5b0aba19f14c67fea20fe77e`). Se omiti
 
 **Actions → Deploy Cloudflare → Run workflow**
 
+## Cadastrar via CLI (no repo)
+
+```bash
+gh secret set CLOUDFLARE_API_TOKEN
+gh secret set NEXT_PUBLIC_SUPABASE_URL --body "https://matykrddzfjcswqjanly.supabase.co"
+gh secret set NEXT_PUBLIC_SUPABASE_ANON_KEY
+```
+
+O comando pede o valor (cole a anon key do Supabase — **não** a service_role).
+
+## Se o e-mail de falha chegou
+
+1. Abra **Actions → Deploy Cloudflare →** o run vermelho.
+2. Se o log for `Missing GitHub Actions secret`, cadastre os três secrets acima.
+3. **Actions → Deploy Cloudflare → Run workflow** para tentar de novo.
+
 ## Verificar
 
 ```bash
