@@ -16,7 +16,7 @@ export function NumerosDetail({ code }: { code: CodeEntry | null }) {
 
   if (!code) {
     return (
-      <div className={styles.narrow}>
+      <div className={`${styles.narrow} ${styles.detailLayout}`}>
         <h1 className={styles.h1}>{m.detail.missingTitle}</h1>
         <p className={styles.lead}>{m.detail.missingLead}</p>
         <Link className={styles.textLink} href={href("/numeros/biblioteca")}>
@@ -41,7 +41,7 @@ export function NumerosDetail({ code }: { code: CodeEntry | null }) {
   }
 
   return (
-    <div className={`${styles.narrow} ${styles.rise}`}>
+    <div className={`${styles.narrow} ${styles.detailLayout} ${styles.rise}`}>
       <Link className={styles.textLink} href={href("/numeros/biblioteca")}>
         {m.detail.library}
       </Link>

@@ -71,7 +71,7 @@ export default function HomePortal({ navigationParams }: { navigationParams: Rec
       <a className={styles.skip} href="#conteudo">{text("Pular para o conteúdo", "Skip to content")}</a>
       <header className={styles.header}>
         <Link href={href("/")} aria-label="Palavras do Universo" className={styles.wordmark}>
-          <Image src={PDU_ASSETS.brand.headerWordmark} alt="Palavras do Universo" width={88} height={88} priority sizes="(max-width: 600px) 76px, 88px" />
+          <Image src={PDU_ASSETS.brand.headerWordmark} alt="Palavras do Universo" width={96} height={96} priority sizes="(max-width: 600px) 80px, 96px" />
         </Link>
         <nav className={styles.navigation} aria-label={text("Navegação principal", "Main navigation")}>
           <details className={styles.explore}>

@@ -1,0 +1,54 @@
+# Deploy palavras-do-universo (vinext) to Cloudflare Workers on push to main.
+#
+# Required GitHub repository secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN — API token with "Edit Cloudflare Workers" (account + zone if using routes)
+#   NEXT_PUBLIC_SUPABASE_URL — same value as production Worker
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY — same value as production Worker
+#
+# Optional: set CLOUDFLARE_ACCOUNT_ID secret; otherwise the Volynx account id below is used.
+
+name: Deploy Cloudflare
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-cloudflare-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || '3167dcdb5b0aba19f14c67fea20fe77e' }}
+      NEXT_PUBLIC_SITE_URL: https://palavrasdouniverso.com
+      NEXT_PUBLIC_DIARY_ORIGIN: https://diario.palavrasdouniverso.com
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (vinext)
+        run: npm run build:vinext
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Deploy to Cloudflare Workers
+        run: npm run deploy:vinext
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

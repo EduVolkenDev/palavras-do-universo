@@ -33,3 +33,5 @@ Nunca versione chaves reais.
 Antes de monetizar, conclua a verificação em
 [`MONETIZATION-READINESS.md`](./MONETIZATION-READINESS.md) e confirme
 `GET /api/health/commerce` no ambiente final.
+
+Deploy contínuo: push na `main` dispara o workflow **Deploy Cloudflare** (vinext → Workers). Configure os secrets listados em [`docs/deploy-github-actions.md`](./docs/deploy-github-actions.md).
