@@ -62,7 +62,7 @@ export default function HomePortal({ navigationParams }: { navigationParams: Rec
       ),
       action: text("Abrir os números", "Open the numbers"),
       href: "/numeros",
-      art: "/numeros/home-portal.jpg",
+      art: "/numeros/home-portal.webp",
     },
   ];
 
