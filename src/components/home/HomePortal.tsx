@@ -54,6 +54,16 @@ export default function HomePortal({ navigationParams }: { navigationParams: Rec
       href: "/lab",
       art: PDU_ASSETS.homepage.completedActionsChecklist,
     },
+    {
+      title: text("Números de intenção", "Numbers of intention"),
+      description: text(
+        "Vibre uma sequência de Grabovoi com intenção: frequência, geometria e uma pausa de três minutos.",
+        "Vibrate a Grabovoi sequence with intention: frequency, geometry, and a three-minute pause.",
+      ),
+      action: text("Abrir os números", "Open the numbers"),
+      href: "/numeros",
+      art: "/numeros/home-portal.jpg",
+    },
   ];
 
   return (
@@ -71,6 +81,7 @@ export default function HomePortal({ navigationParams }: { navigationParams: Rec
               <Link href={href("/carta-do-dia")}>{text("Carta do Dia", "Card of the Day")}</Link>
               <Link href={href("/astrologia")}>{text("Astrologia", "Astrology")}</Link>
               <Link href={href("/lab")}>{text("Rituais do Universo", "Universe rituals")}</Link>
+              <Link href={href("/numeros")}>{text("Números de intenção", "Numbers of intention")}</Link>
               <Link href={href("/significados/tarot")}>{text("Significados das cartas", "Card meanings")}</Link>
               <Link href={href("/meu-universo")}>{text("Meu Universo", "My Universe")}</Link>
             </div>
@@ -133,6 +144,7 @@ export default function HomePortal({ navigationParams }: { navigationParams: Rec
       <footer className={styles.footer}>
         <nav aria-label={text("Mais informações", "More information")}>
           <Link href={href("/significados/tarot")}>{text("Significados das cartas", "Card meanings")}</Link>
+          <Link href={href("/numeros")}>{text("Números de intenção", "Numbers of intention")}</Link>
           <Link href={href("/tiradas")}>{text("Tiradas e valores", "Readings and prices")}</Link>
           <Link href={href("/#circulo")}>{text("Planos do Círculo", "Circle plans")}</Link>
           <Link href={href("/termos")}>{text("Termos de uso", "Terms of use")}</Link>

@@ -3028,6 +3028,17 @@ export default function ReadingExperience({ readingOnly = false }: { readingOnly
                       <small>{t("Organize o que você está vivendo")}</small>
                     </span>
                   </Link>
+                  <Link
+                    href="/numeros"
+                    role="menuitem"
+                    onClick={() => setExploreMenuOpen(false)}
+                  >
+                    <Sparkles size={16} aria-hidden="true" />
+                    <span>
+                      <strong>{locale === "en" ? "Numbers of intention" : "Números de intenção"}</strong>
+                      <small>{locale === "en" ? "A short pause with a sequence" : "Uma pausa curta com uma sequência"}</small>
+                    </span>
+                  </Link>
                 </div>
               ) : null}
             </div>
@@ -3179,6 +3190,9 @@ export default function ReadingExperience({ readingOnly = false }: { readingOnly
                 </Link>
                 <Link href="/baralho" onClick={() => setMobileMenuOpen(false)}>
                   {t("Baralho")}
+                </Link>
+                <Link href="/numeros" onClick={() => setMobileMenuOpen(false)}>
+                  {locale === "en" ? "Numbers of intention" : "Números de intenção"}
                 </Link>
                 <Link href="/lab" onClick={() => setMobileMenuOpen(false)}>
                   {locale === "en" ? "Rituals" : "Rituais"}
