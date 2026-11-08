@@ -2025,6 +2025,21 @@ export default function ReadingExperience({ readingOnly = false }: { readingOnly
     }
   }
 
+  // Keep API/permission/timeout feedback in view when the reading did not open.
+  // Previously the page scrolled only when there was a successful result.
+  useEffect(() => {
+    if (loading || (!error && !paywall && !repeat)) return;
+    const timer = window.setTimeout(() => {
+      document.getElementById("reading-feedback")?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "center",
+      });
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [loading, error, paywall, repeat]);
+
   function selectThemeOption(nextTheme: string) {
     setTheme(nextTheme);
 
@@ -3733,6 +3748,7 @@ export default function ReadingExperience({ readingOnly = false }: { readingOnly
                         : t("Fazer minha leitura")}
                     </button>
 
+                    <div id="reading-feedback" role="status" aria-live="polite">
                     {paywall ? (
                       <StatusPanel
                         tone="gold"
@@ -3817,6 +3833,7 @@ export default function ReadingExperience({ readingOnly = false }: { readingOnly
                         message={error}
                       />
                     ) : null}
+                    </div>
                   </div>
                 </div>
             </div>
