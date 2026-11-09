@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { AstrologyOverview } from "@/components/astrology/AstrologyOverview";
 import { normalizeMarketingAttribution } from "@/lib/marketing/attribution";
-import { getAuthenticatedUser } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "Astrologia | Palavras do Universo",
@@ -11,10 +10,10 @@ export const metadata = {
 
 export default async function AstrologyPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
-  const legacyMapEntry = params.access === "active";
-  const user = await getAuthenticatedUser();
-  // A deliberate return to the astrology overview must not redirect back to the chart.
-  if ((legacyMapEntry || user) && params.overview !== "1") {
+
+  // The public astrology overview must never wait for Supabase auth.
+  // Only the explicit legacy chart-entry URL retains its redirect.
+  if (params.access === "active" && params.overview !== "1") {
     const query = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
       if (typeof value === "string") query.set(key, value);
