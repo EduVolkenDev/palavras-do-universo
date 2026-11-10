@@ -349,6 +349,19 @@ function asksAboutActiveReading(text: string) {
   return /(signific|represent|interpret|explic|explain|resum|summary|entend|understand|resultado|result|esta leitura|essa leitura|this reading|current reading|carta|card|arcano|tirada|spread)/.test(text);
 }
 
+export function getAstrologyNavigationReply(input: string, locale: Locale): LumeReply | null {
+  const text = normalize(input);
+  if (!/(ceu|astrolog|mapa astral|sky|birth chart|natal chart)/.test(text)
+    || !/(como (vejo|ver|acesso|abrir|chego)|onde|abrir|acessar|where|how (do i|can i)|open|access)/.test(text)) return null;
+  return locale === "en" ? {
+    text: 'Open your birth chart and go to “Your sky today”. Current positions update during your visit; the Circle interpretation is saved for the day and shows its own snapshot time. You do not need a new tarot reading.',
+    action: { label: "Open my sky today", href: "/astrologia/mapa#daily-sky-title" },
+  } : {
+    text: 'Abra seu mapa astral e vá até “Seu céu de hoje”. As posições atuais se atualizam durante a visita; a interpretação do Círculo fica salva para o dia e mostra o horário do próprio retrato. Você não precisa iniciar uma nova tiragem de tarot.',
+    action: { label: "Abrir meu céu de hoje", href: "/astrologia/mapa#daily-sky-title" },
+  };
+}
+
 export function isSpecificReadingQuestion(input: string) {
   const text = normalize(input);
   const asksForMeaning =
@@ -432,6 +445,8 @@ function classifyLumeQuestion(text: string): LumeQuestionIntent {
 }
 
 function getContextCue(userContext: UserContext | null | undefined, isEnglish: boolean) {
+  const astrologyNavigation = getAstrologyNavigationReply(input, locale);
+  if (astrologyNavigation) return astrologyNavigation;
   const signals = userContext?.personalizationSignals;
   if (!signals?.hasExplicitContext) return "";
 

@@ -4,6 +4,7 @@ import { readJsonBody } from "@/lib/http/request";
 import { composeLumeContext } from "@/lib/lume/context-budget";
 import {
   getMissingReadingReply,
+  getAstrologyNavigationReply,
   isSpecificReadingQuestion,
   LUME_AI_INSTRUCTIONS,
   type LumeSurface,
@@ -205,6 +206,10 @@ export async function POST(request: Request) {
   }
 
   const locale = body.locale === "en" ? "en" : "pt-BR";
+  const astrologyNavigation = getAstrologyNavigationReply(question, locale);
+  if (astrologyNavigation) {
+    return NextResponse.json({ ok: true, reply: { text: astrologyNavigation.text, source: "navigation" } });
+  }
   const activeReading = normalizeActiveReading(
     isRecord(body.context) ? body.context.activeReading : null
   );
