@@ -15,6 +15,8 @@ test("sky navigation is handled before an active tarot reading or AI generation"
   const persona = readFileSync(new URL("../src/lib/lume/persona.ts", import.meta.url), "utf8");
   const route = readFileSync(new URL("../src/app/api/lume/route.ts", import.meta.url), "utf8");
   assert.match(persona, /href: "\/astrologia\/mapa#daily-sky-title"/);
+  const reply = persona.slice(persona.indexOf("export function replyToLume("));
+  assert.match(reply.slice(0, 450), /getAstrologyNavigationReply\(input, locale\)/);
   assert.ok(persona.indexOf("if (astrologyNavigation) return astrologyNavigation") < persona.indexOf("if (activeReading && asksAboutActiveReading"));
   assert.ok(route.indexOf('source: "navigation"') < route.indexOf("const system ="));
 });

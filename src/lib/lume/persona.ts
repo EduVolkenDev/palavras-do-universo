@@ -445,8 +445,6 @@ function classifyLumeQuestion(text: string): LumeQuestionIntent {
 }
 
 function getContextCue(userContext: UserContext | null | undefined, isEnglish: boolean) {
-  const astrologyNavigation = getAstrologyNavigationReply(input, locale);
-  if (astrologyNavigation) return astrologyNavigation;
   const signals = userContext?.personalizationSignals;
   if (!signals?.hasExplicitContext) return "";
 
@@ -609,6 +607,8 @@ export function replyToLume(
 ): LumeReply {
   const text = normalize(input);
   const isEnglish = locale === "en";
+  const astrologyNavigation = getAstrologyNavigationReply(input, locale);
+  if (astrologyNavigation) return astrologyNavigation;
   const signals = userContext?.personalizationSignals;
   const focus = signals?.focusAreas[0];
   const phase = signals?.currentPhase;
