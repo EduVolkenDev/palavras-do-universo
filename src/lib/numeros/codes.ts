@@ -337,7 +337,7 @@ export const codes: CodeEntry[] = [
     title: p("Fluxo financeiro", "Financial flow"),
     category: "abundancia",
     line: p("Para olhar receitas e despesas com mais continuidade.", "To consider income and expenses with greater continuity."),
-    note: p("Em listas populares, a sequência acompanha a ideia de dinheiro em circulação. Use como lembrete para revisar um orçamento ou uma decisão financeira.", "Popular lists associate this sequence with money in circulation. Use it as a prompt to review a budget or financial decision."),
+    note: p("Associada ao movimento dos recursos, à circulação financeira e à prosperidade.", "Associated with the movement of resources, financial flow, and prosperity."),
   },
   {
     slug: "renda-estavel",
@@ -345,7 +345,7 @@ export const codes: CodeEntry[] = [
     title: p("Renda estável", "Steady income"),
     category: "abundancia",
     line: p("Uma intenção ligada à constância e ao planejamento.", "An intention linked to consistency and planning."),
-    note: p("Algumas coletâneas relacionam estes dígitos a rendimentos estáveis. O número não gera renda; pode lembrar um passo concreto na organização financeira.", "Some collections link these digits with steady income. The number does not create income; it can remind you of a practical step in financial planning."),
+    note: p("Associada à estabilidade financeira, à constância e à segurança material.", "Associated with financial stability, consistency, and material security."),
   },
   {
     slug: "caminho-profissional",
@@ -353,7 +353,7 @@ export const codes: CodeEntry[] = [
     title: p("Caminho profissional", "Career path"),
     category: "abundancia",
     line: p("Para pensar no próximo movimento do trabalho.", "For considering the next move in your working life."),
-    note: p("Aparece em listas de intenção para carreira e sucesso. Combine a pausa com uma candidatura, uma conversa ou uma habilidade a desenvolver.", "It appears in career and success intention lists. Pair the pause with an application, a conversation or a skill to develop."),
+    note: p("Associada à evolução profissional, a novos caminhos e ao reconhecimento.", "Associated with career growth, new paths, and recognition."),
   },
   {
     slug: "oportunidades",
@@ -361,7 +361,7 @@ export const codes: CodeEntry[] = [
     title: p("Oportunidades", "Opportunities"),
     category: "abundancia",
     line: p("Um lembrete para perceber caminhos e escolhas disponíveis.", "A reminder to notice available paths and choices."),
-    note: p("Circula associado a oportunidades financeiras. Não prevê acontecimentos: convide-se a identificar uma possibilidade real e avaliá-la com cuidado.", "It circulates in connection with financial opportunities. It does not predict events: identify one real possibility and assess it carefully."),
+    note: p("Associada à abertura de oportunidades e a novas possibilidades financeiras.", "Associated with opportunities and new financial possibilities."),
   },
   {
     slug: "encontro-afetivo",
@@ -369,7 +369,7 @@ export const codes: CodeEntry[] = [
     title: p("Encontro afetivo", "A meaningful connection"),
     category: "amor",
     line: p("Uma intenção de abertura ao encontro, com respeito.", "An intention of openness to connection, with respect."),
-    note: p("Algumas tabelas associam 571 ao encontro de um par amoroso. Nenhum código determina os sentimentos ou a decisão de outra pessoa.", "Some tables link 571 to meeting a romantic partner. No code determines another person's feelings or decisions."),
+    note: p("Associada ao encontro amoroso e à abertura para novas conexões afetivas.", "Associated with romantic encounters and new emotional connections."),
   },
   {
     slug: "perdao",
@@ -377,7 +377,7 @@ export const codes: CodeEntry[] = [
     title: p("Perdão", "Forgiveness"),
     category: "amor",
     line: p("Para pensar no que pode ser acolhido ou deixado para trás.", "For reflecting on what can be acknowledged or released."),
-    note: p("Em listas de praticantes, 706 é associado ao perdão. Perdoar é uma escolha pessoal e não exige retomar uma relação ou ignorar limites.", "Practitioner lists associate 706 with forgiveness. Forgiving is personal and does not require resuming a relationship or ignoring boundaries."),
+    note: p("Associada ao perdão, à reconciliação interior e à leveza emocional.", "Associated with forgiveness, inner reconciliation, and emotional lightness."),
   },
   {
     slug: "autoconfianca",
@@ -385,7 +385,7 @@ export const codes: CodeEntry[] = [
     title: p("Autoconfiança", "Self-confidence"),
     category: "clareza",
     line: p("Para recordar capacidades sem deixar de reconhecer dúvidas.", "For remembering your abilities while still acknowledging doubts."),
-    note: p("Algumas coleções de códigos ligam esta sequência à autoconfiança. Associe-a a uma atitude verificável, como preparar uma conversa importante.", "Some code collections link this sequence to self-confidence. Pair it with a verifiable action, such as preparing for an important conversation."),
+    note: p("Associada à segurança interior, à coragem e à confiança nas próprias capacidades.", "Associated with inner confidence, courage, and trust in one's abilities."),
   },
   {
     slug: "foco-nos-estudos",
@@ -393,7 +393,7 @@ export const codes: CodeEntry[] = [
     title: p("Foco nos estudos", "Study focus"),
     category: "clareza",
     line: p("Uma pausa antes de começar uma tarefa que pede atenção.", "A pause before starting a task that requires attention."),
-    note: p("Circula associada à determinação nos estudos. Não substitui revisão, prática e descanso; pode marcar o começo de uma sessão de concentração.", "It circulates in connection with study determination. It does not replace revision, practice or rest; it can mark the start of focused work."),
+    note: p("Associada à dedicação, à concentração e ao desenvolvimento nos estudos.", "Associated with dedication, focus, and learning progress."),
   },
   {
     slug: "memoria-aprendizagem",
@@ -401,7 +401,7 @@ export const codes: CodeEntry[] = [
     title: p("Memória e aprendizagem", "Memory and learning"),
     category: "clareza",
     line: p("Para organizar o que você quer compreender e lembrar.", "For organizing what you want to understand and remember."),
-    note: p("Listas populares associam 5893240 à memória. Não há evidência de melhora cognitiva causada pela sequência; prefira estudo ativo e repetição espaçada.", "Popular lists associate 5893240 with memory. There is no evidence that the sequence improves cognition; favor active learning and spaced repetition."),
+    note: p("Associada à memória, à assimilação de conhecimentos e à aprendizagem.", "Associated with memory, absorbing knowledge, and learning."),
   },
   {
     slug: "permanecer-centrado",
@@ -409,7 +409,7 @@ export const codes: CodeEntry[] = [
     title: p("Permanecer centrado", "Staying centered"),
     category: "protecao",
     line: p("Para recuperar a atenção quando tudo parece pedir resposta.", "For returning to your attention when everything demands a response."),
-    note: p("É divulgado em listas como um código para permanecer centrado. Use a pausa como lembrete de respirar e decidir o que merece sua energia agora.", "It is shared in lists as a code for staying centered. Use the pause as a reminder to breathe and decide what deserves your energy now."),
+    note: p("Associada ao equilíbrio interior, à presença e à serenidade.", "Associated with inner balance, presence, and serenity."),
   },
   {
     slug: "reorientar-pensamentos",
@@ -417,7 +417,7 @@ export const codes: CodeEntry[] = [
     title: p("Reorientar pensamentos", "Reframing thoughts"),
     category: "protecao",
     line: p("Para observar uma ideia difícil por outro ângulo.", "For looking at a difficult thought from another angle."),
-    note: p("É popularmente associado a transformar o negativo em positivo. Não apaga acontecimentos nem emoções; pode acompanhar uma reflexão mais cuidadosa.", "It is popularly associated with turning negative into positive. It does not erase events or emotions; it may accompany more careful reflection."),
+    note: p("Associada à transformação de padrões de pensamento e à renovação da perspectiva.", "Associated with reframing thought patterns and renewing perspective."),
   },
   {
     slug: "harmonia",
@@ -425,7 +425,7 @@ export const codes: CodeEntry[] = [
     title: p("Harmonia", "Harmony"),
     category: "protecao",
     line: p("Um símbolo breve para criar espaço entre estímulo e reação.", "A brief symbol for making room between stimulus and reaction."),
-    note: p("Em algumas listas, 213 aparece associado à harmonização. O uso aqui é simbólico, sem promessa de alterar pessoas ou situações.", "Some lists associate 213 with harmonization. Its use here is symbolic, without promises to change people or situations."),
+    note: p("Associada à harmonia, ao alinhamento interior e ao equilíbrio.", "Associated with harmony, inner alignment, and balance."),
   },
   {
     slug: "solucao-pratica",
@@ -433,7 +433,7 @@ export const codes: CodeEntry[] = [
     title: p("Próximo passo", "Next step"),
     category: "clareza",
     line: p("Para parar, definir o problema e escolher uma ação possível.", "For pausing, defining a problem and choosing an actionable step."),
-    note: p("A sequência 741 circula como solução imediata. Não resolve problemas sozinha; use-a para formular uma pergunta clara e encontrar o próximo passo.", "The sequence 741 circulates as an immediate solution. It does not solve problems by itself; use it to define a clear question and find a next step."),
+    note: p("Associada à resolução de desafios e à clareza diante das decisões.", "Associated with overcoming challenges and clarity in decision-making."),
   },
   {
     slug: "boa-sorte",
@@ -441,7 +441,7 @@ export const codes: CodeEntry[] = [
     title: p("Boa sorte", "Good fortune"),
     category: "clareza",
     line: p("Para perceber oportunidades sem depender do acaso.", "For noticing opportunities without relying on chance."),
-    note: p("Algumas listas associam este número à sorte. Não altera probabilidades; pode lembrar você de agir quando surgir uma oportunidade concreta.", "Some lists associate this number with luck. It does not change probabilities; it can remind you to act when a real opportunity appears."),
+    note: p("Associada à boa sorte, a circunstâncias favoráveis e a novas oportunidades.", "Associated with good fortune, favorable circumstances, and opportunities."),
   },
   {
     slug: "realizacao-de-metas",
@@ -449,7 +449,7 @@ export const codes: CodeEntry[] = [
     title: p("Realização de metas", "Working toward goals"),
     category: "clareza",
     line: p("Uma intenção a serviço de um objetivo bem definido.", "An intention in service of a clearly defined goal."),
-    note: p("Circula em coletâneas de manifestação como número para realização de objetivos. Registre uma meta mensurável e avance com pequenas ações.", "It circulates in manifestation collections as a number for goal achievement. Set a measurable goal and move forward through small actions."),
+    note: p("Associada à realização de objetivos, à determinação e à conquista de metas.", "Associated with achieving goals, determination, and accomplishment."),
   },
 ];
 
