@@ -292,7 +292,6 @@ export function AstrologyChartExperience({
   const astrologyLocale: AstrologyLocale = isEnglish ? "en" : "pt-BR";
   const ascendant = chart.ascendant;
   const hasBirthTime = chart.timePrecision !== "unknown" && ascendant !== null;
-  const ascendantLabel = ascendant ? getSignInterpretation(ascendant.sign, astrologyLocale).label : "";
   const ascendantIndex = ascendant ? zodiacSigns.indexOf(ascendant.sign) : -1;
   const selectedBody = activeReading?.body;
   const selectedPlacement = accessLevel !== "full" ? undefined : selectedBody === "Ascendant" && ascendant
@@ -358,7 +357,7 @@ export function AstrologyChartExperience({
           <CoreCard bodyKey="Sun" icon={<Sun size={20} />} eyebrow={isEnglish ? "Sun sign" : "Signo solar"} title={getBodyInterpretation("Sun", astrologyLocale).label} placement={positionMap.get("Sun")} locale={astrologyLocale} fullAccess={accessLevel === "full"} expanded={activeReading?.source === "core" && activeReading.body === "Sun"} onSelect={() => setActiveReading({ body: "Sun", source: "core" })} />
           <CoreCard bodyKey="Moon" icon={<MoonStar size={20} />} eyebrow={isEnglish ? "Moon sign" : "Signo lunar"} title={getBodyInterpretation("Moon", astrologyLocale).label} placement={positionMap.get("Moon")} locale={astrologyLocale} fullAccess={accessLevel === "full"} expanded={activeReading?.source === "core" && activeReading.body === "Moon"} onSelect={() => setActiveReading({ body: "Moon", source: "core" })} />
           {hasBirthTime && ascendant ? (
-            <CoreCard bodyKey="Ascendant" icon={<Sparkles size={20} />} eyebrow={isEnglish ? "Rising sign" : "Ascendente"} title={ascendantLabel} placement={{ sign: ascendant.sign, degreesInSign: ascendant.degreesInSign, house: 1 }} locale={astrologyLocale} fullAccess={accessLevel === "full"} expanded={activeReading?.source === "core" && activeReading.body === "Ascendant"} onSelect={() => setActiveReading({ body: "Ascendant", source: "core" })} />
+            <CoreCard bodyKey="Ascendant" icon={<Sparkles size={20} />} eyebrow={isEnglish ? "Rising sign" : "Ascendente"} title={isEnglish ? "Ascendant" : "Ascendente"} placement={{ sign: ascendant.sign, degreesInSign: ascendant.degreesInSign, house: 1 }} locale={astrologyLocale} fullAccess={accessLevel === "full"} expanded={activeReading?.source === "core" && activeReading.body === "Ascendant"} onSelect={() => setActiveReading({ body: "Ascendant", source: "core" })} />
           ) : (
             <Link href="/meu-universo#preparar-meu-mapa" className="rounded-[26px] border border-dashed border-[#caa96c] bg-[#fffaf2] p-6 text-left shadow-[0_18px_50px_rgba(80,57,34,0.05)] transition hover:-translate-y-1 hover:border-[#8a6b3f]">
               <span className="grid h-11 w-11 place-items-center rounded-full border border-[#caa96c]/60 bg-[#f8efe2] text-[#8a6b3f]"><Clock3 size={19} /></span>
