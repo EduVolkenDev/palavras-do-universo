@@ -88,7 +88,7 @@ export function AstrologyDailyLume({ sky, locale, artworkPlan }: { sky: DailySky
         </div>
       </div>
       {reading ? <div className="border-t border-[#caa96c]/35 p-5 sm:p-7">
-        <p className="text-xs leading-5 text-[#806c5d]">{new Intl.DateTimeFormat(isEnglish ? "en-GB" : "pt-BR", { timeZone: reading.timezone, day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }).format(new Date(reading.sky.snapshotAtISO))} · {reading.timezone}. {isEnglish ? "Based on this snapshot, saved for your day. AI-generated symbolic interpretation." : "Baseada nesse retrato do céu e salva para o seu dia. Interpretação simbólica gerada por IA."}</p>
+        <p className="text-xs leading-5 text-[#806c5d]">{new Intl.DateTimeFormat(isEnglish ? "en-GB" : "pt-BR", { timeZone: reading.timezone, day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }).format(new Date(reading.sky.snapshotAtISO))} · {reading.timezone}</p>
         {reading.natalTimePrecision === "unknown" ? <p className="mt-4 rounded-xl border border-[#e6d8c3] bg-white/65 p-3 text-sm leading-6 text-[#6f615a]">{isEnglish ? "Without your birth time, natal positions use local noon as a reference. The Moon and aspects may change when you add the time; no Ascendant or houses are assumed." : "Sem a hora de nascimento, as posições natais usam o meio-dia local como referência. A Lua e os aspectos podem mudar quando você informar a hora; não atribuímos Ascendente nem casas."}</p> : null}
         <p className="mt-5 whitespace-pre-line text-base leading-8 text-[#493527]">{reading.content.overview}</p>
         {groups.map(({ tone, pt, en }) => {
