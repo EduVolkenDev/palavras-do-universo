@@ -337,8 +337,12 @@ export default function LumeGuide() {
     const localReply = replyToLume(cleanQuestion, surface, locale, questionContext);
     let reply = localReply;
     try {
+      // Navigation already has a complete answer and action; do not let a
+      // provider or network delay trap the guide in its pending state.
+      if (localReply.action?.href === "/astrologia/mapa#daily-sky-title") return;
       const response = await fetch("/api/lume", {
         method: "POST",
+        signal: AbortSignal.timeout(25_000),
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           question: cleanQuestion,
