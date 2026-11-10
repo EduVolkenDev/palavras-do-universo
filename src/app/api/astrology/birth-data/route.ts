@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { reportSupabaseFailure } from "@/lib/supabase/diagnostics";
 import { requireApiUser } from "@/lib/auth/api";
 import { readJsonBody } from "@/lib/http/request";
 import {
@@ -12,7 +13,7 @@ import {
   hasSupabaseConfig,
 } from "@/lib/supabase/server";
 
-export async function GET() {
+async function getBirthData() {
   const auth = await requireApiUser();
   if (auth.response) return auth.response;
   if (!hasSupabaseConfig()) return NextResponse.json({ error: "Supabase is not configured", code: "SUPABASE_UNAVAILABLE" }, { status: 503 });
@@ -22,7 +23,7 @@ export async function GET() {
   return NextResponse.json({ ok: true, birthData });
 }
 
-export async function PUT(request: Request) {
+async function putBirthData(request: Request) {
   const auth = await requireApiUser();
   if (auth.response) return auth.response;
   if (!hasSupabaseConfig()) return NextResponse.json({ error: "Supabase is not configured", code: "SUPABASE_UNAVAILABLE" }, { status: 503 });
@@ -59,16 +60,42 @@ export async function PUT(request: Request) {
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id" });
 
-  if (error) return NextResponse.json({ error: error.message, code: "ASTROLOGY_BIRTH_DATA_SAVE_FAILED" }, { status: 500 });
+  if (error) throw error;
   return NextResponse.json({ ok: true, birthData: await readAstrologyBirthData(supabase, auth.user.id) });
 }
 
-export async function DELETE() {
+async function deleteBirthData() {
   const auth = await requireApiUser();
   if (auth.response) return auth.response;
   if (!hasSupabaseConfig()) return NextResponse.json({ error: "Supabase is not configured", code: "SUPABASE_UNAVAILABLE" }, { status: 503 });
 
   const { error } = await getSupabaseAdmin().from("astrology_birth_profiles").delete().eq("user_id", auth.user.id);
-  if (error) return NextResponse.json({ error: error.message, code: "ASTROLOGY_BIRTH_DATA_DELETE_FAILED" }, { status: 500 });
+  if (error) throw error;
   return NextResponse.json({ ok: true, birthData: null });
+}
+
+async function withBirthDataErrors(operation: string, action: () => Promise<Response>) {
+  try {
+    const response = await action();
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
+  } catch (error) {
+    const { incidentId, status } = reportSupabaseFailure(operation, error);
+    return NextResponse.json(
+      { error: "Birth data is temporarily unavailable", code: "ASTROLOGY_BIRTH_DATA_UNAVAILABLE", incidentId },
+      { status, headers: { "Cache-Control": "private, no-store" } },
+    );
+  }
+}
+
+export async function GET() {
+  return withBirthDataErrors("astrology.birth-data.read", getBirthData);
+}
+
+export async function PUT(request: Request) {
+  return withBirthDataErrors("astrology.birth-data.save", () => putBirthData(request));
+}
+
+export async function DELETE() {
+  return withBirthDataErrors("astrology.birth-data.delete", deleteBirthData);
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { reportSupabaseFailure } from "@/lib/supabase/diagnostics";
 import { requireApiUser } from "@/lib/auth/api";
 import { calculateNatalChart, ASTROLOGY_FULL_PRODUCT_KEY } from "@/lib/astrology/natal-chart";
 import { chartForAstrologyAccess } from "@/lib/astrology/chart-access";
@@ -44,10 +45,10 @@ export async function GET() {
       },
     }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    console.error("Unable to calculate astrology chart", error);
+    const { incidentId, status } = reportSupabaseFailure("astrology.natal.read", error);
     return NextResponse.json(
-      { error: "Astrology chart is unavailable", code: "ASTROLOGY_CHART_UNAVAILABLE" },
-      { status: 500, headers: { "Cache-Control": "private, no-store" } },
+      { error: "Astrology chart is unavailable", code: "ASTROLOGY_CHART_UNAVAILABLE", incidentId },
+      { status, headers: { "Cache-Control": "private, no-store" } },
     );
   }
 }

@@ -1,3 +1,4 @@
+import { reportSupabaseFailure } from "@/lib/supabase/diagnostics";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { AstrologyBirthProfileCard } from "@/components/astrology/AstrologyBirthProfileCard";
@@ -65,7 +66,7 @@ export default async function AstrologyMapPage({ searchParams }: { searchParams:
     try {
       birthData = await readAstrologyBirthData(getSupabaseAdmin(), user.id);
     } catch (error) {
-      console.error("Unable to load astrology birth data", error);
+      reportSupabaseFailure("astrology.map.birth-context", error);
       birthDataUnavailable = true;
     }
   }

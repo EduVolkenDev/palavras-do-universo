@@ -1,8 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { validateSupabaseAdminConfig } from "./diagnostics";
 
 let adminClient: SupabaseClient | null = null;
+let adminConfig: { url: string; key: string } | null = null;
 const DEFAULT_AUTH_TIMEOUT_MS = 8_000;
 
 function getSupabaseServerUrl() {
@@ -111,13 +113,16 @@ export function getSupabaseAdmin() {
     throw new Error("Missing Supabase URL or SUPABASE_SERVICE_ROLE_KEY");
   }
 
-  if (!adminClient) {
+  validateSupabaseAdminConfig(url, serviceRoleKey, process.env.NEXT_PUBLIC_SUPABASE_URL);
+
+  if (!adminClient || adminConfig?.url !== url || adminConfig?.key !== serviceRoleKey) {
     adminClient = createClient(url, serviceRoleKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
       },
     });
+    adminConfig = { url, key: serviceRoleKey };
   }
 
   return adminClient;
