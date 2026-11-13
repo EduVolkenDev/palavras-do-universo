@@ -295,8 +295,7 @@ test("personal astrology data stays private and does not depend on fictional pre
   assert.doesNotMatch(experience, /previewChart/);
   assert.match(previewRoute, /redirect\("\/astrologia\/mapa"\)/);
   assert.doesNotMatch(previewRoute, /dados fictícios|Cidade de exemplo/);
-  assert.match(chartStyles, /\.coreHeading h3[\s\S]*white-space: nowrap/);
-  assert.match(chartStyles, /\.coreHeading h3[\s\S]*word-break: keep-all/);
+  assert.match(chartStyles, /\.coreHeading h3\s*\{[^}]*overflow-wrap: anywhere/);
 });
 
 test("the astrology campaign keeps context through auth, unknown birth time, checkout, and fulfillment return", async () => {

@@ -11,6 +11,7 @@
 
 .planetCard {
   align-self: start;
+  container-type: inline-size;
 }
 
 .pillarArtwork {
@@ -73,24 +74,20 @@
   --planet-halo: rgba(143, 111, 151, 0.26);
 }
 
-.coreArtwork {
-  position: absolute;
-  top: 4.8rem;
-  right: 0.2rem;
-  width: min(40%, 9.5rem);
-  height: 9rem;
-  opacity: 0.92;
-  pointer-events: none;
-  filter: drop-shadow(0 12px 20px rgba(78, 53, 84, 0.12));
-  transition: transform 400ms ease;
+.corePlacement {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 36%);
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
 
-.coreSignArtwork {
-  top: 2.7rem;
-  right: -1.4rem;
-  width: min(58%, 13.5rem);
-  height: 12.25rem;
-  opacity: 0.96;
+.coreArtwork {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  pointer-events: none;
+  transition: transform 400ms ease;
 }
 
 .coreSignImage,
@@ -101,6 +98,7 @@
 }
 
 .coreSignImage {
+  transform: none;
   object-fit: contain !important;
   mix-blend-mode: screen;
   filter: saturate(1.08) drop-shadow(0 12px 22px rgba(87, 51, 122, 0.3));
@@ -121,26 +119,21 @@
   max-width: 100%;
   flex-direction: column;
   justify-content: center;
-  margin-top: 1rem;
-  overflow-wrap: normal;
-  word-break: normal;
-  hyphens: none;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .coreHeading h3 {
   max-width: 100%;
   font-size: clamp(1.75rem, 2.25vw, 2.25rem);
   line-height: 1.05;
-  overflow-wrap: normal;
-  word-break: keep-all;
-  hyphens: none;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .planetButton {
   display: grid;
   min-height: 100%;
-  grid-template-columns: minmax(12.5rem, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
 }
 
 .planetVisual {
@@ -162,6 +155,7 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
+  overflow-wrap: anywhere;
   padding: 1.5rem;
   background: linear-gradient(150deg, rgba(255, 253, 248, 0.96), rgba(255, 250, 242, 0.9));
 }
@@ -213,6 +207,7 @@
   margin: auto;
   padding: 0;
   overflow-y: auto;
+  overflow-wrap: anywhere;
   overscroll-behavior: contain;
   border: 1px solid rgba(244, 213, 141, 0.4);
   border-radius: 1.75rem;
@@ -327,7 +322,7 @@
   }
 
   .readingDialogHeader {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     min-height: 0;
     padding: 1.5rem 1.25rem;
   }
@@ -351,39 +346,13 @@
   }
 }
 
-@media (max-width: 380px) {
-  .coreArtwork {
-    width: 38%;
-    opacity: 0.78;
-  }
-
-  .coreSignArtwork {
-    top: 3.3rem;
-    right: -1.85rem;
-    width: 62%;
-    height: 10.75rem;
-  }
-
-  .coreHeading {
-    min-height: 5.75rem;
-  }
-
-  .coreHeading h3 {
-    font-size: 1.65rem;
-  }
-
-  .planetVisual {
-    min-height: 18rem;
-  }
-}
-
-@media (max-width: 640px) {
+@container (max-width: 25rem) {
   .planetButton {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .planetVisual {
-    min-height: 17rem;
+    min-height: clamp(9rem, 48cqw, 15rem);
     border-right: 0;
     border-bottom: 1px solid rgba(202, 169, 108, 0.35);
   }
