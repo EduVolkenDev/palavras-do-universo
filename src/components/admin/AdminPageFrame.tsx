@@ -49,7 +49,7 @@ export default function AdminPageFrame({
   return (
     <main className="relative isolate min-h-screen w-full max-w-full overflow-x-clip bg-[radial-gradient(ellipse_at_12%_0%,rgba(202,168,111,0.17),transparent_34rem),linear-gradient(180deg,#f8f3eb_0%,#f2eadf_100%)] px-4 py-4 text-[#281f20] sm:px-6 sm:py-7 lg:px-8">
       <div className="pointer-events-none absolute -right-32 top-[26rem] h-[28rem] w-[28rem] rounded-full bg-[#8e70aa]/[0.07] blur-3xl" aria-hidden="true" />
-      <div className="relative mx-auto grid w-full max-w-[94rem] gap-5 lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:gap-7">
+      <div className="relative mx-auto grid w-full max-w-[94rem] grid-cols-1 gap-5 lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:gap-7">
         <aside className="min-w-0 h-fit rounded-[28px] border border-[#dfd2c2] bg-[#fffaf3]/85 p-4 shadow-[0_18px_50px_rgba(60,39,31,0.07)] backdrop-blur-sm lg:sticky lg:top-6 lg:p-5">
           <Link href={isEnglish ? "/meu-universo?lang=en" : "/meu-universo"} className="group flex items-center gap-3 rounded-2xl px-2 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#8e70aa]">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#291e35] text-[#efd59a] shadow-[0_8px_20px_rgba(41,30,53,0.2)]"><Image src={PDU_ASSETS.brand.symbol} alt="" width={36} height={36} className="object-contain" /></span>
@@ -58,13 +58,13 @@ export default function AdminPageFrame({
           </Link>
           <div className="mx-2 my-4 border-t border-[#e8ddd0]" />
           <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#79695e]">{isEnglish ? "Your observatory" : "Seu observatório"}</p>
-          <nav className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible" aria-label={isEnglish ? "Administration navigation" : "Navegação da administração"}>
+          <nav className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-1" aria-label={isEnglish ? "Administration navigation" : "Navegação da administração"}>
             {ADMIN_SECTIONS.map(({ href, label, detail, Icon }) => {
               const active = path === href || path.startsWith(`${href}/`);
               return (
-                <Link key={href} href={isEnglish ? `${href}?lang=en` : href} aria-current={active ? "page" : undefined} className={`group flex min-w-max items-center gap-3 rounded-2xl px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8e70aa] lg:min-w-0 ${active ? "bg-[#2b2036] text-[#fff8ed] shadow-[0_9px_20px_rgba(43,32,54,0.16)]" : "text-[#62554f] hover:bg-[#f1e9df] hover:text-[#302335]"}`}>
-                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${active ? "bg-white/10 text-[#efd59a]" : "bg-[#f1e9df] text-[#8e70aa] group-hover:bg-white"}`}><Icon size={17} /></span>
-                  <span className="lg:min-w-0"><span className="block text-xs font-bold">{label}</span><span className={`hidden text-[10px] lg:block ${active ? "text-white/60" : "text-[#9b8a7e]"}`}>{detail}</span></span>
+                <Link key={href} href={isEnglish ? `${href}?lang=en` : href} aria-current={active ? "page" : undefined} className={`group flex min-w-0 items-center gap-1.5 rounded-2xl px-2 py-2 sm:gap-3 sm:px-3 sm:py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8e70aa] ${active ? "bg-[#2b2036] text-[#fff8ed] shadow-[0_9px_20px_rgba(43,32,54,0.16)]" : "text-[#62554f] hover:bg-[#f1e9df] hover:text-[#302335]"}`}>
+                  <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-xl sm:h-9 sm:w-9 ${active ? "bg-white/10 text-[#efd59a]" : "bg-[#f1e9df] text-[#8e70aa] group-hover:bg-white"}`}><Icon size={17} /></span>
+                  <span className="min-w-0"><span className="block text-[11px] font-bold leading-tight [overflow-wrap:anywhere] sm:text-xs">{label}</span><span className={`hidden text-[10px] lg:block ${active ? "text-white/60" : "text-[#9b8a7e]"}`}>{detail}</span></span>
                 </Link>
               );
             })}
